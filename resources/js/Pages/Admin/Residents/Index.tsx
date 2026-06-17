@@ -52,9 +52,9 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
         <AdminLayout title="Mission-Lokal Admin: Residents">
             <Head title="Residents" />
 
-            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold text-blue-900">Residents</h2>
+                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Residents</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Search verified residents, review IDs, and view civic participation history.
                     </p>
@@ -78,7 +78,8 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
             )}
 
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2">
+                <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
+                    <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
@@ -95,6 +96,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                             <span className="ml-1.5 text-xs opacity-80">({counts[tab.key]})</span>
                         </button>
                     ))}
+                    </div>
                 </div>
                 <div className="relative w-full sm:w-72">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -107,7 +109,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                 </div>
             </div>
 
-            <section className="rounded-lg border bg-card p-4 shadow-sm lg:p-5">
+            <section className="rounded-lg border bg-card p-3 shadow-sm sm:p-4 lg:p-5">
                 <p className="mb-4 text-sm text-muted-foreground">
                     Showing {filtered.length} of {residents.length} residents · sorted by civic XP
                 </p>

@@ -19,15 +19,15 @@ export default function Edit({ announcement, announcementId }: Props) {
     return (
         <AdminLayout title="Mission-Lokal Admin: Edit Announcement">
             <Head title={`Edit: ${item.title}`} />
-            <Button variant="ghost" className="mb-4 -ml-2" asChild>
+            <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
                 <Link href="/admin/announcements">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to announcements
                 </Link>
             </Button>
 
-            <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-blue-900">Edit announcement</h2>
+            <div className="mb-4 sm:mb-6">
+                <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Edit announcement</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                     Update content or change publish status for residents.
                 </p>

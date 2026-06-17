@@ -57,14 +57,14 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Pages
 
 - [-] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
-- [ ] **R9** Post concern — form, map pin, photos
-- [ ] **R10** Concern detail — status timeline
-- [ ] **R11** Library — manuals, evacuation, contacts
-- [ ] **R12** Profile — info, digital ID
-- [ ] **R13** Edit profile — pending approval badge
-- [ ] **R14** Security — change password
-- [ ] **R15–R16** Blotter type select + form
-- [ ] **R17** Announcements list + detail
+- [-] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
+- [-] **R10** Concern detail — status timeline (UI done; wire real data)
+- [-] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
+- [-] **R12** Profile — info, digital ID (UI done; wire real data)
+- [-] **R13** Edit profile — pending approval badge (UI done; wire approval flow)
+- [-] **R14** Security — change password (UI done; wire backend)
+- [-] **R15–R16** Blotter type select + form (UI done; wire backend)
+- [-] **R17** Announcements list + detail (UI done; wire real data)
 
 ### Backend
 

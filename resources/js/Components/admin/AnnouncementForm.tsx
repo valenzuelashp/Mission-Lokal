@@ -162,21 +162,22 @@ export default function AnnouncementForm({
                         Publish immediately (visible to residents)
                     </label>
 
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        <Button type="submit" className="bg-blue-700 hover:bg-blue-800" disabled={processing}>
+                    <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
+                        <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" disabled={processing}>
                             {submitLabel}
                         </Button>
                         {!data.is_published && (
                             <Button
                                 type="button"
                                 variant="outline"
+                                className="w-full sm:w-auto"
                                 disabled={processing}
                                 onClick={(e) => submit(e, true)}
                             >
                                 Save & publish
                             </Button>
                         )}
-                        <Button type="button" variant="ghost" asChild>
+                        <Button type="button" variant="ghost" className="w-full sm:w-auto" asChild>
                             <Link href={cancelHref}>Cancel</Link>
                         </Button>
                     </div>

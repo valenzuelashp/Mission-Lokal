@@ -45,7 +45,7 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
 
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold text-blue-900">Operations map</h2>
+                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Operations map</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Live concern pins and predicted hotspot zones across the barangay.
                     </p>
@@ -59,8 +59,9 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
                 </div>
             </div>
 
-            <div className="grid h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[320px_1fr]">
-                <MapPinSidebar
+            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-11rem)] lg:grid-cols-[320px_1fr]">
+                <div className="max-h-[45vh] overflow-hidden lg:max-h-none">
+                    <MapPinSidebar
                     pins={filtered}
                     selectedId={selectedId}
                     onSelect={setSelectedId}
@@ -76,12 +77,14 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
                     onToggleHotspots={() => setShowHotspots((v) => !v)}
                     counts={counts}
                 />
+                </div>
                 <AdminFullMap
                     pins={filtered}
                     hotspots={hotspots}
                     showHotspots={showHotspots}
                     selectedId={selectedId}
                     onSelect={setSelectedId}
+                    className="h-[50vh] min-h-[280px] lg:h-full"
                 />
             </div>
         </AdminLayout>

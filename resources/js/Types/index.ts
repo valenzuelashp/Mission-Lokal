@@ -85,6 +85,7 @@ export interface PublicConcern {
     vote_count: number;
     location_label: string;
     created_at: string;
+    user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
 }
 
@@ -92,16 +93,63 @@ export interface FeedPageProps extends PageProps {
     concerns: PublicConcern[];
 }
 
-export interface LibraryItem {
+export interface ResidentAnnouncement {
     id: string;
     title: string;
-    category: string;
-    description: string;
-    type: 'manual' | 'contact' | 'evacuation';
+    body: string;
+    image_url?: string | null;
+    published_at: string;
+    author_name: string;
+}
+
+export interface AnnouncementsPageProps extends PageProps {
+    announcements: ResidentAnnouncement[];
+}
+
+export interface AnnouncementShowPageProps extends PageProps {
+    announcement: ResidentAnnouncement;
+}
+
+export interface ResidentProfileData {
+    full_name: string;
+    address: string;
+    birthday: string;
+    digital_id_code: string | null;
+    member_since: string;
+    badges: { id: string; name: string; earned_at: string }[];
+    report_count: number;
+}
+
+export interface ProfilePageProps extends PageProps {
+    profile?: ResidentProfileData;
+}
+
+export type BlotterType = 'two-party' | 'one-party';
+
+export interface BlotterFormPageProps extends PageProps {
+    blotterType: BlotterType;
+}
+
+export interface LibraryManual {
+    id: string;
+    title: string;
+    subtitle: string;
+    icon: 'flood' | 'earthquake' | 'fire';
+    body: string;
+}
+
+export interface LibraryContact {
+    id: string;
+    name: string;
+    role: string;
+    phone: string;
+    icon: 'office' | 'fire' | 'health' | 'police';
+    emergency?: boolean;
 }
 
 export interface LibraryPageProps extends PageProps {
-    items: LibraryItem[];
+    manuals: LibraryManual[];
+    contacts: LibraryContact[];
 }
 
 export interface ConcernDetail extends PublicConcern {
@@ -172,6 +220,55 @@ export interface AdminMission {
 export interface AdminMissionQueuePageProps extends PageProps {
     missions: AdminMission[];
     counts: Record<string, number>;
+}
+
+export interface PersonnelChecklistItem {
+    id: string;
+    label: string;
+    done: boolean;
+}
+
+export interface PersonnelMission {
+    id: string;
+    concern_id: string;
+    title: string;
+    location: string;
+    lat: number;
+    lng: number;
+    priority: 'high' | 'med' | 'low';
+    status: MissionStatus;
+    due_date: string;
+    is_overdue?: boolean;
+    visibility: 'public' | 'private';
+    brief: string;
+    checklist: PersonnelChecklistItem[];
+    reporter_name?: string | null;
+    reporter_phone?: string | null;
+    assigned_at: string;
+    proof_submitted?: boolean;
+}
+
+export interface PersonnelMissionsPageProps extends PageProps {
+    missions: PersonnelMission[];
+    counts: Record<string, number>;
+}
+
+export interface PersonnelMissionPageProps extends PageProps {
+    mission: PersonnelMission;
+}
+
+export interface PersonnelNotification {
+    id: string;
+    title: string;
+    body: string;
+    sent_at: string;
+    read: boolean;
+    mission_id?: string | null;
+}
+
+export interface PersonnelNotificationsPageProps extends PageProps {
+    notifications: PersonnelNotification[];
+    unread_count: number;
 }
 
 export interface AdminActivity {

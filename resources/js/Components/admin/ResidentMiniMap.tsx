@@ -1,5 +1,6 @@
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import L from 'leaflet';
+import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
 
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -31,6 +32,7 @@ export default function ResidentMiniMap({ lat, lng, className = 'h-28' }: Props)
                 zoomControl={false}
                 className="h-full w-full"
             >
+                <MapInvalidateSize />
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <Marker position={[lat, lng]} />
             </MapContainer>

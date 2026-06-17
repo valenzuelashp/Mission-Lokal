@@ -1,6 +1,7 @@
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useEffect } from 'react';
+import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
 
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -45,24 +46,27 @@ export default function MapPinPicker({ center, zoom = 15, position, onPositionCh
 
     return (
         <div className={className}>
-            <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full rounded-lg border">
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <MapClickHandler onPositionChange={onPositionChange} />
-                <Recenter center={pin} />
-                <Marker
-                    position={pin}
-                    draggable
-                    eventHandlers={{
-                        dragend: (e) => {
-                            const { lat, lng } = e.target.getLatLng();
-                            onPositionChange(lat, lng);
-                        },
-                    }}
-                />
-            </MapContainer>
+            <div className="h-full min-h-[14rem] overflow-hidden rounded-lg border">
+                <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full">
+                    <MapInvalidateSize />
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapClickHandler onPositionChange={onPositionChange} />
+                    <Recenter center={pin} />
+                    <Marker
+                        position={pin}
+                        draggable
+                        eventHandlers={{
+                            dragend: (e) => {
+                                const { lat, lng } = e.target.getLatLng();
+                                onPositionChange(lat, lng);
+                            },
+                        }}
+                    />
+                </MapContainer>
+            </div>
             <p className="mt-2 text-xs text-muted-foreground">Tap the map or drag the pin to set the location.</p>
         </div>
     );

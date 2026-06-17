@@ -1,5 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
 import type { MapPin } from '@/Types';
 
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
@@ -27,6 +28,7 @@ export default function MapView({ center, zoom = 15, pins = [], className = 'h-6
     return (
         <div className={className}>
             <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full">
+                <MapInvalidateSize />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

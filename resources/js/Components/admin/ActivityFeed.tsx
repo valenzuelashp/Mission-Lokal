@@ -1,5 +1,6 @@
 import { Bot, CheckCircle2, Radio, User } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { cn } from '@/Lib/utils';
 import type { AdminActivity } from '@/Types';
 
 const iconMap = {
@@ -11,15 +12,16 @@ const iconMap = {
 
 type Props = {
     activities: AdminActivity[];
+    className?: string;
 };
 
-export default function ActivityFeed({ activities }: Props) {
+export default function ActivityFeed({ activities, className }: Props) {
     return (
-        <div className="flex h-full flex-col rounded-lg border bg-card">
+        <div className={cn('flex flex-col rounded-lg border bg-card', className)}>
             <div className="border-b px-4 py-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Activity feed</h3>
             </div>
-            <ul className="flex-1 divide-y">
+            <ul className="max-h-72 flex-1 divide-y overflow-y-auto lg:max-h-none">
                 {activities.map((item) => {
                     const Icon = iconMap[item.icon];
                     return (
@@ -27,7 +29,7 @@ export default function ActivityFeed({ activities }: Props) {
                             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                                 <Icon className="h-4 w-4" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-sm font-medium leading-snug">{item.title}</p>
                                 <p className="mt-0.5 text-xs text-muted-foreground">{item.time}</p>
                             </div>

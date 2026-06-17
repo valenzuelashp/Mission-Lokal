@@ -37,7 +37,7 @@ export default function Show({ resident, residentId }: Props) {
         <AdminLayout title="Mission-Lokal Admin">
             <Head title={data.full_name} />
 
-            <Button variant="ghost" className="mb-4 -ml-2 lg:hidden" asChild>
+            <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
                 <Link href="/admin/residents">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to residents

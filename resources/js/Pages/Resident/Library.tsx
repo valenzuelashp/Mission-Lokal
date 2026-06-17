@@ -1,50 +1,71 @@
-import { Head } from '@inertiajs/react';
-import { BookOpen, Phone, Shield } from 'lucide-react';
-import PageHeader from '@/Components/shared/PageHeader';
-import { Badge } from '@/Components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Head, Link } from '@inertiajs/react';
+import { BookOpen } from 'lucide-react';
+import LibraryHero from '@/Components/resident/library/LibraryHero';
+import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
+import RespondersDirectory from '@/Components/resident/library/RespondersDirectory';
+import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import ResidentLayout from '@/Layouts/ResidentLayout';
+import { libraryContacts, libraryManuals } from '@/Lib/residentDemo';
 import type { LibraryPageProps } from '@/Types';
 
-const typeIcon = {
-    manual: BookOpen,
-    contact: Phone,
-    evacuation: Shield,
-};
+export default function Library(props: Partial<LibraryPageProps>) {
+    const manuals = props.manuals ?? libraryManuals;
+    const contacts = props.contacts ?? libraryContacts;
 
-export default function Library({ items }: LibraryPageProps) {
+    const rightAside = (
+        <>
+            <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Offline access</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    <p>
+                        Install Mission-Lokal as a PWA to access emergency guides and contacts even without
+                        internet.
+                    </p>
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Need help now?</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                    <p className="text-muted-foreground">
+                        For urgent incidents, file a blotter or report a concern on the public feed.
+                    </p>
+                    <Link href="/blotter/new" className="font-medium text-primary hover:underline">
+                        File a blotter →
+                    </Link>
+                </CardContent>
+            </Card>
+        </>
+    );
+
     return (
-        <ResidentLayout>
-            <Head title="Library" />
-            <PageHeader
-                title="Barangay library"
-                description="Emergency guides, contacts, and evacuation info — available offline when installed as PWA."
-            />
+        <ResidentLayout wide>
+            <Head title="Resiliency Library" />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                {items.map((item) => {
-                    const Icon = typeIcon[item.type];
-                    return (
-                        <Card key={item.id} className="transition-shadow hover:shadow-md">
-                            <CardHeader className="pb-2">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <Icon className="h-4 w-4" />
-                                    </div>
-                                    <Badge variant="outline" className="capitalize">
-                                        {item.type}
-                                    </Badge>
-                                </div>
-                                <CardTitle className="text-base pt-2">{item.title}</CardTitle>
-                                <CardDescription>{item.category}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">{item.description}</p>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+            <ResidentSocialShell right={rightAside}>
+                <Card className="shadow-sm">
+                    <CardContent className="flex items-center gap-3 p-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                            <BookOpen className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-bold">Resiliency library</h1>
+                            <p className="text-sm text-muted-foreground">
+                                Manuals and contacts for emergencies in your barangay
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <LibraryHero />
+                <PreparednessManuals manuals={manuals} />
+                <RespondersDirectory contacts={contacts} />
+            </ResidentSocialShell>
         </ResidentLayout>
     );
 }

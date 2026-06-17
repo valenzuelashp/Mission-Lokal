@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { Megaphone, Pencil, Trash2 } from 'lucide-react';
+import AnnouncementCard from '@/Components/admin/AnnouncementCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import type { AdminAnnouncement } from '@/Types';
@@ -15,28 +16,32 @@ export default function AnnouncementsTable({ announcements }: Props) {
         }
     };
 
+    if (announcements.length === 0) {
+        return <p className="py-10 text-center text-sm text-muted-foreground">No announcements match your filters.</p>;
+    }
+
     return (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[800px] text-sm">
-                <thead>
-                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th className="px-4 py-3">Title</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Published</th>
-                        <th className="px-4 py-3">Author</th>
-                        <th className="px-4 py-3">Updated</th>
-                        <th className="px-4 py-3">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {announcements.length === 0 ? (
-                        <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                                No announcements match your filters.
-                            </td>
+        <>
+            <div className="space-y-3 md:hidden">
+                {announcements.map((announcement) => (
+                    <AnnouncementCard key={announcement.id} announcement={announcement} />
+                ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+                <table className="w-full min-w-[800px] text-sm">
+                    <thead>
+                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <th className="px-4 py-3">Title</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Published</th>
+                            <th className="px-4 py-3">Author</th>
+                            <th className="px-4 py-3">Updated</th>
+                            <th className="px-4 py-3">Actions</th>
                         </tr>
-                    ) : (
-                        announcements.map((row) => (
+                    </thead>
+                    <tbody>
+                        {announcements.map((row) => (
                             <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                                 <td className="px-4 py-3">
                                     <div className="flex items-start gap-3">
@@ -90,10 +95,10 @@ export default function AnnouncementsTable({ announcements }: Props) {
                                     </div>
                                 </td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }

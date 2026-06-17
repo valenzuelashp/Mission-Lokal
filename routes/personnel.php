@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\Personnel\MissionController;
+use App\Http\Controllers\Personnel\NotificationController;
 use App\Http\Controllers\Auth\PersonnelLoginController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,9 +18,12 @@ Route::prefix('personnel')->name('personnel.')->group(function () {
     });
 
     Route::middleware(['auth', 'role:personnel'])->group(function () {
-        Route::get('/missions', fn () => Inertia::render('Personnel/Missions/Index'))->name('missions.index');
-        Route::get('/missions/{mission}', fn () => Inertia::render('Personnel/Missions/Show'))->name('missions.show');
-        Route::get('/missions/{mission}/proof', fn () => Inertia::render('Personnel/Missions/Proof'))->name('missions.proof');
-        Route::get('/notifications', fn () => Inertia::render('Personnel/Notifications'))->name('notifications');
+        Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
+        Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
+        Route::patch('/missions/{mission}/status', [MissionController::class, 'updateStatus'])->name('missions.status');
+        Route::patch('/missions/{mission}/checklist', [MissionController::class, 'toggleChecklist'])->name('missions.checklist');
+        Route::get('/missions/{mission}/proof', [MissionController::class, 'proofForm'])->name('missions.proof');
+        Route::post('/missions/{mission}/proof', [MissionController::class, 'storeProof'])->name('missions.proof.store');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
     });
 });

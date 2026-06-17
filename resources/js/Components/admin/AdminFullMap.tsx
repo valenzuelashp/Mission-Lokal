@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { useEffect } from 'react';
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { useEffect } from 'react';
+import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { createPinIcon, hotspotColors } from '@/Lib/mapUtils';
@@ -47,14 +48,15 @@ export default function AdminFullMap({
     selectedId,
     onSelect,
     center = [14.5995, 120.9842],
-    className = 'h-full min-h-[420px]',
+    className = 'h-[50vh] min-h-[280px] lg:h-full',
 }: Props) {
     const selected = pins.find((p) => p.id === selectedId);
 
     return (
         <div className={className}>
-            <div className="relative h-full overflow-hidden rounded-lg border bg-slate-900">
+            <div className="relative h-full min-h-[280px] overflow-hidden rounded-lg border bg-slate-900">
                 <MapContainer center={center} zoom={14} scrollWheelZoom className="h-full w-full">
+                    <MapInvalidateSize />
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/">CARTO</a>'
                         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"

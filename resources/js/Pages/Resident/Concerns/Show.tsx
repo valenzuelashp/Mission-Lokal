@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { MapPin } from 'lucide-react';
+import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import StatusTimeline from '@/Components/resident/StatusTimeline';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Badge } from '@/Components/ui/badge';
@@ -49,11 +50,28 @@ export default function Show({ concern }: ConcernShowPageProps) {
                             <MapView
                                 center={[14.5995, 120.9842]}
                                 pins={[{ id: concern.id, lat: 14.5995, lng: 120.9842, title: concern.title }]}
-                                className="h-48"
+                                className="h-56 sm:h-64"
                             />
                         </CardContent>
                     </Card>
                 </div>
+
+                <Card className="h-fit">
+                    <CardHeader>
+                        <CardTitle className="text-base">Community vote</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <ConcernVoteButtons
+                            concernId={concern.id}
+                            voteCount={concern.vote_count}
+                            userVote={concern.user_vote ?? null}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Upvote concerns you want prioritized. Downvote if you think the issue is inaccurate or
+                            already resolved.
+                        </p>
+                    </CardContent>
+                </Card>
 
                 <Card className="h-fit">
                     <CardHeader>

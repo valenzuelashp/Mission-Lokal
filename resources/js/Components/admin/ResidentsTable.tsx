@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Award, ChevronRight } from 'lucide-react';
+import ResidentCard from '@/Components/admin/ResidentCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import type { AdminResident, VerificationStatus } from '@/Types';
@@ -23,30 +24,34 @@ type Props = {
 };
 
 export default function ResidentsTable({ residents }: Props) {
+    if (residents.length === 0) {
+        return <p className="py-10 text-center text-sm text-muted-foreground">No residents match your search.</p>;
+    }
+
     return (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[960px] text-sm">
-                <thead>
-                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th className="px-4 py-3">Resident</th>
-                        <th className="px-4 py-3">Account ID</th>
-                        <th className="px-4 py-3">Contact</th>
-                        <th className="px-4 py-3">Verification</th>
-                        <th className="px-4 py-3">Civic XP</th>
-                        <th className="px-4 py-3">Reports</th>
-                        <th className="px-4 py-3">Joined</th>
-                        <th className="px-4 py-3">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {residents.length === 0 ? (
-                        <tr>
-                            <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                                No residents match your search.
-                            </td>
+        <>
+            <div className="space-y-3 md:hidden">
+                {residents.map((resident) => (
+                    <ResidentCard key={resident.id} resident={resident} />
+                ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+                <table className="w-full min-w-[960px] text-sm">
+                    <thead>
+                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <th className="px-4 py-3">Resident</th>
+                            <th className="px-4 py-3">Account ID</th>
+                            <th className="px-4 py-3">Contact</th>
+                            <th className="px-4 py-3">Verification</th>
+                            <th className="px-4 py-3">Civic XP</th>
+                            <th className="px-4 py-3">Reports</th>
+                            <th className="px-4 py-3">Joined</th>
+                            <th className="px-4 py-3">Action</th>
                         </tr>
-                    ) : (
-                        residents.map((row) => (
+                    </thead>
+                    <tbody>
+                        {residents.map((row) => (
                             <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
@@ -90,10 +95,10 @@ export default function ResidentsTable({ residents }: Props) {
                                     </Button>
                                 </td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }

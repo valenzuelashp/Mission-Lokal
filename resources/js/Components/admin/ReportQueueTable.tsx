@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Droplets, Flame, Lightbulb, Trash2, Volume2, Waves } from 'lucide-react';
+import ReportQueueCard from '@/Components/admin/ReportQueueCard';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -35,31 +36,35 @@ type Props = {
 };
 
 export default function ReportQueueTable({ reports }: Props) {
+    if (reports.length === 0) {
+        return <p className="py-10 text-center text-sm text-muted-foreground">No reports in this queue.</p>;
+    }
+
     return (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[960px] text-sm">
-                <thead>
-                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th className="px-4 py-3">ID</th>
-                        <th className="px-4 py-3">Concern</th>
-                        <th className="px-4 py-3">Location</th>
-                        <th className="px-4 py-3">AI category</th>
-                        <th className="px-4 py-3">AI severity</th>
-                        <th className="px-4 py-3">Visibility</th>
-                        <th className="px-4 py-3">Queue status</th>
-                        <th className="px-4 py-3">Submitted</th>
-                        <th className="px-4 py-3">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {reports.length === 0 ? (
-                        <tr>
-                            <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
-                                No reports in this queue.
-                            </td>
+        <>
+            <div className="space-y-3 md:hidden">
+                {reports.map((report) => (
+                    <ReportQueueCard key={report.id} report={report} />
+                ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+                <table className="w-full min-w-[960px] text-sm">
+                    <thead>
+                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <th className="px-4 py-3">ID</th>
+                            <th className="px-4 py-3">Concern</th>
+                            <th className="px-4 py-3">Location</th>
+                            <th className="px-4 py-3">AI category</th>
+                            <th className="px-4 py-3">AI severity</th>
+                            <th className="px-4 py-3">Visibility</th>
+                            <th className="px-4 py-3">Queue status</th>
+                            <th className="px-4 py-3">Submitted</th>
+                            <th className="px-4 py-3">Action</th>
                         </tr>
-                    ) : (
-                        reports.map((row) => {
+                    </thead>
+                    <tbody>
+                        {reports.map((row) => {
                             const Icon = typeIcons[row.type_icon] ?? Flame;
                             return (
                                 <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
@@ -104,10 +109,10 @@ export default function ReportQueueTable({ reports }: Props) {
                                     </td>
                                 </tr>
                             );
-                        })
-                    )}
-                </tbody>
-            </table>
-        </div>
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }

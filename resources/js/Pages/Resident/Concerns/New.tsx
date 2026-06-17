@@ -104,17 +104,17 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                                 setData('lat', lat);
                                 setData('lng', lng);
                             }}
-                            className="h-64"
+                            className="h-56 sm:h-64"
                         />
                         {errors.lat && <p className="mt-2 text-sm text-destructive">{errors.lat}</p>}
                     </CardContent>
                 </Card>
 
-                <div className="flex gap-3 lg:col-span-2">
-                    <Button type="submit" disabled={processing}>
+                <div className="flex flex-col gap-2 lg:col-span-2 sm:flex-row">
+                    <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
                         Submit concern
                     </Button>
-                    <Button type="button" variant="outline" asChild>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
                         <Link href="/feed">Cancel</Link>
                     </Button>
                 </div>

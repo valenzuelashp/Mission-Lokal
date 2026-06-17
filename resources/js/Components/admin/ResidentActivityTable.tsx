@@ -45,32 +45,49 @@ export default function ResidentActivityTable({ activities }: Props) {
             </CardHeader>
             <CardContent className="p-0">
                 {activities.length === 0 ? (
-                    <p className="px-6 pb-6 text-sm text-muted-foreground">No activity recorded yet.</p>
+                    <p className="px-4 pb-6 text-sm text-muted-foreground sm:px-6">No activity recorded yet.</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    <th className="px-4 py-3">Date</th>
-                                    <th className="px-4 py-3">Type</th>
-                                    <th className="px-4 py-3">Description</th>
-                                    <th className="px-4 py-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {activities.map((row) => (
-                                    <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                        <td className="px-4 py-3 text-muted-foreground">{row.date}</td>
-                                        <td className="px-4 py-3">{typeLabel[row.type]}</td>
-                                        <td className="px-4 py-3">{row.description}</td>
-                                        <td className={cn('px-4 py-3 font-semibold', statusStyle[row.status])}>
+                    <>
+                        <div className="space-y-0 divide-y md:hidden">
+                            {activities.map((row) => (
+                                <div key={row.id} className="space-y-1 px-4 py-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs text-muted-foreground">{row.date}</span>
+                                        <span className={cn('text-xs font-semibold', statusStyle[row.status])}>
                                             {statusLabel[row.status]}
-                                        </td>
+                                        </span>
+                                    </div>
+                                    <p className="text-sm">{row.description}</p>
+                                    <span className="text-xs text-muted-foreground">{typeLabel[row.type]}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        <th className="px-4 py-3">Date</th>
+                                        <th className="px-4 py-3">Type</th>
+                                        <th className="px-4 py-3">Description</th>
+                                        <th className="px-4 py-3">Status</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {activities.map((row) => (
+                                        <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                                            <td className="px-4 py-3 text-muted-foreground">{row.date}</td>
+                                            <td className="px-4 py-3">{typeLabel[row.type]}</td>
+                                            <td className="px-4 py-3">{row.description}</td>
+                                            <td className={cn('px-4 py-3 font-semibold', statusStyle[row.status])}>
+                                                {statusLabel[row.status]}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </CardContent>
         </Card>

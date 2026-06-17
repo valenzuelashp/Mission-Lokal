@@ -32,13 +32,22 @@ Route::middleware(['auth', 'role:resident'])->group(function () {
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
+    Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     Route::get('/library', [LibraryController::class, 'index'])->name('library');
     Route::get('/announcements', fn () => Inertia::render('Resident/Announcements'))->name('announcements');
+    Route::get('/announcements/{announcement}', fn (string $announcement) => Inertia::render('Resident/Announcements/Show', [
+        'announcementId' => $announcement,
+    ]))->name('announcements.show');
     Route::get('/profile', fn () => Inertia::render('Resident/Profile'))->name('profile');
     Route::get('/profile/edit', fn () => Inertia::render('Resident/ProfileEdit'))->name('profile.edit');
+    Route::post('/profile/edit', fn () => redirect()->route('profile.edit')->with('success', 'Edit request submitted for admin review.'))->name('profile.edit.store');
     Route::get('/profile/security', fn () => Inertia::render('Resident/Security'))->name('profile.security');
+    Route::post('/profile/security', fn () => redirect()->route('profile.security')->with('success', 'Password updated successfully.'))->name('profile.security.store');
     Route::get('/blotter/new', fn () => Inertia::render('Resident/Blotter/TypeSelect'))->name('blotter.create');
-    Route::get('/blotter/new/{type}', fn () => Inertia::render('Resident/Blotter/Form'))->name('blotter.form');
+    Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
+        'blotterType' => $type,
+    ]))->name('blotter.form');
+    Route::post('/blotter', fn () => redirect()->route('feed')->with('success', 'Blotter submitted. You will receive a ticket number after admin approval.'))->name('blotter.store');
 });
 
 Route::middleware('guest')->group(function () {

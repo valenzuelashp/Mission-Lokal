@@ -86,7 +86,7 @@ export default function Dashboard(props: Partial<AdminDashboardPageProps>) {
         <AdminLayout title="Mission-Lokal Admin: Dashboard">
             <Head title="Admin Dashboard" />
 
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4 xl:grid-cols-4">
                 <KpiCard
                     label="Total reports"
                     value={stats.total_reports}
@@ -115,20 +115,20 @@ export default function Dashboard(props: Partial<AdminDashboardPageProps>) {
                 />
             </div>
 
-            <section className="mb-6 rounded-lg border bg-card p-4 shadow-sm lg:p-5">
+            <section className="mb-4 rounded-lg border bg-card p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-5">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-lg font-semibold">Active incident queue</h2>
+                        <h2 className="text-base font-semibold sm:text-lg">Active incident queue</h2>
                         <p className="text-sm text-muted-foreground">
                             Showing {incidents.length} of {stats.ongoing_missions} active missions
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button variant="outline" size="sm" className="w-full sm:w-auto">
                             <Filter className="mr-2 h-4 w-4" />
                             Filter
                         </Button>
-                        <Button size="sm" className="bg-blue-700 hover:bg-blue-800" asChild>
+                        <Button size="sm" className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" asChild>
                             <Link href="/admin/missions">
                                 <Plus className="mr-2 h-4 w-4" />
                                 New mission
@@ -154,8 +154,8 @@ export default function Dashboard(props: Partial<AdminDashboardPageProps>) {
             </section>
 
             <div className="grid gap-4 lg:grid-cols-3">
-                <div className="rounded-lg border bg-card p-4 shadow-sm lg:col-span-2">
-                    <AdminOperationMap pins={map_pins} className="h-96" />
+                <div className="rounded-lg border bg-card p-3 shadow-sm sm:p-4 lg:col-span-2">
+                    <AdminOperationMap pins={map_pins} className="h-64 sm:h-80 lg:h-96" />
                 </div>
                 <ActivityFeed activities={activities} />
             </div>

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { AlertTriangle, Clock } from 'lucide-react';
+import MissionQueueCard from '@/Components/admin/MissionQueueCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import type { AdminMission, MissionStatus } from '@/Types';
@@ -27,31 +28,35 @@ type Props = {
 };
 
 export default function MissionQueueTable({ missions }: Props) {
+    if (missions.length === 0) {
+        return <p className="py-10 text-center text-sm text-muted-foreground">No missions in this queue.</p>;
+    }
+
     return (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full min-w-[900px] text-sm">
-                <thead>
-                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th className="px-4 py-3">Mission ID</th>
-                        <th className="px-4 py-3">Concern</th>
-                        <th className="px-4 py-3">Location</th>
-                        <th className="px-4 py-3">Assigned to</th>
-                        <th className="px-4 py-3">Priority</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Due</th>
-                        <th className="px-4 py-3">Flags</th>
-                        <th className="px-4 py-3">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {missions.length === 0 ? (
-                        <tr>
-                            <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
-                                No missions in this queue.
-                            </td>
+        <>
+            <div className="space-y-3 md:hidden">
+                {missions.map((mission) => (
+                    <MissionQueueCard key={mission.id} mission={mission} />
+                ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
+                <table className="w-full min-w-[900px] text-sm">
+                    <thead>
+                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <th className="px-4 py-3">Mission ID</th>
+                            <th className="px-4 py-3">Concern</th>
+                            <th className="px-4 py-3">Location</th>
+                            <th className="px-4 py-3">Assigned to</th>
+                            <th className="px-4 py-3">Priority</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Due</th>
+                            <th className="px-4 py-3">Flags</th>
+                            <th className="px-4 py-3">Action</th>
                         </tr>
-                    ) : (
-                        missions.map((row) => (
+                    </thead>
+                    <tbody>
+                        {missions.map((row) => (
                             <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                                 <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
                                 <td className="max-w-[180px] px-4 py-3">
@@ -113,10 +118,10 @@ export default function MissionQueueTable({ missions }: Props) {
                                     </Button>
                                 </td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }

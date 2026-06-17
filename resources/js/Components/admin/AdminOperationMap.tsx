@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import L from 'leaflet';
+import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
+import { cn } from '@/Lib/utils';
 import type { MapPin } from '@/Types';
 
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
@@ -24,8 +26,8 @@ type Props = {
 
 export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], className = 'h-80' }: Props) {
     return (
-        <div className={className}>
-            <div className="mb-2 flex items-center justify-between">
+        <div className={cn('flex flex-col', className)}>
+            <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Live operation area</h3>
                 <div className="flex items-center gap-3">
                     <Link href="/admin/map" className="text-xs font-medium text-blue-700 hover:underline">
@@ -37,8 +39,9 @@ export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], 
                     </span>
                 </div>
             </div>
-            <div className="relative h-[calc(100%-2rem)] overflow-hidden rounded-lg border">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border">
                 <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full">
+                    <MapInvalidateSize />
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/">CARTO</a>'
                         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"

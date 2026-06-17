@@ -55,14 +55,14 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                 </div>
             )}
 
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold text-blue-900">Announcements</h2>
+                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Announcements</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Create and publish barangay advisories visible to all residents.
                     </p>
                 </div>
-                <Button size="sm" className="bg-blue-700 hover:bg-blue-800" asChild>
+                <Button size="sm" className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" asChild>
                     <Link href="/admin/announcements/create">
                         <Plus className="mr-2 h-4 w-4" />
                         New announcement
@@ -77,7 +77,8 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
             )}
 
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2">
+                <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
+                    <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
@@ -94,6 +95,7 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                             <span className="ml-1.5 text-xs opacity-80">({counts[tab.key]})</span>
                         </button>
                     ))}
+                    </div>
                 </div>
                 <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -106,7 +108,7 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                 </div>
             </div>
 
-            <section className="rounded-lg border bg-card p-4 shadow-sm lg:p-5">
+            <section className="rounded-lg border bg-card p-3 shadow-sm sm:p-4 lg:p-5">
                 <p className="mb-4 text-sm text-muted-foreground">
                     Showing {filtered.length} of {announcements.length} announcements
                 </p>
