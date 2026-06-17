@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\PersonnelLoginController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -10,7 +11,10 @@ use Inertia\Inertia;
 */
 
 Route::prefix('personnel')->name('personnel.')->group(function () {
-    Route::middleware('guest')->get('/login', fn () => Inertia::render('Auth/PersonnelLogin'))->name('login');
+    Route::middleware('guest')->group(function () {
+        Route::get('/login', [PersonnelLoginController::class, 'create'])->name('login');
+        Route::post('/login', [PersonnelLoginController::class, 'store']);
+    });
 
     Route::middleware(['auth', 'role:personnel'])->group(function () {
         Route::get('/missions', fn () => Inertia::render('Personnel/Missions/Index'))->name('missions.index');

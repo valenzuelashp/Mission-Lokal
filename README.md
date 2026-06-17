@@ -73,7 +73,31 @@ routes/
 - Node.js 18+ and npm
 - MySQL (or compatible database)
 
-## Getting Started
+## Quick start (new teammates)
+
+**Prerequisites:** PHP 8.2+, Composer, Node 18+, MySQL 8+. See [docs/TEAM_GUIDE.md](docs/TEAM_GUIDE.md) for full details.
+
+```powershell
+# Windows
+.\scripts\setup.ps1
+```
+
+```bash
+# macOS / Linux
+chmod +x scripts/setup.sh && ./scripts/setup.sh
+```
+
+Then run two terminals: `php artisan serve` and `npm run dev` → [http://localhost:8000](http://localhost:8000)
+
+**Demo logins** (password: `password`):
+
+| Role | Account ID | URL |
+|------|------------|-----|
+| Admin | `ADMIN001` | `/login` |
+| Personnel | `PER001` | `/personnel/login` |
+| Resident | `RES001` | `/login` |
+
+## Getting Started (manual)
 
 1. **Clone the repository**
 
@@ -150,6 +174,8 @@ The app is configured as a Progressive Web App with standalone display, auto-upd
 
 | Document | Description |
 | --- | --- |
+| [docs/TEAM_GUIDE.md](docs/TEAM_GUIDE.md) | **Start here** — install, run, conventions, troubleshooting |
+| [docs/TASKS.md](docs/TASKS.md) | Project task backlog and sprint plan |
 | [docs/BLUEPRINT.md](docs/BLUEPRINT.md) | Full system blueprint — requirements, flows, API, MVP scope |
 | [docs/DATABASE.md](docs/DATABASE.md) | Normalized MySQL schema — tables, keys, indexes |
 

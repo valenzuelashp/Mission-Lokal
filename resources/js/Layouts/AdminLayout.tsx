@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 
 const nav = [
@@ -22,6 +22,13 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                             {item.label}
                         </Link>
                     ))}
+                    <button
+                        type="button"
+                        onClick={() => router.post('/logout')}
+                        className="mt-4 rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                    >
+                        Logout
+                    </button>
                 </nav>
             </aside>
             <main className="flex-1 p-6">{children}</main>

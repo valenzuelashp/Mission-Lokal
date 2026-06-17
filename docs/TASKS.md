@@ -1,0 +1,216 @@
+# Mission-Lokal — Project Tasks
+
+Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DATABASE.md).
+
+**Legend:** `[x]` done · `[ ]` not started · `[-]` in progress
+
+---
+
+## Phase 0 — Project foundation
+
+- [x] Laravel 11 bootstrap (`artisan`, `bootstrap/`, `config/`, `public/`)
+- [x] Inertia middleware + shared props (`auth`, `flash`)
+- [x] Role middleware (`EnsureUserHasRole`)
+- [x] Route skeleton (resident, personnel, admin, auth, onboarding)
+- [x] Layout shells (Resident, Personnel, Admin)
+- [x] Stub pages for all routed screens
+- [x] Login (resident/admin) + personnel login
+- [x] Setup scripts (`scripts/setup.ps1`, `scripts/setup.sh`)
+- [x] Team guide ([TEAM_GUIDE.md](./TEAM_GUIDE.md))
+- [ ] Base shadcn/ui components (Button, Input, Card, Dialog, Table, Form)
+- [ ] Shared UI: toasts, empty states, mobile nav polish
+
+---
+
+## Phase 1 — Database & domain layer
+
+- [x] Core migrations: `barangays`, `barangay_settings`, `users`, sessions, cache, jobs
+- [x] Models: `Barangay`, `BarangaySetting`, `User`
+- [x] PHP enums: `UserRole`, `ConcernStatus`, `MissionStatus`, `VerificationStatus`
+- [x] Demo seeder (barangay + admin, personnel, resident accounts)
+- [ ] Remaining MVP tables (concerns, missions, blotters, library, announcements, audit, etc.)
+- [ ] Seed `concern_categories` and subcategories (Blueprint §12)
+- [ ] Seed `category_playbooks`
+- [ ] Seed library items (emergency guides, evacuation centers)
+- [ ] Factories for concerns, missions, users
+
+---
+
+## Phase 2 — Authentication & onboarding
+
+- [x] Resident/admin login (`account_id` + password)
+- [x] Personnel login portal
+- [x] Logout
+- [ ] Forgot password — email OTP → reset (Blueprint R7)
+- [ ] Onboarding: confirm preloaded details
+- [ ] Onboarding: government ID upload (encrypt at rest)
+- [ ] Onboarding: pending / approved / rejected screens
+- [ ] Onboarding: set password after approval
+- [ ] Middleware: redirect unverified residents to onboarding
+- [ ] `preloaded_residents` import (CSV)
+
+---
+
+## Phase 3 — Resident module (MVP)
+
+### Pages
+
+- [ ] **R8** Public feed — list, vote, post CTA (stub exists)
+- [ ] **R9** Post concern — form, map pin, photos
+- [ ] **R10** Concern detail — status timeline
+- [ ] **R11** Library — manuals, evacuation, contacts
+- [ ] **R12** Profile — info, digital ID
+- [ ] **R13** Edit profile — pending approval badge
+- [ ] **R14** Security — change password
+- [ ] **R15–R16** Blotter type select + form
+- [ ] **R17** Announcements list + detail
+
+### Backend
+
+- [ ] `ConcernController` — CRUD, vote, visibility rules
+- [ ] `BlotterController`
+- [ ] `ProfileController` — update with approval flow
+- [ ] `LibraryController`, `AnnouncementController`
+- [ ] File upload service (concern media, ID docs)
+- [ ] Row-level authorization for private concerns
+
+---
+
+## Phase 4 — AI concern pipeline
+
+- [ ] Queue job: `ProcessConcernWithAi`
+- [ ] Language detect (Filipino / English)
+- [ ] Category + subcategory classification
+- [ ] Public vs private routing
+- [ ] Severity scoring
+- [ ] Duplicate detection (geo + time window)
+- [ ] Prescriptive checklist from playbooks
+- [ ] Suggested due date
+- [ ] Persist `concern_ai_analysis`; status → `ai_processed`
+- [ ] Blotter redirect prompt for sensitive concerns
+- [ ] Admin queue notification
+
+---
+
+## Phase 5 — Admin module (MVP)
+
+### Pages
+
+- [ ] **A1** Dashboard — KPI cards
+- [ ] **A2** Full map — pins, filters
+- [ ] **A3** Report queue — confirm / override / reject
+- [ ] **A4** Mission board — assign / reassign
+- [ ] **A5** Verification queue
+- [ ] **A6** Profile edit queue
+- [ ] **A7–A8** Residents list + detail
+- [ ] **A9** Blotters management
+- [ ] **A10** Announcements CRUD
+- [ ] **A11** Library CRUD
+- [ ] **A12** Audit log
+- [ ] **A13** Settings
+
+### Backend
+
+- [ ] Report actions: confirm AI, merge duplicate, reject, create mission
+- [ ] Mission assignment + verification
+- [ ] Concern status state machine (Blueprint §5.1)
+- [ ] Audit log on admin mutations
+- [ ] Blotter approval → ticket number
+
+---
+
+## Phase 6 — Personnel module (MVP)
+
+### Pages
+
+- [ ] **P2** My missions list
+- [ ] **P3** Mission detail — checklist, map
+- [ ] **P4** Proof upload
+- [ ] **P5** Notifications
+
+### Backend
+
+- [ ] Status: acknowledge → in progress → completed
+- [ ] Proof upload + storage
+- [ ] ACK timeout escalation (default 4 hrs)
+- [ ] Assigned-mission-only authorization
+
+---
+
+## Phase 7 — Notifications
+
+- [ ] SMS gateway (personnel assignment)
+- [ ] Email: OTP, verification, blotter ticket
+- [ ] In-app notifications + badges
+- [ ] Resident: active, resolved, rejected alerts
+- [ ] Admin: unacknowledged missions, new proof
+
+---
+
+## Phase 8 — Maps & dashboard
+
+- [ ] Extend `MapView` — pins, popups, severity colors
+- [ ] Admin map filters
+- [ ] Geocoding / reverse geocode
+- [ ] Dashboard aggregates
+
+---
+
+## Phase 9 — PWA, security & compliance
+
+- [ ] PWA install + service worker verification
+- [ ] Offline library cache
+- [ ] Rate limiting (login, OTP, reports)
+- [ ] Government ID encryption
+- [ ] VAWC / domestic: force private visibility
+- [ ] Privacy policy + registration consent
+- [ ] WCAG basics on key flows
+
+---
+
+## Phase 10 — Testing & deployment
+
+- [ ] Unit tests: state transitions, permissions
+- [ ] Feature test: full concern → mission → close loop
+- [ ] Security tests: IDOR, role escalation
+- [ ] UAT scripts per role
+- [ ] Staging + production deploy docs
+- [ ] CI: Pint, `npm run build`, PHPUnit
+
+---
+
+## Phase 11 — Post-MVP (Phase 2)
+
+- [ ] Heat map + hotspot ML
+- [ ] Chatbot RAG (Blueprint R18)
+- [ ] Civic XP, leaderboards, badges
+- [ ] Full blotter desk workflow
+- [ ] Duplicate merge UI
+- [ ] Web push notifications
+- [ ] Event attendance XP
+- [ ] Multi-barangay super admin
+
+---
+
+## Suggested sprints
+
+| Sprint | Focus | Outcome |
+|--------|--------|---------|
+| **1** | Phase 0–1 | App runs, DB seeded, teammates onboarded |
+| **2** | Phase 2–3 | Auth, onboarding, post concern |
+| **3** | Phase 4–5 | AI pipeline + admin report queue |
+| **4** | Phase 5–6 | Missions end-to-end |
+| **5** | Phase 7–8 | Notifications + map dashboard |
+| **6** | Phase 9–10 | Hardening, tests, deploy |
+
+---
+
+## How to claim work
+
+1. Pick an unchecked task in the phase your team owns.
+2. Create a branch: `feature/phase3-concern-form` (example).
+3. Mark the task `[-]` in this file while in progress.
+4. Mark `[x]` when merged to `main`.
+5. Link the PR in your commit or team chat.
+
+See [TEAM_GUIDE.md](./TEAM_GUIDE.md) for environment setup and conventions.

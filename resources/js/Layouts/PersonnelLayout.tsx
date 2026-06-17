@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 
 export default function PersonnelLayout({ children }: PropsWithChildren) {
@@ -10,6 +10,7 @@ export default function PersonnelLayout({ children }: PropsWithChildren) {
                     <nav className="flex gap-4 text-sm">
                         <Link href="/personnel/missions">Missions</Link>
                         <Link href="/personnel/notifications">Notifications</Link>
+                        <button type="button" onClick={() => router.post('/logout')}>Logout</button>
                     </nav>
                 </div>
             </header>

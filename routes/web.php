@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PersonnelLoginController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,9 +27,12 @@ Route::middleware(['auth', 'role:resident'])->group(function () {
 });
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', fn () => Inertia::render('Auth/Login'))->name('login');
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store']);
     Route::get('/forgot-password', fn () => Inertia::render('Auth/ForgotPassword'))->name('password.request');
 });
+
+Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
 Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
     Route::get('/confirm', fn () => Inertia::render('Onboarding/ConfirmDetails'))->name('confirm');
