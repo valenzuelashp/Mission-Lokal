@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\UserRole;
+use App\Http\Controllers\Resident\ConcernController;
+use App\Http\Controllers\Resident\FeedController;
+use App\Http\Controllers\Resident\LibraryController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PersonnelLoginController;
 use Illuminate\Support\Facades\Route;
@@ -11,13 +15,24 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', fn () => redirect()->route('feed'));
+Route::get('/', function () {
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    return match (auth()->user()->role) {
+        UserRole::Admin => redirect()->route('admin.dashboard'),
+        UserRole::Personnel => redirect()->route('personnel.missions.index'),
+        default => redirect()->route('feed'),
+    };
+});
 
 Route::middleware(['auth', 'role:resident'])->group(function () {
-    Route::get('/feed', fn () => Inertia::render('Resident/Feed'))->name('feed');
-    Route::get('/concerns/new', fn () => Inertia::render('Resident/Concerns/New'))->name('concerns.create');
-    Route::get('/concerns/{concern}', fn () => Inertia::render('Resident/Concerns/Show'))->name('concerns.show');
-    Route::get('/library', fn () => Inertia::render('Resident/Library'))->name('library');
+    Route::get('/feed', [FeedController::class, 'index'])->name('feed');
+    Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
+    Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');
+    Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
+    Route::get('/library', [LibraryController::class, 'index'])->name('library');
     Route::get('/announcements', fn () => Inertia::render('Resident/Announcements'))->name('announcements');
     Route::get('/profile', fn () => Inertia::render('Resident/Profile'))->name('profile');
     Route::get('/profile/edit', fn () => Inertia::render('Resident/ProfileEdit'))->name('profile.edit');

@@ -36,7 +36,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($this->homeFor(Auth::user()->role));
+        return redirect($this->homeFor(Auth::user()->role));
     }
 
     public function destroy(Request $request): RedirectResponse

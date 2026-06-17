@@ -8,7 +8,6 @@ use App\Models\Barangay;
 use App\Models\BarangaySetting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -30,14 +29,12 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        $password = Hash::make('password');
-
         User::query()->create([
             'barangay_id' => $barangay->id,
             'account_id' => 'ADMIN001',
             'role' => UserRole::Admin,
             'email' => 'admin@demo.local',
-            'password' => $password,
+            'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
         ]);
 
@@ -47,7 +44,7 @@ class DatabaseSeeder extends Seeder
             'role' => UserRole::Personnel,
             'email' => 'personnel@demo.local',
             'mobile' => '09181234567',
-            'password' => $password,
+            'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
         ]);
 
@@ -57,7 +54,7 @@ class DatabaseSeeder extends Seeder
             'role' => UserRole::Resident,
             'email' => 'resident@demo.local',
             'mobile' => '09191234567',
-            'password' => $password,
+            'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
             'civic_xp' => 25,
         ]);

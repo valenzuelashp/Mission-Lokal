@@ -17,8 +17,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Login (resident/admin) + personnel login
 - [x] Setup scripts (`scripts/setup.ps1`, `scripts/setup.sh`)
 - [x] Team guide ([TEAM_GUIDE.md](./TEAM_GUIDE.md))
-- [ ] Base shadcn/ui components (Button, Input, Card, Dialog, Table, Form)
-- [ ] Shared UI: toasts, empty states, mobile nav polish
+- [x] Base shadcn/ui components (Button, Input, Card, Badge, Label)
+- [x] Shared UI: PageHeader, EmptyState, mobile nav (ResidentLayout)
+- [ ] Shared UI: toasts, Dialog, Table, Form
 
 ---
 
@@ -55,7 +56,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [ ] **R8** Public feed — list, vote, post CTA (stub exists)
+- [-] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
 - [ ] **R9** Post concern — form, map pin, photos
 - [ ] **R10** Concern detail — status timeline
 - [ ] **R11** Library — manuals, evacuation, contacts
@@ -96,15 +97,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [ ] **A1** Dashboard — KPI cards
-- [ ] **A2** Full map — pins, filters
-- [ ] **A3** Report queue — confirm / override / reject
-- [ ] **A4** Mission board — assign / reassign
+- [-] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
+- [-] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
+- [-] **A3** Report queue — confirm / override / reject (UI done; wire real data + actions)
+- [-] **A4** Mission board — assign / reassign (UI done; wire real data + actions)
 - [ ] **A5** Verification queue
 - [ ] **A6** Profile edit queue
-- [ ] **A7–A8** Residents list + detail
+- [-] **A7–A8** Residents list + detail (UI done; wire real data)
 - [ ] **A9** Blotters management
-- [ ] **A10** Announcements CRUD
+- [-] **A10** Announcements CRUD (UI done; wire real data + persistence)
 - [ ] **A11** Library CRUD
 - [ ] **A12** Audit log
 - [ ] **A13** Settings

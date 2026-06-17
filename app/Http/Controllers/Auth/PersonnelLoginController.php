@@ -42,6 +42,6 @@ class PersonnelLoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('personnel.missions.index'));
+        return redirect()->route('personnel.missions.index');
     }
 }

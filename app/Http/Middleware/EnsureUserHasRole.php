@@ -12,7 +12,13 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (! $user || ! in_array($user->role, $roles, true)) {
+        if (! $user) {
+            abort(403);
+        }
+
+        $role = $user->role instanceof \BackedEnum ? $user->role->value : (string) $user->role;
+
+        if (! in_array($role, $roles, true)) {
             abort(403);
         }
 

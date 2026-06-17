@@ -1,10 +1,75 @@
+import { Head, Link } from '@inertiajs/react';
+import { MapPin } from 'lucide-react';
+import StatusTimeline from '@/Components/resident/StatusTimeline';
+import PageHeader from '@/Components/shared/PageHeader';
+import { Badge } from '@/Components/ui/badge';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import MapView from '@/Components/maps/MapView';
 import ResidentLayout from '@/Layouts/ResidentLayout';
-import StubPage from '@/Components/shared/StubPage';
+import type { ConcernShowPageProps, Severity } from '@/Types';
 
-export default function Show() {
+const severityVariant: Record<Severity, 'success' | 'secondary' | 'warning' | 'danger'> = {
+    low: 'success',
+    medium: 'secondary',
+    high: 'warning',
+    critical: 'danger',
+};
+
+export default function Show({ concern }: ConcernShowPageProps) {
     return (
         <ResidentLayout>
-            <StubPage title="Concern Detail" />
+            <Head title={concern.title} />
+            <PageHeader
+                title={concern.title}
+                description={concern.category}
+                action={<Badge variant={severityVariant[concern.severity]}>{concern.severity}</Badge>}
+            />
+
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Description</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm leading-relaxed text-muted-foreground">{concern.description}</p>
+                            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="h-4 w-4" />
+                                {concern.location_label}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Map</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <MapView
+                                center={[14.5995, 120.9842]}
+                                pins={[{ id: concern.id, lat: 14.5995, lng: 120.9842, title: concern.title }]}
+                                className="h-48"
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Card className="h-fit">
+                    <CardHeader>
+                        <CardTitle className="text-base">Status</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <StatusTimeline steps={concern.timeline} />
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="mt-6">
+                <Button variant="outline" asChild>
+                    <Link href="/feed">Back to feed</Link>
+                </Button>
+            </div>
         </ResidentLayout>
     );
 }
