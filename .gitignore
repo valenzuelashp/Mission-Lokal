@@ -18,3 +18,5 @@ yarn-error.log
 /.vscode
 /dev-dist
 *.log
+bootstrap/cache/*.php
+storage/framework/views/*.php
