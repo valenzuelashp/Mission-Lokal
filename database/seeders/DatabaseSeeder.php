@@ -58,5 +58,9 @@ class DatabaseSeeder extends Seeder
             'verification_status' => VerificationStatus::Approved,
             'civic_xp' => 25,
         ]);
+        
+        $this->call([
+            BlueprintCategorySeeder::class,
+        ]);
     }
 }

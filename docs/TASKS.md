@@ -30,8 +30,8 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] PHP enums: `UserRole`, `ConcernStatus`, `MissionStatus`, `VerificationStatus`
 - [x] Demo seeder (barangay + admin, personnel, resident accounts)
 - [ ] Remaining MVP tables (concerns, missions, blotters, library, announcements, audit, etc.)
-- [ ] Seed `concern_categories` and subcategories (Blueprint §12)
-- [ ] Seed `category_playbooks`
+- [x] Seed `concern_categories` and subcategories (Blueprint §12)
+- [x] Seed `category_playbooks`
 - [ ] Seed library items (emergency guides, evacuation centers)
 - [ ] Factories for concerns, missions, users
 
