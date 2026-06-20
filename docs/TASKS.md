@@ -29,11 +29,11 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Models: `Barangay`, `BarangaySetting`, `User`
 - [x] PHP enums: `UserRole`, `ConcernStatus`, `MissionStatus`, `VerificationStatus`
 - [x] Demo seeder (barangay + admin, personnel, resident accounts)
-- [-] Remaining MVP tables (concerns, missions, blotters, library, announcements, audit, etc.)
+- [x] Remaining MVP tables (concerns, missions, blotters, library, announcements, audit, etc.)
 - [x] Seed `concern_categories` and subcategories (Blueprint §12)
 - [x] Seed `category_playbooks`
-- [ ] Seed library items (emergency guides, evacuation centers)
-- [ ] Factories for concerns, missions, users
+- [x] Seed library items (emergency guides, evacuation centers)
+- [x] Factories for concerns, missions, users
 
 ---
 

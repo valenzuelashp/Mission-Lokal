@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\Admin\DashboardController; // <-- ADD THIS AT THE TOP
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\FeedController;
@@ -25,6 +25,11 @@ Route::get('/', function () {
         UserRole::Personnel => redirect()->route('personnel.missions.index'),
         default => redirect()->route('feed'),
     };
+});
+
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
 });
 
 Route::middleware(['auth', 'role:resident'])->group(function () {

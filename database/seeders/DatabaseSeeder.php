@@ -59,9 +59,29 @@ class DatabaseSeeder extends Seeder
             'civic_xp' => 25,
         ]);
         
+       // ... (Your 3 manual users are above here) ...
+        
         $this->call([
             BlueprintCategorySeeder::class,
             PreloadedResidentSeeder::class,
+            LibrarySeeder::class,
+        ]);
+
+        // --- ADD THESE LINES TO GENERATE DUMMY DATA ---
+        
+        // 1. Generate 10 extra random resident accounts
+        User::factory(10)->create([
+            'barangay_id' => $barangay->id
+        ]);
+
+        // 2. Generate 30 fake concerns/reports
+        \App\Models\Concern::factory(30)->create([
+            'barangay_id' => $barangay->id
+        ]);
+
+        // 3. Generate 15 fake missions
+        \App\Models\Mission::factory(15)->create([
+            'barangay_id' => $barangay->id
         ]);
     }
 }
