@@ -48,7 +48,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Onboarding: pending / approved / rejected screens
 - [ ] Onboarding: set password after approval
 - [ ] Middleware: redirect unverified residents to onboarding
-- [ ] `preloaded_residents` import (CSV)
+- [x] `preloaded_residents` import (CSV)
 
 ---
 

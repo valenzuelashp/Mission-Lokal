@@ -9,12 +9,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-public function up(): void
+    public function up(): void
     {
         Schema::create('preloaded_residents', function (Blueprint $table) {
             $table->id();
             $table->string('account_id')->unique();
-            $table->string('full_name');
+            
+            // Replaced full_name with the 4 specific name columns
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('name_extension')->nullable();
+            
             $table->date('birthday');
             $table->text('address')->nullable();
             $table->string('email')->nullable();

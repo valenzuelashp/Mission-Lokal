@@ -32,7 +32,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
 });
 
-Route::middleware(['auth', 'role:resident'])->group(function () {
+Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
     Route::get('/feed', [FeedController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');

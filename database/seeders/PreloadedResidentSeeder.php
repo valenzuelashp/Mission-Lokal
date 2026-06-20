@@ -26,7 +26,9 @@ class PreloadedResidentSeeder extends Seeder
         $file = fopen($filePath, 'r');
         $header = fgetcsv($file);
         
+        // CLEANUP: Remove any invisible BOM characters from the very first column
         $header[0] = trim($header[0], "\xEF\xBB\xBF");
+        
         // 4. Loop through the remaining rows and insert them
         while ($row = fgetcsv($file)) {
             $data = array_combine($header, $row);
@@ -35,11 +37,16 @@ class PreloadedResidentSeeder extends Seeder
             PreloadedResident::updateOrCreate(
                 ['account_id' => $data['account_id']], 
                 [
-                    'full_name' => $data['full_name'],
-                    'birthday'  => $data['birthday'],
-                    'address'   => $data['address'] ?: null,
-                    'email'     => $data['email'] ?: null,
-                    'mobile'    => $data['mobile'] ?: null,
+                    // Updated to match the new split-name structure
+                    'first_name'     => $data['first_name'],
+                    'middle_name'    => $data['middle_name'] ?: null,
+                    'last_name'      => $data['last_name'],
+                    'name_extension' => $data['name_extension'] ?: null,
+                    
+                    'birthday'       => $data['birthday'],
+                    'address'        => $data['address'] ?: null,
+                    'email'          => $data['email'] ?: null,
+                    'mobile'         => $data['mobile'] ?: null,
                 ]
             );
         }
