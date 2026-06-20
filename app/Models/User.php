@@ -18,6 +18,15 @@ class User extends Authenticatable
         'barangay_id',
         'account_id',
         'role',
+        'barangay_id',
+        'account_id',
+        'role',
+        'first_name', 
+        'middle_name',
+        'last_name',  
+        'name_extension',
+        'birthday', 
+        'address',  
         'email',
         'mobile',
         'password',
@@ -41,6 +50,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'birthday' => 'date',
         ];
     }
 

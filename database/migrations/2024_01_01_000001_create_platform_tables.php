@@ -42,6 +42,12 @@ return new class extends Migration
             $table->foreignUuid('barangay_id')->nullable()->constrained('barangays')->nullOnDelete();
             $table->string('account_id', 64);
             $table->enum('role', ['resident', 'personnel', 'admin', 'super_admin']);
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('name_extension', 20)->nullable(); // e.g., Jr., Sr., III
+            $table->date('birthday')->nullable();
+            $table->string('address')->nullable();
             $table->string('email')->nullable();
             $table->string('mobile', 20)->nullable();
             $table->string('password')->nullable();

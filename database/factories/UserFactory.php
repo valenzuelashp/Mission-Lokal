@@ -21,6 +21,12 @@ class UserFactory extends Factory
             // Generate a random account ID like RES12345
             'account_id' => 'RES' . fake()->unique()->numerify('#####'),
             'role' => UserRole::Resident,
+            'first_name' => fake()->firstName(),
+            'middle_name' => fake()->optional(0.7)->lastName(), 
+            'last_name' => fake()->lastName(),
+            'name_extension' => fake()->optional(0.1)->randomElement(['Jr.', 'Sr.', 'III']), 
+            'birthday' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
+            'address' => fake()->streetAddress() . ', Demo Barangay',
             'email' => fake()->unique()->safeEmail(),
             'mobile' => '09' . fake()->numerify('#########'), // Fake PH mobile number
             'verification_status' => VerificationStatus::Approved,
