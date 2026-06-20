@@ -64,8 +64,13 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
 Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
-    Route::get('/confirm', fn () => Inertia::render('Onboarding/ConfirmDetails'))->name('confirm');
+    
+    // FIX: Send the user to the Controller so it can grab the database data!
+    Route::get('/confirm', [\App\Http\Controllers\OnboardingController::class, 'showConfirmDetails'])->name('confirm');
+    
     Route::get('/id', fn () => Inertia::render('Onboarding/IdVerification'))->name('id');
+    Route::post('/id', [\App\Http\Controllers\OnboardingController::class, 'storeId'])->name('id.store');
+    
     Route::get('/pending', fn () => Inertia::render('Onboarding/Pending'))->name('pending');
     Route::get('/result', fn () => Inertia::render('Onboarding/Result'))->name('result');
     Route::get('/password', fn () => Inertia::render('Onboarding/Password'))->name('password');

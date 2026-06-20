@@ -43,9 +43,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Personnel login portal
 - [x] Logout
 - [ ] Forgot password — email OTP → reset (Blueprint R7)
-- [ ] Onboarding: confirm preloaded details
-- [ ] Onboarding: government ID upload (encrypt at rest)
-- [ ] Onboarding: pending / approved / rejected screens
+- [x] Onboarding: confirm preloaded details
+- [-] Onboarding: government ID upload (encrypt at rest)
+- [-] Onboarding: pending / approved / rejected screens
 - [ ] Onboarding: set password after approval
 - [ ] Middleware: redirect unverified residents to onboarding
 - [x] `preloaded_residents` import (CSV)
