@@ -61,6 +61,7 @@ class DatabaseSeeder extends Seeder
         
         $this->call([
             BlueprintCategorySeeder::class,
+            PreloadedResidentSeeder::class,
         ]);
     }
 }
