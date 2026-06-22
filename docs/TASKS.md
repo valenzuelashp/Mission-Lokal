@@ -58,7 +58,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 - [-] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
 - [-] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
-- [-] **R10** Concern detail — status timeline (UI done; wire real data)
+- [x] **R10** Concern detail — status timeline (UI done; wire real data)
 - [-] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
 - [-] **R12** Profile — info, digital ID (UI done; wire real data)
 - [-] **R13** Edit profile — pending approval badge (UI done; wire approval flow)
@@ -68,7 +68,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Backend
 
-- [ ] `ConcernController` — CRUD, vote, visibility rules
+- [-] `ConcernController` — CRUD, vote, visibility rules
 - [ ] `BlotterController`
 - [ ] `ProfileController` — update with approval flow
 - [ ] `LibraryController`, `AnnouncementController`
@@ -97,9 +97,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [-] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
+- [x] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
 - [-] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
-- [-] **A3** Report queue — confirm / override / reject (UI done; wire real data + actions)
+- [x] **A3** Report queue — confirm / override / reject (UI done; wire real data + actions)
 - [-] **A4** Mission board — assign / reassign (UI done; wire real data + actions)
 - [ ] **A5** Verification queue
 - [ ] **A6** Profile edit queue
@@ -112,7 +112,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Backend
 
-- [ ] Report actions: confirm AI, merge duplicate, reject, create mission
+- [-] Report actions: confirm AI, merge duplicate, reject, create mission
 - [ ] Mission assignment + verification
 - [ ] Concern status state machine (Blueprint §5.1)
 - [ ] Audit log on admin mutations
