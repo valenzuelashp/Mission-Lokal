@@ -7,6 +7,7 @@ use App\Enums\VerificationStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne; // <-- Added this
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -15,9 +16,6 @@ class User extends Authenticatable
     use HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
-        'barangay_id',
-        'account_id',
-        'role',
         'barangay_id',
         'account_id',
         'role',
@@ -57,5 +55,11 @@ class User extends Authenticatable
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);
+    }
+
+    // <-- NEW RELATIONSHIP ADDED HERE
+    public function residentProfile(): HasOne
+    {
+        return $this->hasOne(ResidentProfile::class);
     }
 }
