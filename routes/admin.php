@@ -21,6 +21,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/missions/{mission}', fn (string $mission) => Inertia::render('Admin/Missions/Show', [
         'missionId' => $mission,
     ]))->name('missions.show');
+    Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])
+        ->where('path', '.*') // Crucial: allows slashes in the path
+        ->name('view-id');
     Route::prefix('verifications')->name('verifications.')->group(function () {
         Route::get('/', [VerificationController::class, 'index'])->name('index');
         Route::get('/{user}', [VerificationController::class, 'show'])->name('show');

@@ -55,10 +55,15 @@ export default function VerificationShow({ resident, censusData }: { resident: U
 
     // Helper to resolve image path (checks if it's already a full URL or needs the storage prefix)
     const getImageUrl = (path: string) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-        return `/storage/${path}`;
-    };
+    if (!path) return '';
+    
+    // If it's already a full URL, leave it alone
+    if (path.startsWith('http')) return path;
+
+    // Call the named route we defined in admin.php
+    // The 'path' parameter is the exact string from your database
+    return `/admin/view-id/${path}`;
+};
 
     return (
         <AdminLayout>

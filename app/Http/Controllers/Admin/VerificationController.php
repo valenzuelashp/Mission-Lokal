@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\PreloadedResident;
 use App\Enums\VerificationStatus;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
 {
@@ -92,5 +94,22 @@ class VerificationController extends Controller
         return redirect()->route('admin.verifications.index')
             ->with('success', 'Resident rejected. They have been notified to re-upload.');
     }
-    
+    // Ensure this method handles the path correctly
+public function viewId($path)
+    {
+        if (!str_starts_with($path, 'private/')) {
+            $path = 'private/' . $path;
+        }
+        $fullPath = storage_path('app/' . $path);
+
+        if (!\Illuminate\Support\Facades\File::exists($fullPath)) {
+            // If the file is missing, return a standard 404 instead of crashing
+            abort(404, "File missing from server."); 
+        }
+
+        $file = \Illuminate\Support\Facades\File::get($fullPath);
+        $type = \Illuminate\Support\Facades\File::mimeType($fullPath);
+
+        return response($file, 200)->header("Content-Type", $type);
+    }
 }
