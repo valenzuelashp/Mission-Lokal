@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\MissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,13 +12,14 @@ use App\Http\Controllers\Admin\ReportController;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/map', fn () => Inertia::render('Admin/Map'))->name('map');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');    
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
-    Route::get('/missions', fn () => Inertia::render('Admin/Missions/Index'))->name('missions.index');
+    Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
+    Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
     Route::get('/missions/{mission}', fn (string $mission) => Inertia::render('Admin/Missions/Show', [
         'missionId' => $mission,
     ]))->name('missions.show');

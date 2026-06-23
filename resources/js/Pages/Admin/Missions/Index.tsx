@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
-import { Filter, Plus, Search, UserPlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Head, useForm } from '@inertiajs/react';
+import { Filter, Plus, Search, UserPlus, X } from 'lucide-react';
+import { useMemo, useState, FormEvent } from 'react';
 import MissionQueueTable from '@/Components/admin/MissionQueueTable';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -21,12 +21,20 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'overdue', label: 'Overdue' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string }[] }>) {
     const missions = props.missions ?? demoMissions;
     const counts = props.counts ?? missionCounts(missions);
+    const personnel = props.personnel ?? [];
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Inertia Form Setup
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
+        concern_id: '',
+        assigned_to: '',
+    });
 
     const filtered = useMemo(() => {
         return missions.filter((row: AdminMission) => {
@@ -46,7 +54,28 @@ export default function Index(props: Partial<AdminMissionQueuePageProps>) {
         });
     }, [missions, filter, search]);
 
-    const unassigned = missions.filter((m) => !m.assignee && m.status !== 'cancelled' && m.status !== 'verified').length;
+    const unassignedMissions = missions.filter((m) => !m.assignee && m.status !== 'cancelled' && m.status !== 'verified');
+    const unassigned = unassignedMissions.length;
+
+    // Modal Handlers
+    const openModal = () => {
+        reset();
+        clearErrors();
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        reset();
+        clearErrors();
+    };
+
+    const submitAssignment = (e: FormEvent) => {
+        e.preventDefault();
+        post('/admin/missions', {
+            onSuccess: () => closeModal(),
+        });
+    };
 
     return (
         <AdminLayout title="Mission-Lokal Admin: Mission Queue">
@@ -60,7 +89,8 @@ export default function Index(props: Partial<AdminMissionQueuePageProps>) {
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    {/* The Assign Button triggers the Modal! */}
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={openModal}>
                         <UserPlus className="mr-2 h-4 w-4" />
                         Assign personnel
                     </Button>
@@ -132,6 +162,67 @@ export default function Index(props: Partial<AdminMissionQueuePageProps>) {
                     </div>
                 </div>
             </section>
+
+            {/* --- THE ASSIGNMENT MODAL --- */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-blue-900">Assign Personnel</h3>
+                            <button onClick={closeModal} className="rounded-full p-1 hover:bg-slate-100">
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={submitAssignment} className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Select Mission</label>
+                                <select
+                                    className="w-full rounded-md border border-slate-300 p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    value={data.concern_id}
+                                    onChange={(e) => setData('concern_id', e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>-- Choose an unassigned mission --</option>
+                                    {unassignedMissions.map(m => (
+                                        <option key={m.concern_id} value={m.concern_id}>
+                                            {m.id} - {m.concern_title}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.concern_id && <p className="mt-1 text-xs text-red-600">{errors.concern_id}</p>}
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Assign To</label>
+                                <select
+                                    className="w-full rounded-md border border-slate-300 p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    value={data.assigned_to}
+                                    onChange={(e) => setData('assigned_to', e.target.value)}
+                                    required
+                                >
+                                    <option value="" disabled>-- Choose personnel --</option>
+                                    {personnel.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.assigned_to && <p className="mt-1 text-xs text-red-600">{errors.assigned_to}</p>}
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3 pt-4">
+                                <Button type="button" variant="outline" onClick={closeModal}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={processing} className="bg-blue-700 text-white hover:bg-blue-800">
+                                    {processing ? 'Assigning...' : 'Confirm Assignment'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AdminLayout>
     );
 }

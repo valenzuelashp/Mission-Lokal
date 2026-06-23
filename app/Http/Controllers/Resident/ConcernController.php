@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Resident;
 
+use App\Models\ConcernCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Support\DemoConcerns;
@@ -27,7 +28,7 @@ class ConcernController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
-            'category' => ['required', 'string'],
+            'category' => ['required', 'exists:concern_categories,id'], // <-- UPDATED!
             'lat' => ['required', 'numeric'],
             'lng' => ['required', 'numeric'],
         ]);
@@ -39,6 +40,7 @@ class ConcernController extends Controller
         Concern::create([
             'barangay_id' => $user->barangay_id,
             'reporter_id' => $user->id,
+            'category_id' => $validated['category'], // <-- SAVING REAL CATEGORY!
             'title' => $validated['title'],
             'description' => $validated['description'],
             'visibility' => 'public', // Defaulting to public for now
@@ -70,8 +72,8 @@ class ConcernController extends Controller
             'id' => $record->id,
             'title' => $record->title,
             'description' => $record->description,
-            'category' => 'General', 
-            'status' => $record->status->value ?? $record->status,
+            // If the relationship exists, show the name. Otherwise, fallback.
+            'category' => $record->category->name ?? 'Uncategorized',            'status' => $record->status->value ?? $record->status,
             
             // Provide a fallback severity since new posts haven't been processed by AI yet
             'severity' => $record->severity?->value ?? 'medium', 
@@ -126,16 +128,19 @@ class ConcernController extends Controller
         return back();
     }
 
-    /** @return list<array{value: string, label: string}> */
-    private function categories(): array
+   private function categories(): array
     {
-        return [
-            ['value' => 'drainage', 'label' => 'Infrastructure · Clogged drainage'],
-            ['value' => 'street_light', 'label' => 'Infrastructure · Street light'],
-            ['value' => 'waste', 'label' => 'Sanitation · Uncollected waste'],
-            ['value' => 'noise', 'label' => 'Sanitation · Noise complaint'],
-            ['value' => 'road', 'label' => 'Infrastructure · Damaged roads'],
-            ['value' => 'safety', 'label' => 'Public safety · Other'],
-        ];
+        // Fetch all active categories from the database, sorted by their official order
+        return ConcernCategory::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(function ($category) {
+                return [
+                    // We use the ID as the value so we can easily save it to the concerns table
+                    'value' => (string) $category->id, 
+                    'label' => $category->name,
+                ];
+            })
+            ->toArray();
     }
 }
