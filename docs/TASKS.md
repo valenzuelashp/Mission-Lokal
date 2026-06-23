@@ -57,7 +57,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Pages
 
 - [-] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
-- [-] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
+- [x] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
 - [x] **R10** Concern detail — status timeline (UI done; wire real data)
 - [-] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
 - [-] **R12** Profile — info, digital ID (UI done; wire real data)
@@ -72,7 +72,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] `BlotterController`
 - [ ] `ProfileController` — update with approval flow
 - [ ] `LibraryController`, `AnnouncementController`
-- [ ] File upload service (concern media, ID docs)
+- [-] File upload service (concern media, ID docs)
 - [ ] Row-level authorization for private concerns
 
 ---
@@ -125,14 +125,14 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Pages
 
 - [ ] **P2** My missions list
-- [ ] **P3** Mission detail — checklist, map
-- [ ] **P4** Proof upload
+- [-] **P3** Mission detail — checklist, map
+- [x] **P4** Proof upload
 - [ ] **P5** Notifications
 
 ### Backend
 
 - [ ] Status: acknowledge → in progress → completed
-- [ ] Proof upload + storage
+- [x] Proof upload + storage
 - [ ] ACK timeout escalation (default 4 hrs)
 - [ ] Assigned-mission-only authorization
 
