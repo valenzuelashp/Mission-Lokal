@@ -76,4 +76,9 @@ class Mission extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function proof(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MissionProof::class);
+    }
 }

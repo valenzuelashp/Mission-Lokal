@@ -153,6 +153,8 @@ export interface LibraryPageProps extends PageProps {
 }
 
 export interface ConcernDetail extends PublicConcern {
+    lat: number;
+    lng: number;
     description: string;
     timeline: { key: string; label: string; description?: string; at?: string; state: 'done' | 'current' | 'upcoming' }[];
 }
@@ -245,6 +247,8 @@ export interface PersonnelMission {
     reporter_name?: string | null;
     reporter_phone?: string | null;
     assigned_at: string;
+    proof_notes?: string | null;
+    proof_photos?: string[];
     proof_submitted?: boolean;
 }
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Personnel\NotificationController;
 use App\Http\Controllers\Auth\PersonnelLoginController;
 use Illuminate\Support\Facades\Route;
 
+
 /*
 |--------------------------------------------------------------------------
 | Personnel routes (Blueprint §7.2)

@@ -48,8 +48,8 @@ export default function Show({ concern }: ConcernShowPageProps) {
                         </CardHeader>
                         <CardContent>
                             <MapView
-                                center={[14.5995, 120.9842]}
-                                pins={[{ id: concern.id, lat: 14.5995, lng: 120.9842, title: concern.title }]}
+                                center={[concern.lat, concern.lng]}
+                                pins={[{ id: concern.id, lat: concern.lat, lng: concern.lng, title: concern.title }]}
                                 className="h-56 sm:h-64"
                             />
                         </CardContent>

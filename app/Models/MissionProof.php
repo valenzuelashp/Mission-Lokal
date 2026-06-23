@@ -44,4 +44,9 @@ class MissionProof extends Model
         // Custom name 'submitter' pointing to the 'submitted_by' column
         return $this->belongsTo(User::class, 'submitted_by');
     }
+
+    public function media(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MissionProofMedia::class, 'proof_id');
+    }
 }

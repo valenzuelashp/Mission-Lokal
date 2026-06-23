@@ -113,7 +113,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Backend
 
 - [-] Report actions: confirm AI, merge duplicate, reject, create mission
-- [ ] Mission assignment + verification
+- [-] Mission assignment + verification
 - [ ] Concern status state machine (Blueprint §5.1)
 - [ ] Audit log on admin mutations
 - [ ] Blotter approval → ticket number
@@ -124,15 +124,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [ ] **P2** My missions list
-- [ ] **P3** Mission detail — checklist, map
-- [ ] **P4** Proof upload
+- [-] **P2** My missions list
+- [-] **P3** Mission detail — checklist, map
+- [-] **P4** Proof upload
 - [ ] **P5** Notifications
 
 ### Backend
 
-- [ ] Status: acknowledge → in progress → completed
-- [ ] Proof upload + storage
+- [-] Status: acknowledge → in progress → completed
+- [-] Proof upload + storage
 - [ ] ACK timeout escalation (default 4 hrs)
 - [ ] Assigned-mission-only authorization
 
