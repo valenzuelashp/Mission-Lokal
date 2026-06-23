@@ -71,8 +71,10 @@ Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(fu
     Route::get('/id', fn () => Inertia::render('Onboarding/IdVerification'))->name('id');
     Route::post('/id', [\App\Http\Controllers\OnboardingController::class, 'storeId'])->name('id.store');
     
-    Route::get('/pending', fn () => Inertia::render('Onboarding/Pending'))->name('pending');
-    Route::get('/result', fn () => Inertia::render('Onboarding/Result'))->name('result');
+    // NEW: Let the Controller decide if they should see Pending or Results
+    Route::get('/pending', [\App\Http\Controllers\OnboardingController::class, 'showPending'])->name('pending');
+    Route::get('/result', [\App\Http\Controllers\OnboardingController::class, 'showResult'])->name('result');
+    
     Route::get('/password', fn () => Inertia::render('Onboarding/Password'))->name('password');
 });
 
