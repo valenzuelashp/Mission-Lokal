@@ -156,6 +156,29 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 </div>
             )}
 
+            {/* --- NEW PROOF DISPLAY CARD --- */}
+            {mission.proof_submitted && (
+                <Card className="mb-4 shadow-sm sm:mb-6">
+                    <CardContent className="space-y-3 p-4 sm:p-5">
+                        <h3 className="text-sm font-semibold text-blue-900">Proof of Completion</h3>
+                        <p className="text-sm text-muted-foreground">{mission.proof_notes}</p>
+                        
+                        {mission.proof_photos && mission.proof_photos.length > 0 && (
+                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                                {mission.proof_photos.map((url: string, idx: number) => (
+                                    <img 
+                                        key={idx} 
+                                        src={url} 
+                                        alt={`Proof ${idx + 1}`} 
+                                        className="h-32 w-32 shrink-0 rounded-md border border-slate-200 object-cover shadow-sm"
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                 <Card className="shadow-sm">
                     <CardContent className="space-y-3 p-4 sm:p-5">
