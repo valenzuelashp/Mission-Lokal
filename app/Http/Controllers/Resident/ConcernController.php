@@ -6,6 +6,7 @@ use App\Models\ConcernCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Support\DemoConcerns;
+use App\Models\ConcernMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,32 +29,47 @@ class ConcernController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
-            'category' => ['required', 'exists:concern_categories,id'], // <-- UPDATED!
+            'category' => ['required', 'exists:concern_categories,id'], 
             'lat' => ['required', 'numeric'],
             'lng' => ['required', 'numeric'],
+            
+            // --- NEW: Validate the incoming images! ---
+            'images' => ['nullable', 'array', 'max:5'], 
+            'images.*' => ['image', 'mimes:jpeg,png,jpg', 'max:5120'], 
         ]);
 
-        // 2. Grab the resident who is currently logged in
         $user = $request->user();
 
-        // 3. Save it to the database!
-        Concern::create([
+        // 2. Save it to the database AND save it to a variable so we can use its ID!
+        $newConcern = Concern::create([
             'barangay_id' => $user->barangay_id,
             'reporter_id' => $user->id,
-            'category_id' => $validated['category'], // <-- SAVING REAL CATEGORY!
+            'category_id' => $validated['category'],
             'title' => $validated['title'],
             'description' => $validated['description'],
-            'visibility' => 'public', // Defaulting to public for now
-            'status' => 'submitted',  // <--- FIXED!            
-            // Format the map coordinates securely for MySQL
+            'visibility' => 'public', 
+            'status' => 'submitted',            
             'location' => DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)"),
             'public_location' => DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)"),
-            
-            // Temporary placeholder until we build the Reverse Geocoding API later
             'address_text' => 'Pinned Location: ' . round($validated['lat'], 4) . ', ' . round($validated['lng'], 4),
         ]);
 
-        // 4. Redirect them back to the feed with a success message
+        // 3. THE MAGIC: Save the physical files and create the Media records!
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $photo) {
+                // Save to storage/app/public/concerns
+                $filePath = $photo->store('concerns', 'public');
+
+                ConcernMedia::create([
+                    'concern_id' => $newConcern->id,
+                    'storage_key' => $filePath,
+                    'mime_type' => $photo->getMimeType(),
+                    'sort_order' => $index, // Save the order they were uploaded in!
+                ]);
+            }
+        }
+
+        // 4. Redirect them back to the feed
         return redirect()
             ->route('feed')
             ->with('success', 'Concern successfully submitted to the barangay!');
@@ -61,36 +77,36 @@ class ConcernController extends Controller
 
     public function show(string $concern): Response
     {
-        // 1. Fetch the real concern from the database
-        $record = Concern::select(
+        // 1. Fetch the concern WITH the attached media!
+        $record = Concern::with('media')
+            ->select(
                 '*',
                 DB::raw('ST_Y(location) as lat, ST_X(location) as lng')
             )->findOrFail($concern);
 
-        // 2. Format it exactly how the React frontend (Show.tsx) expects it!
+        // 2. Generate the public URLs for the resident's images
+        $publicImages = $record->media->sortBy('sort_order')->map(function ($media) {
+            return asset('storage/' . $media->storage_key);
+        })->toArray();
+
+        // 3. Format it exactly how the React frontend (Show.tsx) expects it!
         $formattedConcern = [
             'id' => $record->id,
             'title' => $record->title,
             'description' => $record->description,
-            // If the relationship exists, show the name. Otherwise, fallback.
-            'category' => $record->category->name ?? 'Uncategorized',            'status' => $record->status->value ?? $record->status,
-            
-            // Provide a fallback severity since new posts haven't been processed by AI yet
+            'category' => $record->category->name ?? 'Uncategorized',            
+            'status' => $record->status->value ?? $record->status,
             'severity' => $record->severity?->value ?? 'medium', 
-            
-            // React expects 'location_label' instead of 'address'
             'location_label' => $record->address_text ?? 'Unknown location', 
             'lat' => $record->lat,
             'lng' => $record->lng,
-            
             'created_at' => $record->created_at->format('M d, Y h:i A'),
-            
-            // React expects 'vote_count' and 'user_vote' for the buttons
             'vote_count' => 0,
             'user_vote' => null,
-            'images' => [], 
+            
+            // --- INJECT THE REAL IMAGES HERE! ---
+            'images' => $publicImages, 
 
-            // THE MISSING PIECE: The timeline array React needs to loop over!
             'timeline' => [
                 [
                     'key' => 'submitted',
@@ -111,7 +127,6 @@ class ConcernController extends Controller
             ],
         ];
 
-        // 3. Send it to the page!
         return Inertia::render('Resident/Concerns/Show', [
             'concern' => $formattedConcern,
         ]);

@@ -82,6 +82,7 @@ export interface PublicConcern {
     category: string;
     severity: Severity;
     status: ConcernStatus;
+    images?: string[];
     vote_count: number;
     location_label: string;
     created_at: string;
@@ -191,6 +192,7 @@ export interface AdminReport extends AdminIncident {
     visibility: 'public' | 'private';
     queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;
+    images?: string[];
 }
 
 export interface AdminReportQueuePageProps extends PageProps {
@@ -211,6 +213,8 @@ export interface AdminMission {
     concern_id: string;
     concern_title: string;
     location: string;
+    brief?: string;
+    images?: string[];
     assignee: string | null;
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
@@ -234,6 +238,7 @@ export interface PersonnelMission {
     id: string;
     concern_id: string;
     title: string;
+    images?: string[];
     location: string;
     lat: number;
     lng: number;

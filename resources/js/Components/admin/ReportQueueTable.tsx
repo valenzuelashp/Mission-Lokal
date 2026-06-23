@@ -70,9 +70,19 @@ export default function ReportQueueTable({ reports }: Props) {
                                 <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                                     <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                            <span className="font-medium">{row.incident_type}</span>
+                                        <div className="flex items-center gap-3">
+                                            {row.images && row.images.length > 0 ? (
+                                                <img 
+                                                    src={row.images[0]} 
+                                                    alt="Thumbnail" 
+                                                    className="h-10 w-10 shrink-0 rounded object-cover border border-slate-200"
+                                                />
+                                            ) : (
+                                                <div className="h-10 w-10 shrink-0 rounded bg-slate-100 border border-slate-200" />
+                                            )}
+                                            <div>
+                                                <div className="font-medium text-blue-900">{row.incident_type}</div>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="max-w-[140px] truncate px-4 py-3 text-muted-foreground" title={row.location}>

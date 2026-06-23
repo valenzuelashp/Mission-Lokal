@@ -90,6 +90,18 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         <div className="min-w-0 flex-1 space-y-3">
                             <h3 className="text-sm font-semibold text-blue-900">Mission brief</h3>
                             <p className="text-sm text-muted-foreground">{mission.brief}</p>
+                            {mission.images && mission.images.length > 0 && (
+                                <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                                    {mission.images.map((url: string, idx: number) => (
+                                        <img 
+                                            key={idx} 
+                                            src={url} 
+                                            alt="Resident Upload" 
+                                            className="h-20 w-20 shrink-0 rounded-md border object-cover shadow-sm"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                             <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
                                 <div className="flex justify-between gap-2 border-b pb-2 sm:block">
                                     <dt className="text-muted-foreground">Concern</dt>

@@ -47,6 +47,18 @@ export default function ConcernCard({ concern }: Props) {
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                     <span className="line-clamp-2">{concern.location_label}</span>
                 </p>
+                {concern.images && concern.images.length > 0 && (
+                    <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                        {concern.images.map((url: string, idx: number) => (
+                            <img 
+                                key={idx} 
+                                src={url} 
+                                alt="Concern Photo" 
+                                className="h-40 w-40 shrink-0 rounded-lg border border-slate-200 object-cover"
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center justify-between gap-2 border-t px-3 py-2">

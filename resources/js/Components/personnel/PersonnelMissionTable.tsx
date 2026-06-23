@@ -57,9 +57,26 @@ export default function PersonnelMissionTable({ missions }: Props) {
                     <tbody>
                         {missions.map((row) => (
                             <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        {/* Show the first image if it exists, otherwise show a gray placeholder box */}
+                                        {row.images && row.images.length > 0 ? (
+                                            <img 
+                                                src={row.images[0]} 
+                                                alt="Concern" 
+                                                className="h-10 w-10 shrink-0 rounded object-cover border border-slate-200"
+                                            />
+                                        ) : (
+                                            <div className="h-10 w-10 shrink-0 rounded bg-slate-100 border border-slate-200" />
+                                        )}
+                                        
+                                        <div>
+                                            <div className="font-medium text-blue-900">{row.id}</div>
+                                            <div className="text-sm text-muted-foreground">{row.title}</div>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td className="max-w-[180px] px-4 py-3">
-                                    <p className="font-medium leading-snug">{row.title}</p>
                                     <p className="text-xs text-muted-foreground">{row.concern_id}</p>
                                 </td>
                                 <td className="max-w-[140px] truncate px-4 py-3 text-muted-foreground" title={row.location}>

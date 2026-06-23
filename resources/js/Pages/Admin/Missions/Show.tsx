@@ -67,6 +67,25 @@ export default function Show({ missionId }: Props) {
 
             <Card className="mb-4 max-w-3xl shadow-sm sm:mb-6">
                 <CardContent className="p-4 sm:p-5">
+                    <h3 className="mb-3 text-sm font-semibold text-blue-900">Mission brief</h3>
+                    <p className="text-sm text-muted-foreground">{mission.brief}</p>
+                    {mission.images && mission.images.length > 0 && (
+                        <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                            {mission.images.map((url: string, idx: number) => (
+                                <img 
+                                    key={idx} 
+                                    src={url} 
+                                    alt="Resident Upload" 
+                                    className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
+                                />
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="mb-4 max-w-3xl shadow-sm sm:mb-6">
+                <CardContent className="p-4 sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
                         <div className="min-w-0 flex-1">
                             <h3 className="mb-3 text-sm font-semibold text-blue-900">Mission details</h3>

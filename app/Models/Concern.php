@@ -78,4 +78,9 @@ class Concern extends Model
     {
         return $this->belongsTo(User::class, 'staff_reviewed_by');
     }
+
+    public function media(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ConcernMedia::class);
+    }
 }

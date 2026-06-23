@@ -17,7 +17,7 @@ class MissionController extends Controller
     {
         $user = $request->user();
 
-        $missionsQuery = Mission::with('concern')
+       $missionsQuery = Mission::with(['concern.media'])
             ->where('assigned_to', $user->id)
             ->latest()
             ->get();
@@ -25,11 +25,17 @@ class MissionController extends Controller
         $missions = $missionsQuery->map(function ($mission) {
             $concern = $mission->concern;
             
+            // Generate the public URLs for the resident's images
+            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
+
             return [
                 'id' => $mission->id, // <--- FIXED: Using real UUID so links work!
                 'concern_id' => $concern->id,
                 'title' => $concern->title,
                 'location' => $concern->address_text ?? 'Unknown location',
+                'images' => $concernImages,
                 'lat' => 14.5995, 
                 'lng' => 120.9842,
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
@@ -63,7 +69,7 @@ class MissionController extends Controller
     public function show(Request $request, string $id): Response
     {
         // 1. Fetch the mission WITH the proof and the photos!
-        $mission = Mission::with(['concern', 'proof.media'])->findOrFail($id);
+        $mission = Mission::with(['concern.media', 'proof.media'])->findOrFail($id);
 
         if ($mission->assigned_to !== $request->user()->id) {
             abort(403, 'Unauthorized.');
@@ -87,6 +93,7 @@ class MissionController extends Controller
             'location' => $concern->address_text ?? 'Unknown location',
             'lat' => 14.5995, 
             'lng' => 120.9842,
+            'images' => $concernImages,
             'priority' => $concern->severity === 'critical' ? 'high' : 'med',
             'status' => $mission->status->value ?? $mission->status,
             'due_date' => $mission->due_date->format('M d, Y'),

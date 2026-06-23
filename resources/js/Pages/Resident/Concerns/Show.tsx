@@ -35,6 +35,18 @@ export default function Show({ concern }: ConcernShowPageProps) {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm leading-relaxed text-muted-foreground">{concern.description}</p>
+                            {concern.images && concern.images.length > 0 && (
+                                <div className="mt-3 flex gap-2 overflow-x-auto">
+                                    {concern.images.map((url: string, idx: number) => (
+                                        <img 
+                                            key={idx} 
+                                            src={url} 
+                                            alt="Concern Photo" 
+                                            className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                                 <MapPin className="h-4 w-4" />
                                 {concern.location_label}

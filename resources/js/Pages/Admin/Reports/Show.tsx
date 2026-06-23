@@ -17,7 +17,7 @@ export default function Show({ report }: any) {
 
             {/* Back Button and Header */}
             <div className="mb-6 flex items-center gap-4">
-            <Link href="/admin/reports" className="text-muted-foreground hover:text-foreground">                    <ArrowLeft className="h-5 w-5" />
+                <Link href="/admin/reports" className="text-muted-foreground hover:text-foreground">                    <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <h2 className="text-2xl font-semibold text-blue-900">Report Details</h2>
             </div>
@@ -34,6 +34,19 @@ export default function Show({ report }: any) {
                             </span>
                         </div>
                         <p className="whitespace-pre-wrap text-muted-foreground">{report.description}</p>
+                        
+                        {report.images && report.images.length > 0 && (
+                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                                {report.images.map((url: string, idx: number) => (
+                                    <img 
+                                        key={idx} 
+                                        src={url} 
+                                        alt="Resident Upload" 
+                                        className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
+                                    />
+                                ))}
+                            </div>
+                        )}
                         
                         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
                             <MapPin className="h-4 w-4" />

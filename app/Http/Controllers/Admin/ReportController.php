@@ -12,9 +12,10 @@ use Inertia\Response;
 
 class ReportController extends Controller
 {
-    public function index(): Response
+public function index(): Response
     {
-        $concerns = Concern::latest()->get();
+        // 1. Add .media to fetch the photos!
+        $concerns = Concern::with('media')->latest()->get();
 
         $reports = $concerns->map(function ($concern) {
             $queueStatus = match($concern->status->value ?? $concern->status) {
@@ -23,6 +24,11 @@ class ReportController extends Controller
                 'rejected', 'spam' => 'rejected',
                 default => 'active', 
             };
+
+            // 2. Generate the array of public URLs
+            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
 
             return [
                 'id' => substr($concern->id, 0, 8),
@@ -37,6 +43,8 @@ class ReportController extends Controller
                 'visibility' => $concern->visibility,
                 'queue_status' => $queueStatus,
                 'submitted_at' => $concern->created_at->format('M d, g:i A'),
+                // 3. Send it to React!
+                'images' => $concernImages, 
             ];
         });
 
@@ -54,13 +62,18 @@ class ReportController extends Controller
         ]);
     }
 
-    // --- OPTION 1: THE DETAIL PAGE ---
     public function show(string $id): Response
     {
-        $record = Concern::select(
+        // 1. Add .media here too!
+        $record = Concern::with('media')->select(
             '*',
             DB::raw('ST_Y(location) as lat, ST_X(location) as lng')
         )->findOrFail($id);
+
+        // 2. Generate the URLs
+        $concernImages = $record->media->sortBy('sort_order')->map(function ($media) {
+            return asset('storage/' . $media->storage_key);
+        })->toArray();
 
         $reportDetail = [
             'id' => $record->id,
@@ -71,9 +84,10 @@ class ReportController extends Controller
             'lat' => $record->lat,
             'lng' => $record->lng,
             'submitted_at' => $record->created_at->format('M d, Y h:i A'),
-            'images' => [], // Empty placeholder so React doesn't crash
             
-            // Sending a safe fallback timeline just in case React expects it
+            // 3. Inject the real images instead of the empty array!
+            'images' => $concernImages, 
+            
             'timeline' => [
                 [
                     'key' => 'submitted',
@@ -85,8 +99,6 @@ class ReportController extends Controller
         ];
 
         return Inertia::render('Admin/Reports/Show', [
-            // I am sending BOTH of these prop names just to be safe, 
-            // since I don't know exactly what your React teammates named it!
             'report' => $reportDetail,
             'concern' => $reportDetail, 
         ]);

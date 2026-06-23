@@ -17,7 +17,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
         category: '',
         lat: mapCenter[0],
         lng: mapCenter[1],
-        photos: [] as File[],
+        images: [] as File[], // <--- CHANGE THIS TO images
     });
 
     const submit = (e: FormEvent) => {
@@ -81,13 +81,14 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
 
                         <div className="space-y-2">
                             <Label htmlFor="photos">Photos (optional)</Label>
-                            <Input
-                                id="photos"
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) => setData('photos', Array.from(e.target.files ?? []))}
-                            />
+                           <Input
+                            id="photos"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            // v--- CHANGE setData('photos', ...) TO setData('images', ...) ---v
+                            onChange={(e) => setData('images', Array.from(e.target.files ?? []))}
+                        />
                         </div>
                     </CardContent>
                 </Card>
