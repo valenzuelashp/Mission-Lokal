@@ -51,7 +51,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('mobile', 20)->nullable();
             $table->string('password')->nullable();
-            $table->enum('verification_status', ['pending', 'in_progress', 'approved', 'rejected'])->default('pending');
+            $table->enum('verification_status', ['unverified', 'pending', 'in_progress', 'approved', 'rejected'])->default('unverified');
             $table->enum('profile_edit_status', ['none', 'pending_approval'])->default('none');
             $table->unsignedInteger('civic_xp')->default(0);
             $table->boolean('is_active')->default(true);

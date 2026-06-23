@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Admin\DashboardController; // <-- ADD THIS AT THE TOP
+use App\Http\Controllers\Admin\VerificationController;
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\FeedController;
@@ -29,7 +30,13 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+        Route::prefix('verifications')->name('verifications.')->group(function () {
+        Route::get('/', [VerificationController::class, 'index'])->name('index');
+        Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
+        Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
+        Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
+    });
+   
 });
 
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {

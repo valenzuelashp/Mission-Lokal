@@ -5,7 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\MissionController;
-
+use App\Http\Controllers\Admin\VerificationController;
 /*
 |--------------------------------------------------------------------------
 | Admin routes (Blueprint §7.3)
@@ -23,7 +23,16 @@ use App\Http\Controllers\Admin\MissionController;
     Route::get('/missions/{mission}', fn (string $mission) => Inertia::render('Admin/Missions/Show', [
         'missionId' => $mission,
     ]))->name('missions.show');
-    Route::get('/verifications', fn () => Inertia::render('Admin/Verifications'))->name('verifications');
+    Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])
+        ->where('path', '.*') // Crucial: allows slashes in the path
+        ->name('view-id');
+    Route::prefix('verifications')->name('verifications.')->group(function () {
+        Route::get('/', [VerificationController::class, 'index'])->name('index');
+        Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
+        Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
+        Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
+        
+    });
     Route::get('/profile-edits', fn () => Inertia::render('Admin/ProfileEdits'))->name('profile-edits');
     Route::get('/residents', fn () => Inertia::render('Admin/Residents/Index'))->name('residents.index');
     Route::get('/residents/{user}', fn (string $user) => Inertia::render('Admin/Residents/Show', [

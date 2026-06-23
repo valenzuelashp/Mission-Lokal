@@ -42,12 +42,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Resident/admin login (`account_id` + password)
 - [x] Personnel login portal
 - [x] Logout
-- [ ] Forgot password — email OTP → reset (Blueprint R7)
+- [-] Forgot password — email OTP → reset (Blueprint R7)
 - [x] Onboarding: confirm preloaded details
 - [x] Onboarding: government ID upload (encrypt at rest)
-- [-] Onboarding: pending / approved / rejected screens
-- [ ] Onboarding: set password after approval
-- [ ] Middleware: redirect unverified residents to onboarding
+- [X] Onboarding: pending / approved / rejected screens
+- [-] Onboarding: set password after approval
+- [X] Middleware: redirect unverified residents to onboarding
 - [x] `preloaded_residents` import (CSV)
 
 ---
@@ -113,7 +113,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Backend
 
 - [-] Report actions: confirm AI, merge duplicate, reject, create mission
-- [-] Mission assignment + verification
+- [ ] Mission assignment + verification
 - [ ] Concern status state machine (Blueprint §5.1)
 - [ ] Audit log on admin mutations
 - [ ] Blotter approval → ticket number
@@ -124,15 +124,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [-] **P2** My missions list
-- [-] **P3** Mission detail — checklist, map
-- [-] **P4** Proof upload
+- [ ] **P2** My missions list
+- [ ] **P3** Mission detail — checklist, map
+- [ ] **P4** Proof upload
 - [ ] **P5** Notifications
 
 ### Backend
 
-- [-] Status: acknowledge → in progress → completed
-- [-] Proof upload + storage
+- [ ] Status: acknowledge → in progress → completed
+- [ ] Proof upload + storage
 - [ ] ACK timeout escalation (default 4 hrs)
 - [ ] Assigned-mission-only authorization
 
