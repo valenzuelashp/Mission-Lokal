@@ -90,14 +90,15 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         <div className="min-w-0 flex-1 space-y-3">
                             <h3 className="text-sm font-semibold text-blue-900">Mission brief</h3>
                             <p className="text-sm text-muted-foreground">{mission.brief}</p>
+                            {/* --- RESIDENT'S UPLOADED PHOTOS --- */}
                             {mission.images && mission.images.length > 0 && (
-                                <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                                <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
                                     {mission.images.map((url: string, idx: number) => (
                                         <img 
                                             key={idx} 
                                             src={url} 
                                             alt="Resident Upload" 
-                                            className="h-20 w-20 shrink-0 rounded-md border object-cover shadow-sm"
+                                            className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
                                         />
                                     ))}
                                 </div>

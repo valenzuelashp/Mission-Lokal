@@ -83,4 +83,9 @@ class Concern extends Model
     {
         return $this->hasMany(ConcernMedia::class);
     }
+
+    public function mission()
+    {
+        return $this->hasOne(Mission::class);
+    }
 }

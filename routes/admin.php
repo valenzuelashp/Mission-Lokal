@@ -20,9 +20,7 @@ use App\Http\Controllers\Admin\VerificationController;
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
-    Route::get('/missions/{mission}', fn (string $mission) => Inertia::render('Admin/Missions/Show', [
-        'missionId' => $mission,
-    ]))->name('missions.show');
+    Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
     Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])
         ->where('path', '.*') // Crucial: allows slashes in the path
         ->name('view-id');

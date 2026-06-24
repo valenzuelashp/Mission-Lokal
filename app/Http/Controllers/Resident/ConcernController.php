@@ -78,7 +78,7 @@ class ConcernController extends Controller
     public function show(string $concern): Response
     {
         // 1. Fetch the concern WITH the attached media!
-        $record = Concern::with('media')
+        $record = Concern::with(['media', 'mission.proof.media'])
             ->select(
                 '*',
                 DB::raw('ST_Y(location) as lat, ST_X(location) as lng')
@@ -88,6 +88,15 @@ class ConcernController extends Controller
         $publicImages = $record->media->sortBy('sort_order')->map(function ($media) {
             return asset('storage/' . $media->storage_key);
         })->toArray();
+
+        $proofPhotos = [];
+        $proofNotes = null;
+        if ($record->mission && $record->mission->proof) {
+            $proofNotes = $record->mission->proof->notes;
+            $proofPhotos = $record->mission->proof->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
+        }
 
         // 3. Format it exactly how the React frontend (Show.tsx) expects it!
         $formattedConcern = [
@@ -106,7 +115,8 @@ class ConcernController extends Controller
             
             // --- INJECT THE REAL IMAGES HERE! ---
             'images' => $publicImages, 
-
+            'proof_notes' => $proofNotes,
+            'proof_photos' => $proofPhotos,
             'timeline' => [
                 [
                     'key' => 'submitted',

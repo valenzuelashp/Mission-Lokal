@@ -50,7 +50,11 @@ export default function IncidentQueueTable({ incidents }: Props) {
                             const Icon = typeIcons[row.type_icon] ?? Flame;
                             return (
                                 <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                    <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
+                                    <td className="px-4 py-3">
+                                        <Link href={`/admin/reports/${row.concern_id}`} className="font-medium text-blue-700">
+                                            {row.display_id ?? row.id}
+                                        </Link>
+                                    </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <Icon className="h-4 w-4 text-muted-foreground" />

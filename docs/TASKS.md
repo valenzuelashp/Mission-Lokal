@@ -100,7 +100,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
 - [-] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
 - [x] **A3** Report queue — confirm / override / reject (UI done; wire real data + actions)
-- [-] **A4** Mission board — assign / reassign (UI done; wire real data + actions)
+- [-] A4 Mission board — assign / reassign (UI done; real data, map coordinates, and proof photos wired! Actions next)
 - [ ] **A5** Verification queue
 - [ ] **A6** Profile edit queue
 - [-] **A7–A8** Residents list + detail (UI done; wire real data)
@@ -150,14 +150,13 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ## Phase 8 — Maps & dashboard
 
-- [ ] Extend `MapView` — pins, popups, severity colors
+- [-] Extend `MapView` — pins, popups, severity colors
 - [ ] Admin map filters
 - [ ] Geocoding / reverse geocode
 - [ ] Dashboard aggregates
 
 ---
-
-## Phase 9 — PWA, security & compliance
++## Phase 9 — PWA, security & compliance
 
 - [ ] PWA install + service worker verification
 - [ ] Offline library cache

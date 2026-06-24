@@ -83,6 +83,8 @@ export interface PublicConcern {
     severity: Severity;
     status: ConcernStatus;
     images?: string[];
+    proof_notes?: string | null;
+    proof_photos?: string[];
     vote_count: number;
     location_label: string;
     created_at: string;
@@ -178,6 +180,7 @@ export interface AdminDashboardStats {
 
 export interface AdminIncident {
     id: string;
+    display_id?: string;
     concern_id: string;
     incident_type: string;
     type_icon: 'fire' | 'flood' | 'waste' | 'noise' | 'drainage' | 'light';
@@ -218,6 +221,8 @@ export interface AdminMission {
     assignee: string | null;
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
+    proof_notes?: string | null;
+    proof_photos?: string[];
     due_date: string;
     is_overdue?: boolean;
     is_escalated?: boolean;

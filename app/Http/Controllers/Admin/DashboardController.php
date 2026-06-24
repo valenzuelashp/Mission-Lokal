@@ -22,13 +22,18 @@ class DashboardController extends Controller
         ];
 
         // 2. Grab the latest 5 active missions to display in the Queue Table
-        $incidents = Mission::with('concern')
+        $incidents = Mission::with(['concern', 'proof.media'])
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($mission) {
+                $proofPhotos = $mission->proof ? $mission->proof->media->map(function($m) {
+                    return asset('storage/' . $m->storage_key);
+                })->toArray() : [];
                 return [
-                    'id' => substr($mission->id, 0, 8), // Shorten UUID for display
+                    'id' => $mission->id,                 
+                    'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)), 
+                    'concern_id' => $mission->concern_id,   
                     'concern_id' => $mission->concern_id,
                     'incident_type' => $mission->concern->title,
                     'type_icon' => 'alert-triangle', // Default icon for now
@@ -36,6 +41,7 @@ class DashboardController extends Controller
                     'ai_severity' => rand(50, 95), // Placeholder until AI is linked
                     'priority' => 'high',
                     'status' => $mission->status->value,
+                    'proof_photos' => $proofPhotos,
                 ];
             });
 

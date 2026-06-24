@@ -68,8 +68,18 @@ class MissionController extends Controller
 
     public function show(Request $request, string $id): Response
     {
-        // 1. Fetch the mission WITH the proof and the photos!
-        $mission = Mission::with(['concern.media', 'proof.media'])->findOrFail($id);
+        // 1. Fetch the mission WITH the proof, the resident's photos, and the map coordinates!
+        $mission = Mission::with(['concern.media', 'proof.media'])
+            ->select('missions.*') 
+            ->addSelect([
+                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+            ])
+            ->findOrFail($id);
 
         if ($mission->assigned_to !== $request->user()->id) {
             abort(403, 'Unauthorized.');
@@ -78,25 +88,33 @@ class MissionController extends Controller
         $concern = $mission->concern;
         $proof = $mission->proof;
 
-        // 2. Generate the public URLs for the images
-        $proofPhotos = [];
-        if ($proof && $proof->media) {
-            $proofPhotos = $proof->media->map(function ($media) {
-                return asset('storage/' . $media->storage_key); // Creates the localhost:8000/storage/... link
+        // 2. Generate the URLs for the resident's photos
+        $concernImages = [];
+        if ($concern && $concern->media) {
+            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
             })->toArray();
         }
 
+        // 3. Generate the URLs for the worker's proof photos
+        $proofPhotos = [];
+        if ($proof && $proof->media) {
+            $proofPhotos = $proof->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
+        }
+
+        // 4. Pack it all up for React!
         $formattedMission = [
             'id' => $mission->id,
             'concern_id' => $concern->id,
             'title' => $concern->title,
             'location' => $concern->address_text ?? 'Unknown location',
-            'lat' => 14.5995, 
-            'lng' => 120.9842,
-            'images' => $concernImages,
+            'lat' => $mission->lat, 
+            'lng' => $mission->lng,
             'priority' => $concern->severity === 'critical' ? 'high' : 'med',
             'status' => $mission->status->value ?? $mission->status,
-            'due_date' => $mission->due_date->format('M d, Y'),
+            'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
             'is_overdue' => $mission->is_overdue,
             'visibility' => $concern->visibility,
             'brief' => $concern->description,
@@ -105,7 +123,10 @@ class MissionController extends Controller
             'reporter_phone' => null,
             'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
             
-            // --- NEW PROOF DATA FOR REACT ---
+            // --- THE IMAGES ---
+            'images' => $concernImages, // The resident's uploaded photos
+            
+            // --- THE PROOF ---
             'proof_submitted' => $proof !== null,
             'proof_notes' => $proof?->notes,
             'proof_photos' => $proofPhotos,

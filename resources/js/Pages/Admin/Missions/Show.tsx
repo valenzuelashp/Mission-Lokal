@@ -5,10 +5,26 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { demoMissions } from '@/Lib/adminDemo';
+
+// Define the exact shape of the data Laravel is sending us
+type AdminMission = {
+    id: string;
+    concern_id: string;
+    title: string;
+    location: string;
+    priority: string;
+    status: string;
+    due_date?: string;
+    brief: string;
+    assignee: string;
+    assigned_at?: string;
+    images?: string[];
+    proof_notes?: string | null;
+    proof_photos?: string[];
+};
 
 type Props = {
-    missionId?: string;
+    mission: AdminMission;
 };
 
 type TimelineState = 'done' | 'current' | 'upcoming';
@@ -19,12 +35,17 @@ function stepState(done: boolean, current = false): TimelineState {
     return 'upcoming';
 }
 
-export default function Show({ missionId }: Props) {
-    const mission = demoMissions.find((m) => m.id.replace('#', '') === missionId || m.id === missionId)
-        ?? demoMissions[0];
+export default function Show({ mission }: Props) {
+    if (!mission) {
+        return (
+            <AdminLayout title="Loading Mission...">
+                <div className="p-6 text-center text-muted-foreground">Loading mission data...</div>
+            </AdminLayout>
+        );
+    }
 
     const timeline = [
-        { key: 'assigned', label: 'Assigned', at: 'Jun 17, 8:00 AM', state: 'done' as TimelineState },
+        { key: 'assigned', label: 'Assigned', at: mission.assigned_at ?? 'Recently', state: 'done' as TimelineState },
         {
             key: 'ack',
             label: 'Acknowledged',
@@ -50,9 +71,13 @@ export default function Show({ missionId }: Props) {
         },
     ];
 
+    // Safely generate the visual ID
+    const displayId = mission.id ? `MS-${mission.id.substring(0, 4).toUpperCase()}` : 'MS-UNKNOWN';
+
     return (
         <AdminLayout title="Mission-Lokal Admin: Mission Detail">
-            <Head title={`Mission ${mission.id}`} />
+            <Head title={`Mission ${displayId}`} />
+            
             <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
                 <Link href="/admin/missions">
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -61,14 +86,15 @@ export default function Show({ missionId }: Props) {
             </Button>
 
             <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl font-semibold sm:text-2xl">{mission.id}</h2>
-                <p className="mt-1 break-words text-sm text-muted-foreground sm:text-base">{mission.concern_title}</p>
+                <h2 className="text-xl font-semibold sm:text-2xl">{displayId}</h2>
+                <p className="mt-1 break-words text-sm text-muted-foreground sm:text-base">{mission.title}</p>
             </div>
 
             <Card className="mb-4 max-w-3xl shadow-sm sm:mb-6">
                 <CardContent className="p-4 sm:p-5">
                     <h3 className="mb-3 text-sm font-semibold text-blue-900">Mission brief</h3>
                     <p className="text-sm text-muted-foreground">{mission.brief}</p>
+                    
                     {mission.images && mission.images.length > 0 && (
                         <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
                             {mission.images.map((url: string, idx: number) => (
@@ -79,6 +105,30 @@ export default function Show({ missionId }: Props) {
                                     className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
                                 />
                             ))}
+                        </div>
+                    )}
+
+                    {/* --- WORKER RESOLUTION PROOF --- */}
+                    {(mission.proof_notes || (mission.proof_photos && mission.proof_photos.length > 0)) && (
+                        <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                            <h3 className="font-semibold text-emerald-900">Resolution Proof</h3>
+                            
+                            {mission.proof_notes && (
+                                <p className="mt-1 text-sm text-emerald-800">{mission.proof_notes}</p>
+                            )}
+                            
+                            {mission.proof_photos && mission.proof_photos.length > 0 && (
+                                <div className="mt-3 flex gap-2 overflow-x-auto">
+                                    {mission.proof_photos.map((url: string, idx: number) => (
+                                        <img 
+                                            key={idx} 
+                                            src={url} 
+                                            alt="Resolution Proof" 
+                                            className="h-32 w-32 shrink-0 rounded-md border border-emerald-200 object-cover shadow-sm"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
@@ -108,7 +158,7 @@ export default function Show({ missionId }: Props) {
                                 </div>
                                 <div className="flex justify-between gap-2 border-b pb-2 sm:block">
                                     <dt className="text-muted-foreground">Due date</dt>
-                                    <dd className="sm:mt-0.5">{mission.due_date}</dd>
+                                    <dd className="sm:mt-0.5">{mission.due_date ?? 'Not set'}</dd>
                                 </div>
                                 <div className="flex items-center justify-between gap-2 sm:block">
                                     <dt className="text-muted-foreground">Priority</dt>

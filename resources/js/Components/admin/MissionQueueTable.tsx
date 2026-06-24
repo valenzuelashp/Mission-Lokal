@@ -113,9 +113,13 @@ export default function MissionQueueTable({ missions }: Props) {
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                        <Link href={`/admin/missions/${row.id.replace('#', '')}`}>Manage</Link>
-                                    </Button>
+                                    {row.raw_mission_id ? (
+                                        <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
+                                            <Link href={`/admin/missions/${row.raw_mission_id}`}>Manage</Link>
+                                        </Button>
+                                    ) : (
+                                        <span className="text-sm italic text-muted-foreground">Not assigned</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}

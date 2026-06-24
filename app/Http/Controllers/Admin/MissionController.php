@@ -33,7 +33,10 @@ class MissionController extends Controller
             $mission = $realMissions->get($concern->id);
 
             return [
-                // Use the real mission ID if it exists
+                // 1. Pass the REAL ID for the link (if a mission exists)
+                'raw_mission_id' => $mission ? $mission->id : null,
+                
+                // 2. Keep the PRETTY ID for the text
                 'id' => $mission ? 'MS-' . strtoupper(substr($mission->id, 0, 4)) : 'MS-' . strtoupper(substr($concern->id, 0, 4)),
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
@@ -103,5 +106,65 @@ class MissionController extends Controller
         // It stays 'active' legally!
 
         return back()->with('success', 'Personnel successfully assigned to mission!');
+    }
+
+    public function show(Request $request, string $id): Response
+    {
+        // 1. Fetch the mission WITH the concern, proof, assignee, and all media!
+        $mission = Mission::with(['concern.media', 'proof.media', 'assignee'])
+            ->select('missions.*')
+            ->addSelect([
+                // Grab the map coordinates while we're at it!
+                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+            ])
+            ->findOrFail($id);
+
+        $concern = $mission->concern;
+
+        // 2. Extract Resident's Photos
+        $concernImages = [];
+        if ($concern && $concern->media) {
+            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
+        }
+
+        // 3. Extract Worker's Proof Photos
+        $proofPhotos = [];
+        if ($mission->proof && $mission->proof->media) {
+            $proofPhotos = $mission->proof->media->sortBy('sort_order')->map(function ($media) {
+                return asset('storage/' . $media->storage_key);
+            })->toArray();
+        }
+
+        // 4. Pack it up for React!
+        $formattedMission = [
+            'id' => $mission->id,
+            'concern_id' => $concern->id,
+            'title' => $concern->title,
+            'location' => $concern->address_text ?? 'Unknown location',
+            'lat' => $mission->lat,
+            'lng' => $mission->lng,
+            'priority' => $concern->severity === 'critical' ? 'high' : 'med',
+            'status' => $mission->status->value ?? $mission->status,
+            'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
+            'is_overdue' => $mission->is_overdue,
+            'brief' => $concern->description,
+            'assignee' => $mission->assignee?->full_name ?? $mission->assignee?->account_id ?? 'Unassigned',
+            
+            // --- THE IMAGES ---
+            'images' => $concernImages,
+            'proof_notes' => $mission->proof?->notes,
+            'proof_photos' => $proofPhotos,
+        ];
+
+        return Inertia::render('Admin/Missions/Show', [
+            'mission' => $formattedMission,
+        ]);
     }
 }

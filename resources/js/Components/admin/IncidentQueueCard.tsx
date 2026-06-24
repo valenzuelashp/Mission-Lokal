@@ -26,7 +26,7 @@ export default function IncidentQueueCard({ incident }: Props) {
             <Card className="shadow-sm transition-shadow active:shadow-md">
                 <CardContent className="space-y-2 p-4">
                     <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-medium text-blue-700">{incident.id}</span>
+                        <span className="text-sm font-medium text-blue-700">{incident.display_id ?? incident.id}</span>
                         <Badge
                             className={
                                 incident.status === 'ongoing'
