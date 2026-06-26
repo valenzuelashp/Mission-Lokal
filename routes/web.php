@@ -82,7 +82,8 @@ Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(fu
     Route::get('/pending', [\App\Http\Controllers\OnboardingController::class, 'showPending'])->name('pending');
     Route::get('/result', [\App\Http\Controllers\OnboardingController::class, 'showResult'])->name('result');
     
-    Route::get('/password', fn () => Inertia::render('Onboarding/Password'))->name('password');
+    Route::get('/setup-password', [\App\Http\Controllers\OnboardingController::class, 'showSetPassword'])->name('setup-password');
+    Route::post('/setup-password', [\App\Http\Controllers\OnboardingController::class, 'storePassword'])->name('store-password');
 });
 
 require __DIR__.'/personnel.php';

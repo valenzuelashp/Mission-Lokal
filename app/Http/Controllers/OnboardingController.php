@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Enums\VerificationStatus; // Don't forget to import the Enum!
-
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 class OnboardingController extends Controller
 {
     // 1. Shows the Confirmation Screen
@@ -102,5 +103,34 @@ class OnboardingController extends Controller
             'status' => $status,
             'rejectionReason' => $rejectionReason
         ]);
+    }
+
+    // Shows the Password Setup Screen
+    public function showSetPassword(Request $request)
+    {
+        // Security check: Only officially approved residents should see this screen!
+        if ($request->user()->verification_status->value !== 'approved') {
+            return redirect()->route('onboarding.pending');
+        }
+
+        return Inertia::render('Onboarding/SetPassword');
+    }
+
+    // Saves the new password and finishes onboarding
+    public function storePassword(Request $request)
+    {
+        // Enforce strong passwords and require the 'password_confirmation' field to match
+        $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user = $request->user();
+        
+        // Hash the new password and save it directly to the users table
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        // Welcome to the app! Send them to the main resident feed.
+        return redirect()->route('feed'); 
     }
 }

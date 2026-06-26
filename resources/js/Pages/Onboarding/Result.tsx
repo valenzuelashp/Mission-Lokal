@@ -56,19 +56,19 @@ export default function Result({ status, rejectionReason }: ResultProps) {
                     {/* Action Buttons */}
                     <div className="flex flex-col space-y-3 mt-4">
                         {isApproved ? (
-                            <a 
-                                href={route('onboarding.password')} 
+                            <Link 
+                                href={route('onboarding.setup-password')} 
                                 className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                             >
                                 Continue to Set Password
-                            </a>
+                            </Link>
                         ) : (
-                            <a 
+                            <Link 
                                 href={route('onboarding.id')} 
                                 className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                             >
                                 Upload a New ID
-                            </a>
+                            </Link>
                         )}
                         
                         <Link 
