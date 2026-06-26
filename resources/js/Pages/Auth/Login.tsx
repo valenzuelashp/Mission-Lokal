@@ -1,9 +1,12 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import { FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+
+// Tell TypeScript about Ziggy's route function
+declare function route(name: string): string;
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -38,8 +41,18 @@ export default function Login() {
                                 />
                                 {errors.account_id && <p className="text-sm text-destructive">{errors.account_id}</p>}
                             </div>
+                            
                             <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
+                                {/* UPDATED: Flex container to hold Label and Forgot Password link side-by-side */}
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="password">Password</Label>
+                                    <Link 
+                                        href={route('password.request')} 
+                                        className="text-xs text-primary underline-offset-4 hover:underline"
+                                    >
+                                        Forgot password?
+                                    </Link>
+                                </div>
                                 <Input
                                     id="password"
                                     type="password"
@@ -49,12 +62,13 @@ export default function Login() {
                                 />
                                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                             </div>
+                            
                             <Button type="submit" className="w-full" disabled={processing}>
                                 Sign in
                             </Button>
                             <p className="text-center text-xs text-muted-foreground">
                                 Personnel?{' '}
-                                <a href="/personnel/login" className="text-primary underline">
+                                <a href="/personnel/login" className="text-primary underline-offset-4 hover:underline">
                                     Personnel portal
                                 </a>
                             </p>
