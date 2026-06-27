@@ -27,54 +27,56 @@ class ConcernController extends Controller
     {
         // 1. Validate the incoming data from the React form
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'max:5000'],
-            'category' => ['required', 'exists:concern_categories,id'], 
-            'lat' => ['required', 'numeric'],
-            'lng' => ['required', 'numeric'],
-            
-            // --- NEW: Validate the incoming images! ---
-            'images' => ['nullable', 'array', 'max:5'], 
-            'images.*' => ['image', 'mimes:jpeg,png,jpg', 'max:5120'], 
+            'category_id' => 'required|exists:concern_categories,id',
+            'subcategory_id' => 'required|exists:concern_subcategories,id',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'address_text' => 'nullable|string|max:512',
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
         ]);
 
         $user = $request->user();
+        $category = \App\Models\ConcernCategory::findOrFail($validated['category_id']);
+        
+        $point = DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)");
 
-        // 2. Save it to the database AND save it to a variable so we can use its ID!
+        // 2. Save it to the database with the Security Lock!
         $newConcern = Concern::create([
             'barangay_id' => $user->barangay_id,
-            'reporter_id' => $user->id,
-            'category_id' => $validated['category'],
+            'user_id' => $user->id, // NOTE: Change this to 'reporter_id' if your DB migration uses reporter_id instead of user_id!
+            'category_id' => $validated['category_id'],
+            'subcategory_id' => $validated['subcategory_id'],
             'title' => $validated['title'],
             'description' => $validated['description'],
-            'visibility' => 'public', 
-            'status' => 'submitted',            
-            'location' => DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)"),
-            'public_location' => DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)"),
-            'address_text' => 'Pinned Location: ' . round($validated['lat'], 4) . ', ' . round($validated['lng'], 4),
+            'location' => $point,
+            'public_location' => $point,
+            'address_text' => $validated['address_text'] ?? ('Pinned Location: ' . round($validated['lat'], 4) . ', ' . round($validated['lng'], 4)),
+            
+            // SECURITY LOCK: Force the visibility based on the category rules!
+            'visibility' => $category->default_visibility === 'private' ? 'private' : 'public',
+            
+            'severity' => 'minor',
+            'status' => 'active', 
         ]);
 
         // 3. THE MAGIC: Save the physical files and create the Media records!
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $photo) {
-                // Save to storage/app/public/concerns
                 $filePath = $photo->store('concerns', 'public');
 
-                ConcernMedia::create([
+                \App\Models\ConcernMedia::create([
                     'concern_id' => $newConcern->id,
                     'storage_key' => $filePath,
                     'mime_type' => $photo->getMimeType(),
-                    'sort_order' => $index, // Save the order they were uploaded in!
+                    'sort_order' => $index,
                 ]);
             }
         }
 
         // 4. Redirect them back to the feed
-        return redirect()
-            ->route('feed')
-            ->with('success', 'Concern successfully submitted to the barangay!');
+        return redirect()->route('feed')->with('success', 'Concern submitted successfully.');
     }
-
     public function show(string $concern): Response
     {
         // 1. Fetch the concern WITH the attached media!

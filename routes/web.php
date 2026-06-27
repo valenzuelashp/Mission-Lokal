@@ -59,7 +59,7 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
     ]))->name('blotter.form');
-    Route::post('/blotter', fn () => redirect()->route('feed')->with('success', 'Blotter submitted. You will receive a ticket number after admin approval.'))->name('blotter.store');
+    Route::post('/blotter', [\App\Http\Controllers\Resident\BlotterController::class, 'store'])->name('blotter.store');
 });
 
 Route::middleware('guest')->group(function () {

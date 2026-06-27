@@ -21,7 +21,8 @@ const titles: Record<BlotterType, string> = {
 export default function Form({ blotterType = 'two-party' }: Props) {
     const isTwoParty = blotterType === 'two-party';
 
-    const { data, setData, post, processing, errors } = useForm({
+    // 1. Pull in 'transform' from useForm
+    const { data, setData, post, processing, errors, transform } = useForm({
         type: blotterType,
         complainant_name: demoResidentProfile.full_name,
         respondent_name: '',
@@ -32,6 +33,16 @@ export default function Form({ blotterType = 'two-party' }: Props) {
         relief_sought: '',
         acknowledged: false,
     });
+
+    // 2. Morph the React state into the exact payload the Database requires
+    transform((data) => ({
+        type: data.type.replace('-', '_'), // 'two-party' becomes 'two_party'
+        respondent_name: data.respondent_name,
+        incident_at: `${data.incident_date} ${data.incident_time}`, // Merges date and time
+        incident_address: data.location, // Renames location
+        narrative: data.statement, // Renames statement
+        relief_sought: data.relief_sought,
+    }));
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
