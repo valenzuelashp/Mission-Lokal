@@ -1,4 +1,3 @@
-import { Link, router } from '@inertiajs/react';
 import {
     ClipboardList,
     FileText,
@@ -8,8 +7,10 @@ import {
     Megaphone,
     UserCircle,
     Users,
+    ShieldAlert, // ADD THIS
 } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
+import { Link, router } from '@inertiajs/react';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
 import { useAuth } from '@/Hooks/usePageProps';
 import { cn } from '@/Lib/utils';
@@ -19,6 +20,7 @@ const nav = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { href: '/admin/reports', label: 'Report queue', icon: FileText },
     { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
+    { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert }, // ADD THIS LINE!
     { href: '/admin/map', label: 'Map', icon: Map },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { href: '/admin/residents', label: 'Residents', icon: Users },

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\VerificationController;
+use App\Http\Controllers\Admin\BlotterController;
 /*
 |--------------------------------------------------------------------------
 | Admin routes (Blueprint §7.3)
@@ -36,7 +37,9 @@ use App\Http\Controllers\Admin\VerificationController;
     Route::get('/residents/{user}', fn (string $user) => Inertia::render('Admin/Residents/Show', [
         'residentId' => $user,
     ]))->name('residents.show');
-    Route::get('/blotters', fn () => Inertia::render('Admin/Blotters/Index'))->name('blotters.index');
+    Route::get('/blotters', [BlotterController::class, 'index'])->name('blotters.index');
+    Route::get('/blotters/{blotter}', [BlotterController::class, 'show'])->name('blotters.show');
+    Route::post('/blotters/{blotter}/approve', [BlotterController::class, 'approve'])->name('blotters.approve');
     Route::get('/announcements', fn () => Inertia::render('Admin/Announcements/Index'))->name('announcements.index');
     Route::get('/announcements/create', fn () => Inertia::render('Admin/Announcements/Create'))->name('announcements.create');
     Route::post('/announcements', fn () => redirect()->route('admin.announcements.index')->with('success', 'Announcement saved.'))->name('announcements.store');

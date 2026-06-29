@@ -9,22 +9,25 @@ import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { NewConcernPageProps } from '@/Types';
-
+ 
 export default function New({ categories, mapCenter }: NewConcernPageProps) {
     const { data, setData, post, processing, errors } = useForm({
         title: '',
         description: '',
-        category: '',
+        category_id: '',   // FIX: was 'category' — must match what the backend validates
         lat: mapCenter[0],
         lng: mapCenter[1],
-        images: [] as File[], // <--- CHANGE THIS TO images
+        images: [] as File[],
     });
-
+ 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        post('/concerns');
+        // FIX: forceFormData is required whenever the form contains File objects.
+        // Without it, Inertia sends JSON and the backend never sees the uploaded images
+        // (and lat/lng arrive as strings instead of numbers, failing numeric validation).
+        post('/concerns', { forceFormData: true });
     };
-
+ 
     return (
         <ResidentLayout>
             <Head title="Post Concern" />
@@ -32,7 +35,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                 title="Post a concern"
                 description="Describe the issue and pin it on the map. AI will help route and categorize your report."
             />
-
+ 
             <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
                 <Card>
                     <CardHeader>
@@ -49,13 +52,13 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                             />
                             {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
                         </div>
-
+ 
                         <div className="space-y-2">
-                            <Label htmlFor="category">Category</Label>
+                            <Label htmlFor="category_id">Category</Label>
                             <select
-                                id="category"
-                                value={data.category}
-                                onChange={(e) => setData('category', e.target.value)}
+                                id="category_id"
+                                value={data.category_id}
+                                onChange={(e) => setData('category_id', e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             >
                                 <option value="">Select a category</option>
@@ -65,9 +68,10 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                                     </option>
                                 ))}
                             </select>
-                            {errors.category && <p className="text-sm text-destructive">{errors.category}</p>}
+                            {/* FIX: error key matches the field name sent to the backend */}
+                            {errors.category_id && <p className="text-sm text-destructive">{errors.category_id}</p>}
                         </div>
-
+ 
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea
@@ -78,21 +82,20 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                             />
                             {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                         </div>
-
+ 
                         <div className="space-y-2">
                             <Label htmlFor="photos">Photos (optional)</Label>
-                           <Input
-                            id="photos"
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            // v--- CHANGE setData('photos', ...) TO setData('images', ...) ---v
-                            onChange={(e) => setData('images', Array.from(e.target.files ?? []))}
-                        />
+                            <Input
+                                id="photos"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => setData('images', Array.from(e.target.files ?? []))}
+                            />
                         </div>
                     </CardContent>
                 </Card>
-
+ 
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Location</CardTitle>
@@ -110,7 +113,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                         {errors.lat && <p className="mt-2 text-sm text-destructive">{errors.lat}</p>}
                     </CardContent>
                 </Card>
-
+ 
                 <div className="flex flex-col gap-2 lg:col-span-2 sm:flex-row">
                     <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
                         Submit concern
