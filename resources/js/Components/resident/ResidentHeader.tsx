@@ -1,8 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Search, ShieldCheck } from 'lucide-react';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import { Input } from '@/Components/ui/input';
 import { useAuth } from '@/Hooks/usePageProps';
+
 
 export default function ResidentHeader() {
     const { user } = useAuth();
@@ -28,6 +29,13 @@ export default function ResidentHeader() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-1 sm:gap-2">
+                    <Link 
+                        href="/blotters" 
+                        className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+                    >
+                        <ShieldCheck className="h-4 w-4" />
+                        My Records
+                    </Link>
                     {user && (
                         <Link
                             href="/profile"

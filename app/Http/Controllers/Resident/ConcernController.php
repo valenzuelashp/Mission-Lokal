@@ -1,7 +1,7 @@
 <?php
  
 namespace App\Http\Controllers\Resident;
- 
+use App\Jobs\Ai\ProcessConcernWithAi; // <-- Add this at the top
 use App\Models\ConcernCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
@@ -75,6 +75,7 @@ class ConcernController extends Controller
                 ]);
             }
         }
+        ProcessConcernWithAi::dispatch($newConcern);
  
         // 4. Redirect to the feed with a success flash.
         return redirect()->route('feed')->with('success', 'Concern submitted successfully.');

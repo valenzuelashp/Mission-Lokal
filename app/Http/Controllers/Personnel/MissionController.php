@@ -17,7 +17,17 @@ class MissionController extends Controller
     {
         $user = $request->user();
 
-       $missionsQuery = Mission::with(['concern.media'])
+        // 1. Fetch missions WITH real coordinates extracted from the concern!
+        $missionsQuery = Mission::with(['concern.media'])
+            ->select('missions.*')
+            ->addSelect([
+                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
+                    ->whereColumn('concerns.id', 'missions.concern_id')
+                    ->limit(1),
+            ])
             ->where('assigned_to', $user->id)
             ->latest()
             ->get();
@@ -31,16 +41,16 @@ class MissionController extends Controller
             })->toArray();
 
             return [
-                'id' => $mission->id, // <--- FIXED: Using real UUID so links work!
+                'id' => $mission->id, 
                 'concern_id' => $concern->id,
                 'title' => $concern->title,
                 'location' => $concern->address_text ?? 'Unknown location',
                 'images' => $concernImages,
-                'lat' => 14.5995, 
-                'lng' => 120.9842,
+                'lat' => $mission->lat, // Now using real database coordinates!
+                'lng' => $mission->lng, // Now using real database coordinates!
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
                 'status' => $mission->status->value ?? $mission->status,
-                'due_date' => $mission->due_date->format('M d, Y'),
+                'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
                 'is_overdue' => $mission->is_overdue,
                 'visibility' => $concern->visibility,
                 'brief' => $concern->description,

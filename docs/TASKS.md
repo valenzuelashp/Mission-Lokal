@@ -63,13 +63,13 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [-] **R12** Profile — info, digital ID (UI done; wire real data)
 - [-] **R13** Edit profile — pending approval badge (UI done; wire approval flow)
 - [-] **R14** Security — change password (UI done; wire backend)
-- [-] **R15–R16** Blotter type select + form (UI done; wire backend)
+- [x] **R15–R16** Blotter type select + form (UI done; wire backend)
 - [-] **R17** Announcements list + detail (UI done; wire real data)
 
 ### Backend
 
 - [-] `ConcernController` — CRUD, vote, visibility rules
-- [ ] `BlotterController`
+- [x] `BlotterController`
 - [ ] `ProfileController` — update with approval flow
 - [ ] `LibraryController`, `AnnouncementController`
 - [-] File upload service (concern media, ID docs)
@@ -104,7 +104,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] **A5** Verification queue
 - [ ] **A6** Profile edit queue
 - [-] **A7–A8** Residents list + detail (UI done; wire real data)
-- [ ] **A9** Blotters management
+- [x] **A9** Blotters management
 - [-] **A10** Announcements CRUD (UI done; wire real data + persistence)
 - [ ] **A11** Library CRUD
 - [ ] **A12** Audit log
@@ -116,7 +116,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Mission assignment + verification
 - [ ] Concern status state machine (Blueprint §5.1)
 - [ ] Audit log on admin mutations
-- [ ] Blotter approval → ticket number
+- [x] Blotter approval → ticket number
 
 ---
 

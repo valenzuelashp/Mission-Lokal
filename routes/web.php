@@ -1,5 +1,5 @@
 <?php
-use App\Http\Controllers\Admin\DashboardController; // <-- ADD THIS AT THE TOP
+use App\Http\Controllers\Admin\DashboardController; 
 use App\Http\Controllers\Admin\VerificationController;
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
@@ -59,6 +59,7 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
     ]))->name('blotter.form');
+    Route::get('/blotters', [\App\Http\Controllers\Resident\BlotterController::class, 'index'])->name('blotters.index');
     Route::post('/blotter', [\App\Http\Controllers\Resident\BlotterController::class, 'store'])->name('blotter.store');
 });
 
@@ -75,8 +76,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
     
-    // FIX: Send the user to the Controller so it can grab the database data!
-    Route::get('/confirm', [\App\Http\Controllers\OnboardingController::class, 'showConfirmDetails'])->name('confirm');
+Route::get('/confirm', [\App\Http\Controllers\OnboardingController::class, 'showConfirmDetails'])->name('confirm');
     
     Route::get('/id', fn () => Inertia::render('Onboarding/IdVerification'))->name('id');
     Route::post('/id', [\App\Http\Controllers\OnboardingController::class, 'storeId'])->name('id.store');

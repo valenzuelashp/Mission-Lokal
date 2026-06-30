@@ -6,7 +6,7 @@ import { useActivePath } from '@/Hooks/useActivePath';
 const items = [
     { href: '/feed', label: 'Feed', icon: Home },
     { href: '/announcements', label: 'News', icon: Megaphone },
-    { href: '/blotter/new', label: 'Blotter', icon: FileText },
+    { href: '/blotters', label: 'Blotters', icon: FileText },
     { href: '/library', label: 'Library', icon: BookOpen },
     { href: '/profile', label: 'Profile', icon: User },
 ];

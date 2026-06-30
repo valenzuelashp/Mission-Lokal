@@ -10,6 +10,27 @@ use Illuminate\Support\Facades\DB;
 
 class BlotterController extends Controller
 {
+    public function index(Request $request): \Inertia\Response
+    {
+        // 1. Fetch only the blotters where complainant_id matches the logged-in user
+        $blotters = Blotter::where('complainant_id', $request->user()->id)
+            ->latest()
+            ->get()
+            ->map(function ($blotter) {
+                return [
+                    'id' => $blotter->id,
+                    'ticket_number' => $blotter->ticket_number,
+                    'type' => $blotter->type === 'two_party' ? 'Two-Party Dispute' : 'One-Party Log',
+                    'incident_date' => $blotter->incident_at ? $blotter->incident_at->format('M d, Y') : 'Unknown Date',
+                    'status' => $blotter->status,
+                    'created_at' => $blotter->created_at->format('M d, Y'),
+                ];
+            });
+
+        return \Inertia\Inertia::render('Resident/Blotter/Index', [
+            'blotters' => $blotters
+        ]);
+    }
     public function store(Request $request): RedirectResponse
     {
         // 1. Strictly validate the legal requirements
