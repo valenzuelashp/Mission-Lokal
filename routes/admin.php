@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\VerificationController;
 use App\Http\Controllers\Admin\BlotterController;
+use App\Http\Controllers\Admin\MapController; 
+
 /*
 |--------------------------------------------------------------------------
 | Admin routes (Blueprint §7.3)
@@ -15,6 +17,7 @@ use App\Http\Controllers\Admin\BlotterController;
 
     Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/map', [MapController::class, 'index'])->name('map.index');
     Route::get('/map', fn () => Inertia::render('Admin/Map'))->name('map');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');    
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  

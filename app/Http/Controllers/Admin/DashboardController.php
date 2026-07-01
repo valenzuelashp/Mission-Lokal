@@ -23,6 +23,7 @@ class DashboardController extends Controller
 
         // 2. Grab the latest 5 active missions to display in the Queue Table
         $incidents = Mission::with(['concern', 'proof.media'])
+            ->whereIn('status', ['assigned', 'acknowledged', 'in_progress']) // Only show active ones on the dash
             ->latest()
             ->take(5)
             ->get()
@@ -30,23 +31,23 @@ class DashboardController extends Controller
                 $proofPhotos = $mission->proof ? $mission->proof->media->map(function($m) {
                     return asset('storage/' . $m->storage_key);
                 })->toArray() : [];
+                
                 return [
-                    'id' => $mission->id,                 
+                    'id' => $mission->id,                
                     'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)), 
                     'concern_id' => $mission->concern_id,   
-                    'concern_id' => $mission->concern_id,
                     'incident_type' => $mission->concern->title,
                     'type_icon' => 'alert-triangle', // Default icon for now
-                    'location' => $mission->concern->address_text,
+                    'location' => $mission->concern->address_text ?? 'Pinned Location',
                     'ai_severity' => rand(50, 95), // Placeholder until AI is linked
-                    'priority' => 'high',
-                    'status' => $mission->status->value,
+                    'priority' => $mission->concern->severity === 'critical' ? 'high' : 'med',
+                    'status' => $mission->status->value ?? $mission->status,
                     'proof_photos' => $proofPhotos,
                 ];
             });
 
-        // 3. Extract GPS coordinates for the Map Pins
-        $mapPins = Concern::select('id', 'title', DB::raw('ST_Y(location) as lat, ST_X(location) as lng'))
+        // 3. Extract GPS coordinates for the mini Map Pins
+        $mapPins = Concern::select('id', 'title', 'severity', 'status', DB::raw('ST_Y(location) as lat, ST_X(location) as lng'))
             ->whereNotNull('location')
             ->take(10)
             ->get()
@@ -56,7 +57,7 @@ class DashboardController extends Controller
                     'lat' => $concern->lat,
                     'lng' => $concern->lng,
                     'title' => $concern->title,
-                    'severity' => 'medium',
+                    'severity' => $concern->severity?->value ?? 'medium',
                 ];
             });
 
@@ -65,8 +66,7 @@ class DashboardController extends Controller
             'stats' => $stats,
             'incidents' => $incidents,
             'map_pins' => $mapPins,
-            // Passing empty activities for now until we build the Audit Logs
-            'activities' => [], 
+            'activities' => [], // Empty until Audit Logs are built
         ]);
     }
 }
