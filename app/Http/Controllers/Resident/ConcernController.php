@@ -31,8 +31,8 @@ class ConcernController extends Controller
                       ->orWhere('reporter_id', $user->id);
             })
             ->withCount([
-                'votes as upvotes_count' => fn($q) => $q->where('vote_type', 'up'),
-                'votes as downvotes_count' => fn($q) => $q->where('vote_type', 'down')
+                'votes as upvotes_count' => fn($q) => $q->where('vote', 'up'),
+                'votes as downvotes_count' => fn($q) => $q->where('vote', 'down')
             ])
             ->latest()
             ->get()
@@ -148,9 +148,9 @@ class ConcernController extends Controller
 
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$concern->id]);
 
-        $upvotes = $concern->votes()->where('vote_type', 'up')->count();
-        $downvotes = $concern->votes()->where('vote_type', 'down')->count();
-        $userVote = $concern->votes()->where('user_id', $user->id)->value('vote_type');
+        $upvotes = $concern->votes()->where('vote', 'up')->count();
+        $downvotes = $concern->votes()->where('vote', 'down')->count();
+        $userVote = $concern->votes()->where('user_id', $user->id)->value('vote');
 
         $timeline = DB::table('concern_status_histories')
             ->where('concern_id', $concern->id)
@@ -218,12 +218,12 @@ class ConcernController extends Controller
             ->first();
 
         if ($existingVote) {
-            if ($existingVote->vote_type === $type) {
+            if ($existingVote->vote === $type) {
                 // If clicking the same option again, treat it as a removal of the vote
                 $existingVote->delete();
             } else {
                 // If changing minds, swap the internal value
-                $existingVote->update(['vote_type' => $type]);
+                $existingVote->update(['vote' => $type]);
             }
         } else {
             // Spawn brand new database transaction track row record
@@ -231,7 +231,7 @@ class ConcernController extends Controller
                 'id' => Str::uuid()->toString(),
                 'concern_id' => $concern->id,
                 'user_id' => $user->id,
-                'vote_type' => $type,
+                'vote' => $type,
             ]);
         }
 

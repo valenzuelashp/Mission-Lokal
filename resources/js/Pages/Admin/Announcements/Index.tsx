@@ -5,7 +5,6 @@ import AnnouncementsTable from '@/Components/admin/AnnouncementsTable';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { announcementCounts, demoAnnouncements } from '@/Lib/adminDemo';
 import { cn } from '@/Lib/utils';
 import type { AdminAnnouncementsPageProps, PageProps } from '@/Types';
 
@@ -18,8 +17,8 @@ const tabs: { key: FilterKey; label: string }[] = [
 ];
 
 export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
-    const announcements = props.announcements ?? demoAnnouncements;
-    const counts = props.counts ?? announcementCounts(announcements);
+    const announcements = props.announcements ?? [];
+    const counts = props.counts ?? { all: 0, published: 0, draft: 0 };
     const { flash } = usePage<PageProps>().props;
 
     const [filter, setFilter] = useState<FilterKey>('all');
@@ -92,7 +91,7 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                             )}
                         >
                             {tab.label}
-                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key]})</span>
+                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key] ?? 0})</span>
                         </button>
                     ))}
                     </div>

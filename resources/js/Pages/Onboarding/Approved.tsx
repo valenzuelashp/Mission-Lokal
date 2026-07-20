@@ -1,11 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 
-// Extend the window type definition locally for Ziggy support
-declare global {
-    interface Window {
-        route: (name: string, parameters?: any) => string;
-    }
-}
+declare function route(name: string): string;
 
 export default function Approved() {
     return (
@@ -38,9 +33,10 @@ export default function Approved() {
                         </Link>
                         
                         <Link 
-                            href={window.route('logout')} 
+                            href={route('logout')} 
                             method="post" 
                             as="button"
+                            type="button"
                             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             Sign Out

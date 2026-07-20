@@ -96,8 +96,8 @@ export default function Show({ resident, residentId }: Props) {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
-                <ResidentActivityTable activities={data.activities} />
-                <ResidentDocumentsList documents={data.documents} />
+                <ResidentActivityTable activities={data.activities || []} />
+                <ResidentDocumentsList documents={data.documents || []} />
             </div>
         </AdminLayout>
     );

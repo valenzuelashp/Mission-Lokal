@@ -8,51 +8,43 @@ use App\Models\Mission;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MissionController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        // 1. Fetch all active and resolved concerns
-        $concerns = Concern::whereIn('status', ['active', 'resolved'])
+        $barangayId = $request->user()->barangay_id;
+
+        $concerns = Concern::where('barangay_id', $barangayId)
+            ->whereIn('status', ['active', 'resolved', 'in_progress'])
             ->latest()
             ->get();
 
-        // 2. Fetch all REAL missions that exist for these concerns
         $realMissions = Mission::with('assignee')
             ->whereIn('concern_id', $concerns->pluck('id'))
             ->get()
             ->keyBy('concern_id');
 
-        // 3. Map them together for the React UI!
         $missions = $concerns->map(function ($concern) use ($realMissions) {
-            
-            // Check if a mission has actually been created for this concern
             $mission = $realMissions->get($concern->id);
 
             return [
-                // 1. Pass the REAL ID for the link (if a mission exists)
                 'raw_mission_id' => $mission ? $mission->id : null,
-                
-                // 2. Keep the PRETTY ID for the text
                 'id' => $mission ? 'MS-' . strtoupper(substr($mission->id, 0, 4)) : 'MS-' . strtoupper(substr($concern->id, 0, 4)),
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
                 'location' => $concern->address_text ?? 'Unknown location',
-                
-                // Magic: Pull the real assigned worker's name!
                 'assignee' => $mission?->assignee?->full_name ?? $mission?->assignee?->account_id ?? null,
-                
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
-                
-                // Use the real mission status, or default to 'assigned' so the UI knows it needs assignment
                 'status' => $mission ? ($mission->status->value ?? $mission->status) : 'assigned',
-                
-                'due_date' => $mission ? $mission->due_date->format('M d, Y') : $concern->created_at->addDays(2)->format('M d, Y'),
-                'is_overdue' => $mission ? $mission->is_overdue : false,
-                'is_escalated' => $mission ? $mission->is_escalated : false,
+                'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
+                'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
+                'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
             ];
         });
 
@@ -66,8 +58,9 @@ class MissionController extends Controller
             'overdue' => $missions->where('is_overdue', true)->count(),
         ];
 
-        // Fetch the Personnel Roster
-        $personnelList = User::where('role', 'personnel')
+        $personnelList = User::where('barangay_id', $barangayId)
+            ->where('role', 'personnel')
+            ->where('is_active', 1)
             ->get()
             ->map(function ($user) {
                 return [
@@ -92,79 +85,80 @@ class MissionController extends Controller
 
         $concern = Concern::findOrFail($validated['concern_id']);
 
-        // Safely create the Mission!
-        Mission::create([
-            'barangay_id' => $concern->barangay_id,
-            'concern_id' => $concern->id,
-            'assigned_to' => $validated['assigned_to'],
-            'status' => 'assigned',
-            'due_date' => now()->addDays(2),
-            'created_by' => $request->user()->id,
-        ]);
+        if ($concern->barangay_id !== $request->user()->barangay_id) {
+            abort(403, 'Unauthorized context registration.');
+        }
 
-        // Note: We are no longer trying to update the $concern->status here! 
-        // It stays 'active' legally!
+        DB::transaction(function () use ($validated, $concern, $request) {
+            $mission = Mission::updateOrCreate(
+                ['concern_id' => $concern->id],
+                [
+                    'barangay_id' => $concern->barangay_id,
+                    'assigned_to' => $validated['assigned_to'],
+                    'status' => 'assigned',
+                    'due_date' => now()->addDays(2),
+                    'created_by' => $request->user()->id,
+                ]
+            );
+
+            DB::table('mission_assignments')->insert([
+                'id' => (string) Str::uuid(),
+                'mission_id' => $mission->id,
+                'personnel_id' => $validated['assigned_to'],
+                'assigned_by' => $request->user()->id,
+                'assigned_at' => now(),
+            ]);
+        });
 
         return back()->with('success', 'Personnel successfully assigned to mission!');
     }
 
     public function show(Request $request, string $id): Response
     {
-        // 1. Fetch the mission WITH the concern, proof, assignee, and all media!
-        $mission = Mission::with(['concern.media', 'proof.media', 'assignee'])
-            ->select('missions.*')
-            ->addSelect([
-                // Grab the map coordinates while we're at it!
-                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
-                    ->whereColumn('concerns.id', 'missions.concern_id')
-                    ->limit(1),
-                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
-                    ->whereColumn('concerns.id', 'missions.concern_id')
-                    ->limit(1),
-            ])
+        $barangayId = $request->user()->barangay_id;
+
+        $mission = Mission::where('barangay_id', $barangayId)
+            ->with(['concern.media', 'proof.media', 'assignee'])
             ->findOrFail($id);
 
         $concern = $mission->concern;
-
-        // 2. Extract Resident's Photos
-        $concernImages = [];
-        if ($concern && $concern->media) {
-            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
-                return asset('storage/' . $media->storage_key);
-            })->toArray();
-        }
-
-        // 3. Extract Worker's Proof Photos
-        $proofPhotos = [];
-        if ($mission->proof && $mission->proof->media) {
-            $proofPhotos = $mission->proof->media->sortBy('sort_order')->map(function ($media) {
-                return asset('storage/' . $media->storage_key);
-            })->toArray();
-        }
-
-        // 4. Pack it up for React!
-        $formattedMission = [
-            'id' => $mission->id,
-            'concern_id' => $concern->id,
-            'title' => $concern->title,
-            'location' => $concern->address_text ?? 'Unknown location',
-            'lat' => $mission->lat,
-            'lng' => $mission->lng,
-            'priority' => $concern->severity === 'critical' ? 'high' : 'med',
-            'status' => $mission->status->value ?? $mission->status,
-            'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
-            'is_overdue' => $mission->is_overdue,
-            'brief' => $concern->description,
-            'assignee' => $mission->assignee?->full_name ?? $mission->assignee?->account_id ?? 'Unassigned',
-            
-            // --- THE IMAGES ---
-            'images' => $concernImages,
-            'proof_notes' => $mission->proof?->notes,
-            'proof_photos' => $proofPhotos,
-        ];
+        $concernImages = $concern->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
+        $proofPhotos = $mission->proof?->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
 
         return Inertia::render('Admin/Missions/Show', [
-            'mission' => $formattedMission,
+            'mission' => [
+                'id' => $mission->id,
+                'concern_id' => $concern->id,
+                'title' => $concern->title,
+                'location' => $concern->address_text ?? 'Unknown location',
+                'priority' => $concern->severity === 'critical' ? 'high' : 'med',
+                'status' => $mission->status->value ?? $mission->status,
+                'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
+                'is_overdue' => (bool)$mission->is_overdue,
+                'brief' => $concern->description,
+                'assignee' => $mission->assignee?->full_name ?? $mission->assignee?->account_id ?? 'Unassigned',
+                'images' => $concernImages,
+                'proof_notes' => $mission->proof?->notes,
+                'proof_photos' => $proofPhotos,
+                'assigned_at' => $mission->created_at->format('M d, Y'),
+            ],
         ]);
+    }
+
+    public function verifyMission(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+
+        DB::transaction(function () use ($id, $barangayId) {
+            $mission = Mission::where('barangay_id', $barangayId)->findOrFail($id);
+            $mission->update([
+                'status' => 'verified',
+                'verified_at' => now(),
+                'verified_by' => Auth::id(),
+            ]);
+            Concern::where('id', $mission->concern_id)->update(['status' => 'resolved']);
+        });
+
+        return back()->with('success', 'Mission verified and concern resolved.');
     }
 }

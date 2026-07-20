@@ -18,16 +18,13 @@ export default function Result({ status, rejectionReason }: ResultProps) {
                 <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center border-t-4 border-t-transparent" 
                      style={{ borderTopColor: isApproved ? '#10B981' : '#EF4444' }}>
                     
-                    {/* Dynamic Icon based on status */}
                     <div className="flex justify-center mb-6">
                         <div className={`p-4 rounded-full ${isApproved ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
                             {isApproved ? (
-                                // Green Checkmark
                                 <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             ) : (
-                                // Red X
                                 <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -45,7 +42,6 @@ export default function Result({ status, rejectionReason }: ResultProps) {
                             : 'Unfortunately, your ID verification was rejected by the administration for the following reason:'}
                     </p>
 
-                    {/* Show rejection reason box if rejected */}
                     {!isApproved && rejectionReason && (
                         <div className="bg-red-50 rounded-lg p-4 mb-8 border border-red-100 text-left">
                             <span className="font-semibold text-red-800 text-sm block mb-1">Admin Note:</span>
@@ -53,7 +49,6 @@ export default function Result({ status, rejectionReason }: ResultProps) {
                         </div>
                     )}
 
-                    {/* Action Buttons */}
                     <div className="flex flex-col space-y-3 mt-4">
                         {isApproved ? (
                             <Link 
@@ -75,6 +70,7 @@ export default function Result({ status, rejectionReason }: ResultProps) {
                             href={route('logout')} 
                             method="post" 
                             as="button"
+                            type="button"
                             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         >
                             Sign Out

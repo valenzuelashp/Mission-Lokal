@@ -93,7 +93,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                             )}
                         >
                             {tab.label}
-                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key]})</span>
+                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key] ?? 0})</span>
                         </button>
                     ))}
                     </div>

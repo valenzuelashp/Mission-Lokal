@@ -30,7 +30,6 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Inertia Form Setup
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         concern_id: '',
         assigned_to: '',
@@ -57,7 +56,6 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
     const unassignedMissions = missions.filter((m) => !m.assignee && m.status !== 'cancelled' && m.status !== 'verified');
     const unassigned = unassignedMissions.length;
 
-    // Modal Handlers
     const openModal = () => {
         reset();
         clearErrors();
@@ -89,7 +87,6 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                    {/* The Assign Button triggers the Modal! */}
                     <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={openModal}>
                         <UserPlus className="mr-2 h-4 w-4" />
                         Assign personnel
@@ -163,7 +160,6 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                 </div>
             </section>
 
-            {/* --- THE ASSIGNMENT MODAL --- */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">

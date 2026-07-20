@@ -7,7 +7,8 @@ use App\Enums\VerificationStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne; // <-- Added this
+use Illuminate\Database\Eloquent\Relations\HasOne; 
+use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Added this import
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -57,9 +58,14 @@ class User extends Authenticatable
         return $this->belongsTo(Barangay::class);
     }
 
-    // <-- NEW RELATIONSHIP ADDED HERE
     public function residentProfile(): HasOne
     {
         return $this->hasOne(ResidentProfile::class);
+    }
+
+    // <-- NEW RELATIONSHIP FOR TASK A8 ADDED HERE
+    public function concerns(): HasMany
+    {
+        return $this->hasMany(Concern::class, 'reporter_id');
     }
 }

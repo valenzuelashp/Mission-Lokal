@@ -9,14 +9,19 @@ use App\Models\PreloadedResident;
 use App\Enums\VerificationStatus;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
 {
     // 1. Show the list of everyone waiting in line
-    public function index()
+    public function index(Request $request)
     {
+        $barangayId = $request->user()->barangay_id;
+
         $users = User::with('residentProfile')
+            ->where('barangay_id', $barangayId)
+            ->where('role', 'resident')
             ->where(function ($query) {
                 $query->where('verification_status', 'pending')
                       ->orWhere('verification_status', 'in_progress');
@@ -30,24 +35,28 @@ class VerificationController extends Controller
                 'account_id' => $user->account_id,
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
-                // The ?? 'pending' handles nulls, and the ?-> prevents the crash
-                'verification_status' => $user->verification_status?->value ?? 'pending', 
-                'created_at' => $user->created_at,
+                'verification_status' => $user->verification_status?->value ?? $user->verification_status ?? 'pending', 
+                'created_at' => $user->created_at ? $user->created_at->toIso8String() : null,
             ];
         });
 
-        return Inertia::render('Admin/Verifications', [
+        return Inertia::render('Admin/Verifications/Index', [
             'queue' => $queue
         ]);
     }
 
     // 2. Open a specific resident to review their ID
-    public function show(User $user)
+    public function show(Request $request, string $id)
     {
+        $barangayId = $request->user()->barangay_id;
+
+        $user = User::where('barangay_id', $barangayId)
+            ->where('role', 'resident')
+            ->findOrFail($id);
+
         // When the admin opens it, change status to In Progress!
-        // This triggers the dynamic blue UI on the resident's screen!
-        if ($user->verification_status === \App\Enums\VerificationStatus::Pending) {
-            $user->verification_status = \App\Enums\VerificationStatus::InProgress;
+        if ($user->verification_status === 'pending' || $user->verification_status === VerificationStatus::Pending) {
+            $user->verification_status = 'in_progress';
             $user->save();
         }
 
@@ -55,19 +64,21 @@ class VerificationController extends Controller
         $censusData = PreloadedResident::where('account_id', $user->account_id)->first();
         $user->load('residentProfile');
 
-        // Load their uploaded ID
-        $user->load('residentProfile');
-
-        return Inertia::render('Admin/VerificationShow', [
+        return Inertia::render('Admin/Verifications/Show', [
             'resident' => $user,
             'censusData' => $censusData
         ]);
     }
 
     // 3. Approve the Resident
-    public function approve(User $user)
+    public function approve(Request $request, string $id)
     {
-        $user->verification_status = VerificationStatus::Approved;
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->findOrFail($id);
+
+        $user->verification_status = 'approved';
+        $user->verified_at = now();
+        $user->verified_by = Auth::id();
         $user->save();
 
         return redirect()->route('admin.verifications.index')
@@ -75,13 +86,16 @@ class VerificationController extends Controller
     }
 
     // 4. Reject the Resident (Requires a reason)
-    public function reject(Request $request, User $user)
+    public function reject(Request $request, string $id)
     {
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->findOrFail($id);
+
         $request->validate([
             'rejection_reason' => 'required|string|max:255'
         ]);
 
-        $user->verification_status = VerificationStatus::Rejected;
+        $user->verification_status = 'rejected';
         $user->save();
 
         // Save the reason to their profile so they can see it
@@ -94,16 +108,20 @@ class VerificationController extends Controller
         return redirect()->route('admin.verifications.index')
             ->with('success', 'Resident rejected. They have been notified to re-upload.');
     }
+
     // Ensure this method handles the path correctly
-public function viewId($path)
+    public function viewId(Request $request, string $path)
     {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
         if (!str_starts_with($path, 'private/')) {
             $path = 'private/' . $path;
         }
         $fullPath = storage_path('app/' . $path);
 
         if (!\Illuminate\Support\Facades\File::exists($fullPath)) {
-            // If the file is missing, return a standard 404 instead of crashing
             abort(404, "File missing from server."); 
         }
 

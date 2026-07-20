@@ -42,22 +42,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Resident/admin login (`account_id` + password)
 - [x] Personnel login portal
 - [x] Logout
-<<<<<<< HEAD
 - [x] Forgot password — email OTP → reset (Blueprint R7)
 - [x] Onboarding: confirm preloaded details
 - [x] Onboarding: government ID upload (encrypt at rest)
 - [X] Onboarding: pending / approved / rejected screens
 - [x] Onboarding: set password after approval
 - [X] Middleware: redirect unverified residents to onboarding
-=======
-- [x] **R10** Concern detail — status timeline (UI done; wire real data)
- Forgot password — email OTP → reset (Blueprint R7)
-- [x] Onboarding: confirm preloaded details
-- [x] Onboarding: government ID upload (encrypt at rest)
-- [x] Onboarding: pending / approved / rejected screens
-- [x] Onboarding: set password after approval
-- [x] Middleware: redirect unverified residents to onboarding
->>>>>>> 813ea35 (Phase 2 Done)
 - [x] `preloaded_residents` import (CSV)
 
 ---
@@ -67,23 +57,23 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Pages
 
 - [x] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
-- [-] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
+- [x] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
 - [x] **R10** Concern detail — status timeline (UI done; wire real data)
-- [-] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
-- [-] **R12** Profile — info, digital ID (UI done; wire real data)
-- [-] **R13** Edit profile — pending approval badge (UI done; wire approval flow)
-- [-] **R14** Security — change password (UI done; wire backend)
+- [x] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
+- [x] **R12** Profile — info, digital ID (UI done; wire real data)
+- [x] **R13** Edit profile — pending approval badge (UI done; wire approval flow)
+- [x] **R14** Security — change password (UI done; wire backend)
 - [x] **R15–R16** Blotter type select + form (UI done; wire backend)
-- [-] **R17** Announcements list + detail (UI done; wire real data)
+- [x] **R17** Announcements list + detail (UI done; wire real data)
 
 ### Backend
 
 - [x] `ConcernController` — CRUD, vote, visibility rules
 - [x] `BlotterController`
-- [ ] `ProfileController` — update with approval flow
-- [ ] `LibraryController`, `AnnouncementController`
-- [-] File upload service (concern media, ID docs)
-- [ ] Row-level authorization for private concerns
+- [x] `ProfileController` — update with approval flow
+- [x] `LibraryController`, `AnnouncementController`
+- [x] File upload service (concern media, ID docs)
+- [x] Row-level authorization for private concerns
 
 ---
 

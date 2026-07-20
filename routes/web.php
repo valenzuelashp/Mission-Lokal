@@ -132,3 +132,8 @@ Route::get('/preview/rejected', function () {
 Route::get('/preview/approved', function () {
     return Inertia::render('Onboarding/Result', ['status' => 'approved']);
 });
+
+Route::get('/force-drop', function() {
+    Illuminate\Support\Facades\DB::statement('DROP TABLE IF EXISTS audit_logs');
+    return 'Table dropped successfully! You can now run the migration.';
+});

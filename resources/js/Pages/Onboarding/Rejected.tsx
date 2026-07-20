@@ -1,11 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 
-// Extend the window type definition locally for Ziggy support
-declare global {
-    interface Window {
-        route: (name: string, parameters?: any) => string;
-    }
-}
+declare function route(name: string): string;
 
 interface Props {
     reason?: string;
@@ -41,17 +36,19 @@ export default function Rejected({ reason }: Props) {
                     </div>
 
                     <div className="flex flex-col space-y-3">
-                        <a 
-                            href={window.route('onboarding.id')} 
+                        {/* Changed from <a> to Inertia <Link> to cleanly run without raw href state tracking bugs */}
+                        <Link 
+                            href={route('onboarding.id')} 
                             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             Resubmit Identification Documents
-                        </a>
+                        </Link>
                         
                         <Link 
-                            href={window.route('logout')} 
+                            href={route('logout')} 
                             method="post" 
                             as="button"
+                            type="button"
                             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             Sign Out

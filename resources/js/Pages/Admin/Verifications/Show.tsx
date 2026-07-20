@@ -4,7 +4,6 @@ import AdminLayout from '@/Layouts/AdminLayout';
 
 declare function route(name: string, params?: any): string;
 
-// Define our data shapes
 interface ResidentProfile {
     government_id_storage_key: string;
     rejection_reason?: string;
@@ -25,18 +24,15 @@ interface CensusData {
     first_name: string;
     last_name: string;
     address: string;
-    // Add other fields if your census table has them
 }
 
-export default function VerificationShow({ resident, censusData }: { resident: User, censusData: CensusData | null }) {
+export default function Show({ resident, censusData }: { resident: User, censusData: CensusData | null }) {
     const [showRejectModal, setShowRejectModal] = useState(false);
 
-    // Form specifically for handling Rejections (so we can send the reason)
     const { data, setData, post: postReject, processing: rejecting, errors } = useForm({
         rejection_reason: '',
     });
 
-    // Form for Approvals
     const { post: postApprove, processing: approving } = useForm();
 
     const handleApprove = (e: React.FormEvent) => {
@@ -53,21 +49,15 @@ export default function VerificationShow({ resident, censusData }: { resident: U
         });
     };
 
-    // Helper to resolve image path (checks if it's already a full URL or needs the storage prefix)
     const getImageUrl = (path: string) => {
-    if (!path) return '';
-    
-    // If it's already a full URL, leave it alone
-    if (path.startsWith('http')) return path;
-
-    // Call the named route we defined in admin.php
-    // The 'path' parameter is the exact string from your database
-    return `/admin/view-id/${path}`;
-};
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        return `/admin/view-id/${path}`;
+    };
 
     return (
-        <AdminLayout>
-            <Head title={`Review: ${resident.first_name} ${resident.last_name} | Admin`} />
+        <AdminLayout title={`Reviewing Identity Document: ${resident.first_name} ${resident.last_name}`}>
+            <Head title={`Review: ${resident.first_name} ${resident.last_name}`} />
 
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
@@ -96,13 +86,12 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                             </div>
                             
                             <div className="p-6 space-y-6">
-                                {/* Name Comparison */}
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 mb-2">Full Name</p>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
                                             <span className="text-xs text-blue-500 font-bold uppercase block mb-1">User Submitted</span>
-                                            <span className="text-gray-900 font-medium">{resident.first_name} {resident.middle_name} {resident.last_name}</span>
+                                            <span className="text-gray-900 font-medium">{resident.first_name} {resident.middle_name || ''} {resident.last_name}</span>
                                         </div>
                                         <div className="bg-green-50 p-3 rounded-lg border border-green-100">
                                             <span className="text-xs text-green-600 font-bold uppercase block mb-1">Census Record</span>
@@ -113,7 +102,6 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                                     </div>
                                 </div>
 
-                                {/* Address Comparison */}
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 mb-2">Registered Address</p>
                                     <div className="grid grid-cols-2 gap-4">
@@ -128,7 +116,6 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                                     </div>
                                 </div>
 
-                                {/* Birthday */}
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 mb-2">Birthday</p>
                                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 w-1/2">
@@ -138,7 +125,6 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                             </div>
                         </div>
 
-                        {/* ACTION BUTTONS */}
                         <div className="flex gap-4">
                             <button 
                                 onClick={handleApprove}
@@ -165,7 +151,7 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                         <div className="flex-1 p-6 flex justify-center items-center bg-gray-800 min-h-[400px]">
                             {resident.resident_profile?.government_id_storage_key ? (
                                 <img 
-                                    src={getImageUrl(resident.resident_profile?.government_id_storage_key)} 
+                                    src={getImageUrl(resident.resident_profile.government_id_storage_key)} 
                                     alt="Resident ID" 
                                     className="max-w-full max-h-[600px] object-contain rounded border border-gray-600 shadow-2xl"
                                 />
@@ -183,7 +169,6 @@ export default function VerificationShow({ resident, censusData }: { resident: U
                 </div>
             </div>
 
-            {/* REJECTION MODAL */}
             {showRejectModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/75 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">

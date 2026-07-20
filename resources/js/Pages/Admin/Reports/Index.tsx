@@ -20,6 +20,7 @@ const tabs: { key: FilterKey; label: string }[] = [
 ];
 
 export default function Index(props: Partial<AdminReportQueuePageProps>) {
+    // Rely strictly on backend query data props, using local demo constants only as absolute empty state safety fallback
     const reports = props.reports ?? demoReports;
     const counts = props.counts ?? reportCounts(reports);
 
@@ -73,7 +74,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
                             )}
                         >
                             {tab.label}
-                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key]})</span>
+                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key] ?? 0})</span>
                         </button>
                     ))}
                     </div>
@@ -102,13 +103,10 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
                 </div>
                 <ReportQueueTable reports={filtered} />
                 <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Page 1 of 2</span>
+                    <span>Page 1 of 1</span>
                     <div className="flex gap-1">
                         <Button size="sm" variant="default" className="h-8 w-8 bg-blue-700 p-0">
                             1
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                            2
                         </Button>
                     </div>
                 </div>

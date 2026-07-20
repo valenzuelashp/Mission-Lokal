@@ -1,9 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 
-// Tell TypeScript that Laravel's Ziggy route() function exists
 declare function route(name: string): string;
 
-// FIX 1: Catch the 'status' variable passed from the Laravel Controller
 export default function Pending({ status }: { status: string }) {
     return (
         <>
@@ -12,10 +10,8 @@ export default function Pending({ status }: { status: string }) {
             <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
                 <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
                     
-                    {/* FIX 2: Dynamically change the UI based on the exact status! */}
                     {status === 'in_progress' ? (
                         <>
-                            {/* IN PROGRESS UI */}
                             <div className="flex justify-center mb-6">
                                 <div className="bg-purple-50 p-4 rounded-full">
                                     <svg className="w-16 h-16 text-purple-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -30,7 +26,6 @@ export default function Pending({ status }: { status: string }) {
                         </>
                     ) : (
                         <>
-                            {/* DEFAULT PENDING UI (Your original design) */}
                             <div className="flex justify-center mb-6">
                                 <div className="bg-blue-50 p-4 rounded-full">
                                     <svg className="w-16 h-16 text-blue-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -51,9 +46,7 @@ export default function Pending({ status }: { status: string }) {
                         </p>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-col space-y-3">
-                        {/* FIX 3: Balanced opening/closing tags using Inertia Link targeting /feed */}
                         <Link 
                             href="/feed" 
                             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
@@ -62,10 +55,10 @@ export default function Pending({ status }: { status: string }) {
                         </Link>
                         
                         <Link 
-                            // @ts-ignore
-                            href={window.route('logout')} 
+                            href={route('logout')} 
                             method="post" 
                             as="button"
+                            type="button"
                             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             Sign Out

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 
-// Tell TypeScript what the backend is sending us
 type Blotter = {
     id: string;
     ticket_number: string;
@@ -16,13 +15,13 @@ type Blotter = {
     created_at: string;
 };
 
-export default function Index({ blotters }: { blotters: Blotter[] }) {
+export default function Index({ blotters = [] }: { blotters: Blotter[] }) {
     return (
         <AdminLayout title="Blotter Management">
             <Head title="Blotters" />
 
             <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold tracking-tight">Blotter Desk</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-blue-900">Blotter Desk</h2>
             </div>
 
             <Card className="shadow-sm">
@@ -49,20 +48,19 @@ export default function Index({ blotters }: { blotters: Blotter[] }) {
                                 </thead>
                                 <tbody>
                                     {blotters.map((blotter) => (
-                                        <tr key={blotter.id} className="border-b transition-colors hover:bg-slate-50">
+                                        <tr key={blotter.id} className="border-b transition-colors hover:bg-slate-50/50">
                                             <td className="p-3">
                                                 <div className="font-medium text-blue-700">{blotter.ticket_number}</div>
-                                                <Badge variant={blotter.status === 'pending_approval' ? 'secondary' : 'default'} className="mt-1">
-                                                    {blotter.status.replace('_', ' ')}
+                                                <Badge variant={blotter.status === 'pending_approval' ? 'secondary' : 'default'} className="mt-1 capitalize">
+                                                    {(blotter.status || 'pending').replace('_', ' ')}
                                                 </Badge>
                                             </td>
-                                            <td className="p-3">{blotter.type}</td>
-                                            <td className="p-3 font-medium">{blotter.complainant}</td>
-                                            <td className="p-3">{blotter.respondent}</td>
-                                            <td className="p-3">{blotter.created_at}</td>
+                                            <td className="p-3 text-slate-600">{blotter.type}</td>
+                                            <td className="p-3 font-medium text-slate-900">{blotter.complainant}</td>
+                                            <td className="p-3 text-slate-600">{blotter.respondent}</td>
+                                            <td className="p-3 text-slate-500">{blotter.created_at}</td>
                                             <td className="p-3">
                                                 <Button variant="outline" size="sm" asChild>
-                                                    {/* We will build this detail page next! */}
                                                     <Link href={`/admin/blotters/${blotter.id}`}>Review</Link>
                                                 </Button>
                                             </td>

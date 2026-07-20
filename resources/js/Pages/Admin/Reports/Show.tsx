@@ -1,100 +1,76 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { MapPin, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Link, router } from '@inertiajs/react';
+import { ArrowLeft, XCircle, GitMerge, Zap } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Button } from '@/Components/ui/button';
-import MapView from '@/Components/maps/MapView';
+import { Input } from '@/Components/ui/input';
 
-export default function Show({ report }: any) {
-    
-    const updateStatus = (newStatus: string) => {
-    router.put(`/admin/reports/${report.id}`, {            status: newStatus
-        });
-    };
+interface Props {
+    report: any;
+    masterCandidates?: { id: string; label: string }[];
+}
+
+export default function Show({ report, masterCandidates = [] }: Props) {
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [selectedMasterId, setSelectedMasterId] = useState('');
+    const [assignedTeam, setAssignedTeam] = useState('');
+    const [missionNotes] = useState('');
+    const [showRejectInput, setShowRejectInput] = useState(false);
+    const [showMergeSelect, setShowMergeSelect] = useState(false);
+    const [showMissionForm, setShowMissionForm] = useState(false);
+
+    const isTerminal = ['resolved', 'rejected', 'merged'].includes(report?.status);
 
     return (
-        <AdminLayout title={`Report ${report.id}`}>
-            <Head title="Report Detail" />
-
-            {/* Back Button and Header */}
+        <AdminLayout title={report ? `Report ${report.id.substring(0, 8)}` : "Report"}>
             <div className="mb-6 flex items-center gap-4">
-                <Link href="/admin/reports" className="text-muted-foreground hover:text-foreground">                    <ArrowLeft className="h-5 w-5" />
-                </Link>
-                <h2 className="text-2xl font-semibold text-blue-900">Report Details</h2>
+                <Link href="/admin/reports" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+                <h2 className="text-2xl font-semibold">Report Action Control</h2>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                
-                {/* Main Information Column */}
-                <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
                     <div className="rounded-lg border bg-card p-6 shadow-sm">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-xl font-bold">{report.title}</h3>
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 uppercase tracking-wider">
-                                {report.status}
-                            </span>
-                        </div>
-                        <p className="whitespace-pre-wrap text-muted-foreground">{report.description}</p>
-                        
-                        {report.images && report.images.length > 0 && (
-                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-                                {report.images.map((url: string, idx: number) => (
-                                    <img 
-                                        key={idx} 
-                                        src={url} 
-                                        alt="Resident Upload" 
-                                        className="h-32 w-32 shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
-                                    />
-                                ))}
-                            </div>
-                        )}
-                        
-                        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            <span>{report.location}</span>
-                        </div>
-                    </div>
-
-                    {/* Map Area */}
-                    <div className="rounded-lg border bg-card p-6 shadow-sm overflow-hidden">
-                        <h4 className="mb-4 font-semibold">Location Map</h4>
-                        {/* The REAL Map Component! */}
-                        <MapView
-                            center={[report.lat, report.lng]}
-                            pins={[{ id: report.id, lat: report.lat, lng: report.lng, title: report.title }]}
-                            className="h-64 w-full rounded-md border"
-                        />
+                        <h3 className="text-xl font-bold mb-4">{report.title}</h3>
+                        <p className="text-sm text-slate-700">{report.description}</p>
                     </div>
                 </div>
 
-                {/* Admin Actions Sidebar */}
                 <div className="space-y-6">
                     <div className="rounded-lg border bg-card p-6 shadow-sm">
-                        <h4 className="mb-4 font-semibold">Admin Actions</h4>
-                        <p className="mb-6 text-sm text-muted-foreground">
-                            Submitted on: <br/>{report.submitted_at}
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <Button 
-                                className="w-full bg-green-600 text-white hover:bg-green-700"
-                                onClick={() => updateStatus('active')}
-                            >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Approve & Make Active
-                            </Button>
-                            
-                            <Button 
-                                variant="destructive" 
-                                className="w-full"
-                                onClick={() => updateStatus('rejected')}
-                            >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Mark as Rejected/Spam
-                            </Button>
-                        </div>
+                        {!isTerminal && !showMissionForm && !showRejectInput && !showMergeSelect && (
+                            <div className="flex flex-col gap-2">
+                                <Button onClick={() => setShowMissionForm(true)}><Zap className="mr-2 h-4 w-4" /> Escalate</Button>
+                                <Button variant="outline" onClick={() => setShowMergeSelect(true)}><GitMerge className="mr-2 h-4 w-4" /> Merge</Button>
+                                <Button variant="ghost" className="text-red-600" onClick={() => setShowRejectInput(true)}><XCircle className="mr-2 h-4 w-4" /> Dismiss</Button>
+                            </div>
+                        )}
+
+                        {showMissionForm && (
+                            <form onSubmit={(e) => { e.preventDefault(); router.post(`/admin/reports/${report.id}/escalate`, { assigned_team: assignedTeam, mission_notes: missionNotes }); }}>
+                                <Input placeholder="Team" value={assignedTeam} onChange={(e) => setAssignedTeam(e.target.value)} className="mb-2" />
+                                <Button type="submit" className="w-full">Launch Mission</Button>
+                            </form>
+                        )}
+
+                        {showMergeSelect && (
+                            <form onSubmit={(e) => { e.preventDefault(); router.post(`/admin/reports/${report.id}/merge`, { master_concern_id: selectedMasterId }); }}>
+                                <select className="w-full border p-2 mb-2" onChange={(e) => setSelectedMasterId(e.target.value)}>
+                                    <option value="">Select Parent</option>
+                                    {masterCandidates.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                </select>
+                                <Button type="submit" className="w-full">Merge</Button>
+                            </form>
+                        )}
+
+                        {showRejectInput && (
+                            <form onSubmit={(e) => { e.preventDefault(); router.post(`/admin/reports/${report.id}/reject`, { rejection_reason: rejectionReason }); }}>
+                                <Input placeholder="Reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="mb-2" />
+                                <Button type="submit" variant="destructive" className="w-full">Confirm Reject</Button>
+                            </form>
+                        )}
                     </div>
                 </div>
-
             </div>
         </AdminLayout>
     );

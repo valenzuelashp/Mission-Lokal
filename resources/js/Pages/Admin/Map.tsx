@@ -8,6 +8,7 @@ import { demoHotspots, demoMapPins, mapFilterCounts } from '@/Lib/adminDemo';
 import type { AdminMapPageProps, IncidentTypeIcon, MapPinStatus, Severity } from '@/Types';
 
 export default function MapPage(props: Partial<AdminMapPageProps>) {
+    // Map incoming database props cleanly, fallback to dummy constants only if undefined
     const allPins = props.pins ?? demoMapPins;
     const hotspots = props.hotspots ?? demoHotspots;
 
@@ -62,21 +63,21 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
             <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-11rem)] lg:grid-cols-[320px_1fr]">
                 <div className="max-h-[45vh] overflow-hidden lg:max-h-none">
                     <MapPinSidebar
-                    pins={filtered}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    severity={severity}
-                    onSeverity={setSeverity}
-                    status={status}
-                    onStatus={setStatus}
-                    type={type}
-                    onType={setType}
-                    search={search}
-                    onSearch={setSearch}
-                    showHotspots={showHotspots}
-                    onToggleHotspots={() => setShowHotspots((v) => !v)}
-                    counts={counts}
-                />
+                        pins={filtered}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        severity={severity}
+                        onSeverity={setSeverity}
+                        status={status}
+                        onStatus={setStatus}
+                        type={type}
+                        onType={setType}
+                        search={search}
+                        onSearch={setSearch}
+                        showHotspots={showHotspots}
+                        onToggleHotspots={() => setShowHotspots((v) => !v)}
+                        counts={counts}
+                    />
                 </div>
                 <AdminFullMap
                     pins={filtered}
