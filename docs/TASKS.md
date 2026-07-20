@@ -98,24 +98,24 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ### Pages
 
 - [x] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
-- [-] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
+- [x] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
 - [x] **A3** Report queue — confirm / override / reject (UI done; wire real data + actions)
-- [-] A4 Mission board — assign / reassign (UI done; real data, map coordinates, and proof photos wired! Actions next)
-- [ ] **A5** Verification queue
-- [ ] **A6** Profile edit queue
-- [-] **A7–A8** Residents list + detail (UI done; wire real data)
+- [x] A4 Mission board — assign / reassign (UI done; real data, map coordinates, and proof photos wired! Actions next)
+- [x] **A5** Verification queue
+- [x] **A6** Profile edit queue
+- [x] **A7–A8** Residents list + detail (UI done; wire real data)
 - [x] **A9** Blotters management
-- [-] **A10** Announcements CRUD (UI done; wire real data + persistence)
-- [ ] **A11** Library CRUD
-- [ ] **A12** Audit log
-- [ ] **A13** Settings
+- [x] **A10** Announcements CRUD (UI done; wire real data + persistence)
+- [x] **A11** Library CRUD
+- [x] **A12** Audit log
+- [x] **A13** Settings
 
 ### Backend
 
-- [-] Report actions: confirm AI, merge duplicate, reject, create mission
-- [ ] Mission assignment + verification
-- [ ] Concern status state machine (Blueprint §5.1)
-- [ ] Audit log on admin mutations
+- [x] Report actions: confirm AI, merge duplicate, reject, create mission
+- [x] Mission assignment + verification
+- [x] Concern status state machine (Blueprint §5.1)
+- [x] Audit log on admin mutations
 - [x] Blotter approval → ticket number
 
 ---
