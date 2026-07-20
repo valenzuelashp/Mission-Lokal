@@ -64,8 +64,9 @@ export default function ConcernCard({ concern }: Props) {
             <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
                 <ConcernVoteButtons
                     concernId={concern.id}
-                    voteCount={concern.vote_count}
-                    userVote={concern.user_vote ?? (concern.has_voted ? 'up' : null)}
+                    upvotes={concern.upvotes}
+                    downvotes={concern.downvotes}
+                    userVote={concern.user_vote ?? null}
                     compact
                 />
                 <span className="text-xs capitalize text-muted-foreground">{concern.status.replace('_', ' ')}</span>

@@ -88,4 +88,9 @@ class Concern extends Model
     {
         return $this->hasOne(Mission::class);
     }
+
+    public function votes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ConcernVote::class);
+    }
 }

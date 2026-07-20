@@ -8,12 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ConcernVote extends Model
 {
-    use HasFactory; // Notice we removed HasUuids here!
+    use HasFactory;
 
     protected $table = 'concern_votes';
 
-    // Because this table uses a composite primary key instead of a single 'id' column,
-    // we need to tell Laravel Eloquent not to look for an 'id' or try to auto-increment it.
+    // Disable auto-incrementing since this table uses a composite primary key (concern_id + user_id)
     public $incrementing = false;
     protected $primaryKey = null;
 
@@ -29,8 +28,6 @@ class ConcernVote extends Model
             'vote' => 'integer',
         ];
     }
-
-    // --- Relationships ---
 
     public function concern(): BelongsTo
     {

@@ -1,7 +1,8 @@
 <?php
  
 namespace App\Http\Controllers\Resident;
-use App\Jobs\Ai\ProcessConcernWithAi; // <-- Add this at the top
+
+use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Models\ConcernCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
@@ -25,9 +26,6 @@ class ConcernController extends Controller
  
     public function store(Request $request): RedirectResponse
     {
-        // 1. Validate the incoming data.
-        //    - category_id is sent by the frontend as 'category_id' now (was 'category')
-        //    - subcategory_id is optional since the form has no subcategory picker yet
         $validated = $request->validate([
             'category_id'  => 'required|exists:concern_categories,id',
             'title'        => 'required|string|max:255',
@@ -41,12 +39,8 @@ class ConcernController extends Controller
         $user     = $request->user();
         $category = ConcernCategory::findOrFail($validated['category_id']);
  
-        // MySQL spatial: longitude comes FIRST in POINT(lng lat)
         $point = DB::raw("ST_GeomFromText('POINT({$validated['lng']} {$validated['lat']})', 4326)");
  
-        // 2. Save the concern.
-        //    - severity: DB enum only allows low/medium/high/critical — 'minor' was invalid!
-        //    - subcategory_id: nullable so we skip it until the form has a subcategory picker
         $newConcern = Concern::create([
             'barangay_id'  => $user->barangay_id,
             'reporter_id'  => $user->id,
@@ -58,11 +52,10 @@ class ConcernController extends Controller
             'address_text' => $validated['address_text']
                 ?? ('Pinned Location: ' . round($validated['lat'], 4) . ', ' . round($validated['lng'], 4)),
             'visibility'   => $category->default_visibility === 'private' ? 'private' : 'public',
-            'severity'     => 'low',      // FIX: 'minor' is not a valid enum value
-            'status'       => 'submitted', // FIX: let it start at submitted (the DB default)
+            'severity'     => 'low',
+            'status'       => 'submitted',
         ]);
  
-        // 3. Save uploaded images and create ConcernMedia records.
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $photo) {
                 $filePath = $photo->store('concerns', 'public');
@@ -75,15 +68,31 @@ class ConcernController extends Controller
                 ]);
             }
         }
+        
         ProcessConcernWithAi::dispatch($newConcern);
  
-        // 4. Redirect to the feed with a success flash.
         return redirect()->route('feed')->with('success', 'Concern submitted successfully.');
     }
  
-    public function show(string $concern): Response
+    // UPDATED: Added Request $request to get the user's vote
+    public function show(Request $request, string $concern): Response
     {
-        $record = Concern::with(['media', 'mission.proof.media'])
+        $user = $request->user();
+
+        $record = Concern::with([
+                'category', 
+                'media', 
+                'mission.proof.media',
+                // Eager load the current user's vote
+                'votes' => function ($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                }
+            ])
+            // Count upvotes and downvotes separately
+            ->withCount([
+                'votes as upvotes' => fn ($query) => $query->where('vote', 1),
+                'votes as downvotes' => fn ($query) => $query->where('vote', -1),
+            ])
             ->select(
                 '*',
                 DB::raw('ST_Y(location) as lat, ST_X(location) as lng')
@@ -101,55 +110,106 @@ class ConcernController extends Controller
                 return asset('storage/' . $media->storage_key);
             })->toArray();
         }
+
+        // Extract user's specific vote
+        $userVoteRecord = $record->votes->first();
+        $userVoteStatus = null;
+        if ($userVoteRecord) {
+            $userVoteStatus = $userVoteRecord->vote === 1 ? 'up' : 'down';
+        }
+
+        // Dynamic State Machine Timeline Builder
+        $status = $record->status->value ?? $record->status;
+        $timeline = [
+            [
+                'key'   => 'submitted',
+                'label' => 'Concern Submitted',
+                'state' => 'done',
+                'at'    => $record->created_at->format('M d, Y h:i A'),
+            ]
+        ];
+
+        // If rejected/spam, branch the timeline
+        if (in_array($status, ['rejected', 'spam'])) {
+            $timeline[] = [
+                'key'   => 'rejected',
+                'label' => 'Report Rejected',
+                'state' => 'current',
+                'at'    => $record->updated_at->format('M d, Y h:i A'),
+            ];
+        } else {
+            // Standard resolution path
+            $isReviewDone = in_array($status, ['active', 'resolved', 'closed']);
+            $timeline[] = [
+                'key'   => 'review',
+                'label' => 'Under Review',
+                'state' => $isReviewDone ? 'done' : 'current',
+                'at'    => $record->staff_reviewed_at ? $record->staff_reviewed_at->format('M d, Y h:i A') : null,
+            ];
+
+            $isActiveDone = in_array($status, ['resolved', 'closed']);
+            $timeline[] = [
+                'key'   => 'active',
+                'label' => 'Active Response',
+                'state' => $isActiveDone ? 'done' : ($status === 'active' ? 'current' : 'upcoming'),
+                'at'    => $record->mission?->created_at ? $record->mission->created_at->format('M d, Y h:i A') : null,
+            ];
+
+            $timeline[] = [
+                'key'   => 'resolved',
+                'label' => 'Resolved',
+                'state' => $isActiveDone ? 'done' : 'upcoming',
+                'at'    => $isActiveDone ? $record->updated_at->format('M d, Y h:i A') : null,
+            ];
+        }
  
         $formattedConcern = [
             'id'             => $record->id,
             'title'          => $record->title,
             'description'    => $record->description,
             'category'       => $record->category->name ?? 'Uncategorized',
-            'status'         => $record->status->value ?? $record->status,
+            'status'         => $status,
             'severity'       => $record->severity?->value ?? 'low',
             'location_label' => $record->address_text ?? 'Unknown location',
             'lat'            => $record->lat,
             'lng'            => $record->lng,
             'created_at'     => $record->created_at->format('M d, Y h:i A'),
-            'vote_count'     => 0,
-            'user_vote'      => null,
+            
+            // Pass the new separate counts:
+            'upvotes'        => (int) $record->upvotes,
+            'downvotes'      => (int) $record->downvotes,
+            
+            'user_vote'      => $userVoteStatus,
             'images'         => $publicImages,
             'proof_notes'    => $proofNotes,
             'proof_photos'   => $proofPhotos,
-            'timeline'       => [
-                [
-                    'key'   => 'submitted',
-                    'label' => 'Concern Submitted',
-                    'state' => 'done',
-                    'at'    => $record->created_at->format('M d, Y h:i A'),
-                ],
-                [
-                    'key'   => 'review',
-                    'label' => 'Under Review',
-                    'state' => $record->status->value === 'submitted' ? 'current' : 'done',
-                ],
-                [
-                    'key'   => 'resolved',
-                    'label' => 'Resolved',
-                    'state' => $record->status->value === 'resolved' ? 'done' : 'upcoming',
-                ],
-            ],
+            'timeline'       => $timeline,
         ];
  
         return Inertia::render('Resident/Concerns/Show', [
             'concern' => $formattedConcern,
         ]);
     }
- 
+
     public function vote(Request $request, string $concern): RedirectResponse
     {
         $request->validate([
             'vote' => ['required', 'in:up,down'],
         ]);
- 
-        DemoConcerns::vote($concern, $request->string('vote')->toString());
+
+        $voteValue = $request->vote === 'up' ? 1 : -1;
+
+        DB::table('concern_votes')->updateOrInsert(
+            [
+                'concern_id' => $concern, 
+                'user_id' => $request->user()->id
+            ],
+            [
+                'vote' => $voteValue,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
  
         return back();
     }

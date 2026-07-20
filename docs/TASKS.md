@@ -56,8 +56,8 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [-] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
-- [x] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
+- [x] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
+- [-] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
 - [x] **R10** Concern detail — status timeline (UI done; wire real data)
 - [-] **R11** Library — manuals, evacuation, contacts (UI done; wire real data)
 - [-] **R12** Profile — info, digital ID (UI done; wire real data)
@@ -68,7 +68,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Backend
 
-- [-] `ConcernController` — CRUD, vote, visibility rules
+- [x] `ConcernController` — CRUD, vote, visibility rules
 - [x] `BlotterController`
 - [ ] `ProfileController` — update with approval flow
 - [ ] `LibraryController`, `AnnouncementController`

@@ -93,9 +93,10 @@ export default function Show({ concern }: ConcernShowPageProps) {
                         <CardTitle className="text-base">Community vote</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <ConcernVoteButtons
+                    <ConcernVoteButtons
                             concernId={concern.id}
-                            voteCount={concern.vote_count}
+                            upvotes={concern.upvotes}
+                            downvotes={concern.downvotes}
                             userVote={concern.user_vote ?? null}
                         />
                         <p className="text-xs text-muted-foreground">

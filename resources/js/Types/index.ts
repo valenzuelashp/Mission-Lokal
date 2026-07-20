@@ -85,7 +85,8 @@ export interface PublicConcern {
     images?: string[];
     proof_notes?: string | null;
     proof_photos?: string[];
-    vote_count: number;
+    upvotes: number;
+    downvotes: number;    
     location_label: string;
     created_at: string;
     user_vote?: 'up' | 'down' | null;
