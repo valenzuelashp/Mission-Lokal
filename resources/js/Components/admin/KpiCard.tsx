@@ -13,40 +13,41 @@ type Props = {
 
 export default function KpiCard({ label, value, icon: Icon, hint, trend, iconClassName }: Props) {
     return (
-        <Card className="shadow-sm">
-            <CardContent className="p-3 sm:p-5">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+        <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
+            <CardContent className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                        <p className="truncate text-[10px] font-black uppercase tracking-widest text-neutral-400">
                             {label}
                         </p>
-                        <p className="mt-1 text-xl font-bold text-blue-700 sm:mt-2 sm:text-3xl">{value}</p>
+                        <p className="text-xl font-black text-neutral-900 tracking-tight sm:text-2xl tabular-nums">
+                            {value}
+                        </p>
                         {trend && (
-                            <p
-                                className={cn(
-                                    'mt-1 hidden items-center gap-1 text-xs font-medium sm:flex',
-                                    trend.positive ? 'text-emerald-600' : 'text-red-600',
-                                )}
-                            >
+                            <p className={cn(
+                                'mt-1.5 hidden items-center gap-1 text-[10px] font-black uppercase tracking-wider sm:flex',
+                                trend.positive ? 'text-neutral-900' : 'text-neutral-400',
+                            )}>
                                 {trend.positive ? (
-                                    <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                                    <TrendingUp className="h-3 w-3 stroke-[2.5]" />
                                 ) : (
-                                    <TrendingDown className="h-3.5 w-3.5 shrink-0" />
+                                    <TrendingDown className="h-3 w-3 stroke-[2.5]" />
                                 )}
                                 <span className="truncate">{trend.value}</span>
                             </p>
                         )}
                         {hint && !trend && (
-                            <p className="mt-1 hidden truncate text-xs text-muted-foreground sm:block">{hint}</p>
+                            <p className="mt-1 hidden truncate text-[11px] font-medium text-neutral-400 sm:block">
+                                {hint}
+                            </p>
                         )}
                     </div>
-                    <div
-                        className={cn(
-                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 sm:h-10 sm:w-10',
-                            iconClassName,
-                        )}
-                    >
-                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    
+                    <div className={cn(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200/60 bg-neutral-50/50 text-neutral-800 shadow-2xs transition-colors sm:h-10 sm:w-10',
+                        iconClassName,
+                    )}>
+                        <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2]" />
                     </div>
                 </div>
             </CardContent>

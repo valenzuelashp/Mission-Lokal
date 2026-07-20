@@ -11,31 +11,33 @@ type Props = {
 
 export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memberSince }: Props) {
     return (
-        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10">
-            <CardContent className="p-5">
+        <Card className="overflow-hidden border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl">
+            <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <p className="text-xs font-bold uppercase tracking-wider text-primary">Barangay digital ID</p>
-                        <p className="mt-2 break-words text-lg font-bold">{fullName}</p>
-                        <p className="truncate font-mono text-sm text-muted-foreground">{accountId}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Barangay digital ID</p>
+                        <p className="mt-1.5 break-words text-base font-black text-neutral-950 tracking-tight leading-tight">{fullName}</p>
+                        <p className="mt-0.5 truncate font-mono text-xs font-semibold text-neutral-400">{accountId}</p>
                     </div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <QrCode className="h-6 w-6" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-900 border border-neutral-200/40 shadow-inner">
+                        <QrCode className="h-5 w-5" />
                     </div>
                 </div>
-                <div className="mt-4 space-y-2 border-t border-primary/10 pt-4 text-sm">
+                
+                <div className="mt-4 space-y-2.5 border-t border-neutral-100/80 pt-3.5 text-xs font-medium text-neutral-600">
                     <div className="flex justify-between gap-2">
-                        <span className="shrink-0 text-muted-foreground">Digital ID</span>
-                        <span className="truncate font-mono font-medium">{digitalIdCode ?? 'Pending'}</span>
+                        <span className="shrink-0 text-neutral-400 font-semibold">Digital ID</span>
+                        <span className="truncate font-mono font-bold text-neutral-800">{digitalIdCode ?? 'Pending'}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Member since</span>
-                        <span className="font-medium">{memberSince}</span>
+                        <span className="text-neutral-400 font-semibold">Member since</span>
+                        <span className="font-bold text-neutral-800">{memberSince}</span>
                     </div>
                 </div>
+                
                 {digitalIdCode && (
-                    <Badge className="mt-4 gap-1 bg-emerald-600 hover:bg-emerald-600">
-                        <BadgeCheck className="h-3 w-3" />
+                    <Badge className="mt-4 gap-1.5 bg-neutral-900 text-white hover:bg-neutral-800 font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-xl shadow-none">
+                        <BadgeCheck className="h-3 w-3 text-neutral-400" />
                         Verified resident
                     </Badge>
                 )}

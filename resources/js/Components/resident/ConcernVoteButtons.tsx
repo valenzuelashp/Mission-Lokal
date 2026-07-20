@@ -21,41 +21,35 @@ export default function ConcernVoteButtons({ concernId, voteCount, userVote, com
     };
 
     return (
-        <div className={cn('flex items-center gap-1', compact ? '' : 'rounded-lg bg-[#f0f2f5] p-1')}>
+        <div className={cn('flex items-center gap-1', compact ? '' : 'rounded-xl bg-white border border-neutral-200 p-1 shadow-sm')}>
             <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className={cn(
-                    'gap-1.5 font-semibold',
-                    userVote === 'up' ? 'bg-primary/10 text-primary hover:bg-primary/15' : 'text-muted-foreground',
+                    'h-7 gap-1 font-bold rounded-lg text-xs px-2.5 transition-all active:scale-95',
+                    userVote === 'up' ? 'bg-neutral-900 text-white shadow-sm' : 'text-neutral-500 bg-white border border-neutral-200/40',
                 )}
                 onClick={() => cast('up')}
             >
-                <ThumbsUp className={cn('h-4 w-4', userVote === 'up' && 'fill-current')} />
-                {!compact && 'Upvote'}
+                <ThumbsUp className="h-3.5 w-3.5" />
             </Button>
-            <span
-                className={cn(
-                    'min-w-[2rem] text-center text-sm font-bold tabular-nums',
-                    voteCount > 0 && 'text-primary',
-                    voteCount < 0 && 'text-red-600',
-                )}
-            >
+            
+            <span className={cn('min-w-[1rem] text-center text-xs font-black tabular-nums', voteCount !== 0 ? 'text-neutral-900' : 'text-neutral-400')}>
                 {voteCount}
             </span>
+            
             <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className={cn(
-                    'gap-1.5 font-semibold',
-                    userVote === 'down' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'text-muted-foreground',
+                    'h-7 gap-1 font-bold rounded-lg text-xs px-2.5 transition-all active:scale-95',
+                    userVote === 'down' ? 'bg-neutral-200 text-neutral-900' : 'text-neutral-500 bg-white border border-neutral-200/40',
                 )}
                 onClick={() => cast('down')}
             >
-                <ThumbsDown className={cn('h-4 w-4', userVote === 'down' && 'fill-current')} />
-                {!compact && 'Downvote'}
+                <ThumbsDown className="h-3.5 w-3.5" />
             </Button>
         </div>
     );

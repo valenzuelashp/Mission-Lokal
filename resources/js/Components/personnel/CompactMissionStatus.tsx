@@ -14,31 +14,35 @@ type Props = {
 
 export default function CompactMissionStatus({ steps }: Props) {
     return (
-        <ol className="flex flex-wrap gap-2 sm:flex-col sm:gap-1.5">
+        <ol className="flex flex-wrap gap-2 sm:flex-col sm:gap-3">
             {steps.map((step) => (
                 <li
                     key={step.key}
                     className={cn(
-                        'flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:rounded-none sm:border-0 sm:px-0 sm:py-0',
-                        step.state === 'current' && 'border-blue-200 bg-blue-50 sm:bg-transparent',
-                        step.state === 'upcoming' && 'text-muted-foreground',
+                        'flex items-center gap-2.5 rounded-xl border px-3 py-1.5 text-xs transition-all duration-200 sm:rounded-none sm:border-0 sm:px-0 sm:py-0',
+                        step.state === 'current' && 'border-neutral-900 bg-neutral-900 text-white sm:bg-transparent sm:text-neutral-900',
+                        step.state === 'upcoming' && 'text-neutral-400 border-neutral-200/60 bg-neutral-50/50',
+                        step.state === 'done' && 'border-neutral-200 bg-white text-neutral-800'
                     )}
                 >
                     {step.state === 'done' ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-neutral-900" />
                     ) : (
                         <Circle
                             className={cn(
-                                'h-3.5 w-3.5 shrink-0',
-                                step.state === 'current' ? 'text-primary' : 'text-muted-foreground/40',
+                                'h-4 w-4 shrink-0 transition-transform duration-300',
+                                step.state === 'current' ? 'text-neutral-900 scale-110 sm:text-neutral-900' : 'text-neutral-300',
                             )}
                         />
                     )}
-                    <span className={cn(step.state === 'current' && 'font-semibold text-blue-900')}>
+                    <span className={cn(
+                        'font-bold tracking-tight',
+                        step.state === 'current' && 'font-black sm:text-neutral-900'
+                    )}>
                         {step.label}
                     </span>
                     {step.at && (
-                        <span className="hidden text-[10px] text-muted-foreground sm:ml-auto sm:inline">
+                        <span className="hidden text-[10px] font-medium text-neutral-400 sm:ml-auto sm:inline tabular-nums">
                             {step.at}
                         </span>
                     )}

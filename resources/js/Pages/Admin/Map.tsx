@@ -40,52 +40,55 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
     const activeCount = allPins.filter((p) => p.status === 'active').length;
 
     return (
-        <AdminLayout title="Mission-Lokal Admin: Map">
-            <Head title="Operations Map" />
+        <AdminLayout title="Mission-Lokal Admin: Mapping Framework Overlay">
+            <Head title="Operations Mapping Center" />
 
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-neutral-200/40 pb-4">
                 <div>
-                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Operations map</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Live concern pins and predicted hotspot zones across the barangay.
+                    <h2 className="text-xl font-black uppercase tracking-tight text-neutral-900 sm:text-2xl">Operations map view</h2>
+                    <p className="mt-1 text-xs font-medium text-neutral-500 max-w-md leading-relaxed">
+                        Live cartographic telemetry tracking and ML predicted spatial risk vectors mapped over bounds.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Layers className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-100 px-2.5 py-1 rounded-lg border border-neutral-200/40 shadow-2xs">
+                    <Layers className="h-3.5 w-3.5 text-neutral-500" />
                     <span>
-                        <strong className="text-foreground">{activeCount}</strong> active ·{' '}
-                        <strong className="text-foreground">{hotspots.length}</strong> hotspots
+                        <strong className="text-neutral-900 font-black tabular-nums">{activeCount}</strong> arrays live ·{' '}
+                        <strong className="text-neutral-900 font-black tabular-nums">{hotspots.length}</strong> vector spots
                     </span>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-11rem)] lg:grid-cols-[320px_1fr]">
-                <div className="max-h-[45vh] overflow-hidden lg:max-h-none">
+            {/* Locked Height Spatial Operations Container Workspace */}
+            <div className="flex flex-col gap-5 lg:grid lg:h-[calc(100vh-12rem)] lg:grid-cols-[340px_1fr]">
+                <div className="max-h-[45vh] overflow-hidden lg:max-h-none h-full">
                     <MapPinSidebar
-                    pins={filtered}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    severity={severity}
-                    onSeverity={setSeverity}
-                    status={status}
-                    onStatus={setStatus}
-                    type={type}
-                    onType={setType}
-                    search={search}
-                    onSearch={setSearch}
-                    showHotspots={showHotspots}
-                    onToggleHotspots={() => setShowHotspots((v) => !v)}
-                    counts={counts}
-                />
+                        pins={filtered}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        severity={severity}
+                        onSeverity={setSeverity}
+                        status={status}
+                        onStatus={setStatus}
+                        type={type}
+                        onType={setType}
+                        search={search}
+                        onSearch={setSearch}
+                        showHotspots={showHotspots}
+                        onToggleHotspots={() => setShowHotspots((v) => !v)}
+                        counts={counts}
+                    />
                 </div>
-                <AdminFullMap
-                    pins={filtered}
-                    hotspots={hotspots}
-                    showHotspots={showHotspots}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    className="h-[50vh] min-h-[280px] lg:h-full"
-                />
+                <div className="h-[50vh] min-h-[300px] lg:h-full relative z-10">
+                    <AdminFullMap
+                        pins={filtered}
+                        hotspots={hotspots}
+                        showHotspots={showHotspots}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        className="h-full w-full"
+                    />
+                </div>
             </div>
         </AdminLayout>
     );

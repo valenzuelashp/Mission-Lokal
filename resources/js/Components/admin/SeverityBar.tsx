@@ -7,14 +7,14 @@ type Props = {
 
 export default function SeverityBar({ score, className }: Props) {
     const color =
-        score >= 75 ? 'bg-red-500' : score >= 40 ? 'bg-blue-500' : 'bg-emerald-500';
+        score >= 75 ? 'bg-neutral-900' : score >= 40 ? 'bg-neutral-500' : 'bg-neutral-300';
 
     return (
-        <div className={cn('flex items-center gap-2', className)}>
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div className={cn('h-full rounded-full', color)} style={{ width: `${score}%` }} />
+        <div className={cn('flex items-center gap-2.5', className)}>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100 border border-neutral-200/40 shadow-inner">
+                <div className={cn('h-full rounded-full transition-all duration-500 ease-out', color)} style={{ width: `${score}%` }} />
             </div>
-            <span className="w-6 text-right text-xs font-semibold text-muted-foreground">{score}</span>
+            <span className="w-5 text-right text-[10px] font-black uppercase tracking-wider text-neutral-800 tabular-nums">{score}%</span>
         </div>
     );
 }

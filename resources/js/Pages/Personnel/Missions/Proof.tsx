@@ -26,49 +26,50 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
         <PersonnelLayout title={`Mission-Lokal Personnel: Proof — ${mission.id}`}>
             <Head title={`Proof — ${mission.id}`} />
 
-            <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
+            <Button variant="ghost" className="mb-4 -ml-2 h-auto px-2 text-xs font-black uppercase tracking-widest text-neutral-500 hover:text-neutral-900 transition-colors hover:bg-transparent" asChild>
                 <Link href={`/personnel/missions/${mission.id}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to mission
+                    <ArrowLeft className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" />
+                    Back to detail
                 </Link>
             </Button>
 
-            <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Proof of completion</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+            <div className="mb-6">
+                <h2 className="text-xl font-black uppercase tracking-tight text-neutral-900 sm:text-2xl">Proof of completion</h2>
+                <p className="mt-1 text-xs font-bold text-neutral-400 tracking-wider uppercase">
                     {mission.id} · {mission.title}
                 </p>
             </div>
 
-            <form onSubmit={submit} className="w-full max-w-2xl space-y-4">
-                <Card className="shadow-sm">
-                    <CardContent className="space-y-3 p-4 sm:p-5">
-                        <div className="grid gap-2 rounded-lg border bg-slate-50 p-3 text-sm sm:grid-cols-2">
+            <form onSubmit={submit} className="w-full max-w-2xl space-y-5">
+                <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
+                    <CardContent className="space-y-4 p-4 sm:p-5">
+                        <div className="grid gap-3 rounded-xl border border-neutral-200/60 bg-neutral-50/50 p-4 text-xs font-bold tracking-tight text-neutral-700 sm:grid-cols-2">
                             <div>
-                                <p className="text-xs text-muted-foreground">Location</p>
-                                <p className="font-medium">{mission.location}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Location target</p>
+                                <p className="font-black text-neutral-800 mt-0.5 leading-relaxed">{mission.location}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-muted-foreground">Due</p>
-                                <p className="font-medium">{mission.due_date}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Due parameter</p>
+                                <p className="font-black text-neutral-800 mt-0.5 tabular-nums">{mission.due_date}</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
-                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                            Photos and notes are required before admin can verify completion.
+                        <div className="flex items-start gap-2.5 rounded-xl border border-neutral-200 bg-white p-3.5 text-xs font-bold text-neutral-800 shadow-xs">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-neutral-900" />
+                            <span className="leading-relaxed">Verification protocol: Digital imagery arrays and diagnostic operational text entries are needed before ledger execution.</span>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
+                {/* Upload Field Area */}
+                <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                     <CardContent className="space-y-3 p-4 sm:p-5">
-                        <h3 className="text-sm font-semibold">Photos</h3>
-                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-slate-50 px-4 py-8 text-center transition-colors hover:border-blue-300 sm:py-10">
-                            <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <span className="text-sm font-medium">Add before/after photos</span>
-                            <span className="mt-1 text-xs text-muted-foreground">
-                                Demo — files not persisted yet
+                        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-800">Photos</h3>
+                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white/40 px-4 py-8 text-center transition-all duration-200 hover:border-neutral-900 hover:bg-white sm:py-10">
+                            <Upload className="mb-2.5 h-6 w-6 text-neutral-400" />
+                            <span className="text-xs font-black uppercase tracking-wider text-neutral-900">Add before/after photos</span>
+                            <span className="mt-1 text-[10px] font-medium text-neutral-400">
+                                Demo execution environment — local stream state active
                             </span>
                             <input
                                 type="file"
@@ -79,36 +80,39 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                             />
                         </label>
                         {data.photos.length > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                {data.photos.length} file{data.photos.length !== 1 ? 's' : ''} selected
+                            <p className="text-xs font-black uppercase tracking-wider text-neutral-400 bg-neutral-50 border px-2.5 py-1 rounded-lg w-fit">
+                                {data.photos.length} file{data.photos.length !== 1 ? 's' : ''} staged
                             </p>
                         )}
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
+                {/* Textarea Area */}
+                <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                     <CardContent className="space-y-2 p-4 sm:p-5">
-                        <Label htmlFor="notes">Field notes</Label>
+                        <Label htmlFor="notes" className="text-xs font-black uppercase tracking-widest text-neutral-800">Field logs & notes</Label>
                         <Textarea
                             id="notes"
                             value={data.notes}
                             onChange={(e) => setData('notes', e.target.value)}
-                            placeholder="Describe work completed, materials used, follow-up needed…"
+                            placeholder="Describe technical work accomplished, resource materials initialized, follow-up parameters needed..."
                             rows={5}
+                            className="rounded-xl border-neutral-200/80 bg-white text-xs font-semibold focus:border-neutral-900 focus:ring-neutral-900 leading-relaxed"
                         />
-                        {errors.notes && <p className="text-sm text-destructive">{errors.notes}</p>}
+                        {errors.notes && <p className="text-xs font-bold text-neutral-900 mt-1">{errors.notes}</p>}
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-col gap-2 sm:flex-row">
+                {/* Form Trigger Row */}
+                <div className="flex flex-col gap-2.5 sm:flex-row">
                     <Button
                         type="submit"
-                        className="w-full bg-emerald-700 hover:bg-emerald-800 sm:w-auto"
+                        className="w-full bg-neutral-900 text-white hover:bg-neutral-800 rounded-xl font-black uppercase tracking-widest text-xs h-10 shadow-sm transition-all active:scale-[0.98] sm:w-auto px-5"
                         disabled={processing || !data.notes.trim()}
                     >
                         Confirm & resolve
                     </Button>
-                    <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
+                    <Button type="button" variant="outline" className="w-full border-neutral-200 bg-white/80 hover:bg-white text-neutral-700 rounded-xl font-black uppercase tracking-widest text-xs h-10 shadow-sm sm:w-auto px-5" asChild>
                         <Link href={`/personnel/missions/${mission.id}`}>Cancel</Link>
                     </Button>
                 </div>

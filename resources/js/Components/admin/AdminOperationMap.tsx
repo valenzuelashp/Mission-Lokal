@@ -27,19 +27,19 @@ type Props = {
 export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], className = 'h-80' }: Props) {
     return (
         <div className={cn('flex flex-col', className)}>
-            <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Live operation area</h3>
-                <div className="flex items-center gap-3">
-                    <Link href="/admin/map" className="text-xs font-medium text-blue-700 hover:underline">
-                        Open full map
+            <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 px-1">
+                <h3 className="text-xs font-black uppercase tracking-widest text-neutral-400">Live operational theater</h3>
+                <div className="flex items-center gap-3 font-bold text-[11px] uppercase tracking-wider">
+                    <Link href="/admin/map" className="text-neutral-900 border-b border-neutral-900/30 pb-0.5 hover:border-neutral-900 transition-colors">
+                        Expand Map view
                     </Link>
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                        Real-time data
+                    <span className="flex items-center gap-1.5 text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md border border-neutral-200/40">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-950" />
+                        Live sync
                     </span>
                 </div>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-neutral-200/60 bg-neutral-900 shadow-sm z-10">
                 <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full">
                     <MapInvalidateSize />
                     <TileLayer

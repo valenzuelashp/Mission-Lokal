@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft, Clock, AlertCircle } from 'lucide-react';
 import { FormEvent } from 'react';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Button } from '@/Components/ui/button';
@@ -26,89 +26,104 @@ export default function ProfileEdit() {
     };
 
     return (
-        <ResidentLayout>
+        <ResidentLayout wide>
             <Head title="Edit Profile" />
-            <Button variant="ghost" className="mb-4 -ml-2" asChild>
-                <Link href="/profile">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to profile
-                </Link>
-            </Button>
 
-            <PageHeader
-                title="Edit profile"
-                description="Updates to name, contact, or address require barangay admin approval."
-            />
-
-            {flash.success && (
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    {flash.success}
-                </div>
-            )}
-
-            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>
-                    Profile edits are reviewed by admin staff. You will keep using your current details until
-                    approved.
-                </p>
+            {/* Background Canvas Layer */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-[#fbfbfa]">
+                <div className="absolute top-0 right-0 w-[50rem] h-[50rem] rounded-full bg-gradient-to-b from-neutral-200/30 to-transparent blur-[140px] opacity-60" />
             </div>
 
-            <form onSubmit={submit} className="max-w-xl lg:max-w-2xl">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Personal information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="full_name">Full name</Label>
-                            <Input
-                                id="full_name"
-                                value={data.full_name}
-                                onChange={(e) => setData('full_name', e.target.value)}
-                            />
-                            {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                            />
-                            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="mobile">Mobile</Label>
-                            <Input
-                                id="mobile"
-                                value={data.mobile}
-                                onChange={(e) => setData('mobile', e.target.value)}
-                            />
-                            {errors.mobile && <p className="text-sm text-destructive">{errors.mobile}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Address</Label>
-                            <Textarea
-                                id="address"
-                                value={data.address}
-                                onChange={(e) => setData('address', e.target.value)}
-                                rows={3}
-                            />
-                            {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
-                        </div>
-                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                            <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
-                                Submit for approval
-                            </Button>
-                            <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
-                                <Link href="/profile">Cancel</Link>
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </form>
+            <div className="relative z-10 max-w-xl mx-auto px-2 sm:px-4 py-2 space-y-4">
+                <Button variant="ghost" className="h-8 rounded-xl text-xs font-bold text-neutral-600 hover:text-neutral-900 px-2 -ml-1" asChild>
+                    <Link href="/profile">
+                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                        Back to Profile
+                    </Link>
+                </Button>
+
+                <div className="border border-neutral-200/60 bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm">
+                    <PageHeader
+                        title="Edit profile"
+                        description="Updates to core identity records require administrative barangay verification parameters."
+                    />
+                </div>
+
+                {flash.success && (
+                    <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs font-bold text-neutral-800 shadow-sm">
+                        {flash.success}
+                    </div>
+                )}
+
+                <div className="flex items-start gap-2.5 rounded-xl border border-neutral-200 bg-white/80 backdrop-blur-sm px-4 py-3.5 text-xs font-medium text-neutral-600 leading-relaxed shadow-sm">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                    <p>Profile edits require admin staff approval. You will continue using current records until verification concludes.</p>
+                </div>
+
+                <form onSubmit={submit} className="w-full">
+                    <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
+                        <CardHeader className="border-b border-neutral-100/70 px-4 py-3">
+                            <CardTitle className="text-xs font-black uppercase tracking-widest text-neutral-950">Personal Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4 text-xs font-bold text-neutral-700">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="full_name" className="text-[11px] uppercase tracking-wider text-neutral-500">Full Name</Label>
+                                <Input
+                                    id="full_name"
+                                    className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                    value={data.full_name}
+                                    onChange={(e) => setData('full_name', e.target.value)}
+                                />
+                                {errors.full_name && <p className="text-[11px] font-medium text-red-600 mt-1">{errors.full_name}</p>}
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email" className="text-[11px] uppercase tracking-wider text-neutral-500">Email Address</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                />
+                                {errors.email && <p className="text-[11px] font-medium text-red-600 mt-1">{errors.email}</p>}
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <Label htmlFor="mobile" className="text-[11px] uppercase tracking-wider text-neutral-500">Mobile Number</Label>
+                                <Input
+                                    id="mobile"
+                                    className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                    value={data.mobile}
+                                    onChange={(e) => setData('mobile', e.target.value)}
+                                />
+                                {errors.mobile && <p className="text-[11px] font-medium text-red-600 mt-1">{errors.mobile}</p>}
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <Label htmlFor="address" className="text-[11px] uppercase tracking-wider text-neutral-500">Residential Address</Label>
+                                <Textarea
+                                    id="address"
+                                    className="rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium leading-relaxed"
+                                    value={data.address}
+                                    onChange={(e) => setData('address', e.target.value)}
+                                    rows={3}
+                                />
+                                {errors.address && <p className="text-[11px] font-medium text-red-600 mt-1">{errors.address}</p>}
+                            </div>
+
+                            <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                                <Button type="submit" className="h-9 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-bold px-4" disabled={processing}>
+                                    Submit for approval
+                                </Button>
+                                <Button type="button" variant="outline" className="h-9 rounded-xl border-neutral-200 text-neutral-700 text-xs font-bold px-4" asChild>
+                                    <Link href="/profile">Cancel</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </form>
+            </div>
         </ResidentLayout>
     );
 }

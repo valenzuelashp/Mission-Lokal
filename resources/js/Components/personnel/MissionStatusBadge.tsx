@@ -11,12 +11,12 @@ const statusLabel: Record<MissionStatus, string> = {
 };
 
 const statusStyle: Record<MissionStatus, string> = {
-    assigned: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-    acknowledged: 'bg-sky-100 text-sky-800 hover:bg-sky-100',
-    in_progress: 'bg-red-600 text-white hover:bg-red-600',
-    completed: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
-    verified: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100',
-    cancelled: 'bg-slate-100 text-slate-500 hover:bg-slate-100',
+    assigned: 'bg-neutral-100 text-neutral-800 border-neutral-200 hover:bg-neutral-100',
+    acknowledged: 'bg-neutral-50 text-neutral-600 border-neutral-200/40 hover:bg-neutral-50',
+    in_progress: 'bg-neutral-900 text-white border-transparent hover:bg-neutral-900 shadow-sm',
+    completed: 'bg-neutral-50 text-neutral-500 border-neutral-200/40 hover:bg-neutral-50 line-through decoration-neutral-300',
+    verified: 'bg-neutral-900 text-neutral-100 border-transparent hover:bg-neutral-900 font-black',
+    cancelled: 'bg-neutral-100 text-neutral-400 border-neutral-200 hover:bg-neutral-100 opacity-60',
 };
 
 type Props = {
@@ -24,5 +24,9 @@ type Props = {
 };
 
 export default function MissionStatusBadge({ status }: Props) {
-    return <Badge className={statusStyle[status]}>{statusLabel[status]}</Badge>;
+    return (
+        <Badge className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${statusStyle[status]}`}>
+            {statusLabel[status]}
+        </Badge>
+    );
 }

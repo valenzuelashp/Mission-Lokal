@@ -54,8 +54,8 @@ export default function AdminFullMap({
 
     return (
         <div className={className}>
-            <div className="relative h-full min-h-[280px] overflow-hidden rounded-lg border bg-slate-900">
-                <MapContainer center={center} zoom={14} scrollWheelZoom className="h-full w-full">
+            <div className="relative h-full min-h-[280px] overflow-hidden rounded-2xl border border-neutral-200/60 bg-neutral-900 shadow-md">
+                <MapContainer center={center} zoom={14} scrollWheelZoom className="h-full w-full z-10">
                     <MapInvalidateSize />
                     <TileLayer
                         attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -70,15 +70,15 @@ export default function AdminFullMap({
                                 pathOptions={{
                                     color: hotspotColors[spot.risk_level],
                                     fillColor: hotspotColors[spot.risk_level],
-                                    fillOpacity: 0.18,
-                                    weight: 2,
-                                    opacity: 0.6,
+                                    fillOpacity: 0.12,
+                                    weight: 1.5,
+                                    opacity: 0.5,
                                 }}
                             >
                                 <Popup>
-                                    <div className="text-sm">
-                                        <p className="font-semibold">{spot.label}</p>
-                                        <p className="text-muted-foreground">
+                                    <div className="p-1 space-y-1 font-sans text-xs text-neutral-800">
+                                        <p className="font-black tracking-tight text-neutral-900">{spot.label}</p>
+                                        <p className="font-medium text-neutral-400 uppercase tracking-wider text-[9px] tabular-nums">
                                             {spot.report_count} reports · {spot.risk_level} risk
                                         </p>
                                     </div>
@@ -93,30 +93,32 @@ export default function AdminFullMap({
                             eventHandlers={{ click: () => onSelect(pin.id) }}
                         >
                             <Popup>
-                                <div className="min-w-[200px] space-y-2 text-sm">
-                                    <div>
-                                        <p className="font-semibold">{pin.incident_type}</p>
-                                        <p className="text-xs text-muted-foreground">{pin.location_label}</p>
+                                <div className="min-w-[220px] p-1 space-y-3 font-sans text-xs">
+                                    <div className="space-y-0.5">
+                                        <p className="font-black tracking-tight text-neutral-900">{pin.incident_type}</p>
+                                        <p className="font-medium text-neutral-400 text-[10px] leading-tight">{pin.location_label}</p>
                                     </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        <Badge variant="outline" className="text-[10px] capitalize">
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <Badge variant="outline" className="rounded-md px-1.5 py-0 text-[9px] font-black uppercase tracking-wider border-neutral-200 text-neutral-500 bg-neutral-50">
                                             {pin.severity}
                                         </Badge>
-                                        <Badge variant="outline" className="text-[10px] capitalize">
+                                        <Badge variant="outline" className="rounded-md px-1.5 py-0 text-[9px] font-black uppercase tracking-wider border-neutral-200 text-neutral-500 bg-neutral-50">
                                             {pin.status}
                                         </Badge>
                                         {pin.has_mission && (
-                                            <Badge className="bg-blue-700 text-[10px]">Mission active</Badge>
+                                            <Badge className="rounded-md px-1.5 py-0 text-[9px] font-black uppercase tracking-wider bg-neutral-900 text-white border-transparent shadow-xs">
+                                                Active Operations
+                                            </Badge>
                                         )}
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                                            <Link href={`/admin/reports/${pin.concern_id}`}>View report</Link>
+                                    <div className="flex gap-2 pt-0.5 border-t border-neutral-100">
+                                        <Button size="sm" variant="outline" className="h-7 rounded-lg text-[10px] font-black uppercase tracking-wider flex-1 border-neutral-200 hover:bg-neutral-50" asChild>
+                                            <Link href={`/admin/reports/${pin.concern_id}`}>Inspect Report</Link>
                                         </Button>
                                         {pin.mission_id && (
-                                            <Button size="sm" className="h-7 bg-blue-700 text-xs" asChild>
+                                            <Button size="sm" className="h-7 rounded-lg text-[10px] font-black uppercase tracking-wider flex-1 bg-neutral-900 text-white hover:bg-neutral-800 shadow-xs" asChild>
                                                 <Link href={`/admin/missions/${pin.mission_id.replace('#', '')}`}>
-                                                    Mission
+                                                    Mission Track
                                                 </Link>
                                             </Button>
                                         )}
@@ -127,26 +129,29 @@ export default function AdminFullMap({
                     ))}
                     {selected && <FlyTo lat={selected.lat} lng={selected.lng} />}
                 </MapContainer>
-                <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/60 px-3 py-2 text-xs text-white backdrop-blur-sm">
-                    <p className="font-medium">{pins.length} pins visible</p>
-                    {showHotspots && <p className="text-white/70">{hotspots.length} hotspot zones</p>}
+                
+                {/* Overlay Indicators */}
+                <div className="pointer-events-none absolute bottom-4 left-4 z-20 rounded-xl border border-neutral-800 bg-neutral-950/95 p-3.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 shadow-md backdrop-blur-md">
+                    <p className="text-white tracking-wider tabular-nums">{pins.length} telemetry pins live</p>
+                    {showHotspots && <p className="text-neutral-500 mt-1 tabular-nums">{hotspots.length} risk vectors mapped</p>}
                 </div>
-                <div className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/60 px-3 py-2 text-xs text-white backdrop-blur-sm">
-                    <p className="mb-1 font-semibold uppercase tracking-wide">Severity</p>
-                    <div className="flex flex-col gap-1">
+                
+                <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-xl border border-neutral-800 bg-neutral-950/95 p-3.5 text-[9px] font-black uppercase tracking-widest text-neutral-400 shadow-md backdrop-blur-md">
+                    <p className="mb-2 text-white tracking-wider text-[10px]">Severity Key</p>
+                    <div className="flex flex-col gap-2 font-bold tracking-widest">
                         {(['critical', 'high', 'medium', 'low'] as const).map((level) => (
-                            <span key={level} className="flex items-center gap-2 capitalize">
+                            <span key={level} className="flex items-center gap-2">
                                 <span
-                                    className="inline-block h-2.5 w-2.5 rounded-full"
+                                    className="inline-block h-1.5 w-1.5 rounded-full ring-4 ring-black/40"
                                     style={{
                                         background:
                                             level === 'critical'
-                                                ? '#dc2626'
+                                                ? '#e11d48'
                                                 : level === 'high'
-                                                  ? '#ea580c'
+                                                  ? '#f97316'
                                                   : level === 'medium'
-                                                    ? '#ca8a04'
-                                                    : '#16a34a',
+                                                    ? '#eab308'
+                                                    : '#22c55e',
                                     }}
                                 />
                                 {level}

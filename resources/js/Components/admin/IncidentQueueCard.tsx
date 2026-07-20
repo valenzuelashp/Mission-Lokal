@@ -22,49 +22,59 @@ export default function IncidentQueueCard({ incident }: Props) {
     const Icon = typeIcons[incident.type_icon] ?? Flame;
 
     return (
-        <Link href={`/admin/reports/${incident.concern_id}`}>
-            <Card className="shadow-sm transition-shadow active:shadow-md">
-                <CardContent className="space-y-2 p-4">
-                    <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-medium text-blue-700">{incident.id}</span>
+        <Link href={`/admin/reports/${incident.concern_id}`} className="block group">
+            <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden transition-all duration-300 group-hover:border-neutral-400/60 group-hover:shadow-md active:scale-[0.995]">
+                <CardContent className="space-y-3 p-4.5">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-neutral-400 group-hover:text-neutral-900 transition-colors">
+                            {incident.id}
+                        </span>
                         <Badge
-                            className={
+                            className={`rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest transition-all ${
                                 incident.status === 'ongoing'
-                                    ? 'bg-red-600 hover:bg-red-600'
+                                    ? 'bg-neutral-900 text-white border-transparent shadow-xs'
                                     : incident.status === 'done'
-                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
-                                      : 'bg-slate-100 text-slate-600 hover:bg-slate-100'
-                            }
+                                      ? 'bg-neutral-50 text-neutral-500 border-neutral-200/40 line-through decoration-neutral-300'
+                                      : 'bg-white text-neutral-600 border-neutral-200'
+                            }`}
                         >
                             {incident.status === 'ongoing' ? 'Ongoing' : incident.status === 'done' ? 'Done' : 'Seen'}
                         </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <p className="font-semibold leading-snug">{incident.incident_type}</p>
+                    
+                    <div className="flex items-center gap-2 pt-0.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50/50 text-neutral-800">
+                            <Icon className="h-3.5 w-3.5 shrink-0 stroke-[2]" />
+                        </div>
+                        <p className="font-black text-sm tracking-tight text-neutral-900 leading-snug">{incident.incident_type}</p>
                     </div>
-                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        {incident.location}
+                    
+                    <p className="flex items-start gap-1.5 text-xs font-medium text-neutral-500">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-400 mt-0.5" />
+                        <span className="line-clamp-2 leading-relaxed">{incident.location}</span>
                     </p>
-                    <div className="flex flex-wrap items-center gap-2">
+                    
+                    <div className="flex items-center justify-between gap-4 pt-1 border-t border-neutral-100/60">
                         <Badge
                             variant="outline"
-                            className={
+                            className={`rounded-lg border px-2 py-0.5 font-black text-[9px] uppercase tracking-widest ${
                                 incident.priority === 'high'
-                                    ? 'border-red-200 bg-red-50 text-red-700'
+                                    ? 'border-neutral-900 bg-neutral-900 text-white'
                                     : incident.priority === 'med'
-                                      ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                      : ''
-                            }
+                                      ? 'border-neutral-300 bg-neutral-50 text-neutral-700'
+                                      : 'border-neutral-200 bg-white text-neutral-400'
+                            }`}
                         >
                             {incident.priority === 'med' ? 'Med' : incident.priority} priority
                         </Badge>
-                        <div className="max-w-[140px]">
+                        <div className="w-24 shrink-0 transform scale-90 origin-right">
                             <SeverityBar score={incident.ai_severity} />
                         </div>
                     </div>
-                    <p className="text-right text-sm font-medium text-blue-700">View details →</p>
+                    
+                    <p className="text-right text-[11px] font-black uppercase tracking-widest text-neutral-900 pt-1 leading-none group-hover:translate-x-0.5 transition-transform">
+                        Inspect file →
+                    </p>
                 </CardContent>
             </Card>
         </Link>

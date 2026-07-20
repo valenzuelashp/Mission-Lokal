@@ -9,12 +9,12 @@ type Props = PropsWithChildren<{
 
 export default function ResidentLayout({ children, wide = false }: Props) {
     return (
-        <div className="min-h-screen bg-[#f0f2f5]">
+        <div className="min-h-screen bg-[#f0f2f5] text-slate-900 selection:bg-slate-200">
             <ResidentHeader />
             <main
                 className={cn(
-                    'w-full px-4 py-4 pb-20 lg:pb-6',
-                    !wide && 'mx-auto max-w-6xl',
+                    'w-full px-0 py-0 sm:px-4 sm:py-4 pb-24 lg:pb-6',
+                    !wide && 'mx-auto max-w-2xl',
                 )}
             >
                 {children}

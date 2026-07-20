@@ -15,12 +15,12 @@ const statusLabel: Record<MissionStatus, string> = {
 };
 
 const statusStyle: Record<MissionStatus, string> = {
-    assigned: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-    acknowledged: 'bg-sky-100 text-sky-800 hover:bg-sky-100',
-    in_progress: 'bg-red-600 text-white hover:bg-red-600',
-    completed: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
-    verified: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100',
-    cancelled: 'bg-slate-100 text-slate-500 hover:bg-slate-100',
+    assigned: 'bg-neutral-100 text-neutral-800 border-neutral-200 hover:bg-neutral-100',
+    acknowledged: 'bg-neutral-50 text-neutral-600 border-neutral-200/40 hover:bg-neutral-50',
+    in_progress: 'bg-neutral-900 text-white border-transparent hover:bg-neutral-900 shadow-xs',
+    completed: 'bg-neutral-50 text-neutral-500 border-neutral-200/40 hover:bg-neutral-50 line-through decoration-neutral-300',
+    verified: 'bg-neutral-900 text-neutral-100 border-transparent hover:bg-neutral-900 font-black',
+    cancelled: 'bg-neutral-100 text-neutral-400 border-neutral-200 hover:bg-neutral-100 opacity-60',
 };
 
 type Props = {
@@ -29,7 +29,11 @@ type Props = {
 
 export default function MissionQueueTable({ missions }: Props) {
     if (missions.length === 0) {
-        return <p className="py-10 text-center text-sm text-muted-foreground">No missions in this queue.</p>;
+        return (
+            <p className="py-12 text-center text-xs font-bold uppercase tracking-widest text-neutral-400 bg-neutral-50/30 rounded-2xl border border-dashed border-neutral-200">
+                Zero system assignment models registered under this module node.
+            </p>
+        );
     }
 
     return (
@@ -40,80 +44,82 @@ export default function MissionQueueTable({ missions }: Props) {
                 ))}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <table className="w-full min-w-[900px] text-sm">
+            <div className="hidden overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm md:block">
+                <table className="w-full min-w-[900px] text-xs font-bold tracking-tight text-neutral-700">
                     <thead>
-                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            <th className="px-4 py-3">Mission ID</th>
-                            <th className="px-4 py-3">Concern</th>
-                            <th className="px-4 py-3">Location</th>
-                            <th className="px-4 py-3">Assigned to</th>
-                            <th className="px-4 py-3">Priority</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Due</th>
-                            <th className="px-4 py-3">Flags</th>
-                            <th className="px-4 py-3">Action</th>
+                        <tr className="border-b border-neutral-200/60 bg-neutral-50/50 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                            <th className="px-5 py-4">Mission ID</th>
+                            <th className="px-5 py-4 w-[25%]">Concern file</th>
+                            <th className="px-5 py-4">Location threshold</th>
+                            <th className="px-5 py-4">Assigned node</th>
+                            <th className="px-5 py-4">Priority level</th>
+                            <th className="px-5 py-4">Workflow status</th>
+                            <th className="px-5 py-4">Due parameters</th>
+                            <th className="px-5 py-4">Alert flags</th>
+                            <th className="px-5 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-neutral-100">
                         {missions.map((row) => (
-                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
-                                <td className="max-w-[180px] px-4 py-3">
-                                    <p className="font-medium leading-snug">{row.concern_title}</p>
-                                    <p className="text-xs text-muted-foreground">{row.concern_id}</p>
+                            <tr key={row.id} className="group transition-colors hover:bg-neutral-50/40">
+                                <td className="px-5 py-4 font-black text-neutral-900 tracking-wider">{row.id}</td>
+                                <td className="px-5 py-4">
+                                    <p className="font-black text-neutral-900 leading-snug line-clamp-1">{row.concern_title}</p>
+                                    <p className="text-[10px] font-bold text-neutral-400 tracking-wider uppercase mt-0.5">{row.concern_id}</p>
                                 </td>
-                                <td className="max-w-[140px] truncate px-4 py-3 text-muted-foreground" title={row.location}>
+                                <td className="max-w-[160px] truncate px-5 py-4 font-medium text-neutral-500" title={row.location}>
                                     {row.location}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-5 py-4 font-bold text-neutral-900">
                                     {row.assignee ? (
-                                        <span className="font-medium">{row.assignee}</span>
+                                        <span>{row.assignee}</span>
                                     ) : (
-                                        <span className="text-amber-600">Unassigned</span>
+                                        <span className="text-neutral-400 uppercase text-[10px] font-black tracking-wider bg-neutral-100 border border-neutral-200 px-1.5 py-0.5 rounded-md">Unassigned</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-5 py-4">
                                     <Badge
                                         variant="outline"
-                                        className={
+                                        className={`rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
                                             row.priority === 'high'
-                                                ? 'border-red-200 bg-red-50 text-red-700'
+                                                ? 'border-neutral-900 bg-neutral-900 text-white'
                                                 : row.priority === 'med'
-                                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                  : 'border-slate-200 bg-slate-50'
-                                        }
+                                                  ? 'border-neutral-300 bg-neutral-50 text-neutral-700'
+                                                  : 'border-neutral-200 bg-white text-neutral-400'
+                                        }`}
                                     >
-                                        {row.priority === 'med' ? 'Med' : row.priority.charAt(0).toUpperCase() + row.priority.slice(1)}
+                                        {row.priority === 'med' ? 'Med' : row.priority}
                                     </Badge>
                                 </td>
-                                <td className="px-4 py-3">
-                                    <Badge className={statusStyle[row.status]}>{statusLabel[row.status]}</Badge>
+                                <td className="px-5 py-4">
+                                    <Badge className={`rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest transition-all ${statusStyle[row.status]}`}>
+                                        {statusLabel[row.status]}
+                                    </Badge>
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                                <td className="whitespace-nowrap px-5 py-4 font-medium text-neutral-400 tabular-nums">
                                     {row.due_date}
                                 </td>
-                                <td className="px-4 py-3">
-                                    <div className="flex flex-wrap gap-1">
+                                <td className="px-5 py-4">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {row.is_overdue && (
-                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+                                            <Badge variant="outline" className="border-neutral-200 bg-neutral-50 text-neutral-900 rounded-md font-black text-[9px] uppercase tracking-wider">
                                                 <Clock className="mr-1 h-3 w-3" />
                                                 Overdue
                                             </Badge>
                                         )}
                                         {row.is_escalated && (
-                                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
-                                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                            <Badge variant="outline" className="border-neutral-200/60 bg-white text-neutral-500 rounded-md font-black text-[9px] uppercase tracking-wider">
+                                                <AlertTriangle className="mr-1 h-3 w-3 text-neutral-400" />
                                                 Escalated
                                             </Badge>
                                         )}
                                         {!row.is_overdue && !row.is_escalated && (
-                                            <span className="text-xs text-muted-foreground">—</span>
+                                            <span className="text-neutral-300 font-light pr-4">—</span>
                                         )}
                                     </div>
                                 </td>
-                                <td className="px-4 py-3">
-                                    <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
+                                <td className="px-5 py-4 text-right">
+                                    <Button variant="ghost" className="h-8 rounded-xl border border-neutral-200 bg-white px-3 text-[11px] font-black uppercase tracking-wider shadow-sm hover:bg-neutral-50 text-neutral-900 transition-all active:scale-95" asChild>
                                         <Link href={`/admin/missions/${row.id.replace('#', '')}`}>Manage</Link>
                                     </Button>
                                 </td>

@@ -23,7 +23,7 @@ type Props = {
 
 export default function ResidentMiniMap({ lat, lng, className = 'h-28' }: Props) {
     return (
-        <div className={`overflow-hidden rounded-lg border ${className}`}>
+        <div className={`overflow-hidden rounded-2xl border border-neutral-200 shadow-inner min-h-[112px] relative z-10 ${className}`}>
             <MapContainer
                 center={[lat, lng]}
                 zoom={15}
@@ -33,7 +33,7 @@ export default function ResidentMiniMap({ lat, lng, className = 'h-28' }: Props)
                 className="h-full w-full"
             >
                 <MapInvalidateSize />
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
                 <Marker position={[lat, lng]} />
             </MapContainer>
         </div>

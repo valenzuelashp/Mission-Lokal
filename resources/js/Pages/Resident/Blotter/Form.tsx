@@ -39,14 +39,13 @@ export default function Form({ blotterType = 'two-party' }: Props) {
     };
 
     const rightAside = (
-        <Card className="shadow-sm">
-            <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <Shield className="h-4 w-4 text-primary" />
-                    Before you submit
+        <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl p-4">
+            <CardHeader className="p-0 pb-2">
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-neutral-950 flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-neutral-400" /> Before you submit
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <CardContent className="p-0 text-xs font-medium text-neutral-500 space-y-2 leading-relaxed">
                 <p>Provide accurate names, dates, and locations. False statements may affect your civic standing.</p>
                 <p>Staff will review your entry and contact you if mediation or follow-up is needed.</p>
             </CardContent>
@@ -57,18 +56,22 @@ export default function Form({ blotterType = 'two-party' }: Props) {
         <ResidentLayout wide>
             <Head title={titles[blotterType]} />
 
-            <ResidentSocialShell right={rightAside}>
-                <Button variant="ghost" className="-ml-2 w-fit" asChild>
+            {/* Fine Light Background Canvas */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-[#fbfbfa]">
+                <div className="absolute top-0 right-0 w-[50rem] h-[50rem] rounded-full bg-gradient-to-b from-neutral-200/30 to-transparent blur-[140px] opacity-60" />
+            </div>
+
+            <div className="relative z-10 space-y-4 w-full px-2 sm:px-4 md:px-6">
+                <Button variant="ghost" className="h-8 rounded-xl text-xs font-bold text-neutral-600 hover:text-neutral-900 px-2 -ml-1" asChild>
                     <Link href="/blotter/new">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Choose blotter type
+                        <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Choose blotter type
                     </Link>
                 </Button>
 
-                <Card className="shadow-sm">
+                <Card className="overflow-hidden border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl">
                     <CardContent className="p-4">
-                        <h1 className="text-xl font-bold">{titles[blotterType]}</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <h1 className="text-sm font-black tracking-wider text-neutral-950 uppercase">{titles[blotterType]}</h1>
+                        <p className="mt-1 text-xs font-medium text-neutral-400 leading-relaxed">
                             {isTwoParty
                                 ? 'Formal complaint against another party. Admin will review and issue a ticket for barangay mediation.'
                                 : 'Log an incident for barangay records. Staff may assign a search or welfare mission.'}
@@ -76,119 +79,130 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                     </CardContent>
                 </Card>
 
-                <form onSubmit={submit} className="space-y-4">
-                    <Card className="shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="text-base">Parties</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="complainant_name">Complainant (you)</Label>
-                                <Input
-                                    id="complainant_name"
-                                    value={data.complainant_name}
-                                    onChange={(e) => setData('complainant_name', e.target.value)}
-                                />
-                            </div>
-                            {isTwoParty && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="respondent_name">Respondent / other party</Label>
+                <ResidentSocialShell right={rightAside}>
+                    <form onSubmit={submit} className="space-y-4 text-xs font-bold text-neutral-700">
+                        {/* Parties Card */}
+                        <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
+                            <CardHeader className="border-b border-neutral-100/70 px-4 py-3">
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-neutral-950">Parties</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="complainant_name" className="text-[11px] uppercase tracking-wider text-neutral-500">Complainant (you)</Label>
                                     <Input
-                                        id="respondent_name"
-                                        value={data.respondent_name}
-                                        onChange={(e) => setData('respondent_name', e.target.value)}
-                                        placeholder="Full name of the person complained against"
-                                    />
-                                    {errors.respondent_name && (
-                                        <p className="text-sm text-destructive">{errors.respondent_name}</p>
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="text-base">Incident details</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="incident_date">Date</Label>
-                                    <Input
-                                        id="incident_date"
-                                        type="date"
-                                        value={data.incident_date}
-                                        onChange={(e) => setData('incident_date', e.target.value)}
+                                        id="complainant_name"
+                                        className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                        value={data.complainant_name}
+                                        onChange={(e) => setData('complainant_name', e.target.value)}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="incident_time">Time</Label>
+                                {isTwoParty && (
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="respondent_name" className="text-[11px] uppercase tracking-wider text-neutral-500">Respondent / other party</Label>
+                                        <Input
+                                            id="respondent_name"
+                                            className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                            value={data.respondent_name}
+                                            onChange={(e) => setData('respondent_name', e.target.value)}
+                                            placeholder="Full name of the person complained against"
+                                        />
+                                        {errors.respondent_name && (
+                                            <p className="text-[11px] font-medium text-red-600 mt-1">{errors.respondent_name}</p>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Incident details Card */}
+                        <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
+                            <CardHeader className="border-b border-neutral-100/70 px-4 py-3">
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-neutral-950">Incident details</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                <div className="grid gap-4 grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="incident_date" className="text-[11px] uppercase tracking-wider text-neutral-500">Date</Label>
+                                        <Input
+                                            id="incident_date"
+                                            type="date"
+                                            className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                            value={data.incident_date}
+                                            onChange={(e) => setData('incident_date', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="incident_time" className="text-[11px] uppercase tracking-wider text-neutral-500">Time</Label>
+                                        <Input
+                                            id="incident_time"
+                                            type="time"
+                                            className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                            value={data.incident_time}
+                                            onChange={(e) => setData('incident_time', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="location" className="text-[11px] uppercase tracking-wider text-neutral-500">Location</Label>
                                     <Input
-                                        id="incident_time"
-                                        type="time"
-                                        value={data.incident_time}
-                                        onChange={(e) => setData('incident_time', e.target.value)}
+                                        id="location"
+                                        className="h-9 rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium"
+                                        value={data.location}
+                                        onChange={(e) => setData('location', e.target.value)}
+                                        placeholder="Where did the incident occur?"
                                     />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="location">Location</Label>
-                                <Input
-                                    id="location"
-                                    value={data.location}
-                                    onChange={(e) => setData('location', e.target.value)}
-                                    placeholder="Where did the incident occur?"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="statement">Statement of facts</Label>
-                                <Textarea
-                                    id="statement"
-                                    value={data.statement}
-                                    onChange={(e) => setData('statement', e.target.value)}
-                                    placeholder="Describe what happened in detail…"
-                                    rows={6}
-                                />
-                                {errors.statement && <p className="text-sm text-destructive">{errors.statement}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="relief_sought">Relief sought</Label>
-                                <Textarea
-                                    id="relief_sought"
-                                    value={data.relief_sought}
-                                    onChange={(e) => setData('relief_sought', e.target.value)}
-                                    placeholder="What outcome are you requesting from the barangay?"
-                                    rows={3}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="statement" className="text-[11px] uppercase tracking-wider text-neutral-500">Statement of facts</Label>
+                                    <Textarea
+                                        id="statement"
+                                        className="rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium leading-relaxed"
+                                        value={data.statement}
+                                        onChange={(e) => setData('statement', e.target.value)}
+                                        placeholder="Describe what happened in detail…"
+                                        rows={5}
+                                    />
+                                    {errors.statement && <p className="text-[11px] font-medium text-red-600 mt-1">{errors.statement}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="relief_sought" className="text-[11px] uppercase tracking-wider text-neutral-500">Relief sought</Label>
+                                    <Textarea
+                                        id="relief_sought"
+                                        className="rounded-xl bg-neutral-50/50 border-neutral-200 focus-visible:ring-neutral-400 text-neutral-900 font-medium leading-relaxed"
+                                        value={data.relief_sought}
+                                        onChange={(e) => setData('relief_sought', e.target.value)}
+                                        placeholder="What outcome are you requesting from the barangay?"
+                                        rows={3}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                    <label className="flex cursor-pointer items-start gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={data.acknowledged}
-                            onChange={(e) => setData('acknowledged', e.target.checked)}
-                            className="mt-1 rounded border-gray-300"
-                        />
-                        <span>
-                            I certify that the information provided is true to the best of my knowledge and I
-                            understand this will be recorded as a formal barangay blotter entry.
-                        </span>
-                    </label>
-                    {errors.acknowledged && <p className="text-sm text-destructive">{errors.acknowledged}</p>}
+                        {/* Terms Acknowledgment Box Layout */}
+                        <label className="flex items-start gap-2.5 text-[11px] font-medium text-neutral-500 leading-relaxed px-1 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={data.acknowledged}
+                                onChange={(e) => setData('acknowledged', e.target.checked)}
+                                className="mt-0.5 h-3.5 w-3.5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            />
+                            <span>
+                                I certify that the information provided is true to the best of my knowledge and I understand this will be recorded as a formal barangay blotter entry.
+                            </span>
+                        </label>
+                        {errors.acknowledged && <p className="text-[11px] font-medium text-red-600 px-1">{errors.acknowledged}</p>}
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button type="submit" className="w-full sm:w-auto" disabled={processing || !data.acknowledged}>
-                            Submit blotter
-                        </Button>
-                        <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
-                            <Link href="/blotter/new">Cancel</Link>
-                        </Button>
-                    </div>
-                </form>
-            </ResidentSocialShell>
+                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                            <Button type="submit" className="h-9 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-bold px-4 shadow-sm" disabled={processing || !data.acknowledged}>
+                                Submit blotter
+                            </Button>
+                            <Button type="button" variant="outline" className="h-9 rounded-xl border-neutral-200 text-neutral-700 text-xs font-bold px-4" asChild>
+                                <Link href="/blotter/new">Cancel</Link>
+                            </Button>
+                        </div>
+                    </form>
+                </ResidentSocialShell>
+            </div>
         </ResidentLayout>
     );
 }

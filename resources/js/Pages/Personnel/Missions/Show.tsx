@@ -20,8 +20,8 @@ function stepState(done: boolean, current = false): TimelineState {
 }
 
 const nextStatus: Partial<Record<MissionStatus, { label: string; status: MissionStatus }>> = {
-    assigned: { label: 'Acknowledge', status: 'acknowledged' },
-    acknowledged: { label: 'Start work', status: 'in_progress' },
+    assigned: { label: 'Acknowledge dispatch', status: 'acknowledged' },
+    acknowledged: { label: 'Initiate operational route', status: 'in_progress' },
 };
 
 export default function Show(props: Partial<PersonnelMissionPageProps>) {
@@ -63,70 +63,71 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             <Head title={`Mission ${mission.id}`} />
 
             {flash.success && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {flash.success}
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-neutral-200 bg-white/90 backdrop-blur-md px-3.5 py-3 text-xs font-bold text-neutral-800 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-neutral-900" />
+                    <span className="truncate">{flash.success}</span>
                 </div>
             )}
 
-            <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
+            <Button variant="ghost" className="mb-4 -ml-2 h-auto px-2 text-xs font-black uppercase tracking-widest text-neutral-500 hover:text-neutral-900 transition-colors hover:bg-transparent" asChild>
                 <Link href="/personnel/missions">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to my missions
+                    <ArrowLeft className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" />
+                    Back to hub
                 </Link>
             </Button>
 
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-2 sm:mb-6 sm:gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200/40 pb-4">
                 <div className="min-w-0">
-                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">{mission.id}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground sm:text-base">{mission.title}</p>
+                    <h2 className="text-xl font-black uppercase tracking-wider text-neutral-900 sm:text-2xl">{mission.id}</h2>
+                    <p className="mt-1 text-sm font-bold tracking-tight text-neutral-500 sm:text-base leading-snug">{mission.title}</p>
                 </div>
                 <MissionStatusBadge status={mission.status} />
             </div>
 
-            <Card className="mb-4 max-w-3xl shadow-sm sm:mb-6">
+            <Card className="mb-5 max-w-4xl border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                 <CardContent className="p-4 sm:p-5">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-                        <div className="min-w-0 flex-1 space-y-3">
-                            <h3 className="text-sm font-semibold text-blue-900">Mission brief</h3>
-                            <p className="text-sm text-muted-foreground">{mission.brief}</p>
-                            <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-                                <div className="flex justify-between gap-2 border-b pb-2 sm:block">
-                                    <dt className="text-muted-foreground">Concern</dt>
-                                    <dd className="font-medium sm:mt-0.5">{mission.concern_id}</dd>
+                    <div className="flex flex-col gap-5 lg:flex-row lg:gap-8">
+                        <div className="min-w-0 flex-1 space-y-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-neutral-400">Mission brief</h3>
+                            <p className="text-xs font-medium text-neutral-600 leading-relaxed bg-neutral-50/40 border border-neutral-200/40 p-3 rounded-xl">{mission.brief}</p>
+                            
+                            <dl className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs font-bold sm:grid-cols-2 pt-1">
+                                <div className="flex justify-between gap-2 border-b border-neutral-100 pb-2 sm:block sm:border-0 sm:pb-0">
+                                    <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Reference File</dt>
+                                    <dd className="text-neutral-800 sm:mt-1 font-black">{mission.concern_id}</dd>
                                 </div>
-                                <div className="flex justify-between gap-2 border-b pb-2 sm:block">
-                                    <dt className="text-muted-foreground">Location</dt>
-                                    <dd className="text-right sm:mt-0.5 sm:text-left">{mission.location}</dd>
+                                <div className="flex justify-between gap-2 border-b border-neutral-100 pb-2 sm:block sm:border-0 sm:pb-0">
+                                    <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Target Geolocation</dt>
+                                    <dd className="text-right text-neutral-600 font-medium sm:mt-1 sm:text-left leading-tight">{mission.location}</dd>
                                 </div>
-                                <div className="flex justify-between gap-2 border-b pb-2 sm:block">
-                                    <dt className="text-muted-foreground">Due date</dt>
-                                    <dd className="sm:mt-0.5">{mission.due_date}</dd>
+                                <div className="flex justify-between gap-2 border-b border-neutral-100 pb-2 sm:block sm:border-0 sm:pb-0">
+                                    <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Expiration Milestone</dt>
+                                    <dd className="text-neutral-800 sm:mt-1 tabular-nums">{mission.due_date}</dd>
                                 </div>
-                                <div className="flex items-center justify-between gap-2 border-b pb-2 sm:block">
-                                    <dt className="text-muted-foreground">Visibility</dt>
-                                    <dd className="sm:mt-0.5">
-                                        <Badge variant="outline" className="capitalize">
+                                <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2 sm:block sm:border-0 sm:pb-0">
+                                    <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Feed Visibility</dt>
+                                    <dd className="sm:mt-1">
+                                        <Badge variant="outline" className="rounded-md px-1.5 py-0 text-[9px] font-black uppercase tracking-wider bg-white text-neutral-500 border-neutral-200">
                                             {mission.visibility}
                                         </Badge>
                                     </dd>
                                 </div>
                                 {mission.reporter_name && (
-                                    <div className="flex justify-between gap-2 border-b pb-2 sm:block">
-                                        <dt className="text-muted-foreground">Reporter</dt>
-                                        <dd className="sm:mt-0.5">{mission.reporter_name}</dd>
+                                    <div className="flex justify-between gap-2 border-b border-neutral-100 pb-2 sm:block sm:border-0 sm:pb-0">
+                                        <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Filing Reporter</dt>
+                                        <dd className="text-neutral-800 sm:mt-1 font-semibold">{mission.reporter_name}</dd>
                                     </div>
                                 )}
                                 {mission.reporter_phone && (
                                     <div className="flex justify-between gap-2 sm:block">
-                                        <dt className="text-muted-foreground">Contact</dt>
-                                        <dd className="sm:mt-0.5">
+                                        <dt className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Contact Stream</dt>
+                                        <dd className="sm:mt-1">
                                             <a
                                                 href={`tel:${mission.reporter_phone}`}
-                                                className="inline-flex items-center gap-1 font-medium text-blue-700 hover:underline"
+                                                className="inline-flex items-center gap-1 font-black text-neutral-900 border-b border-neutral-900/40 pb-0.5 hover:border-neutral-900 transition-colors"
                                             >
-                                                <Phone className="h-3.5 w-3.5" />
-                                                {mission.reporter_phone}
+                                                <Phone className="h-3 w-3 stroke-[2.5]" />
+                                                <span className="tabular-nums">{mission.reporter_phone}</span>
                                             </a>
                                         </dd>
                                     </div>
@@ -134,8 +135,8 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                             </dl>
                         </div>
 
-                        <div className="shrink-0 border-t pt-4 sm:w-44 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-                            <h3 className="mb-2 text-sm font-semibold text-blue-900">Status</h3>
+                        <div className="shrink-0 border-t border-neutral-200/60 pt-4 lg:w-48 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                            <h3 className="mb-3 text-xs font-black uppercase tracking-widest text-neutral-400">Ledger Status</h3>
                             <CompactMissionStatus steps={timeline} />
                         </div>
                     </div>
@@ -143,34 +144,33 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             </Card>
 
             {mission.visibility === 'private' && (
-                <div className="mb-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    <Shield className="mr-2 inline h-4 w-4" />
-                    Private case — do not share details on the public feed.
+                <div className="mb-4 max-w-4xl rounded-xl border border-neutral-200 bg-white/90 backdrop-blur-md px-4 py-3 text-xs font-bold text-neutral-800 shadow-xs flex items-center gap-2">
+                    <Shield className="h-4 w-4 shrink-0 text-neutral-900" />
+                    <span>Protected Case Ledger — dynamic encryption standards apply. Do not duplicate onto local tracking instances.</span>
                 </div>
             )}
 
             {needsProof && (
-                <div className="mb-4 flex max-w-3xl items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>Submit proof of completion before this mission can be marked done.</span>
+                <div className="mb-4 max-w-4xl rounded-xl border border-neutral-200/60 bg-white/90 backdrop-blur-md px-4 py-3 text-xs font-bold text-neutral-900 shadow-xs flex items-center gap-2">
+                    <CircleAlert className="h-4 w-4 shrink-0 text-neutral-900 animate-pulse" />
+                    <span>Resolution Interlock: Media packet arrays must be signed off on form upload prior to state graduation.</span>
                 </div>
             )}
 
-            {/* --- NEW PROOF DISPLAY CARD --- */}
             {mission.proof_submitted && (
-                <Card className="mb-4 shadow-sm sm:mb-6">
+                <Card className="mb-5 max-w-4xl border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                     <CardContent className="space-y-3 p-4 sm:p-5">
-                        <h3 className="text-sm font-semibold text-blue-900">Proof of Completion</h3>
-                        <p className="text-sm text-muted-foreground">{mission.proof_notes}</p>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-400">Captured Proof Manifest</h3>
+                        <p className="text-xs font-semibold text-neutral-700 leading-relaxed bg-neutral-50/50 border border-neutral-200/40 p-3 rounded-xl">{mission.proof_notes}</p>
                         
                         {mission.proof_photos && mission.proof_photos.length > 0 && (
-                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                            <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1.5 mask-image">
                                 {mission.proof_photos.map((url: string, idx: number) => (
                                     <img 
                                         key={idx} 
                                         src={url} 
-                                        alt={`Proof ${idx + 1}`} 
-                                        className="h-32 w-32 shrink-0 rounded-md border border-slate-200 object-cover shadow-sm"
+                                        alt={`Telemetry Manifest ${idx + 1}`} 
+                                        className="h-28 w-28 shrink-0 rounded-xl border border-neutral-200/80 object-cover shadow-xs hover:border-neutral-400 transition-all cursor-zoom-in"
                                     />
                                 ))}
                             </div>
@@ -179,21 +179,21 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 </Card>
             )}
 
-            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                <Card className="shadow-sm">
+            <div className="grid gap-5 max-w-4xl lg:grid-cols-2">
+                <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                     <CardContent className="space-y-3 p-4 sm:p-5">
-                        <h3 className="text-sm font-semibold text-blue-900">Site map</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-400">Cartographic Overlay</h3>
                         <MapView
                             center={[mission.lat, mission.lng]}
                             pins={[{ id: mission.id, lat: mission.lat, lng: mission.lng, title: mission.title }]}
-                            className="h-48 overflow-hidden rounded-lg sm:h-56"
+                            className="h-48 overflow-hidden rounded-xl border border-neutral-200 shadow-inner sm:h-56"
                         />
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
+                <Card className="border-neutral-200/60 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl overflow-hidden">
                     <CardContent className="space-y-3 p-4 sm:p-5">
-                        <h3 className="text-sm font-semibold text-blue-900">Checklist</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-400">Operational Checklist</h3>
                         <MissionChecklist
                             missionId={mission.id}
                             items={mission.checklist}
@@ -203,34 +203,35 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 </Card>
             </div>
 
-            <div className="mt-4 flex max-w-3xl flex-col gap-2 sm:mt-6 sm:flex-row sm:flex-wrap">
+            {/* Action Row Elements */}
+            <div className="mt-5 flex max-w-4xl flex-col gap-2.5 sm:flex-row sm:flex-wrap">
                 {action && (
                     <Button
-                        className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto"
+                        className="w-full bg-neutral-900 text-white hover:bg-neutral-800 rounded-xl font-black uppercase tracking-widest text-xs h-10 shadow-sm transition-all active:scale-[0.98] sm:w-auto px-5"
                         onClick={() => updateStatus(action.status)}
                     >
                         {action.label}
                     </Button>
                 )}
                 {needsProof && (
-                    <Button className="w-full bg-emerald-700 hover:bg-emerald-800 sm:w-auto" asChild>
+                    <Button className="w-full bg-neutral-900 text-white hover:bg-neutral-800 rounded-xl font-black uppercase tracking-widest text-xs h-10 shadow-sm transition-all active:scale-[0.98] sm:w-auto px-5" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
-                            <Camera className="mr-2 h-4 w-4" />
-                            Submit proof to complete
+                            <Camera className="mr-2 h-4 w-4 stroke-[2.5]" />
+                            Launch closure interface
                         </Link>
                     </Button>
                 )}
                 {!readonly && mission.status !== 'in_progress' && !mission.proof_submitted && (
-                    <Button variant="outline" className="w-full sm:w-auto" asChild>
+                    <Button variant="outline" className="w-full border-neutral-200 bg-white/80 hover:bg-white text-neutral-800 rounded-xl font-black uppercase tracking-widest text-xs h-10 shadow-sm sm:w-auto px-5" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
-                            <Camera className="mr-2 h-4 w-4" />
-                            Upload proof
+                            <Camera className="mr-2 h-4 w-4 text-neutral-500" />
+                            Upload evidence arrays
                         </Link>
                     </Button>
                 )}
                 {mission.proof_submitted && (
-                    <Badge variant="success" className="w-fit px-3 py-1.5">
-                        Proof submitted — awaiting verification
+                    <Badge variant="outline" className="w-fit rounded-xl border border-neutral-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-widest text-neutral-500 shadow-xs">
+                        Staged for verification log verification
                     </Badge>
                 )}
             </div>

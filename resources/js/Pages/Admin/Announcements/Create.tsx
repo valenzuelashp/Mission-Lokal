@@ -8,17 +8,17 @@ export default function Create() {
     return (
         <AdminLayout title="Mission-Lokal Admin: New Announcement">
             <Head title="New Announcement" />
-            <Button variant="ghost" className="mb-3 -ml-2 h-auto px-2 text-sm sm:mb-4" asChild>
+            <Button variant="ghost" className="mb-4 -ml-2 h-auto px-2 text-xs font-black uppercase tracking-widest text-neutral-500 hover:text-neutral-900 transition-colors hover:bg-transparent" asChild>
                 <Link href="/admin/announcements">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to announcements
+                    <ArrowLeft className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" />
+                    Back to advisory list
                 </Link>
             </Button>
 
-            <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">New announcement</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Draft an advisory or publish it immediately to the resident feed.
+            <div className="mb-6">
+                <h2 className="text-xl font-black uppercase tracking-tight text-neutral-900 sm:text-2xl">New announcement</h2>
+                <p className="mt-1 text-xs font-medium text-neutral-500 max-w-md leading-relaxed">
+                    Draft an advisory bulletin or establish immediate packet broadcast parameters across resident public feeds.
                 </p>
             </div>
 

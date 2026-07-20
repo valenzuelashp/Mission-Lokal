@@ -8,21 +8,31 @@ type Props = PropsWithChildren<{
 export default function ResidentSocialShell({ children, right }: Props) {
     return (
         <>
-            <div className="hidden w-full lg:grid lg:grid-cols-[1fr_min(680px,100%)_1fr]">
-                <aside className="sticky top-[3.75rem] h-fit w-full max-w-[360px] justify-self-start pl-4 xl:pl-8">
+            {/* Desktop Full-Bleed Adaptive Framework Split */}
+            <div className="hidden lg:grid lg:grid-cols-[250px_1fr_300px] gap-5 items-start py-2">
+                <aside className="sticky top-[4.5rem] h-fit w-full">
                     <ResidentShortcuts />
                 </aside>
 
-                <div className="min-w-0 space-y-4 px-2">{children}</div>
+                <div className="min-w-0 space-y-3">
+                    {children}
+                </div>
 
-                <aside className="sticky top-[3.75rem] h-fit w-full max-w-[360px] justify-self-end space-y-4 pr-4 xl:pr-8">
+                <aside className="sticky top-[4.5rem] h-fit w-full space-y-3">
                     {right}
                 </aside>
             </div>
 
-            <div className="space-y-4 lg:hidden">
-                {children}
-                {right && <div className="space-y-4">{right}</div>}
+            {/* Mobile Native Social App Stack Stream Layout */}
+            <div className="space-y-2 lg:hidden w-full max-w-md mx-auto">
+                <div className="space-y-2 w-full">
+                    {children}
+                </div>
+                {right && (
+                    <div className="space-y-2 pt-2 px-2 sm:px-0">
+                        {right}
+                    </div>
+                )}
             </div>
         </>
     );
