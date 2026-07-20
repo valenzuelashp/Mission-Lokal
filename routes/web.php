@@ -1,4 +1,5 @@
 <?php
+
 use App\Http\Controllers\Admin\DashboardController; 
 use App\Http\Controllers\Admin\VerificationController;
 use App\Enums\UserRole;
@@ -7,6 +8,8 @@ use App\Http\Controllers\Resident\FeedController;
 use App\Http\Controllers\Resident\LibraryController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PersonnelLoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -28,33 +31,45 @@ Route::get('/', function () {
     };
 });
 
+/*
+|--------------------------------------------------------------------------
+| Admin Portal Routes
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::prefix('verifications')->name('verifications.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::prefix('verifications')->name('verifications.')->group(function () {
         Route::get('/', [VerificationController::class, 'index'])->name('index');
         Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
         Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
         Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
     });
-   
 });
 
+/*
+|--------------------------------------------------------------------------
+| Resident Portal Routes (Protected by Verification Middleware)
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
     Route::get('/feed', [FeedController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
+    
     Route::get('/library', [LibraryController::class, 'index'])->name('library');
     Route::get('/announcements', fn () => Inertia::render('Resident/Announcements'))->name('announcements');
     Route::get('/announcements/{announcement}', fn (string $announcement) => Inertia::render('Resident/Announcements/Show', [
         'announcementId' => $announcement,
     ]))->name('announcements.show');
+    
     Route::get('/profile', fn () => Inertia::render('Resident/Profile'))->name('profile');
     Route::get('/profile/edit', fn () => Inertia::render('Resident/ProfileEdit'))->name('profile.edit');
     Route::post('/profile/edit', fn () => redirect()->route('profile.edit')->with('success', 'Edit request submitted for admin review.'))->name('profile.edit.store');
     Route::get('/profile/security', fn () => Inertia::render('Resident/Security'))->name('profile.security');
     Route::post('/profile/security', fn () => redirect()->route('profile.security')->with('success', 'Password updated successfully.'))->name('profile.security.store');
+    
     Route::get('/blotter/new', fn () => Inertia::render('Resident/Blotter/TypeSelect'))->name('blotter.create');
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
@@ -63,31 +78,53 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::post('/blotter', [\App\Http\Controllers\Resident\BlotterController::class, 'store'])->name('blotter.store');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Guest Authentication Routes (Including Forgot Password OTP)
+|--------------------------------------------------------------------------
+*/
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
-    Route::get('/forgot-password', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
-    Route::post('/forgot-password/send-otp', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendOtp'])->name('password.email');
-    Route::post('/forgot-password/verify-otp', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
-    Route::post('/forgot-password/reset', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'resetPassword'])->name('password.update');
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
+    Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
+    Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
+    Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| Onboarding Verification Portal Routes
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
-    
-Route::get('/confirm', [\App\Http\Controllers\OnboardingController::class, 'showConfirmDetails'])->name('confirm');
-    
+    Route::get('/confirm', [OnboardingController::class, 'showConfirmDetails'])->name('confirm');
     Route::get('/id', fn () => Inertia::render('Onboarding/IdVerification'))->name('id');
-    Route::post('/id', [\App\Http\Controllers\OnboardingController::class, 'storeId'])->name('id.store');
+    Route::post('/id', [OnboardingController::class, 'storeId'])->name('id.store');
     
-    // NEW: Let the Controller decide if they should see Pending or Results
-    Route::get('/pending', [\App\Http\Controllers\OnboardingController::class, 'showPending'])->name('pending');
-    Route::get('/result', [\App\Http\Controllers\OnboardingController::class, 'showResult'])->name('result');
-    
-    Route::get('/setup-password', [\App\Http\Controllers\OnboardingController::class, 'showSetPassword'])->name('setup-password');
-    Route::post('/setup-password', [\App\Http\Controllers\OnboardingController::class, 'storePassword'])->name('store-password');
+    // Controlled structural routes processed by the Controller layout engine
+    Route::get('/pending', [OnboardingController::class, 'showPending'])->name('pending');
+    Route::get('/result', [OnboardingController::class, 'showPasswordForm'])->name('result');
+    Route::get('/password', [OnboardingController::class, 'showSetPassword'])->name('password');
+    Route::post('/password/store', [OnboardingController::class, 'storePassword'])->name('password.store');
 });
 
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';
+
+/*
+|--------------------------------------------------------------------------
+| Temporary Design Previews
+|--------------------------------------------------------------------------
+*/
+Route::get('/preview/pending', function () {
+    return Inertia::render('Onboarding/Pending', ['status' => 'pending']);
+});
+Route::get('/preview/rejected', function () {
+    return Inertia::render('Onboarding/Result', ['status' => 'rejected', 'rejectionReason' => 'Invalid document resolution.']);
+});
+Route::get('/preview/approved', function () {
+    return Inertia::render('Onboarding/Result', ['status' => 'approved']);
+});

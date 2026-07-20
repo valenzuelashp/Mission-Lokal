@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Enums\VerificationStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use App\Enums\VerificationStatus; // Don't forget to import the Enum!
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
+
 class OnboardingController extends Controller
 {
-    // 1. Shows the Confirmation Screen
+    // 1. Show the confirmation details screen
     public function showConfirmDetails(Request $request)
     {
         $user = $request->user();
@@ -53,14 +55,11 @@ class OnboardingController extends Controller
         \App\Models\ResidentProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                // Note: I left your column name as is, but make sure your React Admin view
-                // is looking for 'government_id_storage_key' and not 'id_photo_path'!
                 'government_id_storage_key' => $path,
                 'rejection_reason' => null, 
             ]
         );
 
-        // FIX 1: Directly assign the Enum to bypass the $fillable array trap!
         $user->verification_status = VerificationStatus::Pending;
         $user->save();
 
@@ -81,12 +80,10 @@ class OnboardingController extends Controller
         ]);
     }
 
-    // 4. Controls the Approved/Rejected Results screen
-    public function showResult(Request $request)
+    // Render the password creation view
+    public function showPasswordForm(Request $request)
     {
         $user = $request->user()->fresh();
-        
-        // FIX 2: Add ->value here so the string comparisons work!
         $status = $user->verification_status->value;
 
         if ($status === 'unverified' || $status === 'pending' || $status === 'in_progress') {
@@ -113,24 +110,28 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.pending');
         }
 
-        return Inertia::render('Onboarding/SetPassword');
+        return Inertia::render('Onboarding/Password');
     }
 
     // Saves the new password and finishes onboarding
     public function storePassword(Request $request)
     {
-        // Enforce strong passwords and require the 'password_confirmation' field to match
+        // Enforce the 8+ character rule alongside the special characters/numeric requirements
         $request->validate([
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => [
+                'required', 
+                'confirmed', 
+                Password::min(8)->numbers()->symbols()
+            ],
         ]);
 
         $user = $request->user();
         
         // Hash the new password and save it directly to the users table
         $user->password = Hash::make($request->password);
+        $user->is_active = true; // Turn profile active upon setup completion
         $user->save();
 
-        // Welcome to the app! Send them to the main resident feed.
         return redirect()->route('feed'); 
     }
 }

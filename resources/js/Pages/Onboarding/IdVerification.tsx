@@ -1,17 +1,14 @@
 import { Head, useForm } from '@inertiajs/react';
 
-// Tell TypeScript that Laravel's Ziggy route() function exists globally
-declare function route(name: string): string;
-
 export default function IdVerification() {
-    // Inertia's form helper handles the file state and submission for us
     const { data, setData, post, processing, errors } = useForm({
         government_id: null as File | null,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('onboarding.id.store'));
+        // @ts-ignore
+        post(window.route('onboarding.id.store'));
     };
 
     return (
@@ -29,8 +26,6 @@ export default function IdVerification() {
                     </div>
 
                     <form onSubmit={submit} className="space-y-6">
-                        
-                        {/* File Upload Box */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Government ID Photo
@@ -58,14 +53,12 @@ export default function IdVerification() {
                                 </div>
                             </div>
                             
-                            {/* Display the selected file name so the user knows it worked */}
                             {data.government_id && (
                                 <p className="mt-2 text-sm text-green-600 font-medium text-center">
                                     Selected: {data.government_id.name}
                                 </p>
                             )}
 
-                            {/* Show error messages if the file is too big or wrong format */}
                             {errors.government_id && (
                                 <p className="mt-2 text-sm text-red-600">{errors.government_id}</p>
                             )}

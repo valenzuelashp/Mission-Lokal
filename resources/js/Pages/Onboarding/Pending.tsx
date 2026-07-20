@@ -53,16 +53,17 @@ export default function Pending({ status }: { status: string }) {
 
                     {/* Actions */}
                     <div className="flex flex-col space-y-3">
-                        {/* Note: Using a standard <a> tag here is perfect because it forces a hard browser refresh! */}
-                        <a 
-                            href={route('onboarding.pending')} 
+                        {/* FIX 3: Balanced opening/closing tags using Inertia Link targeting /feed */}
+                        <Link 
+                            href="/feed" 
                             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             Refresh Status
-                        </a>
+                        </Link>
                         
                         <Link 
-                            href={route('logout')} 
+                            // @ts-ignore
+                            href={window.route('logout')} 
                             method="post" 
                             as="button"
                             className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"

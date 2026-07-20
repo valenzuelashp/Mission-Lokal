@@ -18,25 +18,43 @@ class EnsureResidentIsVerified
     {
         $user = Auth::user();
         
-        // 1. If they aren't logged in, let the standard Auth middleware handle it
         if (!$user) {
             return $next($request);
         }
 
-        // 2. We only care about checking regular Residents (Admins bypass this)
+        // Force a fresh database check to overwrite stale session cache state
+        $user->refresh();
+
         if ($user->role === UserRole::Resident) {
-            
-            // 3. If they are anything EXCEPT approved...
-            if ($user->verification_status !== VerificationStatus::Approved) {
-                
-                // 4. Prevent an infinite loop if they are already ON the onboarding page!
-                if (!$request->routeIs('onboarding.*')) {
-                    return redirect()->route('onboarding.confirm');
-                }
+            // Always allow onboarding endpoints or logging out to pass through cleanly
+            if ($request->routeIs('onboarding.*') || $request->is('logout')) {
+                return $next($request);
             }
+
+            // 1. If their account is fully setup and active, let them enter the resident feed app
+            if ($user->is_active) {
+                return $next($request);
+            }
+
+            // 2. If approved but password isn't established yet, lock them to the setup screen
+            if ($user->verification_status === VerificationStatus::Approved) {
+                return redirect()->route('onboarding.password');
+            }
+
+            // 3. Match pending states
+            if ($user->verification_status === VerificationStatus::Pending) {
+                return redirect()->route('onboarding.pending');
+            }
+
+            // 4. Match rejected states
+            if ($user->verification_status === VerificationStatus::Rejected) {
+                return redirect()->route('onboarding.rejected');
+            }
+
+            // Fallback for empty or new profiles
+            return redirect()->route('onboarding.confirm');
         }
 
-        // If they pass the checks, let them into the site
         return $next($request);
     }
 }
