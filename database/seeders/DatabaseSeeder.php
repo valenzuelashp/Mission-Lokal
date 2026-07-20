@@ -37,8 +37,6 @@ class DatabaseSeeder extends Seeder
             'middle_name' => null,    
             'last_name' => 'Admin',   
             'name_extension' => null,    
-            'birthday' => '1985-05-15',       
-            'address' => 'Barangay Hall',     
             'email' => 'admin@demo.local',
             'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
@@ -52,15 +50,14 @@ class DatabaseSeeder extends Seeder
             'middle_name' => 'Talon',    
             'last_name' => 'Personnel',   
             'name_extension' => 'Jr.',  
-            'birthday' => '1985-05-15',       
-            'address' => 'Barangay Hall',   
             'email' => 'personnel@demo.local',
             'mobile' => '09181234567',
             'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
         ]);
 
-        User::query()->create([
+        // Capture the core testing Resident profile block
+        $resident = User::query()->create([
             'barangay_id' => $barangay->id,
             'account_id' => 'RES001',
             'role' => UserRole::Resident,
@@ -68,38 +65,24 @@ class DatabaseSeeder extends Seeder
             'middle_name' => null,    
             'last_name' => 'Resident',   
             'name_extension' => 'III',   
-            'birthday' => '1985-05-15',       
-            'address' => 'Barangay Hall',   
             'email' => 'resident@demo.local',
             'mobile' => '09191234567',
             'password' => 'password',
             'verification_status' => VerificationStatus::Approved,
             'civic_xp' => 25,
         ]);
-        
-       // ... (Your 3 manual users are above here) ...
+
+        // Anchor the profile data strictly inside resident_profiles
+        $resident->residentProfile()->create([
+            'birthday' => '1985-05-15',
+            'address' => 'Barangay Hall, Demo Barangay',
+            'digital_id_code' => 'ML-ID-' . strtoupper(substr($resident->id ?? '12345678', 0, 8)),
+            'government_id_storage_key' => 'demo/ids/gov_id.jpg',
+        ]);
         
         $this->call([
             BlueprintCategorySeeder::class,
-            PreloadedResidentSeeder::class,
             LibrarySeeder::class,
-        ]);
-
-        // --- ADD THESE LINES TO GENERATE DUMMY DATA ---
-        
-        // 1. Generate 10 extra random resident accounts
-        User::factory(10)->create([
-            'barangay_id' => $barangay->id
-        ]);
-
-        // 2. Generate 30 fake concerns/reports
-        \App\Models\Concern::factory(30)->create([
-            'barangay_id' => $barangay->id
-        ]);
-
-        // 3. Generate 15 fake missions
-        \App\Models\Mission::factory(15)->create([
-            'barangay_id' => $barangay->id
         ]);
     }
 }

@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import PageHeader from '@/Components/shared/PageHeader';
 
+declare function route(name: string, parameters?: any, absolute?: boolean): string;
+
 type ResidentBlotter = {
     id: string;
     ticket_number: string | null;
@@ -26,7 +28,7 @@ export default function Index({ blotters }: { blotters: ResidentBlotter[] }) {
                     description="Track the status of your formal legal complaints and incident logs." 
                 />
                 <Button asChild className="w-full sm:w-auto mt-4 sm:mt-0">
-                    <Link href="/blotter/new">
+                    <Link href={route('blotter.create')}>
                         <Plus className="mr-2 h-4 w-4" /> File New Blotter
                     </Link>
                 </Button>

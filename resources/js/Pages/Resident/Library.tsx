@@ -1,18 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, FolderOpen } from 'lucide-react';
 import LibraryHero from '@/Components/resident/library/LibraryHero';
 import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
 import RespondersDirectory from '@/Components/resident/library/RespondersDirectory';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import ResidentLayout from '@/Layouts/ResidentLayout';
-import { libraryContacts, libraryManuals } from '@/Lib/residentDemo';
 import type { LibraryPageProps } from '@/Types';
 
-export default function Library(props: Partial<LibraryPageProps>) {
-    const manuals = props.manuals ?? libraryManuals;
-    const contacts = props.contacts ?? libraryContacts;
-
+export default function Library({ manuals = [], contacts = [] }: LibraryPageProps) {
     const rightAside = (
         <>
             <Card className="shadow-sm">
@@ -43,6 +39,8 @@ export default function Library(props: Partial<LibraryPageProps>) {
         </>
     );
 
+    const hasData = manuals.length > 0 || contacts.length > 0;
+
     return (
         <ResidentLayout wide>
             <Head title="Resiliency Library" />
@@ -62,9 +60,23 @@ export default function Library(props: Partial<LibraryPageProps>) {
                     </CardContent>
                 </Card>
 
-                <LibraryHero />
-                <PreparednessManuals manuals={manuals} />
-                <RespondersDirectory contacts={contacts} />
+                {hasData ? (
+                    <>
+                        <LibraryHero />
+                        {manuals.length > 0 && <PreparednessManuals manuals={manuals} />}
+                        {contacts.length > 0 && <RespondersDirectory contacts={contacts} />}
+                    </>
+                ) : (
+                    <Card className="border-dashed shadow-none">
+                        <CardContent className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                            <FolderOpen className="mb-4 h-12 w-12 stroke-1 text-muted-foreground/60" />
+                            <h3 className="font-medium text-foreground">Library is empty</h3>
+                            <p className="mt-1 text-sm max-w-xs">
+                                Your barangay administrators haven't uploaded emergency reference guidelines or resource direct lines yet.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
             </ResidentSocialShell>
         </ResidentLayout>
     );

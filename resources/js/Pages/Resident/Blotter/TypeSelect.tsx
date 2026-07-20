@@ -58,7 +58,7 @@ export default function TypeSelect() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     {blotterTypes.map((item) => {
-                        const Icon = icons[item.type];
+                        const Icon = icons[item.type as keyof typeof icons] || Scale;
                         return (
                             <Link key={item.type} href={`/blotter/new/${item.type}`}>
                                 <Card className="h-full shadow-sm transition-shadow hover:border-primary/40 hover:shadow-md">

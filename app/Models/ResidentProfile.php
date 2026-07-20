@@ -12,9 +12,15 @@ class ResidentProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'birthday',
+        'address',
         'government_id_storage_key',
         'rejection_reason',
         'digital_id_code',
+    ];
+
+    protected $casts = [
+        'birthday' => 'date',
     ];
 
     public function user(): BelongsTo

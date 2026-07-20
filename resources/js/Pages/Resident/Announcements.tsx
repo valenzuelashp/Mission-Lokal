@@ -17,7 +17,7 @@ export default function Announcements(props: Partial<AnnouncementsPageProps>) {
                 <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
                         <Shield className="h-4 w-4 text-primary" />
-                        Barangay Demo
+                        Barangay Info
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -54,7 +54,7 @@ export default function Announcements(props: Partial<AnnouncementsPageProps>) {
                         <div className="min-w-0">
                             <h1 className="text-xl font-bold">Barangay announcements</h1>
                             <p className="text-sm text-muted-foreground">
-                                Advisories and updates from Demo Barangay officials
+                                Advisories and updates from your Barangay officials
                             </p>
                         </div>
                     </CardContent>

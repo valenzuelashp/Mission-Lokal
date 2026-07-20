@@ -11,10 +11,13 @@ class Announcement extends Model
 {
     use HasFactory, HasUuids;
 
+    // FIX: Whitelisted required missing structural columns for dynamic layout feeds
     protected $fillable = [
         'barangay_id',
         'title',
         'body',
+        'summary',
+        'cover_image_url',
         'is_published',
         'published_at',
         'created_by',

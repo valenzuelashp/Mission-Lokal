@@ -1,19 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { Droplets, Flame, Lightbulb, Trash2, Volume2, Waves } from 'lucide-react';
 import ReportQueueCard from '@/Components/admin/ReportQueueCard';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import type { AdminReport } from '@/Types';
-
-const typeIcons = {
-    fire: Flame,
-    flood: Waves,
-    waste: Trash2,
-    noise: Volume2,
-    drainage: Droplets,
-    light: Lightbulb,
-} as const;
 
 const queueLabel: Record<AdminReport['queue_status'], string> = {
     ai_processed: 'AI processed',
@@ -65,7 +55,6 @@ export default function ReportQueueTable({ reports }: Props) {
                     </thead>
                     <tbody>
                         {reports.map((row) => {
-                            const Icon = typeIcons[row.type_icon] ?? Flame;
                             return (
                                 <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
                                     <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
@@ -90,7 +79,9 @@ export default function ReportQueueTable({ reports }: Props) {
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">{row.ai_category}</td>
                                     <td className="min-w-[120px] px-4 py-3">
-                                        <SeverityBar score={row.ai_severity} />
+                                        <div className="flex items-center">
+                                            <SeverityBar score={row.ai_severity} />
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
                                         <Badge

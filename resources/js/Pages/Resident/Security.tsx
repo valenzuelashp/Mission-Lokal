@@ -9,9 +9,12 @@ import { Label } from '@/Components/ui/label';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { PageProps } from '@/Types';
 
+// Tell TypeScript that Ziggy's route function is globally available
+declare function route(name: string, parameters?: any, absolute?: boolean): string;
+
 export default function Security() {
     const { flash } = usePage<PageProps>().props;
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, put, processing, errors, reset } = useForm({
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -19,7 +22,12 @@ export default function Security() {
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        post('/profile/security');
+        
+        // Target backend route name dynamically via global routing provider
+        put(route('profile.security.update'), {
+            onSuccess: () => reset('current_password', 'password', 'password_confirmation'),
+            preserveScroll: true
+        });
     };
 
     return (

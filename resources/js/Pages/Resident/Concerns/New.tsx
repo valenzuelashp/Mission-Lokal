@@ -9,25 +9,25 @@ import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { NewConcernPageProps } from '@/Types';
- 
-export default function New({ categories, mapCenter }: NewConcernPageProps) {
+
+export default function New({ categories = [], mapCenter = [14.6507, 120.9793] }: NewConcernPageProps) {
+    const defaultLat = mapCenter && mapCenter[0] ? mapCenter[0] : 14.6507;
+    const defaultLng = mapCenter && mapCenter[1] ? mapCenter[1] : 120.9793;
+
     const { data, setData, post, processing, errors } = useForm({
         title: '',
         description: '',
-        category_id: '',   // FIX: was 'category' — must match what the backend validates
-        lat: mapCenter[0],
-        lng: mapCenter[1],
+        category_id: '',
+        lat: defaultLat,
+        lng: defaultLng,
         images: [] as File[],
     });
- 
+
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        // FIX: forceFormData is required whenever the form contains File objects.
-        // Without it, Inertia sends JSON and the backend never sees the uploaded images
-        // (and lat/lng arrive as strings instead of numbers, failing numeric validation).
         post('/concerns', { forceFormData: true });
     };
- 
+
     return (
         <ResidentLayout>
             <Head title="Post Concern" />
@@ -35,7 +35,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                 title="Post a concern"
                 description="Describe the issue and pin it on the map. AI will help route and categorize your report."
             />
- 
+
             <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
                 <Card>
                     <CardHeader>
@@ -52,7 +52,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                             />
                             {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
                         </div>
- 
+
                         <div className="space-y-2">
                             <Label htmlFor="category_id">Category</Label>
                             <select
@@ -68,10 +68,9 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                                     </option>
                                 ))}
                             </select>
-                            {/* FIX: error key matches the field name sent to the backend */}
                             {errors.category_id && <p className="text-sm text-destructive">{errors.category_id}</p>}
                         </div>
- 
+
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea
@@ -82,7 +81,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                             />
                             {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                         </div>
- 
+
                         <div className="space-y-2">
                             <Label htmlFor="photos">Photos (optional)</Label>
                             <Input
@@ -95,14 +94,14 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                         </div>
                     </CardContent>
                 </Card>
- 
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Location</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <MapPinPicker
-                            center={mapCenter}
+                            center={[defaultLat, defaultLng]}
                             position={[data.lat, data.lng]}
                             onPositionChange={(lat, lng) => {
                                 setData('lat', lat);
@@ -113,7 +112,7 @@ export default function New({ categories, mapCenter }: NewConcernPageProps) {
                         {errors.lat && <p className="mt-2 text-sm text-destructive">{errors.lat}</p>}
                     </CardContent>
                 </Card>
- 
+
                 <div className="flex flex-col gap-2 lg:col-span-2 sm:flex-row">
                     <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
                         Submit concern

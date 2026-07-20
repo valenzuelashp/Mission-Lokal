@@ -3,83 +3,64 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
+use App\Models\LibraryItem;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class LibraryController extends Controller
 {
-    public function index(): Response
+    public function index()
     {
+        $user = auth()->user();
+
+        // 1. Fetch all matching active entries for this specific barangay
+        $rawItems = LibraryItem::where('barangay_id', $user->barangay_id)
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
+        // 2. Transform items into the explicit LibraryManual structure expected by your TypeScript declaration
+        $manuals = $rawItems->filter(fn($item) => $item->type === 'manual')
+            ->map(function($item) {
+                // Safeguard against missing or uninitialized JSON array offsets
+                $meta = is_array($item->metadata) ? $item->metadata : [];
+                
+                return [
+                    'id' => $item->id,
+                    'title' => $item->title,
+                    'subtitle' => $meta['subtitle'] ?? 'Emergency Guide',
+                    // Fallback map constraint ensures it never crashes on unconventional tags
+                    'icon' => in_array($meta['icon'] ?? '', ['flood', 'earthquake', 'fire']) 
+                        ? $meta['icon'] 
+                        : 'flood',
+                    'body' => $item->content ?? '',
+                ];
+            })->values();
+
+        // 3. Compile hotlines, contacts, and evacuation centers into your single LibraryContact array contract
+        $contacts = $rawItems->filter(fn($item) => in_array($item->type, ['contact', 'emergency', 'evacuation_center']))
+            ->map(function($item) {
+                // Safeguard against missing or uninitialized JSON array offsets
+                $meta = is_array($item->metadata) ? $item->metadata : [];
+                
+                return [
+                    'id' => $item->id,
+                    'name' => $item->title,
+                    'role' => $item->type === 'evacuation_center' 
+                        ? ($meta['address'] ?? 'Evacuation Center') 
+                        : ($meta['role'] ?? 'Barangay Staff'),
+                    'phone' => $meta['phone'] ?? 'N/A',
+                    // Explicit matching layer for frontend icon layout configurations
+                    'icon' => in_array($meta['icon'] ?? '', ['office', 'fire', 'health', 'police']) 
+                        ? $meta['icon'] 
+                        : 'office',
+                    'emergency' => $item->type === 'emergency' || ($meta['emergency'] ?? false),
+                ];
+            })->values();
+
+        // 4. Render directly to your established view using matching property keys
         return Inertia::render('Resident/Library', [
-            'manuals' => [
-                [
-                    'id' => 'manual-flood',
-                    'title' => 'Flood Preparedness',
-                    'subtitle' => 'Emergency bag checklist & evacuation routes',
-                    'icon' => 'flood',
-                    'body' => 'Pack a go-bag with water, non-perishable food, flashlight, and copies of IDs. Know your barangay evacuation route and the nearest designated center. Move valuables to higher ground when advisories are raised.',
-                ],
-                [
-                    'id' => 'manual-earthquake',
-                    'title' => 'Earthquake Safety',
-                    'subtitle' => 'Drop, Cover, and Hold on protocols',
-                    'icon' => 'earthquake',
-                    'body' => 'During shaking: drop to the ground, take cover under sturdy furniture, and hold on. After shaking stops, check for injuries and hazards before evacuating. Avoid elevators and damaged structures.',
-                ],
-                [
-                    'id' => 'manual-fire',
-                    'title' => 'Fire Prevention',
-                    'subtitle' => 'Home safety audit and extinguisher guide',
-                    'icon' => 'fire',
-                    'body' => 'Inspect wiring, keep extinguishers accessible, and never block exits. If a fire starts, alert others, use an extinguisher only if safe, and evacuate immediately. Call the local fire station once you are outside.',
-                ],
-            ],
-            'contacts' => [
-                [
-                    'id' => 'contact-captain',
-                    'name' => 'Brgy. Captain - Office',
-                    'role' => 'Community Head',
-                    'phone' => '09171234567',
-                    'icon' => 'office',
-                ],
-                [
-                    'id' => 'contact-fire',
-                    'name' => 'Local Fire Station',
-                    'role' => 'Fire & Rescue',
-                    'phone' => '09189876543',
-                    'icon' => 'fire',
-                    'emergency' => true,
-                ],
-                [
-                    'id' => 'contact-health',
-                    'name' => 'Municipal Health Center',
-                    'role' => 'Medical Aid',
-                    'phone' => '09175551234',
-                    'icon' => 'health',
-                ],
-                [
-                    'id' => 'contact-pnp',
-                    'name' => 'PNP Sub-Station',
-                    'role' => 'Public Safety',
-                    'phone' => '09179998877',
-                    'icon' => 'police',
-                ],
-                [
-                    'id' => 'contact-hall',
-                    'name' => 'Barangay Hall Desk',
-                    'role' => 'General inquiries',
-                    'phone' => '028881234',
-                    'icon' => 'office',
-                ],
-                [
-                    'id' => 'contact-mdrrmo',
-                    'name' => 'MDRRMO Hotline',
-                    'role' => 'Disaster response',
-                    'phone' => '09171112233',
-                    'icon' => 'health',
-                    'emergency' => true,
-                ],
-            ],
+            'manuals' => $manuals,
+            'contacts' => $contacts,
         ]);
     }
 }

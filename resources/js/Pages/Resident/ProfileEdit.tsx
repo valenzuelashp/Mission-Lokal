@@ -7,17 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { useAuth } from '@/Hooks/usePageProps';
 import ResidentLayout from '@/Layouts/ResidentLayout';
-import { demoResidentProfile } from '@/Lib/residentDemo';
 import type { PageProps } from '@/Types';
 
-export default function ProfileEdit() {
+// FIX: Cast incoming profile data structure straight to an open object schema to clear strict TS index errors
+export default function ProfileEdit({ profile }: { profile: any }) {
     const { flash } = usePage<PageProps>().props;
+    const { user } = useAuth();
+
     const { data, setData, post, processing, errors } = useForm({
-        full_name: demoResidentProfile.full_name,
-        email: 'resident@demo.local',
-        mobile: '09171234567',
-        address: demoResidentProfile.address,
+        full_name: profile?.full_name ?? '',
+        email: profile?.email ?? (user?.email ?? ''),
+        mobile: profile?.mobile ?? (user?.mobile ?? ''),
+        address: profile?.address ?? '',
     });
 
     const submit = (e: FormEvent) => {
@@ -49,8 +52,7 @@ export default function ProfileEdit() {
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <Clock className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                    Profile edits are reviewed by admin staff. You will keep using your current details until
-                    approved.
+                    Profile edits are reviewed by admin staff. You will keep using your current details until approved.
                 </p>
             </div>
 

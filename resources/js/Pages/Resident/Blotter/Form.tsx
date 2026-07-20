@@ -11,6 +11,9 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import { demoResidentProfile } from '@/Lib/residentDemo';
 import type { BlotterFormPageProps, BlotterType } from '@/Types';
 
+// Tell TypeScript that Ziggy's route function is globally available
+declare function route(name: string, parameters?: any, absolute?: boolean): string;
+
 type Props = Partial<BlotterFormPageProps>;
 
 const titles: Record<BlotterType, string> = {
@@ -21,7 +24,6 @@ const titles: Record<BlotterType, string> = {
 export default function Form({ blotterType = 'two-party' }: Props) {
     const isTwoParty = blotterType === 'two-party';
 
-    // 1. Pull in 'transform' from useForm
     const { data, setData, post, processing, errors, transform } = useForm({
         type: blotterType,
         complainant_name: demoResidentProfile.full_name,
@@ -34,19 +36,22 @@ export default function Form({ blotterType = 'two-party' }: Props) {
         acknowledged: false,
     });
 
-    // 2. Morph the React state into the exact payload the Database requires
-    transform((data) => ({
-        type: data.type.replace('-', '_'), // 'two-party' becomes 'two_party'
-        respondent_name: data.respondent_name,
-        incident_at: `${data.incident_date} ${data.incident_time}`, // Merges date and time
-        incident_address: data.location, // Renames location
-        narrative: data.statement, // Renames statement
-        relief_sought: data.relief_sought,
-    }));
-
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        post('/blotter');
+
+        // Transform form data dynamically into the snake_case keys the backend migration demands
+        transform((formData) => ({
+            type: formData.type === 'two-party' ? 'two_party' : 'one_party',
+            respondent_name: isTwoParty ? formData.respondent_name : null,
+            incident_at: formData.incident_date && formData.incident_time 
+                ? `${formData.incident_date} ${formData.incident_time}` 
+                : '',
+            incident_address: formData.location,
+            narrative: formData.statement,
+            relief_sought: formData.relief_sought || null,
+        }));
+
+        post(route('blotter.store'));
     };
 
     const rightAside = (
@@ -70,7 +75,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
 
             <ResidentSocialShell right={rightAside}>
                 <Button variant="ghost" className="-ml-2 w-fit" asChild>
-                    <Link href="/blotter/new">
+                    <Link href={route('blotter.create')}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Choose blotter type
                     </Link>
@@ -98,7 +103,8 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                 <Input
                                     id="complainant_name"
                                     value={data.complainant_name}
-                                    onChange={(e) => setData('complainant_name', e.target.value)}
+                                    disabled
+                                    className="bg-slate-50 text-slate-500 cursor-not-allowed"
                                 />
                             </div>
                             {isTwoParty && (
@@ -132,6 +138,9 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                         value={data.incident_date}
                                         onChange={(e) => setData('incident_date', e.target.value)}
                                     />
+                                    {errors.incident_date && (
+                                        <p className="text-sm text-destructive">The incident date field is required.</p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="incident_time">Time</Label>
@@ -151,6 +160,9 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     onChange={(e) => setData('location', e.target.value)}
                                     placeholder="Where did the incident occur?"
                                 />
+                                {errors.location && (
+                                    <p className="text-sm text-destructive">{errors.location}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="statement">Statement of facts</Label>
@@ -172,6 +184,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     placeholder="What outcome are you requesting from the barangay?"
                                     rows={3}
                                 />
+                                {errors.relief_sought && <p className="text-sm text-destructive">{errors.relief_sought}</p>}
                             </div>
                         </CardContent>
                     </Card>
@@ -181,7 +194,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                             type="checkbox"
                             checked={data.acknowledged}
                             onChange={(e) => setData('acknowledged', e.target.checked)}
-                            className="mt-1 rounded border-gray-300"
+                            className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
                         />
                         <span>
                             I certify that the information provided is true to the best of my knowledge and I
@@ -190,12 +203,12 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                     </label>
                     {errors.acknowledged && <p className="text-sm text-destructive">{errors.acknowledged}</p>}
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                         <Button type="submit" className="w-full sm:w-auto" disabled={processing || !data.acknowledged}>
                             Submit blotter
                         </Button>
                         <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
-                            <Link href="/blotter/new">Cancel</Link>
+                            <Link href={route('blotter.create')}>Cancel</Link>
                         </Button>
                     </div>
                 </form>
