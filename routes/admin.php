@@ -27,6 +27,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Explicit directory mappings matching Admin/Reports/Index & Show
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
+    // ADDED: Route alias for reports queue matching frontend links
+    Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
     
@@ -37,6 +39,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/reports/{id}/escalate', [ReportController::class, 'createMission'])->name('reports.escalate');
     
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
+    // ADDED: Route alias for mission-board matching frontend navigation
+    Route::get('/mission-board', [MissionController::class, 'index'])->name('missions.board');
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
@@ -75,6 +79,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 
     Route::get('/audit', [AuditLogController::class, 'index'])->name('audit');
+    // ADDED: Route alias for audit-logs matching frontend links
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');

@@ -83,6 +83,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BlueprintCategorySeeder::class,
             LibrarySeeder::class,
+            DemoDataSeeder::class,          // <-- Add this here!
         ]);
     }
 }

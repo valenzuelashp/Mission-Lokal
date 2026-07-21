@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Mission extends Model
 {
@@ -77,8 +79,13 @@ class Mission extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function proof(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function proof(): HasOne
     {
         return $this->hasOne(MissionProof::class);
+    }
+
+    public function checklistItems(): HasMany
+    {
+        return $this->hasMany(MissionChecklistItem::class);
     }
 }

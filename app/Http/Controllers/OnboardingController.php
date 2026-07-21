@@ -66,13 +66,18 @@ class OnboardingController extends Controller
         return redirect()->route('onboarding.pending');
     }
 
-    // 3. Controls the "Waiting Room" screen
+    // 3. Controls the "Waiting Room" screen & routes status changes
     public function showPending(Request $request)
     {
-        $status = $request->user()->fresh()->verification_status->value;
+        $user = $request->user()->fresh();
+        $status = $user->verification_status->value;
 
-        if ($status === 'approved' || $status === 'rejected') {
-            return redirect()->route('onboarding.result');
+        if ($status === 'approved') {
+            return redirect()->route('onboarding.password');
+        }
+
+        if ($status === 'rejected') {
+            return redirect()->route('onboarding.rejected');
         }
 
         return Inertia::render('Onboarding/Pending', [
@@ -80,25 +85,20 @@ class OnboardingController extends Controller
         ]);
     }
 
-    // Render the password creation view
-    public function showPasswordForm(Request $request)
+    // 4. Shows the Rejected screen when an application is declined
+    public function showRejected(Request $request)
     {
         $user = $request->user()->fresh();
-        $status = $user->verification_status->value;
 
-        if ($status === 'unverified' || $status === 'pending' || $status === 'in_progress') {
+        if ($user->verification_status->value !== 'rejected') {
             return redirect()->route('onboarding.pending');
         }
 
-        $rejectionReason = null;
-        if ($status === 'rejected') {
-            $profile = DB::table('resident_profiles')->where('user_id', $user->id)->first();
-            $rejectionReason = $profile ? $profile->rejection_reason : 'Your ID was not accepted. Please ensure the image is clear and matches your registered details.';
-        }
+        $profile = DB::table('resident_profiles')->where('user_id', $user->id)->first();
+        $rejectionReason = $profile ? $profile->rejection_reason : 'Your ID was not accepted. Please ensure the image is clear and matches your registered details.';
 
-        return Inertia::render('Onboarding/Result', [
-            'status' => $status,
-            'rejectionReason' => $rejectionReason
+        return Inertia::render('Onboarding/Rejected', [
+            'reason' => $rejectionReason
         ]);
     }
 
@@ -106,7 +106,7 @@ class OnboardingController extends Controller
     public function showSetPassword(Request $request)
     {
         // Security check: Only officially approved residents should see this screen!
-        if ($request->user()->verification_status->value !== 'approved') {
+        if ($request->user()->fresh()->verification_status->value !== 'approved') {
             return redirect()->route('onboarding.pending');
         }
 
@@ -116,7 +116,7 @@ class OnboardingController extends Controller
     // Saves the new password and finishes onboarding
     public function storePassword(Request $request)
     {
-        // Enforce the 8+ character rule alongside the special characters/numeric requirements
+        // Enforce the 8+ character rule alongside numbers and symbols
         $request->validate([
             'password' => [
                 'required', 

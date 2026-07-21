@@ -87,23 +87,33 @@ class ConcernController extends Controller
 
         $user = auth()->user();
 
-        DB::transaction(function () use ($request, $user) {
+        // Map text values from the form to integer category IDs in your database table
+        $categoryMap = [
+            'light' => 1,     // Infrastructure & Utilities
+            'flood' => 2,     // Sanitation & Environment
+            'waste' => 2,     // Sanitation & Environment
+            'noise' => 3,     // Peace & Order
+            'fire' => 1,      // Infrastructure & Utilities
+        ];
+
+        $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
+
+        DB::transaction(function () use ($request, $user, $categoryIdInt) {
             $concern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
                 'title' => $request->title,
                 'description' => $request->description,
-                'category_id' => $request->category_id,
+                'category_id' => $categoryIdInt,
                 'visibility' => 'private', 
                 'status' => ConcernStatus::Submitted, 
-                'location' => DB::raw("ST_SRID(POINT({$request->lng}, {$request->lat}), 4326)"),
+                'location' => DB::raw("ST_GeomFromText('POINT({$request->lng} {$request->lat})', 4326)"),
                 'address_text' => $request->address_text ?? "Coordinates: {$request->lat}, {$request->lng}",
                 'is_blotter_candidate' => false,
                 'severity_confirmed' => false,
             ]);
 
             if ($request->hasFile('images')) {
-                // FIX: Resolved file processing through your unified domain service layout
                 $uploadService = app(FileUploadService::class);
 
                 foreach ($request->file('images') as $index => $file) {
@@ -125,7 +135,7 @@ class ConcernController extends Controller
                 'actor_id' => $user->id,
                 'note' => 'Concern posted by resident.',
             ]);
-    });
+        });
 
         return redirect()->route('feed')->with('success', 'Concern submitted successfully!');
     }

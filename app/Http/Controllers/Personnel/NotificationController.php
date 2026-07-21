@@ -3,52 +3,48 @@
 namespace App\Http\Controllers\Personnel;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class NotificationController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $notifications = [
-            [
-                'id' => 'n1',
-                'title' => 'New mission assigned',
-                'body' => 'MS-8888 Illegal dumping cleanup — due Jun 19, 3:00 PM. Market rear alley.',
-                'sent_at' => '2 hours ago',
-                'read' => false,
-                'mission_id' => 'MS-8888',
-            ],
-            [
-                'id' => 'n2',
-                'title' => 'ACK reminder',
-                'body' => 'MS-8880 VAWC welfare check is overdue for acknowledgment. Respond within 4 hours.',
-                'sent_at' => '5 hours ago',
-                'read' => false,
-                'mission_id' => 'MS-8880',
-            ],
-            [
-                'id' => 'n3',
-                'title' => 'Mission update',
-                'body' => 'Admin approved your proof for MS-8870 Street light repair. Mission verified.',
-                'sent_at' => 'Yesterday',
-                'read' => true,
-                'mission_id' => 'MS-8870',
-            ],
-            [
-                'id' => 'n4',
-                'title' => 'SMS mirror',
-                'body' => '[Mission-Lokal] Assigned: MS-8902 Clogged drainage. Location: Mabini St. Reply ACK to confirm.',
-                'sent_at' => 'Jun 17, 8:05 AM',
-                'read' => true,
-                'mission_id' => 'MS-8902',
-            ],
-        ];
+        $user = $request->user();
 
-        $unread = count(array_filter($notifications, fn ($n) => ! $n['read']));
+        // 1. Fetch real database notifications for the logged-in personnel user
+        $notificationsDb = Notification::where('user_id', $user->id)
+            ->latest('created_at')
+            ->get();
+
+        $notifications = $notificationsDb->map(function ($notif) {
+            // Extract mission_id from payload if present
+            $payload = is_array($notif->payload) ? $notif->payload : json_decode($notif->payload ?? '{}', true);
+            
+            return [
+                'id' => $notif->id,
+                'title' => $notif->title ?? ucfirst(str_replace('_', ' ', $notif->event_type)),
+                'body' => $notif->body,
+                'sent_at' => $notif->created_at ? $notif->created_at->diffForHumans() : 'Just now',
+                'read' => (bool) $notif->is_read,
+                'mission_id' => $payload['mission_id'] ?? null,
+            ];
+        });
+
+        // 2. Automatically mark unread notifications as read when visiting the page (optional convenience)
+        Notification::where('user_id', $user->id)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
+        $unread = $notifications->where('read', false)->count();
 
         return Inertia::render('Personnel/Notifications', [
-            'notifications' => $notifications,
+            'notifications' => $notifications->values(),
             'unread_count' => $unread,
         ]);
     }

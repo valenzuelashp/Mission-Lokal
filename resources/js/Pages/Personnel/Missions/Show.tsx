@@ -20,7 +20,7 @@ function stepState(done: boolean, current = false): TimelineState {
 }
 
 const nextStatus: Partial<Record<MissionStatus, { label: string; status: MissionStatus }>> = {
-    assigned: { label: 'Acknowledge', status: 'acknowledged' },
+    assigned: { label: 'Acknowledge assignment', status: 'acknowledged' },
     acknowledged: { label: 'Start work', status: 'in_progress' },
 };
 

@@ -110,7 +110,7 @@ Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(fu
     Route::post('/id', [OnboardingController::class, 'storeId'])->name('id.store');
     
     Route::get('/pending', [OnboardingController::class, 'showPending'])->name('pending');
-    Route::get('/result', [OnboardingController::class, 'showPasswordForm'])->name('result');
+    Route::get('/rejected', [OnboardingController::class, 'showRejected'])->name('rejected');
     Route::get('/password', [OnboardingController::class, 'showSetPassword'])->name('password');
     Route::post('/password/store', [OnboardingController::class, 'storePassword'])->name('password.store');
 });
@@ -125,12 +125,6 @@ require __DIR__.'/admin.php';
 */
 Route::get('/preview/pending', function () {
     return Inertia::render('Onboarding/Pending', ['status' => 'pending']);
-});
-Route::get('/preview/rejected', function () {
-    return Inertia::render('Onboarding/Result', ['status' => 'rejected', 'rejectionReason' => 'Invalid document resolution.']);
-});
-Route::get('/preview/approved', function () {
-    return Inertia::render('Onboarding/Result', ['status' => 'approved']);
 });
 
 Route::get('/force-drop', function() {

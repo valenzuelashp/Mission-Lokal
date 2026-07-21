@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Upload, X } from 'lucide-react';
 import { FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
@@ -56,7 +56,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
 
                         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                            Photos and notes are required before admin can verify completion.
+                            Photos and field notes are required before completing this mission.
                         </div>
                     </CardContent>
                 </Card>
@@ -68,7 +68,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                             <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
                             <span className="text-sm font-medium">Add before/after photos</span>
                             <span className="mt-1 text-xs text-muted-foreground">
-                                Demo — files not persisted yet
+                                Upload up to 5 images (max 5MB each)
                             </span>
                             <input
                                 type="file"
@@ -78,11 +78,23 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                                 onChange={(e) => setData('photos', Array.from(e.target.files ?? []))}
                             />
                         </label>
+
                         {data.photos.length > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                {data.photos.length} file{data.photos.length !== 1 ? 's' : ''} selected
-                            </p>
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium text-slate-700">
+                                    {data.photos.length} file{data.photos.length !== 1 ? 's' : ''} selected:
+                                </p>
+                                <ul className="space-y-1">
+                                    {data.photos.map((file, index) => (
+                                        <li key={index} className="flex items-center justify-between rounded-md bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
+                                            <span className="truncate max-w-[280px] sm:max-w-md">{file.name}</span>
+                                            <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
+                        {errors.photos && <p className="text-sm text-destructive">{errors.photos}</p>}
                     </CardContent>
                 </Card>
 

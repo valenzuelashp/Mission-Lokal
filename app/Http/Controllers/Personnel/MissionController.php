@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Personnel;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mission;
+use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
 use Illuminate\Http\Request;
@@ -17,7 +18,6 @@ class MissionController extends Controller
     {
         $user = $request->user();
 
-        // 1. Fetch missions WITH real coordinates extracted from the concern!
         $missionsQuery = Mission::with(['concern.media'])
             ->select('missions.*')
             ->addSelect([
@@ -35,30 +35,31 @@ class MissionController extends Controller
         $missions = $missionsQuery->map(function ($mission) {
             $concern = $mission->concern;
             
-            // Generate the public URLs for the resident's images
-            $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
-                return asset('storage/' . $media->storage_key);
-            })->toArray();
+            $concernImages = $concern && $concern->media 
+                ? $concern->media->sortBy('sort_order')->map(fn($media) => asset('storage/' . $media->storage_key))->toArray() 
+                : [];
+
+            $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
 
             return [
                 'id' => $mission->id, 
-                'concern_id' => $concern->id,
-                'title' => $concern->title,
-                'location' => $concern->address_text ?? 'Unknown location',
+                'concern_id' => $concern?->id,
+                'title' => $concern?->title ?? 'Untitled Mission',
+                'location' => $concern?->address_text ?? 'Unknown location',
                 'images' => $concernImages,
-                'lat' => $mission->lat, // Now using real database coordinates!
-                'lng' => $mission->lng, // Now using real database coordinates!
-                'priority' => $concern->severity === 'critical' ? 'high' : 'med',
-                'status' => $mission->status->value ?? $mission->status,
+                'lat' => $mission->lat,
+                'lng' => $mission->lng,
+                'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
+                'status' => $statusValue,
                 'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
-                'is_overdue' => $mission->is_overdue,
-                'visibility' => $concern->visibility,
-                'brief' => $concern->description,
+                'is_overdue' => (bool) $mission->is_overdue,
+                'visibility' => $concern?->visibility ?? 'public',
+                'brief' => $concern?->description ?? '',
                 'checklist' => [], 
                 'reporter_name' => null, 
                 'reporter_phone' => null,
                 'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
-                'proof_submitted' => false,
+                'proof_submitted' => $mission->relationLoaded('proof') && $mission->proof !== null,
             ];
         });
 
@@ -78,8 +79,7 @@ class MissionController extends Controller
 
     public function show(Request $request, string $id): Response
     {
-        // 1. Fetch the mission WITH the proof, the resident's photos, and the map coordinates!
-        $mission = Mission::with(['concern.media', 'proof.media'])
+        $mission = Mission::with(['concern.media', 'proof.media', 'checklistItems'])
             ->select('missions.*') 
             ->addSelect([
                 'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
@@ -98,7 +98,6 @@ class MissionController extends Controller
         $concern = $mission->concern;
         $proof = $mission->proof;
 
-        // 2. Generate the URLs for the resident's photos
         $concernImages = [];
         if ($concern && $concern->media) {
             $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
@@ -106,7 +105,6 @@ class MissionController extends Controller
             })->toArray();
         }
 
-        // 3. Generate the URLs for the worker's proof photos
         $proofPhotos = [];
         if ($proof && $proof->media) {
             $proofPhotos = $proof->media->sortBy('sort_order')->map(function ($media) {
@@ -114,29 +112,34 @@ class MissionController extends Controller
             })->toArray();
         }
 
-        // 4. Pack it all up for React!
+        $checklist = $mission->checklistItems->sortBy('step_order')->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'label' => $item->description,
+                'done' => (bool) $item->is_completed,
+            ];
+        })->values()->toArray();
+
+        $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+
         $formattedMission = [
             'id' => $mission->id,
-            'concern_id' => $concern->id,
-            'title' => $concern->title,
-            'location' => $concern->address_text ?? 'Unknown location',
+            'concern_id' => $concern?->id,
+            'title' => $concern?->title ?? 'Untitled Mission',
+            'location' => $concern?->address_text ?? 'Unknown location',
             'lat' => $mission->lat, 
             'lng' => $mission->lng,
-            'priority' => $concern->severity === 'critical' ? 'high' : 'med',
-            'status' => $mission->status->value ?? $mission->status,
+            'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
+            'status' => $statusValue,
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
-            'is_overdue' => $mission->is_overdue,
-            'visibility' => $concern->visibility,
-            'brief' => $concern->description,
-            'checklist' => [],
+            'is_overdue' => (bool) $mission->is_overdue,
+            'visibility' => $concern?->visibility ?? 'public',
+            'brief' => $concern?->description ?? '',
+            'checklist' => $checklist,
             'reporter_name' => null,
             'reporter_phone' => null,
             'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
-            
-            // --- THE IMAGES ---
-            'images' => $concernImages, // The resident's uploaded photos
-            
-            // --- THE PROOF ---
+            'images' => $concernImages,
             'proof_submitted' => $proof !== null,
             'proof_notes' => $proof?->notes,
             'proof_photos' => $proofPhotos,
@@ -149,45 +152,70 @@ class MissionController extends Controller
 
     public function updateStatus(Request $request, string $id): RedirectResponse
     {
-        // 1. Find the mission
         $mission = Mission::findOrFail($id);
 
-        // 2. Security Check
         if ($mission->assigned_to !== $request->user()->id) {
             abort(403, 'Unauthorized.');
         }
 
-        // 3. Validate that React is sending an allowed status
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:acknowledged,in_progress'],
         ]);
 
-        // 4. Update the database!
-        $mission->update([
-            'status' => $validated['status'],
-        ]);
+        $updateData = ['status' => $validated['status']];
 
-        // 5. Send them back to the page with a green success banner
+        // Automatically stamp acknowledged_at if transitioning to acknowledged for the first time
+        if ($validated['status'] === 'acknowledged' && !$mission->acknowledged_at) {
+            $updateData['acknowledged_at'] = now();
+        }
+
+        $mission->update($updateData);
+
         return back()->with('success', 'Mission status successfully updated!');
     }
+
+    public function toggleChecklist(Request $request, string $id): RedirectResponse
+    {
+        $mission = Mission::findOrFail($id);
+
+        if ($mission->assigned_to !== $request->user()->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'item_id' => ['required', 'string', 'exists:mission_checklist_items,id'],
+        ]);
+
+        $checklistItem = MissionChecklistItem::where('mission_id', $mission->id)
+            ->where('id', $validated['item_id'])
+            ->firstOrFail();
+
+        $newState = !$checklistItem->is_completed;
+
+        $checklistItem->update([
+            'is_completed' => $newState,
+            'completed_at' => $newState ? now() : null,
+            'completed_by' => $newState ? $request->user()->id : null,
+        ]);
+
+        return back();
+    }
+
     public function proofForm(Request $request, string $id): Response
     {
-        // 1. Fetch the mission
         $mission = Mission::with('concern')->findOrFail($id);
 
-        // 2. Security Check: Only the assigned worker can upload proof
         if ($mission->assigned_to !== $request->user()->id) {
             abort(403, 'Unauthorized.');
         }
 
         $concern = $mission->concern;
 
-        // 3. Format exactly what the Proof.tsx page needs
         $formattedMission = [
             'id' => $mission->id,
-            'title' => $concern->title,
-            'location' => $concern->address_text ?? 'Unknown location',
-            'due_date' => $mission->due_date->format('M d, Y'),
+            'title' => $concern?->title ?? 'Untitled Mission',
+            'location' => $concern?->address_text ?? 'Unknown location',
+            'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
         ];
 
         return Inertia::render('Personnel/Missions/Proof', [
@@ -199,32 +227,26 @@ class MissionController extends Controller
     {
         $mission = Mission::with('concern')->findOrFail($id);
 
-        // 1. Security Check
         if ($mission->assigned_to !== $request->user()->id) {
             abort(403, 'Unauthorized.');
         }
 
-        // 2. Validate the text notes AND the incoming photos!
         $validated = $request->validate([
             'notes' => ['required', 'string', 'max:2000'],
-            'photos' => ['nullable', 'array', 'max:5'], // Max 5 photos per upload
-            'photos.*' => ['image', 'mimes:jpeg,png,jpg', 'max:5120'], // Must be an image, max 5MB
+            'photos' => ['nullable', 'array', 'max:5'],
+            'photos.*' => ['image', 'mimes:jpeg,png,jpg', 'max:5120'],
         ]);
 
-        // 3. Create the official Proof Record
         $proof = MissionProof::create([
             'mission_id' => $mission->id,
             'submitted_by' => $request->user()->id,
             'notes' => $validated['notes'],
         ]);
 
-        // 4. THE MAGIC: Save the physical files and create the Media records!
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                // Laravel saves the file to storage/app/public/proofs and returns the path
                 $filePath = $photo->store('proofs', 'public');
 
-                // Save the text path to our database so we can find it later
                 MissionProofMedia::create([
                     'proof_id' => $proof->id,
                     'storage_key' => $filePath,
@@ -233,19 +255,17 @@ class MissionController extends Controller
             }
         }
 
-        // 5. Update the Mission to 'completed'
         $mission->update([
             'status' => 'completed',
             'completed_at' => now(),
-            // Notice we removed 'closed_summary' since the notes are safely in the Proof table now!
         ]);
 
-        // 6. Update the original public Concern so the Resident knows it's fixed!
-        $mission->concern->update([
-            'status' => 'resolved',
-        ]);
+        if ($mission->concern) {
+            $mission->concern->update([
+                'status' => 'resolved',
+            ]);
+        }
 
-        // 7. Success!
         return redirect()
             ->route('personnel.missions.index')
             ->with('success', 'Incredible work! Proof uploaded and mission completed.');

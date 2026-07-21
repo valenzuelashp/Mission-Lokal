@@ -36,12 +36,21 @@ class ProfileEditController extends Controller
             )
             ->get()
             ->map(function ($edit) {
+                // Foolproof JSON decoding check for database query builder results
+                $decoded = $edit->requested_changes;
+                if (is_string($decoded)) {
+                    $decoded = json_decode($decoded, true);
+                    if (is_string($decoded)) {
+                        $decoded = json_decode($decoded, true);
+                    }
+                }
+
                 return [
                     'id' => $edit->id,
                     'user_id' => $edit->user_id,
                     'account_id' => $edit->account_id,
                     'resident_name' => $edit->current_first . ' ' . $edit->current_last,
-                    'requested_changes' => json_decode($edit->requested_changes, true),
+                    'requested_changes' => is_array($decoded) ? $decoded : [],
                     'submitted_at' => $edit->created_at ? \Carbon\Carbon::parse($edit->created_at)->format('M d, Y h:i A') : 'Recently',
                 ];
             });
@@ -70,10 +79,13 @@ class ProfileEditController extends Controller
         }
 
         $changes = json_decode($editRequest->requested_changes, true);
+        if (is_string($changes)) {
+            $changes = json_decode($changes, true);
+        }
 
         DB::transaction(function () use ($editRequest, $changes) {
             // 1. Commit changes directly to User model
-            User::where('id', $editRequest->user_id)->update($changes);
+            User::where('id', $editRequest->user_id)->update(is_array($changes) ? $changes : []);
 
             // 2. Mark the request resolved using your exact reviewed columns
             DB::table('profile_edit_requests')
