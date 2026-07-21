@@ -124,17 +124,17 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ### Pages
 
-- [ ] **P2** My missions list
-- [-] **P3** Mission detail — checklist, map
+- [x] **P2** My missions list
+- [x] **P3** Mission detail — checklist, map
 - [x] **P4** Proof upload
-- [ ] **P5** Notifications
+- [x] **P5** Notifications
 
 ### Backend
 
-- [ ] Status: acknowledge → in progress → completed
+- [x] Status: acknowledge → in progress → completed
 - [x] Proof upload + storage
-- [ ] ACK timeout escalation (default 4 hrs)
-- [ ] Assigned-mission-only authorization
+- [x] ACK timeout escalation (default 4 hrs)
+- [x] Assigned-mission-only authorization
 
 ---
 
