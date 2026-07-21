@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, ArrowLeft, Upload, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react';
 import { FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
