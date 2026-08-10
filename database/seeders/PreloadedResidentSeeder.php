@@ -58,7 +58,7 @@ class PreloadedResidentSeeder extends Seeder
             );
 
             // Step B: Create the live Shell Account for Logging In
-            User::updateOrCreate(
+            $user = User::updateOrCreate(
                 ['account_id' => $data['account_id']], 
                 [
                     'barangay_id'         => $barangay->id,
@@ -69,7 +69,8 @@ class PreloadedResidentSeeder extends Seeder
                     'middle_name'         => $data['middle_name'] ?: null,
                     'last_name'           => $data['last_name'],
                     'name_extension'      => $data['name_extension'] ?: null,
-                    'birthday'            => $data['birthday'],
+                    'email'    => $data['email'] ?: null,
+                    'mobile'   => $data['mobile'] ?: null,
                     
                     // FIX: Set the default password exactly to "password"
                     'password'            => Hash::make('password'),
@@ -77,6 +78,14 @@ class PreloadedResidentSeeder extends Seeder
                     // CRITICAL: Set status to unverified so the Middleware traps them!
                     'verification_status' => VerificationStatus::Unverified,
                     'is_active'           => true,
+                ]
+            );
+            $user->residentProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'birthday' => $data['birthday'],
+                    'address'  => $data['address'] ?: null,
+                    
                 ]
             );
         }

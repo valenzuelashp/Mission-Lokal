@@ -1,12 +1,17 @@
-import { Link } from '@inertiajs/react';
-import { Search, ShieldCheck } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Search, ShieldCheck, Bell } from 'lucide-react'; // <-- Added Bell icon
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import { Input } from '@/Components/ui/input';
+import { Badge } from '@/Components/ui/badge'; // <-- Added Badge component
 import { useAuth } from '@/Hooks/usePageProps';
-
+import type { PageProps } from '@/Types';
 
 export default function ResidentHeader() {
     const { user } = useAuth();
+    // Grab the global unread_count passed from the HandleInertiaRequests middleware
+    const { unread_count } = usePage<PageProps & { unread_count?: number }>().props;
+    const unread = unread_count ?? 0;
+    
     const initials = user?.account_id?.slice(0, 2) ?? 'R';
 
     return (
@@ -28,7 +33,7 @@ export default function ResidentHeader() {
                     />
                 </div>
 
-                <div className="ml-auto flex items-center gap-1 sm:gap-2">
+                <div className="ml-auto flex items-center gap-2 sm:gap-4">
                     <Link 
                         href="/blotters" 
                         className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
@@ -36,6 +41,20 @@ export default function ResidentHeader() {
                         <ShieldCheck className="h-4 w-4" />
                         My Records
                     </Link>
+
+                    {/* NEW: Notification Bell with Badge */}
+                    <Link 
+                        href="/notifications" 
+                        className="relative flex items-center justify-center h-9 w-9 rounded-full text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors"
+                    >
+                        <Bell className="h-5 w-5" />
+                        {unread > 0 && (
+                            <Badge className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px] bg-red-600 text-white">
+                                {unread > 99 ? '99+' : unread}
+                            </Badge>
+                        )}
+                    </Link>
+
                     {user && (
                         <Link
                             href="/profile"

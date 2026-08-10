@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\PreloadedResident;
 use App\Enums\VerificationStatus;
+use App\Mail\VerificationApproved;
+use App\Mail\VerificationRejected;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -81,6 +84,10 @@ class VerificationController extends Controller
         $user->verified_by = Auth::id();
         $user->save();
 
+        if ($user->email) {
+            Mail::to($user->email)->send(new VerificationApproved($user));
+        }
+
         return redirect()->route('admin.verifications.index')
             ->with('success', 'Resident officially verified!');
     }
@@ -103,6 +110,10 @@ class VerificationController extends Controller
         if ($profile) {
             $profile->rejection_reason = $request->rejection_reason;
             $profile->save();
+        }
+        
+        if ($user->email) {
+            Mail::to($user->email)->send(new VerificationRejected($user, $request->rejection_reason));
         }
 
         return redirect()->route('admin.verifications.index')

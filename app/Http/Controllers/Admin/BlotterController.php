@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Blotter;
 use App\Services\AuditLogger; // Added AuditLogger
+use App\Mail\BlotterTicketIssued;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+
 
 class BlotterController extends Controller
 {
@@ -87,6 +90,11 @@ class BlotterController extends Controller
             AuditLogger::log('APPROVE_BLOTTER', 'Blotter', $id, ['ticket_number' => $ticketNumber]);
         });
 
+        $blotter->load('complainant');
+        if ($blotter->complainant && $blotter->complainant->email) {
+            Mail::to($blotter->complainant->email)->send(new BlotterTicketIssued($blotter));
+        }
+        
         return back()->with('success', "Blotter filed successfully.");
     }
 }

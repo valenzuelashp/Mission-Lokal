@@ -89,7 +89,8 @@ class MissionController extends Controller
             abort(403, 'Unauthorized context registration.');
         }
 
-        DB::transaction(function () use ($validated, $concern, $request) {
+        // Capture the $mission object being returned from the transaction
+        $mission = DB::transaction(function () use ($validated, $concern, $request) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
@@ -102,13 +103,18 @@ class MissionController extends Controller
             );
 
             DB::table('mission_assignments')->insert([
-                'id' => (string) Str::uuid(),
+                'id' => (string) \Illuminate\Support\Str::uuid(),
                 'mission_id' => $mission->id,
                 'personnel_id' => $validated['assigned_to'],
                 'assigned_by' => $request->user()->id,
                 'assigned_at' => now(),
             ]);
+
+            return $mission; // Return it out of the transaction block
         });
+
+        // Push the SMS task to the background queue
+        \App\Jobs\SendMissionAssignmentSms::dispatch($mission->id);
 
         return back()->with('success', 'Personnel successfully assigned to mission!');
     }
