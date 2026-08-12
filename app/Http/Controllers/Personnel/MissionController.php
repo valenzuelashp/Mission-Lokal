@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Personnel;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Mission;
 use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
@@ -265,6 +266,15 @@ class MissionController extends Controller
                 'status' => 'resolved',
             ]);
         }
+
+        Notification::create([
+            'user_id' => $mission->created_by,
+            'channel' => 'in_app',
+            'event_type' => 'proof_uploaded',
+            'title' => 'New Proof Uploaded',
+            'body' => 'Personnel has submitted proof for mission ' . substr($mission->id, 0, 8) . '.',
+            'payload' => ['mission_id' => $mission->id],
+        ]);
 
         return redirect()
             ->route('personnel.missions.index')

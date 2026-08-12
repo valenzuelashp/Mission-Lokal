@@ -140,11 +140,11 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ## Phase 7 — Notifications
 
-- [-] SMS gateway (personnel assignment)
-- [-] Email: OTP, verification, blotter ticket
-- [ ] In-app notifications + badges
-- [ ] Resident: active, resolved, rejected alerts
-- [ ] Admin: unacknowledged missions, new proof
+- [x] SMS gateway (personnel assignment)
+- [x] Email: OTP, verification, blotter ticket
+- [x] In-app notifications + badges
+- [x] Resident: active, resolved, rejected alerts
+- [x] Admin: unacknowledged missions, new proof
 
 ---
 

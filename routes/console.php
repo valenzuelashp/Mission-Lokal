@@ -12,6 +12,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('missions:check-unacknowledged')->everyFifteenMinutes();
 // --- ACK Timeout Escalation Task (Default 4 Hours) ---
 Schedule::call(function () {
     $cutoff = Carbon::now()->subHours(4);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
 use App\Models\User;
@@ -162,7 +163,21 @@ class MissionController extends Controller
                 'verified_at' => now(),
                 'verified_by' => Auth::id(),
             ]);
-            Concern::where('id', $mission->concern_id)->update(['status' => 'resolved']);
+            $concern = Concern::where('id', $mission->concern_id)->first();
+            
+            if ($concern) {
+                $concern->update(['status' => 'resolved']);
+                
+                // NEW: Trigger the in-app notification to the resident
+                Notification::create([
+                    'user_id' => $concern->reporter_id,
+                    'channel' => 'in_app',
+                    'event_type' => 'concern_resolved',
+                    'title' => 'Concern Resolved',
+                    'body' => 'Your report has been fully verified and resolved. Thank you for keeping the community safe!',
+                    'payload' => ['concern_id' => $concern->id],
+                ]);
+            }
         });
 
         return back()->with('success', 'Mission verified and concern resolved.');

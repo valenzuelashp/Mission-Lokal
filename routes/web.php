@@ -54,6 +54,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 */
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
     // Consolidated Concern & Feed Pipelines (R8, R9, R10 mapped directly to ConcernController)
+    Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');

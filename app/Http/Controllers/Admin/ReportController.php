@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Concern;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -107,6 +108,16 @@ class ReportController extends Controller
         $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
         $concern->update(['status' => 'rejected', 'closure_notes' => $request->rejection_reason]);
         AuditLogger::log('REJECT', 'Concern', $id, ['reason' => $request->rejection_reason]);
+        
+        Notification::create([
+            'user_id' => $concern->reporter_id,
+            'channel' => 'in_app',
+            'event_type' => 'concern_rejected',
+            'title' => 'Concern Rejected',
+            'body' => 'Your report was rejected: ' . $request->rejection_reason,
+            'payload' => ['concern_id' => $concern->id],
+        ]);
+
         return redirect()->route('admin.reports.index')->with('success', 'Rejected.');
     }
 
@@ -131,6 +142,15 @@ class ReportController extends Controller
             $concern->update(['status' => 'in_progress']);
             AuditLogger::log('CREATE_MISSION', 'Mission', $missionId, ['concern_id' => $id, 'team' => $validated['assigned_team']]);
         });
+
+        Notification::create([
+            'user_id' => $concern->reporter_id,
+            'channel' => 'in_app',
+            'event_type' => 'concern_active',
+            'title' => 'Concern Active',
+            'body' => 'A mission has been deployed to address your report.',
+            'payload' => ['concern_id' => $concern->id],
+        ]);
 
         return redirect()->route('admin.missions.index')->with('success', 'Mission deployed.');
     }
