@@ -34,9 +34,14 @@ class MissionController extends Controller
         $missions = $concerns->map(function ($concern) use ($realMissions) {
             $mission = $realMissions->get($concern->id);
 
+            // Use the mission ID if it exists, otherwise fallback to concern ID so it doesn't break
+            $rawId = $mission ? $mission->id : $concern->id; 
+
             return [
-                'raw_mission_id' => $mission ? $mission->id : null,
-                'id' => $mission ? 'MS-' . strtoupper(substr($mission->id, 0, 4)) : 'MS-' . strtoupper(substr($concern->id, 0, 4)),
+                // FIX: Give React the REAL UUID so routing works, and move MS- formatting to display_id
+                'id' => $rawId, 
+                'display_id' => 'MS-' . strtoupper(substr($rawId, 0, 4)),
+                
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
                 'location' => $concern->address_text ?? 'Unknown location',
@@ -90,7 +95,6 @@ class MissionController extends Controller
             abort(403, 'Unauthorized context registration.');
         }
 
-        // Capture the $mission object being returned from the transaction
         $mission = DB::transaction(function () use ($validated, $concern, $request) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
@@ -111,10 +115,9 @@ class MissionController extends Controller
                 'assigned_at' => now(),
             ]);
 
-            return $mission; // Return it out of the transaction block
+            return $mission; 
         });
 
-        // Push the SMS task to the background queue
         \App\Jobs\SendMissionAssignmentSms::dispatch($mission->id);
 
         return back()->with('success', 'Personnel successfully assigned to mission!');
@@ -168,7 +171,6 @@ class MissionController extends Controller
             if ($concern) {
                 $concern->update(['status' => 'resolved']);
                 
-                // NEW: Trigger the in-app notification to the resident
                 Notification::create([
                     'user_id' => $concern->reporter_id,
                     'channel' => 'in_app',

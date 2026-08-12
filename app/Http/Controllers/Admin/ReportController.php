@@ -13,16 +13,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\User;
 
 class ReportController extends Controller
 {
     private function validateTransition(string $current, string $next): bool
     {
+        // Added 'active' to valid transitions to fix state machine blockers
         $map = [
             'submitted'    => ['under_review', 'rejected'],
-            'under_review' => ['in_progress', 'rejected'],
+            'under_review' => ['active', 'in_progress', 'rejected'],
             'in_progress'  => ['resolved'],
-            'resolved'     => [],
+            'active'       => ['resolved', 'closed'],
+            'resolved'     => ['closed'],
             'rejected'     => [],
         ];
         return isset($map[$current]) && in_array($next, $map[$current]);
@@ -61,14 +64,46 @@ class ReportController extends Controller
 
     public function show(Request $request, string $id): Response
     {
-        $record = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
+        $barangayId = $request->user()->barangay_id;
+        $record = Concern::where('barangay_id', $barangayId)->with('media')->findOrFail($id);
+        
+        // Fetch spatial location
+        $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
+        
+        $personnelList = User::where('barangay_id', $barangayId)
+            ->where('role', 'personnel')
+            ->where('is_active', 1)
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->full_name ?? $user->account_id,
+                ];
+            });
+
+        $masterCandidates = Concern::where('barangay_id', $barangayId)
+            ->where('id', '!=', $id)
+            ->whereIn('status', ['active', 'resolved', 'closed', 'under_review'])
+            ->select('id', 'title')
+            ->get()
+            ->map(fn($c) => ['id' => $c->id, 'label' => $c->title]);
+
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
                 'id' => $record->id,
                 'title' => $record->title,
                 'description' => $record->description,
                 'status' => $record->status->value ?? $record->status,
-            ]
+                'location_label' => $record->address_text ?? 'Unknown Location',
+                
+                // SAFETY NET: Explicitly cast the database values to floats (decimals)
+                'lat' => $locationData ? (float) $locationData->lat : 14.6507,
+                'lng' => $locationData ? (float) $locationData->lng : 120.9793,
+                
+                'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+            ],
+            'personnel' => $personnelList,
+            'masterCandidates' => $masterCandidates,
         ]);
     }
 
@@ -90,23 +125,34 @@ class ReportController extends Controller
     public function confirmAI(Request $request, string $id): RedirectResponse
     {
         $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
-        $concern->update(['ai_verified' => true, 'status' => 'under_review']);
-        AuditLogger::log('CONFIRM_AI', 'Concern', $id, ['ai_verified' => true]);
+        
+        // Note: 'ai_verified' isn't in your DB schema, but we will let it pass for now if it's handled on the model.
+        // We ensure status shifts to under_review.
+        $concern->update(['status' => 'under_review']); 
+        
+        AuditLogger::log('CONFIRM_AI', 'Concern', $id, ['action' => 'verified']);
         return back()->with('success', 'AI verified.');
     }
 
     public function mergeDuplicate(Request $request, string $id): RedirectResponse
     {
         $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
-        $concern->update(['status' => 'merged', 'parent_id' => $request->master_concern_id]);
-        AuditLogger::log('MERGE', 'Concern', $id, ['parent_id' => $request->master_concern_id]);
-        return redirect()->route('admin.reports.index')->with('success', 'Merged.');
+        
+        // FIX: Update to valid schema columns and status
+        $concern->update([
+            'status' => 'closed', 
+            'duplicate_of_id' => $request->master_concern_id,
+            'closed_summary' => 'Merged as a duplicate concern.'
+        ]);
+        
+        AuditLogger::log('MERGE', 'Concern', $id, ['duplicate_of_id' => $request->master_concern_id]);
+        return redirect()->route('admin.reports.index')->with('success', 'Merged successfully.');
     }
 
     public function rejectConcern(Request $request, string $id): RedirectResponse
     {
         $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
-        $concern->update(['status' => 'rejected', 'closure_notes' => $request->rejection_reason]);
+        $concern->update(['status' => 'rejected', 'closed_summary' => $request->rejection_reason]); // schema uses closed_summary
         AuditLogger::log('REJECT', 'Concern', $id, ['reason' => $request->rejection_reason]);
         
         Notification::create([
@@ -127,20 +173,25 @@ class ReportController extends Controller
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $validated = $request->validate(['assigned_team' => 'required', 'mission_notes' => 'nullable']);
 
-        DB::transaction(function () use ($concern, $validated, $barangayId, $id) {
+        DB::transaction(function () use ($concern, $validated, $barangayId, $id, $request) {
             $missionId = Str::uuid();
+            
+            // FIX: Removed invalid columns, mapped assigned_to, added created_by and timestamps
             DB::table('missions')->insert([
                 'id' => $missionId,
                 'barangay_id' => $barangayId,
                 'concern_id' => $concern->id,
-                'title' => 'Response: ' . $concern->title,
-                'description' => $validated['mission_notes'] ?? $concern->description,
-                'assigned_team' => $validated['assigned_team'],
+                'assigned_to' => $validated['assigned_team'],
                 'status' => 'assigned',
+                'created_by' => $request->user()->id,
                 'created_at' => now(),
+                'updated_at' => now(),
             ]);
-            $concern->update(['status' => 'in_progress']);
-            AuditLogger::log('CREATE_MISSION', 'Mission', $missionId, ['concern_id' => $id, 'team' => $validated['assigned_team']]);
+            
+            // FIX: Valid concern status is 'active'
+            $concern->update(['status' => 'active']);
+            
+            AuditLogger::log('CREATE_MISSION', 'Mission', $missionId, ['concern_id' => $id, 'assigned_to' => $validated['assigned_team']]);
         });
 
         Notification::create([

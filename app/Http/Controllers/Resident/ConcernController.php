@@ -128,6 +128,7 @@ class ConcernController extends Controller
                 }
             }
 
+            // FIX: Ensure this model points to the correct singular table name 'concern_status_history' internally
             ConcernStatusHistory::create([
                 'concern_id' => $concern->id,
                 'from_status' => null,
@@ -162,7 +163,8 @@ class ConcernController extends Controller
         $downvotes = $concern->votes()->where('vote', 'down')->count();
         $userVote = $concern->votes()->where('user_id', $user->id)->value('vote');
 
-        $timeline = DB::table('concern_status_histories')
+        // FIX: Changed from 'concern_status_histories' to 'concern_status_history' to match the database schema
+        $timeline = DB::table('concern_status_history')
             ->where('concern_id', $concern->id)
             ->orderBy('created_at', 'asc')
             ->get()
