@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react';
 import ResidentHeader from '@/Components/resident/ResidentHeader';
 import MobileBottomNav from '@/Components/shared/MobileBottomNav';
+import OnboardingModal from '@/Components/resident/OnboardingModal';
 import { cn } from '@/Lib/utils';
 
 type Props = PropsWithChildren<{
@@ -20,6 +21,7 @@ export default function ResidentLayout({ children, wide = false }: Props) {
                 {children}
             </main>
             <MobileBottomNav />
+            <OnboardingModal />
         </div>
     );
 }

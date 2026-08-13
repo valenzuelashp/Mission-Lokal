@@ -63,7 +63,7 @@ class OnboardingController extends Controller
         $user->verification_status = VerificationStatus::Pending;
         $user->save();
 
-        return redirect()->route('onboarding.pending');
+        return redirect()->route('feed');
     }
 
     // 3. Controls the "Waiting Room" screen & routes status changes

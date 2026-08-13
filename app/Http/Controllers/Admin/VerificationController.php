@@ -39,7 +39,7 @@ class VerificationController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'verification_status' => $user->verification_status?->value ?? $user->verification_status ?? 'pending', 
-                'created_at' => $user->created_at ? $user->created_at->toIso8String() : null,
+                'created_at' => $user->created_at ? $user->created_at->toISOString() : null,
             ];
         });
 
@@ -80,8 +80,8 @@ class VerificationController extends Controller
         $user = User::where('barangay_id', $barangayId)->findOrFail($id);
 
         $user->verification_status = 'approved';
-        $user->verified_at = now();
-        $user->verified_by = Auth::id();
+        //$user->created_at = now();
+        //$user->verified_by = Auth::id();
         $user->save();
 
         if ($user->email) {
@@ -121,21 +121,24 @@ class VerificationController extends Controller
     }
 
     // Ensure this method handles the path correctly
+    // Ensure this method handles the path correctly
     public function viewId(Request $request, string $path)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
-            abort(403);
+        // Safely extract the role string whether it's an Enum object or a raw string
+        $userRole = Auth::user()->role;
+        $roleValue = $userRole instanceof \UnitEnum ? $userRole->value : $userRole;
+
+        if (!Auth::check() || $roleValue !== 'admin') {
+            abort(403, 'Unauthorized access.');
         }
 
-        if (!str_starts_with($path, 'private/')) {
-            $path = 'private/' . $path;
-        }
-        $fullPath = storage_path('app/' . $path);
-
-        if (!\Illuminate\Support\Facades\File::exists($fullPath)) {
+        // Use Laravel's Storage facade to securely check the 'local' disk
+        if (!\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
             abort(404, "File missing from server."); 
         }
 
+        // Fetch the absolute path and read the file
+        $fullPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
         $file = \Illuminate\Support\Facades\File::get($fullPath);
         $type = \Illuminate\Support\Facades\File::mimeType($fullPath);
 

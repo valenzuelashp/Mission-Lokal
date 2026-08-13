@@ -20,18 +20,25 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        // Dynamically count unread notifications using your custom schema
+        // Dynamically count unread notifications
         $unreadCount = 0;
         if ($user) {
             $unreadCount = Notification::where('user_id', $user->id)
                 ->where('is_read', false)
                 ->count();
+            
+            // NEW: Safely extract the role and load the profile so React knows if they uploaded an ID
+            $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
+            if ($roleValue === 'resident') {
+                $user->load('residentProfile');
+            }
         }
 
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
+                'needs_password_setup' => $user ? \Illuminate\Support\Facades\Hash::check('password', $user->password) : false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
