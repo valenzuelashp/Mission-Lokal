@@ -63,6 +63,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/profile-edits/{id}/reject', [ProfileEditController::class, 'reject'])->name('profile-edits.reject');
 
     Route::get('/residents', [ResidentController::class, 'index'])->name('residents.index');
+    Route::post('/residents', [ResidentController::class, 'store'])->name('residents.store');
+    Route::post('/residents/import-csv', [ResidentController::class, 'importCsv'])->name('residents.import-csv');
     Route::get('/residents/{user}', [ResidentController::class, 'show'])->name('residents.show');
 
     Route::get('/blotters', [BlotterController::class, 'index'])->name('blotters.index');

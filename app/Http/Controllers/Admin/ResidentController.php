@@ -4,9 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\PreloadedResident;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class ResidentController extends Controller
 {
@@ -32,7 +37,6 @@ class ResidentController extends Controller
 
         $residents = $query->latest()->get()->map(function ($user) {
             $status = $user->verification_status?->value ?? $user->verification_status ?? 'unverified';
-            // Fallback for UI mapping to match 'approved' tabs vs 'verified' labels
             if ($status === 'verified') {
                 $status = 'approved';
             }
@@ -51,7 +55,6 @@ class ResidentController extends Controller
             ];
         });
 
-        // Generate counts mapping exactly to keys in tabs array
         $counts = [
             'all' => $residents->count(),
             'approved' => $residents->where('verification_status', 'approved')->count(),
@@ -68,8 +71,149 @@ class ResidentController extends Controller
     }
 
     /**
-     * Display comprehensive resource file card for a single citizen (Task A8)
+     * Store a manually added preloaded resident and initialize corresponding user account.
      */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'name_extension' => 'nullable|string|max:20',
+            'sex' => 'required|in:Male,Female,Other',
+            'house_street' => 'required|string|max:255',
+            'barangay_name' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
+            'birthday' => 'required|date',
+            'mobile' => 'nullable|string|max:20',
+        ]);
+
+        $barangayId = $request->user()->barangay_id;
+        $latest = PreloadedResident::orderBy('id', 'desc')->first();
+        $nextNumber = $latest ? ((int) str_replace('RES', '', $latest->account_id) + 1) : 1;
+        $accountId = 'RES' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $formattedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
+
+        DB::beginTransaction();
+        try {
+            // 1. Create Preloaded Census Record
+            PreloadedResident::create([
+                'barangay_id' => $barangayId,
+                'account_id' => $accountId,
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+                'last_name' => $request->last_name,
+                'name_extension' => $request->name_extension,
+                'sex' => $request->sex,
+                'house_street' => $request->house_street,
+                'barangay_name' => $request->barangay_name,
+                'city' => $request->city,
+                'province' => $request->province,
+                'birthday' => $formattedBirthday,
+                'email' => null,
+                'mobile' => $request->mobile ?: null,
+                'is_claimed' => false,
+            ]);
+
+            // 2. Initialize corresponding User account with 'unverified' status
+            User::create([
+                'barangay_id' => $barangayId,
+                'account_id' => $accountId,
+                'role' => 'resident',
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+                'last_name' => $request->last_name,
+                'name_extension' => $request->name_extension,
+                'email' => null,
+                'mobile' => $request->mobile ?: null,
+                'password' => null,
+                'verification_status' => 'unverified',
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Resident successfully added to preloaded registry and initialized as unverified.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Failed to add resident: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Handle batch CSV import for preloaded residents.
+     */
+    public function importCsv(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $barangayId = $request->user()->barangay_id;
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        $data = array_map('str_getcsv', file($path));
+        array_shift($data); // Skip header row
+
+        DB::beginTransaction();
+        try {
+            foreach ($data as $row) {
+                if (count($row) < 10) continue; 
+
+                $latest = PreloadedResident::orderBy('id', 'desc')->first();
+                $nextNumber = $latest ? ((int) str_replace('RES', '', $latest->account_id) + 1) : 1;
+                $accountId = 'RES' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+                $bday = Carbon::parse(trim($row[9]))->format('Y-m-d');
+                $firstName = trim($row[0]);
+                $lastName = trim($row[2]);
+                $middleName = trim($row[1] ?? '');
+                $nameExt = trim($row[3] ?? '');
+                $sex = trim($row[4] ?? 'Male');
+                $houseStreet = trim($row[5]);
+                $barangayName = trim($row[6]);
+                $city = trim($row[7]);
+                $province = trim($row[8]);
+                $mobile = !empty(trim($row[10] ?? '')) ? trim($row[10]) : null;
+
+                PreloadedResident::create([
+                    'barangay_id' => $barangayId,
+                    'account_id' => $accountId,
+                    'first_name' => $firstName,
+                    'middle_name' => $middleName,
+                    'last_name' => $lastName,
+                    'name_extension' => $nameExt,
+                    'sex' => $sex,
+                    'house_street' => $houseStreet,
+                    'barangay_name' => $barangayName,
+                    'city' => $city,
+                    'province' => $province,
+                    'birthday' => $bday,
+                    'email' => null,
+                    'mobile' => $mobile,
+                    'is_claimed' => false,
+                ]);
+
+                User::create([
+                    'barangay_id' => $barangayId,
+                    'account_id' => $accountId,
+                    'role' => 'resident',
+                    'first_name' => $firstName,
+                    'middle_name' => $middleName,
+                    'last_name' => $lastName,
+                    'name_extension' => $nameExt,
+                    'email' => null,
+                    'mobile' => $mobile,
+                    'password' => null,
+                    'verification_status' => 'unverified',
+                ]);
+            }
+            DB::commit();
+            return redirect()->back()->with('success', 'CSV residents batch imported successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['file' => 'Failed to parse CSV file format. Check structure alignment.']);
+        }
+    }
+
     public function show(Request $request, string $id): Response
     {
         $barangayId = $request->user()->barangay_id;
@@ -81,7 +225,6 @@ class ResidentController extends Controller
             }])
             ->findOrFail($id);
 
-        // Fetch spatial coordinates cleanly
         $coords = \App\Models\Concern::selectRaw('ST_Y(location) as lat, ST_X(location) as lng')
             ->where('reporter_id', $user->id)
             ->first();
@@ -95,8 +238,6 @@ class ResidentController extends Controller
             'middle_name' => $user->middle_name ?? '',
             'email' => $user->email ?? '—',
             'mobile' => $user->mobile ?? '—',
-            'birthday' => $user->birthday ? \Carbon\Carbon::parse($user->birthday)->format('M d, Y') : '—',
-            'age_years' => $user->birthday ? \Carbon\Carbon::parse($user->birthday)->age : null,
             'address' => $user->address ?? 'No physical address listed',
             'zip_code' => $user->zip_code ?? null,
             'verification_status' => $user->verification_status?->value ?? $user->verification_status ?? 'unverified',
@@ -116,7 +257,7 @@ class ResidentController extends Controller
                     'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y') : 'Just now',
                 ];
             })->toArray(),
-            'documents' => [], // Populate with uploaded clearances or documents relationship array if present
+            'documents' => [],
         ];
 
         return Inertia::render('Admin/Residents/Show', [
@@ -125,9 +266,6 @@ class ResidentController extends Controller
     }
 }
 
-/**
- * Mask sensitive data helper function logic
- */
 if (!function_exists('mask_string')) {
     function mask_string($string) {
         return (strlen($string) > 4) ? str_repeat('*', strlen($string) - 4) . substr($string, -4) : $string;

@@ -36,24 +36,37 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect($this->homeFor(Auth::user()->role));
+        return redirect($this->homeFor(Auth::user()));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
         Auth::logout();
+        
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }
 
-    private function homeFor(UserRole $role): string
+    private function homeFor($user): string
     {
-        return match ($role) {
-            UserRole::Admin => route('admin.dashboard'),
-            UserRole::Personnel => route('personnel.missions.index'),
-            default => route('feed'),
-        };
+        // Handle UserRole enum or string value gracefully
+        $role = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
+
+        if ($role === 'admin' || $user->role === UserRole::Admin) {
+            return route('admin.dashboard');
+        }
+
+        if ($role === 'personnel' || $user->role === UserRole::Personnel) {
+            return route('personnel.missions.index');
+        }
+
+        // If resident has not updated their temporary password yet and hasn't dismissed it, prompt them!
+        if (!$user->is_active && !session('dismissed_password_prompt')) {
+            return route('password.prompt');
+        }
+
+        return route('feed');
     }
 }

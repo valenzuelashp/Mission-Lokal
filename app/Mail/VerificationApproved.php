@@ -14,8 +14,13 @@ class VerificationApproved extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public User $user)
+    public $user;
+    public $rawPassword;
+
+    public function __construct(User $user, string $rawPassword)
     {
+        $this->user = $user;
+        $this->rawPassword = $rawPassword;
     }
 
     public function envelope(): Envelope

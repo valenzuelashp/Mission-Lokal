@@ -5,24 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PreloadedResident extends Model
+class ResidentRegistration extends Model
 {
     use HasFactory;
 
+    protected $table = 'resident_registrations';
+
     protected $fillable = [
-        'account_id',
+        'barangay_id',
         'first_name',
         'middle_name',
         'last_name',
         'name_extension',
+        'birthday',
         'sex',
-        'birthday', // <-- Added this here
+        'civil_status',
         'house_street',
         'barangay_name',
         'city',
         'province',
         'email',
         'mobile',
-        'is_claimed',
+        'government_id_path',
     ];
 }

@@ -10,7 +10,8 @@ use App\Http\Controllers\Resident\SecurityController;
 use App\Http\Controllers\Resident\AnnouncementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
-use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\TemporaryPasswordController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,11 +26,22 @@ Route::get('/', function () {
         return redirect()->route('login');
     }
 
-    return match (auth()->user()->role) {
-        UserRole::Admin => redirect()->route('admin.dashboard'),
-        UserRole::Personnel => redirect()->route('personnel.missions.index'),
-        default => redirect()->route('feed'),
-    };
+    $user = auth()->user();
+
+    if ($user->role === UserRole::Admin) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user->role === UserRole::Personnel) {
+        return redirect()->route('personnel.missions.index');
+    }
+
+    // If resident hasn't changed password yet and hasn't dismissed the prompt this session
+    if (!$user->is_active && !session('dismissed_password_prompt')) {
+        return redirect()->route('password.prompt');
+    }
+
+    return redirect()->route('feed');
 });
 
 /*
@@ -49,11 +61,23 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 /*
 |--------------------------------------------------------------------------
+| Temporary Password Prompt & Setup Routes (For accounts using default credentials)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:resident'])->group(function () {
+    Route::get('/welcome/password-prompt', [TemporaryPasswordController::class, 'showPrompt'])->name('password.prompt');
+    Route::post('/welcome/password-prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');
+    
+    Route::get('/welcome/setup-password', [TemporaryPasswordController::class, 'showForm'])->name('password.custom.show');
+    Route::post('/welcome/setup-password', [TemporaryPasswordController::class, 'update'])->name('password.custom.store');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Resident Portal Routes (Protected by Verification Middleware)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
-    // Consolidated Concern & Feed Pipelines (R8, R9, R10 mapped directly to ConcernController)
     Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
@@ -65,16 +89,13 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
     
-    // R13 Profile Management Routes
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.edit.store');
     
-    // R14 Security Management Routes
     Route::get('/profile/security', [SecurityController::class, 'index'])->name('profile.security');
     Route::put('/profile/security', [SecurityController::class, 'updatePassword'])->name('profile.security.update');
     
-    // R15-R16 Blotter Management Routes
     Route::get('/blotter/new', fn () => Inertia::render('Resident/Blotter/TypeSelect'))->name('blotter.create');
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
@@ -85,13 +106,19 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
 
 /*
 |--------------------------------------------------------------------------
-| Guest Authentication Routes (Including Forgot Password OTP)
+| Guest Authentication Routes (Including Registration & Forgot Password)
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    view()->exists('auth.login') ? Route::get('/login', [LoginController::class, 'create'])->name('login') : null;
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
+    
+    // Resident Registration Routes
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store']);
+
+    Route::get('/account-status', [\App\Http\Controllers\Auth\AccountStatusController::class, 'search'])->name('account.status');
+
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
     Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
     Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
@@ -100,34 +127,14 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
-/*
-|--------------------------------------------------------------------------
-| Onboarding Verification Portal Routes
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
-    Route::get('/confirm', [OnboardingController::class, 'showConfirmDetails'])->name('confirm');
-    Route::get('/id', fn () => Inertia::render('Onboarding/IdVerification'))->name('id');
-    Route::post('/id', [OnboardingController::class, 'storeId'])->name('id.store');
-    
-    Route::get('/pending', [OnboardingController::class, 'showPending'])->name('pending');
-    Route::get('/rejected', [OnboardingController::class, 'showRejected'])->name('rejected');
-    Route::get('/password', [OnboardingController::class, 'showSetPassword'])->name('password');
-    Route::post('/password/store', [OnboardingController::class, 'storePassword'])->name('password.store');
-});
-
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';
 
 /*
 |--------------------------------------------------------------------------
-| Temporary Design Previews
+| Testing & Utility Routes
 |--------------------------------------------------------------------------
 */
-Route::get('/preview/pending', function () {
-    return Inertia::render('Onboarding/Pending', ['status' => 'pending']);
-});
-
 Route::get('/force-drop', function() {
     Illuminate\Support\Facades\DB::statement('DROP TABLE IF EXISTS audit_logs');
     return 'Table dropped successfully! You can now run the migration.';
