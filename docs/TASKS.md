@@ -1,12 +1,17 @@
 # Mission-Lokal — Project Tasks
 
+
 Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DATABASE.md).
+
 
 **Legend:** `[x]` done · `[ ]` not started · `[-]` in progress
 
+
 ---
 
+
 ## Phase 0 — Project foundation
+
 
 - [x] Laravel 11 bootstrap (`artisan`, `bootstrap/`, `config/`, `public/`)
 - [x] Inertia middleware + shared props (`auth`, `flash`)
@@ -21,9 +26,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Shared UI: PageHeader, EmptyState, mobile nav (ResidentLayout)
 - [ ] Shared UI: toasts, Dialog, Table, Form
 
+
 ---
 
+
 ## Phase 1 — Database & domain layer
+
 
 - [x] Core migrations: `barangays`, `barangay_settings`, `users`, sessions, cache, jobs
 - [x] Models: `Barangay`, `BarangaySetting`, `User`
@@ -35,9 +43,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Seed library items (emergency guides, evacuation centers)
 - [x] Factories for concerns, missions, users
 
+
 ---
 
+
 ## Phase 2 — Authentication & onboarding
+
 
 - [x] Resident/admin login (`account_id` + password)
 - [x] Personnel login portal
@@ -50,11 +61,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [X] Middleware: redirect unverified residents to onboarding
 - [x] `preloaded_residents` import (CSV)
 
+
 ---
+
 
 ## Phase 3 — Resident module (MVP)
 
+
 ### Pages
+
 
 - [x] **R8** Public feed — list, vote, post CTA (UI built; wire real data + vote action)
 - [x] **R9** Post concern — form, map pin, photos (UI done; wire persistence)
@@ -66,7 +81,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] **R15–R16** Blotter type select + form (UI done; wire backend)
 - [x] **R17** Announcements list + detail (UI done; wire real data)
 
+
 ### Backend
+
 
 - [x] `ConcernController` — CRUD, vote, visibility rules
 - [x] `BlotterController`
@@ -75,9 +92,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] File upload service (concern media, ID docs)
 - [x] Row-level authorization for private concerns
 
+
 ---
 
+
 ## Phase 4 — AI concern pipeline
+
 
 - [ ] Queue job: `ProcessConcernWithAi`
 - [ ] Language detect (Filipino / English)
@@ -91,11 +111,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Blotter redirect prompt for sensitive concerns
 - [ ] Admin queue notification
 
+
 ---
+
 
 ## Phase 5 — Admin module (MVP)
 
+
 ### Pages
+
 
 - [x] **A1** Dashboard — KPI cards, incident queue, map, activity feed (UI done; wire real data)
 - [x] **A2** Full map — pins, hotspots, filters (UI done; wire real geo data)
@@ -110,7 +134,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] **A12** Audit log
 - [x] **A13** Settings
 
+
 ### Backend
+
 
 - [x] Report actions: confirm AI, merge duplicate, reject, create mission
 - [x] Mission assignment + verification
@@ -118,27 +144,36 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Audit log on admin mutations
 - [x] Blotter approval → ticket number
 
+
 ---
+
 
 ## Phase 6 — Personnel module (MVP)
 
+
 ### Pages
+
 
 - [x] **P2** My missions list
 - [x] **P3** Mission detail — checklist, map
 - [x] **P4** Proof upload
 - [x] **P5** Notifications
 
+
 ### Backend
+
 
 - [x] Status: acknowledge → in progress → completed
 - [x] Proof upload + storage
 - [x] ACK timeout escalation (default 4 hrs)
 - [x] Assigned-mission-only authorization
 
+
 ---
 
+
 ## Phase 7 — Notifications
+
 
 - [x] SMS gateway (personnel assignment)
 - [x] Email: OTP, verification, blotter ticket
@@ -146,17 +181,22 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Resident: active, resolved, rejected alerts
 - [x] Admin: unacknowledged missions, new proof
 
+
 ---
 
+
 ## Phase 8 — Maps & dashboard
+
 
 - [-] Extend `MapView` — pins, popups, severity colors
 - [ ] Admin map filters
 - [ ] Geocoding / reverse geocode
 - [ ] Dashboard aggregates
 
+
 ---
 +## Phase 9 — PWA, security & compliance
+
 
 - [ ] PWA install + service worker verification
 - [ ] Offline library cache
@@ -166,9 +206,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Privacy policy + registration consent
 - [ ] WCAG basics on key flows
 
+
 ---
 
+
 ## Phase 10 — Testing & deployment
+
 
 - [ ] Unit tests: state transitions, permissions
 - [ ] Feature test: full concern → mission → close loop
@@ -177,9 +220,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Staging + production deploy docs
 - [ ] CI: Pint, `npm run build`, PHPUnit
 
+
 ---
 
+
 ## Phase 11 — Post-MVP (Phase 2)
+
 
 - [ ] Heat map + hotspot ML
 - [ ] Chatbot RAG (Blueprint R18)
@@ -190,9 +236,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [ ] Event attendance XP
 - [ ] Multi-barangay super admin
 
+
 ---
 
+
 ## Suggested sprints
+
 
 | Sprint | Focus | Outcome |
 |--------|--------|---------|
@@ -203,9 +252,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 | **5** | Phase 7–8 | Notifications + map dashboard |
 | **6** | Phase 9–10 | Hardening, tests, deploy |
 
+
 ---
 
+
 ## How to claim work
+
 
 1. Pick an unchecked task in the phase your team owns.
 2. Create a branch: `feature/phase3-concern-form` (example).
@@ -213,4 +265,12 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 4. Mark `[x]` when merged to `main`.
 5. Link the PR in your commit or team chat.
 
+
 See [TEAM_GUIDE.md](./TEAM_GUIDE.md) for environment setup and conventions.
+
+
+
+
+
+
+
