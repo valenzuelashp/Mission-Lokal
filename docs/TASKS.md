@@ -160,9 +160,9 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 - [ ] PWA install + service worker verification
 - [ ] Offline library cache
-- [ ] Rate limiting (login, OTP, reports)
-- [ ] Government ID encryption
-- [ ] VAWC / domestic: force private visibility
+- [-] Rate limiting (login, OTP, reports)
+- [-] Government ID encryption
+- [-] VAWC / domestic: force private visibility
 - [ ] Privacy policy + registration consent
 - [ ] WCAG basics on key flows
 

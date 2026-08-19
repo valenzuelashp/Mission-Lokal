@@ -85,7 +85,10 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
-    Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store');
+    
+    // ATTACHED RATE LIMITER: Prevents concern spam (max 3 per minute)
+    Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:reports');
+    
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     
@@ -115,7 +118,9 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
 */
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    Route::post('/login', [LoginController::class, 'store']);
+    
+    // ATTACHED RATE LIMITER: Prevents brute-force guessing (max 5 per minute)
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
     
     // Resident Registration Routes
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -126,8 +131,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'storeResubmit'])->name('account.resubmit.store');
 
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
-    Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
-    Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
+    
+    // ATTACHED RATE LIMITER: Prevents email sending spam (max 3 per minute)
+    Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email')->middleware('throttle:otp');
+    Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify')->middleware('throttle:otp');
+    
     Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
 });
 

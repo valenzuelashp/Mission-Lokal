@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
+import { ShieldAlert } from 'lucide-react';
 import MapPinPicker from '@/Components/maps/MapPinPicker';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Button } from '@/Components/ui/button';
@@ -68,6 +69,15 @@ export default function New({ categories = [], mapCenter = [14.6507, 120.9793] }
                                     </option>
                                 ))}
                             </select>
+                            
+                            {/* Phase 9 Privacy Alert */}
+                            {data.category_id === 'vawc' && (
+                                <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                                    <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                                    <p>For your safety, reports under VAWC / Domestic Dispute are <strong>strictly private</strong>. They will not appear on the public feed and are only visible to authorized barangay personnel.</p>
+                                </div>
+                            )}
+
                             {errors.category_id && <p className="text-sm text-destructive">{errors.category_id}</p>}
                         </div>
 

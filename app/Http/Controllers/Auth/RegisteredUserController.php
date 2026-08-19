@@ -47,8 +47,18 @@ class RegisteredUserController extends Controller
             ->first();
 
         $barangayId = $preloaded ? $preloaded->barangay_id : \App\Models\Barangay::first()?->id;
-        $idPath = $request->file('government_id')->store('government_ids', 'public');
 
+        // --- PHASE 9 SECURITY: ENCRYPT ID AT REST ---
+        $file = $request->file('government_id');
+        $extension = $file->getClientOriginalExtension();
+        // Append .enc so we know this file is encrypted
+        $cleanName = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension . '.enc';
+        $idPath = 'government_ids/' . $cleanName;
+
+        // Extract raw bytes, scramble them using Laravel's encryption key, and save to the private 'local' disk
+        $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
+        \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
+        // ---------------------------------------------
         // 1. Save into temporary resident_registrations staging table
         ResidentRegistration::create([
             'barangay_id' => $barangayId,
