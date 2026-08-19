@@ -66,6 +66,7 @@ class ConcernController extends Controller
                 ['value' => 'waste', 'label' => 'Solid Waste & Illegal Dumping'],
                 ['value' => 'noise', 'label' => 'Noise Disturbance'],
                 ['value' => 'light', 'label' => 'Broken Streetlights'],
+                ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
             'mapCenter' => [14.6507, 120.9793]
         ]);
@@ -94,10 +95,13 @@ class ConcernController extends Controller
             'waste' => 2,     // Sanitation & Environment
             'noise' => 3,     // Peace & Order
             'fire' => 1,      // Infrastructure & Utilities
+            'vawc' => 4,      // Katarungang Pambarangay
         ];
 
         $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
 
+        $visibility = ($request->category_id === 'vawc') ? 'private' : 'public';
+        
         DB::transaction(function () use ($request, $user, $categoryIdInt) {
             $concern = Concern::create([
                 'barangay_id' => $user->barangay_id,

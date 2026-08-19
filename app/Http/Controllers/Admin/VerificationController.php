@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\Response;
@@ -270,6 +271,7 @@ class VerificationController extends Controller
             ->with('success', 'Registration rejected and applicant notified for re-upload.');
     }
 
+    // --- PHASE 9 SECURITY: DECRYPT ID ON-THE-FLY FOR VIEWING ---
     public function viewId(Request $request, string $path)
     {
         $userRole = Auth::user()->role;
@@ -279,15 +281,22 @@ class VerificationController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path) && !\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
+        if (!Storage::disk('public')->exists($path) && !Storage::disk('local')->exists($path)) {
             abort(404, "File missing from server."); 
         }
 
-        $disk = \Illuminate\Support\Facades\Storage::disk('public')->exists($path) ? 'public' : 'local';
-        $fullPath = \Illuminate\Support\Facades\Storage::disk($disk)->path($path);
-        $file = \Illuminate\Support\Facades\File::get($fullPath);
-        $type = \Illuminate\Support\Facades\File::mimeType($fullPath);
+        $disk = Storage::disk('public')->exists($path) ? 'public' : 'local';
+        $fileContent = Storage::disk($disk)->get($path);
 
-        return response($file, 200)->header("Content-Type", $type);
+        // If the file has our .enc extension, decrypt it back to normal bytes
+        if (Str::endsWith($path, '.enc')) {
+            $fileContent = Crypt::decrypt($fileContent);
+        }
+
+        // Dynamically detect the Mime Type (e.g., image/jpeg or image/png) from the raw bytes
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $type = $finfo->buffer($fileContent);
+
+        return response($fileContent, 200)->header("Content-Type", $type);
     }
 }
