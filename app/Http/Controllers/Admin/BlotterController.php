@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blotter;
-use App\Services\AuditLogger; // Added AuditLogger
 use App\Mail\BlotterTicketIssued;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-
 
 class BlotterController extends Controller
 {
@@ -86,11 +84,20 @@ class BlotterController extends Controller
                 'approved_at' => now(),
             ]);
 
-            // Audit the mutation
-            AuditLogger::log('APPROVE_BLOTTER', 'Blotter', $id, ['ticket_number' => $ticketNumber]);
+            // Audit the mutation natively using direct table insert
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'APPROVE',
+                'entity_type' => 'Blotter',
+                'entity_id' => $blotter->id,
+                'metadata' => json_encode(['details' => 'Approved blotter record and generated ticket number: ' . $ticketNumber]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
         });
 
-        $blotter->load('complainant');
+        $blotter = Blotter::with('complainant')->where('barangay_id', $barangayId)->findOrFail($id);
         if ($blotter->complainant && $blotter->complainant->email) {
             Mail::to($blotter->complainant->email)->send(new BlotterTicketIssued($blotter));
         }

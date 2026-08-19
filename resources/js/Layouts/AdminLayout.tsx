@@ -8,26 +8,31 @@ import {
     UserCircle,
     Users,
     ShieldAlert,
-    Bell, // <-- Added Bell
+    Bell,
+    CheckSquare,
+    BookOpen,
+    ShieldCheck,
 } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react'; // <-- Added usePage
+import { Link, router, usePage } from '@inertiajs/react';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
-import { Badge } from '@/Components/ui/badge'; // <-- Added Badge
+import { Badge } from '@/Components/ui/badge';
 import { useAuth } from '@/Hooks/usePageProps';
 import { cn } from '@/Lib/utils';
 import { useActivePath } from '@/Hooks/useActivePath';
-import type { PageProps } from '@/Types'; // <-- Added PageProps type
+import type { PageProps } from '@/Types';
 
-// Added the Notifications route to the sidebar array
 const nav = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { href: '/admin/reports', label: 'Report queue', icon: FileText },
     { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
+    { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
     { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
     { href: '/admin/map', label: 'Map', icon: Map },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+    { href: '/admin/library', label: 'Library', icon: BookOpen },
     { href: '/admin/residents', label: 'Residents', icon: Users },
+    { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck }, // Matches the route above
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
 ];
 
@@ -40,7 +45,6 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     
-    // Grab the global unread_count passed from the HandleInertiaRequests middleware
     const { unread_count } = usePage<PageProps & { unread_count?: number }>().props;
     const unread = unread_count ?? 0;
 
@@ -83,7 +87,6 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         <item.icon className="h-4 w-4 shrink-0" />
                         {item.label}
                         
-                        {/* Render the badge if it's the notifications tab and unread > 0 */}
                         {item.href.includes('notifications') && unread > 0 && (
                             <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
                                 {unread > 99 ? '99+' : unread}

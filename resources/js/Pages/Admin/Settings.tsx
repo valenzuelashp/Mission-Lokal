@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function Settings({ user, barangay }: Props) {
-    const { flash } = usePage<PageProps>().props;
+    const { flash } = usePage<PageProps & { flash?: { success?: string } }>().props;
     const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
     // Profile Configuration Hook
@@ -55,7 +55,7 @@ export default function Settings({ user, barangay }: Props) {
                 </p>
             </div>
 
-            {flash.success && (
+            {flash?.success && (
                 <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
                     <span>{flash.success}</span>

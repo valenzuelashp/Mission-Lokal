@@ -23,10 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class VerificationController extends Controller
 {
-    // 1. Show the list of everyone waiting in line from resident_registrations
     public function index(Request $request)
     {
-        // Show all pending registrations across the system
         $registrations = ResidentRegistration::orderBy('created_at', 'asc')->get();
 
         $queue = $registrations->map(function ($reg) {
@@ -45,21 +43,17 @@ class VerificationController extends Controller
         ]);
     }
 
-    // 2. Open a specific registration to review their ID and thorough comparison (Sets status to in_progress)
     public function show(Request $request, string $id)
     {
         $registration = ResidentRegistration::findOrFail($id);
 
-        // Update corresponding User status to 'in_progress'
         $userAccount = User::where('email', $registration->email)->first();
         if ($userAccount) {
             $userAccount->update(['verification_status' => 'in_progress']);
         }
 
-        // Safely parse birthday for flexible matching
         $parsedBirthday = Carbon::parse($registration->birthday)->format('Y-m-d');
 
-        // Robust Census Lookup: First check via linked account_id, then fallback to name/birthday match
         $censusData = null;
         if ($userAccount && $userAccount->account_id && str_starts_with($userAccount->account_id, 'RES')) {
             $censusData = PreloadedResident::where('account_id', $userAccount->account_id)->first();
@@ -72,7 +66,6 @@ class VerificationController extends Controller
                 ->first();
         }
 
-        // Resident self-registration payload
         $residentData = [
             'id' => $registration->id,
             'account_id' => $censusData ? $censusData->account_id : ($userAccount->account_id ?? 'UNASSIGNED'),
@@ -94,7 +87,6 @@ class VerificationController extends Controller
             ]
         ];
 
-        // Thorough preloaded census payload
         $censusFormatted = $censusData ? [
             'id' => $censusData->id,
             'account_id' => $censusData->account_id,
@@ -118,7 +110,6 @@ class VerificationController extends Controller
         ]);
     }
 
-    // 3. Approve the Resident with optional census record overwrite
     public function approve(Request $request, string $id)
     {
         $request->validate([
@@ -184,11 +175,9 @@ class VerificationController extends Controller
 
             $accountId = $preloadedMatch ? $preloadedMatch->account_id : 'RES' . rand(1000, 9999);
 
-            // Custom temporary password format: RES1002!lastname
             $cleanLastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $request->last_name));
             $rawPassword = $accountId . '!' . $cleanLastName;
 
-            // Update or create User Account with 'approved' status & is_active = false for first login trigger
             $user = User::updateOrCreate(
                 ['email' => $registration->email],
                 [
@@ -202,30 +191,41 @@ class VerificationController extends Controller
                     'mobile' => $request->mobile,
                     'password' => Hash::make($rawPassword),
                     'verification_status' => 'approved',
-                    'is_active' => false, // <-- Triggers first login prompt/flow!
+                    'is_active' => false,
                 ]
             );
 
-            // Create Resident Profile
-            ResidentProfile::create([
-                'user_id' => $user->id,
-                'birthday' => Carbon::parse($request->birthday)->format('Y-m-d'),
-                'sex' => $request->sex,
-                'civil_status' => $request->civil_status,
-                'house_street' => $request->house_street,
-                'barangay_name' => $request->barangay_name,
-                'city' => $request->city,
-                'province' => $request->province,
-                'government_id_storage_key' => $registration->government_id_path,
-                'digital_id_code' => 'ML-ID-' . strtoupper(substr(md5($user->id), 0, 8)),
-            ]);
+            ResidentProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'birthday' => Carbon::parse($request->birthday)->format('Y-m-d'),
+                    'sex' => $request->sex,
+                    'civil_status' => $request->civil_status,
+                    'house_street' => $request->house_street,
+                    'barangay_name' => $request->barangay_name,
+                    'city' => $request->city,
+                    'province' => $request->province,
+                    'government_id_storage_key' => $registration->government_id_path,
+                    'digital_id_code' => 'ML-ID-' . strtoupper(substr(md5($user->id), 0, 8)),
+                ]
+            );
 
             if ($preloadedMatch) {
                 $preloadedMatch->update(['user_id' => $user->id]);
             }
 
-            // Delete temporary registration record
             $registration->delete();
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId ?? $user->barangay_id,
+                'actor_id' => Auth::id(),
+                'action' => 'APPROVE',
+                'entity_type' => 'ResidentRegistration',
+                'entity_id' => $user->id,
+                'metadata' => json_encode(['details' => 'Approved resident account registration for: ' . $request->first_name . ' ' . $request->last_name]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
 
             DB::commit();
 
@@ -241,10 +241,14 @@ class VerificationController extends Controller
         }
     }
 
-    // 4. Reject the Resident (Sets status to rejected)
     public function reject(Request $request, string $id)
     {
-        $registration = ResidentRegistration::findOrFail($id);
+        $registration = ResidentRegistration::find($id);
+
+        if (!$registration) {
+            return redirect()->route('admin.verifications.index')
+                ->withErrors(['error' => 'This registration record has already been processed or removed.']);
+        }
 
         $request->validate([
             'rejection_reason' => 'required|string|max:255'
@@ -252,22 +256,38 @@ class VerificationController extends Controller
 
         $email = $registration->email;
         $firstName = $registration->first_name;
+        $lastName = $registration->last_name;
 
-        // Update user status to rejected
+        // RETAIN user account record, but update its verification status and save the rejection reason
         $userAccount = User::where('email', $email)->first();
         if ($userAccount) {
-            $userAccount->update(['verification_status' => 'rejected']);
+            $userAccount->update([
+                'verification_status' => 'rejected',
+                'rejection_reason' => $request->rejection_reason
+            ]);
         }
 
+        // Delete only the temporary verification queue registration record
         $registration->delete();
 
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $request->user()->barangay_id,
+            'actor_id' => Auth::id(),
+            'action' => 'REJECT',
+            'entity_type' => 'ResidentRegistration',
+            'entity_id' => $id,
+            'metadata' => json_encode(['details' => 'Rejected resident registration for: ' . $firstName . ' ' . $lastName . ' due to: ' . $request->rejection_reason]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
         if ($email) {
-            $dummyUser = new User(['email' => $email, 'first_name' => $firstName]);
-            Mail::to($email)->send(new VerificationRejected($dummyUser, $request->rejection_reason));
+            $recipient = $userAccount ?? new User(['email' => $email, 'first_name' => $firstName]);
+            Mail::to($email)->send(new VerificationRejected($recipient, $request->rejection_reason));
         }
 
         return redirect()->route('admin.verifications.index')
-            ->with('success', 'Registration rejected and applicant notified for re-upload.');
+            ->with('success', 'Registration rejected and applicant notified.');
     }
 
     public function viewId(Request $request, string $path)

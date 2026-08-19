@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
-import { FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { FileText, Plus, Search, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
@@ -114,14 +114,29 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
                                                 {(item.type === 'contact' || item.type === 'emergency') && `${item.role} · ${item.phone}`}
                                             </td>
                                             <td className="p-4 text-right">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="icon" 
-                                                    className="h-8 w-8 border-red-200 hover:bg-red-50"
-                                                    onClick={() => handleDelete(item.id)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {/* EDIT BUTTON LINK */}
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/admin/library/${item.id}/edit`}>
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Link>
+                                                    </Button>
+
+                                                    {/* DELETE BUTTON */}
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-red-600 border-red-200 hover:bg-red-50"
+                                                        onClick={() => handleDelete(item.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
-use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +18,6 @@ class ReportController extends Controller
 {
     private function validateTransition(string $current, string $next): bool
     {
-        // Added 'active' to valid transitions to fix state machine blockers
         $map = [
             'submitted'    => ['under_review', 'rejected'],
             'under_review' => ['active', 'in_progress', 'rejected'],
@@ -67,7 +65,6 @@ class ReportController extends Controller
         $barangayId = $request->user()->barangay_id;
         $record = Concern::where('barangay_id', $barangayId)->with('media')->findOrFail($id);
         
-        // Fetch spatial location
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
         
         $personnelList = User::where('barangay_id', $barangayId)
@@ -95,11 +92,8 @@ class ReportController extends Controller
                 'description' => $record->description,
                 'status' => $record->status->value ?? $record->status,
                 'location_label' => $record->address_text ?? 'Unknown Location',
-                
-                // SAFETY NET: Explicitly cast the database values to floats (decimals)
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
-                
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
             ],
             'personnel' => $personnelList,
@@ -109,7 +103,8 @@ class ReportController extends Controller
 
     public function update(Request $request, string $id): RedirectResponse
     {
-        $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
+        $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $validated = $request->validate(['status' => 'required|string']);
 
         if (!$this->validateTransition($concern->status, $validated['status'])) {
@@ -117,43 +112,83 @@ class ReportController extends Controller
         }
 
         $concern->update(['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()]);
-        AuditLogger::log('UPDATE_STATUS', 'Concern', $id, ['new_status' => $validated['status']]);
+
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'UPDATE',
+            'entity_type' => 'Concern',
+            'entity_id' => $id,
+            'metadata' => json_encode(['details' => 'Updated report status to: ' . $validated['status']]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
 
         return back()->with('success', 'Status updated.');
     }
 
     public function confirmAI(Request $request, string $id): RedirectResponse
     {
-        $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
+        $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
-        // Note: 'ai_verified' isn't in your DB schema, but we will let it pass for now if it's handled on the model.
-        // We ensure status shifts to under_review.
         $concern->update(['status' => 'under_review']); 
         
-        AuditLogger::log('CONFIRM_AI', 'Concern', $id, ['action' => 'verified']);
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'CONFIRM',
+            'entity_type' => 'Concern',
+            'entity_id' => $id,
+            'metadata' => json_encode(['details' => 'Confirmed AI analysis for report: ' . $concern->title]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
         return back()->with('success', 'AI verified.');
     }
 
     public function mergeDuplicate(Request $request, string $id): RedirectResponse
     {
-        $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
+        $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
-        // FIX: Update to valid schema columns and status
         $concern->update([
             'status' => 'closed', 
             'duplicate_of_id' => $request->master_concern_id,
             'closed_summary' => 'Merged as a duplicate concern.'
         ]);
         
-        AuditLogger::log('MERGE', 'Concern', $id, ['duplicate_of_id' => $request->master_concern_id]);
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'MERGE',
+            'entity_type' => 'Concern',
+            'entity_id' => $id,
+            'metadata' => json_encode(['details' => 'Merged duplicate report into master record ID: ' . $request->master_concern_id]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
         return redirect()->route('admin.reports.index')->with('success', 'Merged successfully.');
     }
 
     public function rejectConcern(Request $request, string $id): RedirectResponse
     {
-        $concern = Concern::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
-        $concern->update(['status' => 'rejected', 'closed_summary' => $request->rejection_reason]); // schema uses closed_summary
-        AuditLogger::log('REJECT', 'Concern', $id, ['reason' => $request->rejection_reason]);
+        $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
+        $concern->update(['status' => 'rejected', 'closed_summary' => $request->rejection_reason]);
+        
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'REJECT',
+            'entity_type' => 'Concern',
+            'entity_id' => $id,
+            'metadata' => json_encode(['details' => 'Rejected report due to: ' . $request->rejection_reason]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
         
         Notification::create([
             'user_id' => $concern->reporter_id,
@@ -173,10 +208,9 @@ class ReportController extends Controller
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $validated = $request->validate(['assigned_team' => 'required', 'mission_notes' => 'nullable']);
 
-        DB::transaction(function () use ($concern, $validated, $barangayId, $id, $request) {
+        $missionId = DB::transaction(function () use ($concern, $validated, $barangayId, $id, $request) {
             $missionId = Str::uuid();
             
-            // FIX: Removed invalid columns, mapped assigned_to, added created_by and timestamps
             DB::table('missions')->insert([
                 'id' => $missionId,
                 'barangay_id' => $barangayId,
@@ -188,10 +222,20 @@ class ReportController extends Controller
                 'updated_at' => now(),
             ]);
             
-            // FIX: Valid concern status is 'active'
             $concern->update(['status' => 'active']);
             
-            AuditLogger::log('CREATE_MISSION', 'Mission', $missionId, ['concern_id' => $id, 'assigned_to' => $validated['assigned_team']]);
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'ESCALATE',
+                'entity_type' => 'Mission',
+                'entity_id' => (string) $missionId,
+                'metadata' => json_encode(['details' => 'Escalated report into field mission assigned to personnel ID: ' . $validated['assigned_team']]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            return $missionId;
         });
 
         Notification::create([

@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\TemporaryPasswordController;
+use App\Http\Controllers\Auth\AccountStatusController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,12 +28,15 @@ Route::get('/', function () {
     }
 
     $user = auth()->user();
+    
+    // Safely parse role whether it's an Enum instance or a raw string database column
+    $role = $user->role instanceof UserRole ? $user->role->value : $user->role;
 
-    if ($user->role === UserRole::Admin) {
+    if ($role === 'admin' || $role === UserRole::Admin) {
         return redirect()->route('admin.dashboard');
     }
 
-    if ($user->role === UserRole::Personnel) {
+    if ($role === 'personnel' || $role === UserRole::Personnel) {
         return redirect()->route('personnel.missions.index');
     }
 
@@ -117,7 +121,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
 
-    Route::get('/account-status', [\App\Http\Controllers\Auth\AccountStatusController::class, 'search'])->name('account.status');
+    Route::get('/account-status', [AccountStatusController::class, 'search'])->name('account.status');
+    Route::get('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'showResubmitForm'])->name('account.resubmit.form');
+    Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'storeResubmit'])->name('account.resubmit.store');
 
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
     Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');

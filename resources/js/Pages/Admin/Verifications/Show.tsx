@@ -48,7 +48,7 @@ interface CensusData {
 export default function Show({ resident, censusData }: { resident: User, censusData: CensusData | null }) {
     const [showRejectModal, setShowRejectModal] = useState(false);
 
-    // Form for approval with editable override fields (mobile is locked to resident.mobile)
+    // Form for approval with complete editable override fields
     const approveForm = useForm({
         census_id: censusData?.id || null,
         first_name: resident.first_name,
@@ -56,13 +56,13 @@ export default function Show({ resident, censusData }: { resident: User, censusD
         last_name: resident.last_name,
         name_extension: resident.name_extension || '',
         birthday: resident.birthday,
-        sex: resident.sex,
-        civil_status: resident.civil_status,
+        sex: resident.sex || 'Male',
+        civil_status: resident.civil_status || 'Single',
         house_street: resident.house_street,
         barangay_name: resident.barangay_name,
         city: resident.city,
         province: resident.province,
-        mobile: resident.mobile,
+        mobile: resident.mobile || '',
     });
 
     const { data: rejectData, setData: setRejectData, post: postReject, processing: rejecting, errors: rejectErrors } = useForm({
@@ -129,7 +129,7 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         ℹ️ Compare resident input against outdated barangay records. You can modify any field below before approval to overwrite official records with the latest verified data.
                                     </p>
 
-                                    {/* Name Fields */}
+                                    {/* Name Fields (First & Middle) */}
                                     <div className="grid grid-cols-2 gap-3 border-b pb-3">
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident First Name</label>
@@ -143,12 +143,35 @@ export default function Show({ resident, censusData }: { resident: User, censusD
 
                                     <div className="grid grid-cols-2 gap-3 border-b pb-3">
                                         <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Middle Name</label>
+                                            <Input value={approveForm.data.middle_name} onChange={e => approveForm.setData('middle_name', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Middle Name</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.middle_name || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Name Fields (Last & Extension) */}
+                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                        <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Last Name</label>
                                             <Input value={approveForm.data.last_name} onChange={e => approveForm.setData('last_name', e.target.value)} required />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Last Name</label>
                                             <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.last_name || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Name Extension</label>
+                                            <Input placeholder="e.g. Jr., III" value={approveForm.data.name_extension} onChange={e => approveForm.setData('name_extension', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Name Extension</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.name_extension || '—'}</div>
                                         </div>
                                     </div>
 
@@ -164,7 +187,26 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         </div>
                                     </div>
 
-                                    {/* Civil Status & Sex (Often Outdated in Census!) */}
+                                    {/* Sex & Civil Status (Editable Overrides) */}
+                                    <div className="grid grid-cols-2 gap-3 border-b pb-3 bg-amber-50/40 p-2 rounded">
+                                        <div>
+                                            <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Sex (Editable)</label>
+                                            <select 
+                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                                                value={approveForm.data.sex}
+                                                onChange={e => approveForm.setData('sex', e.target.value)}
+                                            >
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Sex</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.sex || '—'}</div>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-3 border-b pb-3 bg-amber-50/40 p-2 rounded">
                                         <div>
                                             <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Civil Status (Editable)</label>
@@ -211,11 +253,11 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         </div>
                                     </div>
 
-                                    {/* Contact (Read-only as requested) */}
+                                    {/* Contact Information (Editable Mobile & Read-only Email) */}
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Mobile Number</label>
-                                            <div className="p-2 bg-gray-50 rounded border text-gray-800 text-xs">{resident.mobile}</div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Mobile Number (Editable)</label>
+                                            <Input value={approveForm.data.mobile} onChange={e => approveForm.setData('mobile', e.target.value)} required />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Email (Account Login)</label>

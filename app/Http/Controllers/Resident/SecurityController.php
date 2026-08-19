@@ -49,6 +49,6 @@ class SecurityController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return back()->with('success', 'Password successfully updated.');
+        return redirect()->route('profile')->with('success', 'Password successfully updated.');
     }
 }

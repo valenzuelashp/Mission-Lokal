@@ -4,10 +4,13 @@ import { Input } from '@/Components/ui/input';
 import { Search, ShieldAlert } from 'lucide-react';
 
 interface SearchResult {
+    id?: string;
     account_id?: string;
     full_name?: string;
+    email?: string;
     status?: string;
     message?: string;
+    rejection_reason?: string;
     not_found?: boolean;
 }
 
@@ -82,7 +85,6 @@ export default function AccountStatus({ searchResult, query }: Props) {
                                         <div>
                                             <span className="block text-gray-500 text-xs font-semibold uppercase tracking-wider">Resident Name</span>
                                             <span className="font-bold text-gray-900 text-base">{searchResult.full_name}</span>
-
                                         </div>
                                         <div>
                                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
@@ -103,6 +105,25 @@ export default function AccountStatus({ searchResult, query }: Props) {
                                             {searchResult.message}
                                         </p>
                                     </div>
+
+                                    {/* Rejection Feedback Box with Button to Resubmission Form Page */}
+                                    {searchResult.status === 'rejected' && (
+                                        <div className="mt-4 pt-3 border-t border-red-200 space-y-3">
+                                            <div className="bg-red-50 border border-red-200 p-3 rounded-md">
+                                                <span className="block text-xs font-bold text-red-800 uppercase tracking-wider mb-1">Admin Feedback / Reason</span>
+                                                <p className="text-xs text-red-900 font-medium">
+                                                    "{searchResult.rejection_reason || 'Please correct your details and re-upload a valid government ID document.'}"
+                                                </p>
+                                            </div>
+
+                                            <Link 
+                                                href={`/account-status/resubmit-form/${searchResult.id}`}
+                                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors text-center"
+                                            >
+                                                Proceed to Resubmission Form
+                                            </Link>
+                                        </div>
+                                    )}
 
                                     {searchResult.status === 'unverified' && (
                                         <div className="pt-2">

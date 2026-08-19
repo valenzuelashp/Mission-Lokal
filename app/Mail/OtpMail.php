@@ -22,7 +22,7 @@ class OtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Mission-Lokal Password Reset Code',
+            subject: 'Mission-Lokal Password Reset Code',
         );
     }
 

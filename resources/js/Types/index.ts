@@ -383,6 +383,9 @@ export interface AdminResidentEmergencyContact {
 }
 
 export interface AdminResidentDetail extends AdminResident {
+    first_name: string;
+    middle_name: string;
+    last_name: string;
     birthday: string;
     age_years: number | null;
     national_id_masked: string | null;

@@ -1,5 +1,5 @@
-import { Link, useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { Link, useForm, router } from '@inertiajs/react';
+import { FormEvent, useEffect, useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 import AnnouncementPreview from '@/Components/admin/AnnouncementPreview';
 import { Button } from '@/Components/ui/button';
@@ -33,8 +33,7 @@ export default function AnnouncementForm({
     cancelHref,
     submitLabel,
 }: Props) {
-    const publishRef = useRef(false);
-    const { data, setData, transform, post, put, processing, errors } = useForm(defaults);
+    const { data, setData, processing, errors } = useForm(defaults);
     const [previewUrl, setPreviewUrl] = useState<string | null>(existingImageUrl ?? null);
 
     useEffect(() => {
@@ -45,21 +44,30 @@ export default function AnnouncementForm({
         };
     }, [previewUrl]);
 
-    transform((d) => ({
-        ...d,
-        is_published: publishRef.current ? true : d.is_published,
-    }));
-
-    const submit = (e: FormEvent, publish = false) => {
+    const submit = (e: FormEvent, publishOverride = false) => {
         e.preventDefault();
-        publishRef.current = publish;
-        const options = { forceFormData: true };
-        if (method === 'post') {
-            post(action, options);
-        } else {
-            put(action, options);
+
+        const publishState = publishOverride ? true : data.is_published;
+
+        // Construct standard FormData to handle files and text fields reliably
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('body', data.body);
+        formData.append('is_published', publishState ? '1' : '0');
+        formData.append('remove_image', data.remove_image ? '1' : '0');
+        
+        if (data.image) {
+            formData.append('image', data.image);
         }
-        publishRef.current = false;
+
+        // Method spoofing for PUT requests containing file payloads in Laravel
+        if (method === 'put') {
+            formData.append('_method', 'PUT');
+        }
+
+        router.post(action, formData, {
+            forceFormData: true,
+        });
     };
 
     const onImageChange = (file: File | null) => {
@@ -81,7 +89,7 @@ export default function AnnouncementForm({
     };
 
     return (
-        <form onSubmit={(e) => submit(e)} className="grid gap-6 lg:grid-cols-2">
+        <form onSubmit={(e) => submit(e, false)} className="grid gap-6 lg:grid-cols-2">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-base">Announcement details</CardTitle>

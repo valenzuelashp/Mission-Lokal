@@ -27,7 +27,6 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
     const [search, setSearch] = useState('');
     const [activePanel, setActivePanel] = useState<'none' | 'manual' | 'csv'>('none');
 
-    // Manual Form Setup without mobile number (handled later during resident self-registration)
     const manualForm = useForm({
         first_name: '',
         middle_name: '',
@@ -123,7 +122,6 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                 </div>
             </div>
 
-            {/* INLINE FORM: Manual Add Resident without phone number */}
             {activePanel === 'manual' && (
                 <div className="mb-6 rounded-lg border bg-card p-5 shadow-sm transition-all">
                     <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -167,7 +165,6 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                             </div>
                         </div>
 
-                        {/* Detailed Address Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
                             <div>
                                 <label className="text-xs font-medium">House / Street</label>
@@ -195,7 +192,6 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                 </div>
             )}
 
-            {/* INLINE FORM: CSV Import */}
             {activePanel === 'csv' && (
                 <div className="mb-6 rounded-lg border bg-card p-5 shadow-sm transition-all">
                     <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -215,7 +211,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                                 required 
                             />
                             <p className="text-xs text-muted-foreground mt-2">
-                                CSV columns expected format: First Name, Middle Name, Last Name, Name Extension, Sex, House/Street, Barangay Name, City, Province, Birthday. Contact info is acquired later during self-registration.
+                                CSV columns expected format: First Name, Middle Name, Last Name, Name Extension, Sex, House/Street, Barangay Name, City, Province, Birthday.
                             </p>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">

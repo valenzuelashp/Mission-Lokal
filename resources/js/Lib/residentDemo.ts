@@ -35,13 +35,13 @@ export const blotterTypes = [
         type: 'two-party' as const,
         title: 'Two-party dispute',
         description: 'Complaint against another person — mediation at the barangay hall after admin approval.',
-        examples: 'Neighbor dispute, property boundary, debt',
+        examples: 'Neighbor dispute, property boundary, debt, etc.',
     },
     {
         type: 'one-party' as const,
         title: 'One-party report',
         description: 'Log an incident for barangay records — may trigger a search or welfare mission.',
-        examples: 'Missing person appeal, welfare check, lost property',
+        examples: 'Welfare check, lost property, etc.',
     },
 ];
 

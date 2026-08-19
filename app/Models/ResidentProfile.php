@@ -13,6 +13,12 @@ class ResidentProfile extends Model
     protected $fillable = [
         'user_id',
         'birthday',
+        'sex',
+        'civil_status',
+        'house_street',
+        'barangay_name',
+        'city',
+        'province',
         'address',
         'government_id_storage_key',
         'rejection_reason',

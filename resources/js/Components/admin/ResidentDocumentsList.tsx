@@ -5,9 +5,10 @@ import type { AdminResidentDocument } from '@/Types';
 
 type Props = {
     documents: AdminResidentDocument[];
+    onUploadClick: () => void;
 };
 
-export default function ResidentDocumentsList({ documents }: Props) {
+export default function ResidentDocumentsList({ documents, onUploadClick }: Props) {
     return (
         <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -45,6 +46,7 @@ export default function ResidentDocumentsList({ documents }: Props) {
                 )}
                 <button
                     type="button"
+                    onClick={onUploadClick}
                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                 >
                     <Plus className="h-4 w-4" />

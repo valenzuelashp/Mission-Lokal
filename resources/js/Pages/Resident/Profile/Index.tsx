@@ -17,8 +17,7 @@ const verificationBadge = {
     rejected: { label: 'Rejected', variant: 'danger' as const },
 };
 
-// FIX: Cast incoming profile data structure straight to an open object schema to clear strict TS index errors
-export default function Profile({ profile }: { profile: any }) {
+export default function ProfileIndex({ profile }: { profile: any }) {
     const { user } = useAuth();
 
     if (!user) return null;
@@ -27,6 +26,8 @@ export default function Profile({ profile }: { profile: any }) {
         full_name: user.account_id ?? 'Verified Resident',
         address: 'No address registered',
         birthday: '—',
+        sex: '—',
+        civil_status: '—',
         digital_id_code: 'ML-PENDING',
         member_since: 'July 2026',
         report_count: 0,
@@ -122,6 +123,18 @@ export default function Profile({ profile }: { profile: any }) {
                                     Birthday
                                 </dt>
                                 <dd className="mt-1 font-medium">{activeProfile.birthday}</dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Sex
+                                </dt>
+                                <dd className="mt-1 font-medium">{activeProfile.sex}</dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Civil Status
+                                </dt>
+                                <dd className="mt-1 font-medium">{activeProfile.civil_status}</dd>
                             </div>
                             <div className="sm:col-span-2">
                                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

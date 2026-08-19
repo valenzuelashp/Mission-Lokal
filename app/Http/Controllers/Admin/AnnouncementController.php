@@ -35,7 +35,7 @@ class AnnouncementController extends Controller
                     'title' => $item->title,
                     'body' => $item->body, 
                     'category' => $item->category ?? 'General',
-                    'is_published' => (bool)($item->is_published ?? true),
+                    'is_published' => (bool)$item->is_published,
                     'author_name' => $authorName, 
                     'image_url' => $item->cover_image_url ? Storage::url($item->cover_image_url) : null,
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y h:i A') : 'Recently',
@@ -76,7 +76,7 @@ class AnnouncementController extends Controller
         ]);
 
         $barangayId = $request->user()->barangay_id;
-        $isPublished = $request->is_published ?? false;
+        $isPublished = $request->boolean('is_published');
 
         // Process incoming cover photo files safely
         $imagePath = null;
@@ -107,7 +107,7 @@ class AnnouncementController extends Controller
         ]);
 
         return redirect()->route('admin.announcements.index')
-            ->with('success', 'Announcement published and broadcasted to residents.');
+            ->with('success', $isPublished ? 'Announcement published and broadcasted to residents.' : 'Announcement saved as draft.');
     }
 
     /**
@@ -146,7 +146,7 @@ class AnnouncementController extends Controller
             'image' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $isPublished = $request->is_published ?? false;
+        $isPublished = $request->boolean('is_published');
         $imagePath = $announcement->cover_image_url;
 
         // Manage old file deletion if requested or replaced
@@ -197,7 +197,6 @@ class AnnouncementController extends Controller
         $savedTitle = $announcement->title;
         $savedId = $announcement->id;
 
-        // Clean up stored image asset from local disk space before record drop
         if ($announcement->cover_image_url) {
             Storage::disk('public')->delete($announcement->cover_image_url);
         }

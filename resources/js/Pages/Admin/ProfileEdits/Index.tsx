@@ -8,6 +8,7 @@ interface EditRequest {
     user_id: string;
     account_id: string;
     resident_name: string;
+    current_values: Record<string, string>;
     requested_changes: Record<string, string>;
     submitted_at: string;
 }
@@ -42,11 +43,11 @@ export default function Index({ pendingEdits = [] }: Props) {
             <div className="mb-6">
                 <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Profile Edit Queue</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Review and authorize identity corrections or name updates submitted by registered residents.
+                    Review side-by-side identity comparisons and authorize profile amendments requested by residents.
                 </p>
             </div>
 
-            <div className="space-y-4 max-w-4xl">
+            <div className="space-y-6 max-w-5xl">
                 {pendingEdits.length === 0 ? (
                     <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground bg-white shadow-sm">
                         <UserCheck className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
@@ -54,43 +55,62 @@ export default function Index({ pendingEdits = [] }: Props) {
                     </div>
                 ) : (
                     pendingEdits.map((request) => (
-                        <div key={request.id} className="rounded-xl border bg-white shadow-sm overflow-hidden grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x">
-                            {/* Resident Card Context */}
-                            <div className="p-5 bg-slate-50/50 flex flex-col justify-between">
+                        <div key={request.id} className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                            
+                            {/* Card Header Context */}
+                            <div className="p-4 bg-slate-50 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                 <div>
-                                    <h3 className="font-bold text-gray-900 text-lg">{request.resident_name}</h3>
-                                    <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 block w-max mt-1">
+                                    <h3 className="font-bold text-gray-900 text-base">{request.resident_name}</h3>
+                                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700 inline-block mt-0.5">
                                         {request.account_id}
                                     </span>
                                 </div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-4">
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
                                     <CalendarDays className="h-3.5 w-3.5" />
                                     Requested: {request.submitted_at}
                                 </div>
                             </div>
 
-                            {/* Comparison block */}
-                            <div className="p-5 md:col-span-2 flex flex-col justify-between gap-4">
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                        <UserCog className="h-4 w-4 text-blue-600" /> Proposed Field Amendments
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {Object.entries(request.requested_changes).map(([field, newValue]) => (
-                                            <div key={field} className="grid grid-cols-3 gap-2 items-center text-sm border-b pb-2 last:border-0 last:pb-0">
-                                                <span className="text-muted-foreground font-medium text-xs">
-                                                    {formatKeyLabel(field)}
-                                                </span>
-                                                <span className="col-span-2 font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 break-words">
-                                                    {newValue || <em className="text-muted-foreground/60 font-normal">Wiped / Null</em>}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
+                            {/* Comparison Table View */}
+                            <div className="p-5">
+                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 mb-3">
+                                    <UserCog className="h-4 w-4 text-blue-600" /> Side-by-Side Field Comparison
+                                </h4>
+
+                                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-100 text-xs font-semibold uppercase text-slate-600 border-b">
+                                            <tr>
+                                                <th className="px-4 py-2.5 w-1/4">Field</th>
+                                                <th className="px-4 py-2.5 w-3/8 text-slate-500">Current System Record</th>
+                                                <th className="px-4 py-2.5 w-3/8 text-emerald-800">Requested Edit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200 bg-white">
+                                            {Object.entries(request.requested_changes).map(([field, newValue]) => {
+                                                const currentValue = request.current_values[field] ?? '—';
+                                                const isChanged = String(currentValue).trim() !== String(newValue).trim();
+
+                                                return (
+                                                    <tr key={field} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="px-4 py-3 font-medium text-slate-700 text-xs uppercase tracking-wider">
+                                                            {formatKeyLabel(field)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-slate-500 font-mono text-xs break-words">
+                                                            {currentValue}
+                                                        </td>
+                                                        <td className={`px-4 py-3 break-words ${isChanged ? 'font-semibold text-emerald-900 bg-emerald-50/70 border-l-2 border-emerald-500' : 'text-slate-700 font-normal'}`}>
+                                                            {newValue || <em className="text-muted-foreground font-normal">Empty / Cleared</em>}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
                                 </div>
 
                                 {/* Decision Options Block */}
-                                <div className="flex gap-2 justify-end pt-2 border-t md:border-t-0">
+                                <div className="flex gap-3 justify-end pt-4 mt-4 border-t">
                                     <Button
                                         disabled={processing}
                                         variant="outline"

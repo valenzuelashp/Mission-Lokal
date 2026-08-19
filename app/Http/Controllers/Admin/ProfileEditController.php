@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\ResidentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,23 +21,32 @@ class ProfileEditController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
 
-        // Switched to your exact table name: profile_edit_requests
         $pendingEdits = DB::table('profile_edit_requests')
             ->join('users', 'profile_edit_requests.user_id', '=', 'users.id')
+            ->leftJoin('resident_profiles', 'users.id', '=', 'resident_profiles.user_id')
             ->where('users.barangay_id', $barangayId)
             ->where('profile_edit_requests.status', 'pending')
             ->select(
                 'profile_edit_requests.id',
                 'profile_edit_requests.user_id',
                 'users.account_id',
-                'users.first_name as current_first',
-                'users.last_name as current_last',
+                'users.first_name',
+                'users.middle_name',
+                'users.last_name',
+                'users.email as current_email',
+                'users.mobile as current_mobile',
+                'resident_profiles.house_street',
+                'resident_profiles.barangay_name',
+                'resident_profiles.city',
+                'resident_profiles.province',
+                'resident_profiles.sex',
+                'resident_profiles.civil_status',
+                'resident_profiles.birthday',
                 'profile_edit_requests.requested_changes', 
                 'profile_edit_requests.created_at'
             )
             ->get()
             ->map(function ($edit) {
-                // Foolproof JSON decoding check for database query builder results
                 $decoded = $edit->requested_changes;
                 if (is_string($decoded)) {
                     $decoded = json_decode($decoded, true);
@@ -45,11 +55,25 @@ class ProfileEditController extends Controller
                     }
                 }
 
+                $currentFullName = trim(($edit->first_name ?? '') . ' ' . ($edit->middle_name ? $edit->middle_name . ' ' : '') . ($edit->last_name ?? ''));
+                
                 return [
                     'id' => $edit->id,
                     'user_id' => $edit->user_id,
                     'account_id' => $edit->account_id,
-                    'resident_name' => $edit->current_first . ' ' . $edit->current_last,
+                    'resident_name' => $currentFullName,
+                    'current_values' => [
+                        'full_name' => $currentFullName,
+                        'email' => $edit->current_email ?? '—',
+                        'mobile' => $edit->current_mobile ?? '—',
+                        'sex' => $edit->sex ?? '—',
+                        'civil_status' => $edit->civil_status ?? '—',
+                        'birthday' => $edit->birthday ?? '—',
+                        'house_street' => $edit->house_street ?? '—',
+                        'barangay_name' => $edit->barangay_name ?? '—',
+                        'city' => $edit->city ?? '—',
+                        'province' => $edit->province ?? '—',
+                    ],
                     'requested_changes' => is_array($decoded) ? $decoded : [],
                     'submitted_at' => $edit->created_at ? \Carbon\Carbon::parse($edit->created_at)->format('M d, Y h:i A') : 'Recently',
                 ];
@@ -61,7 +85,7 @@ class ProfileEditController extends Controller
     }
 
     /**
-     * Approve change sets and write directly into the users record.
+     * Approve change sets and write directly into the registry.
      */
     public function approve(Request $request, string $id): RedirectResponse
     {
@@ -84,10 +108,53 @@ class ProfileEditController extends Controller
         }
 
         DB::transaction(function () use ($editRequest, $changes) {
-            // 1. Commit changes directly to User model
-            User::where('id', $editRequest->user_id)->update(is_array($changes) ? $changes : []);
+            $userUpdates = ['profile_edit_status' => 'none'];
+            $profileUpdates = [];
 
-            // 2. Mark the request resolved using your exact reviewed columns
+            if (is_array($changes)) {
+                if (isset($changes['email'])) {
+                    $userUpdates['email'] = $changes['email'];
+                }
+                if (isset($changes['mobile'])) {
+                    $userUpdates['mobile'] = $changes['mobile'];
+                }
+                if (isset($changes['full_name'])) {
+                    $nameParts = explode(' ', trim($changes['full_name']));
+                    $userUpdates['first_name'] = array_shift($nameParts);
+                    $userUpdates['last_name'] = count($nameParts) > 0 ? array_pop($nameParts) : '';
+                    $userUpdates['middle_name'] = count($nameParts) > 0 ? implode(' ', $nameParts) : null;
+                }
+
+                if (isset($changes['sex'])) {
+                    $profileUpdates['sex'] = $changes['sex'];
+                }
+                if (isset($changes['civil_status'])) {
+                    $profileUpdates['civil_status'] = $changes['civil_status'];
+                }
+
+                // 1. Commit base user model updates
+                User::where('id', $editRequest->user_id)->update($userUpdates);
+
+                // 2. Map individual address components straight to their separate database columns
+                if (isset($changes['house_street'])) {
+                    $profileUpdates['house_street'] = $changes['house_street'];
+                }
+                if (isset($changes['barangay_name'])) {
+                    $profileUpdates['barangay_name'] = $changes['barangay_name'];
+                }
+                if (isset($changes['city'])) {
+                    $profileUpdates['city'] = $changes['city'];
+                }
+                if (isset($changes['province'])) {
+                    $profileUpdates['province'] = $changes['province'];
+                }
+
+                if (!empty($profileUpdates)) {
+                    ResidentProfile::where('user_id', $editRequest->user_id)->update($profileUpdates);
+                }
+            }
+
+            // 3. Mark request approved
             DB::table('profile_edit_requests')
                 ->where('id', $editRequest->id)
                 ->update([
@@ -108,17 +175,31 @@ class ProfileEditController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
 
-        // Updates status to rejected and tracks the reviewer details using your column mapping
-        DB::table('profile_edit_requests')
+        $editRequest = DB::table('profile_edit_requests')
             ->join('users', 'profile_edit_requests.user_id', '=', 'users.id')
             ->where('users.barangay_id', $barangayId)
             ->where('profile_edit_requests.id', $id)
-            ->update([
-                'profile_edit_requests.status' => 'rejected',
-                'profile_edit_requests.reviewed_by' => Auth::id(),
-                'profile_edit_requests.reviewed_at' => now(),
-                'profile_edit_requests.updated_at' => now(),
+            ->select('profile_edit_requests.*')
+            ->first();
+
+        if (!$editRequest) {
+            abort(404, 'Modification record context missing.');
+        }
+
+        DB::transaction(function () use ($editRequest) {
+            DB::table('profile_edit_requests')
+                ->where('id', $editRequest->id)
+                ->update([
+                    'status' => 'rejected',
+                    'reviewed_by' => Auth::id(),
+                    'reviewed_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            User::where('id', $editRequest->user_id)->update([
+                'profile_edit_status' => 'none'
             ]);
+        });
 
         return back()->with('success', 'Profile update request rejected successfully.');
     }

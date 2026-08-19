@@ -6,14 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Enums\MissionStatus;
+use App\Enums\ConcernStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 
 class MissionController extends Controller
 {
@@ -90,12 +91,13 @@ class MissionController extends Controller
         ]);
 
         $concern = Concern::findOrFail($validated['concern_id']);
+        $barangayId = $request->user()->barangay_id;
 
-        if ($concern->barangay_id !== $request->user()->barangay_id) {
+        if ($concern->barangay_id !== $barangayId) {
             abort(403, 'Unauthorized context registration.');
         }
 
-        $mission = DB::transaction(function () use ($validated, $concern, $request) {
+        $mission = DB::transaction(function () use ($validated, $concern, $request, $barangayId) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
@@ -113,6 +115,18 @@ class MissionController extends Controller
                 'personnel_id' => $validated['assigned_to'],
                 'assigned_by' => $request->user()->id,
                 'assigned_at' => now(),
+            ]);
+
+            // Audit log insertion
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'CREATE',
+                'entity_type' => 'Mission',
+                'entity_id' => $mission->id,
+                'metadata' => json_encode(['details' => 'Assigned mission for concern: ' . $concern->title]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
             ]);
 
             return $mission; 
@@ -159,7 +173,7 @@ class MissionController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
 
-        DB::transaction(function () use ($id, $barangayId) {
+        DB::transaction(function () use ($id, $barangayId, $request) {
             $mission = Mission::where('barangay_id', $barangayId)->findOrFail($id);
             $mission->update([
                 'status' => 'verified',
@@ -180,6 +194,18 @@ class MissionController extends Controller
                     'payload' => ['concern_id' => $concern->id],
                 ]);
             }
+
+            // Audit log insertion
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'VERIFY',
+                'entity_type' => 'Mission',
+                'entity_id' => $mission->id,
+                'metadata' => json_encode(['details' => 'Verified mission completion and resolved associated concern']),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
         });
 
         return back()->with('success', 'Mission verified and concern resolved.');

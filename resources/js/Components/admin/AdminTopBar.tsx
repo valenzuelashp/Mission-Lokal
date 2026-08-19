@@ -1,6 +1,7 @@
 import { Bell, Menu, Search, Settings, User } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { Link } from '@inertiajs/react';
 
 type Props = {
     title: string;
@@ -24,14 +25,23 @@ export default function AdminTopBar({ title, onMenuClick }: Props) {
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="pl-9" placeholder="Search mission ID…" readOnly />
                 </div>
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex">
-                    <Bell className="h-5 w-5" />
+                {/* Wired to notifications page */}
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" asChild>
+                    <Link href="/admin/notifications">
+                        <Bell className="h-5 w-5" />
+                    </Link>
                 </Button>
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex">
-                    <Settings className="h-5 w-5" />
+                {/* Wired to settings page */}
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" asChild>
+                    <Link href="/admin/settings">
+                        <Settings className="h-5 w-5" />
+                    </Link>
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-full bg-blue-100 text-blue-700">
-                    <User className="h-5 w-5" />
+                {/* Wired to settings page profile tab shortcut */}
+                <Button variant="ghost" size="icon" className="rounded-full bg-blue-100 text-blue-700" asChild>
+                    <Link href="/admin/settings">
+                        <User className="h-5 w-5" />
+                    </Link>
                 </Button>
             </div>
         </header>

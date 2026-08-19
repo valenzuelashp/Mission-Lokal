@@ -27,9 +27,10 @@ const typeLabel: Record<AdminResidentActivity['type'], string> = {
 
 type Props = {
     activities: AdminResidentActivity[];
+    onViewAllClick: () => void;
 };
 
-export default function ResidentActivityTable({ activities }: Props) {
+export default function ResidentActivityTable({ activities, onViewAllClick }: Props) {
     return (
         <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -38,7 +39,7 @@ export default function ResidentActivityTable({ activities }: Props) {
                     Activity history
                 </CardTitle>
                 {activities.length > 0 && (
-                    <button type="button" className="text-xs font-medium text-blue-700 hover:underline">
+                    <button type="button" onClick={onViewAllClick} className="text-xs font-medium text-blue-700 hover:underline">
                         View all
                     </button>
                 )}

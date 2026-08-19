@@ -14,9 +14,13 @@ const verifiedLabel: Record<VerificationStatus, string> = {
 
 type Props = {
     resident: AdminResidentDetail;
+    onEdit: () => void;
+    onFlag: () => void;
+    onMessage: () => void;
+    isFlagging?: boolean;
 };
 
-export default function ResidentProfileHeader({ resident }: Props) {
+export default function ResidentProfileHeader({ resident, onEdit, onFlag, onMessage, isFlagging }: Props) {
     const isVerified = resident.verification_status === 'approved';
     const memberId = resident.digital_id_code ?? resident.account_id;
 
@@ -59,15 +63,15 @@ export default function ResidentProfileHeader({ resident }: Props) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-                    <Button className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" size="sm">
+                    <Button onClick={onEdit} className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" size="sm">
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit information
                     </Button>
-                    <Button size="sm" variant="destructive" className="w-full sm:w-auto">
+                    <Button onClick={onFlag} disabled={isFlagging} size="sm" variant="destructive" className="w-full sm:w-auto">
                         <Flag className="mr-2 h-4 w-4" />
                         Flag account
                     </Button>
-                    <Button size="sm" variant="outline" className="w-full border-blue-700 text-blue-700 sm:w-auto">
+                    <Button onClick={onMessage} size="sm" variant="outline" className="w-full border-blue-700 text-blue-700 sm:w-auto">
                         <Mail className="mr-2 h-4 w-4" />
                         Message resident
                     </Button>

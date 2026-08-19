@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\PreloadedResident;
+use App\Models\Notification;
+use App\Models\ResidentDocument;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,12 +14,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class ResidentController extends Controller
 {
-    /**
-     * Display the dynamic directory roster of local residents (Task A7)
-     */
     public function index(Request $request): Response
     {
         $barangayId = $request->user()->barangay_id;
@@ -70,9 +71,6 @@ class ResidentController extends Controller
         ]);
     }
 
-    /**
-     * Store a manually added preloaded resident and initialize corresponding user account.
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -97,7 +95,6 @@ class ResidentController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Create Preloaded Census Record
             PreloadedResident::create([
                 'barangay_id' => $barangayId,
                 'account_id' => $accountId,
@@ -116,8 +113,7 @@ class ResidentController extends Controller
                 'is_claimed' => false,
             ]);
 
-            // 2. Initialize corresponding User account with 'unverified' status
-            User::create([
+            $newUser = User::create([
                 'barangay_id' => $barangayId,
                 'account_id' => $accountId,
                 'role' => 'resident',
@@ -131,6 +127,17 @@ class ResidentController extends Controller
                 'verification_status' => 'unverified',
             ]);
 
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'CREATE',
+                'entity_type' => 'Resident',
+                'entity_id' => $newUser->id,
+                'metadata' => json_encode(['details' => 'Manually preloaded and registered resident: ' . $request->first_name . ' ' . $request->last_name]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
             DB::commit();
             return redirect()->back()->with('success', 'Resident successfully added to preloaded registry and initialized as unverified.');
         } catch (\Exception $e) {
@@ -139,9 +146,6 @@ class ResidentController extends Controller
         }
     }
 
-    /**
-     * Handle batch CSV import for preloaded residents.
-     */
     public function importCsv(Request $request): RedirectResponse
     {
         $request->validate([
@@ -152,10 +156,11 @@ class ResidentController extends Controller
         $file = $request->file('file');
         $path = $file->getRealPath();
         $data = array_map('str_getcsv', file($path));
-        array_shift($data); // Skip header row
+        array_shift($data);
 
         DB::beginTransaction();
         try {
+            $importedCount = 0;
             foreach ($data as $row) {
                 if (count($row) < 10) continue; 
 
@@ -205,7 +210,20 @@ class ResidentController extends Controller
                     'password' => null,
                     'verification_status' => 'unverified',
                 ]);
+                $importedCount++;
             }
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'IMPORT',
+                'entity_type' => 'ResidentBatch',
+                'entity_id' => 'CSV-IMPORT',
+                'metadata' => json_encode(['details' => "Batch imported {$importedCount} resident records via CSV upload."]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
             DB::commit();
             return redirect()->back()->with('success', 'CSV residents batch imported successfully.');
         } catch (\Exception $e) {
@@ -228,6 +246,22 @@ class ResidentController extends Controller
         $coords = \App\Models\Concern::selectRaw('ST_Y(location) as lat, ST_X(location) as lng')
             ->where('reporter_id', $user->id)
             ->first();
+
+        $documents = [];
+        if (class_exists(\App\Models\ResidentDocument::class)) {
+            $documents = \App\Models\ResidentDocument::where('user_id', $user->id)
+                ->latest()
+                ->get()
+                ->map(function ($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'name' => $doc->name,
+                        'meta' => $doc->created_at ? $doc->created_at->format('M d, Y') : 'Recent',
+                        'size' => $doc->file_size ?? '—',
+                        'status' => $doc->status ?? 'verified',
+                    ];
+                })->toArray();
+        }
 
         $profileDetail = [
             'id' => $user->id,
@@ -257,12 +291,142 @@ class ResidentController extends Controller
                     'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y') : 'Just now',
                 ];
             })->toArray(),
-            'documents' => [],
+            'documents' => $documents,
         ];
 
         return Inertia::render('Admin/Residents/Show', [
             'resident' => $profileDetail,
         ]);
+    }
+
+    public function uploadDocument(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'file' => 'required|file|max:5120',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('resident-documents', 'public');
+        $sizeBytes = $file->getSize();
+        $sizeFormatted = $sizeBytes > 1048576 
+            ? round($sizeBytes / 1048576, 1) . ' MB' 
+            : round($sizeBytes / 1024, 1) . ' KB';
+
+        if (class_exists(\App\Models\ResidentDocument::class)) {
+            \App\Models\ResidentDocument::create([
+                'id' => Str::uuid()->toString(),
+                'user_id' => $user->id,
+                'name' => $request->name,
+                'file_path' => $path,
+                'file_size' => $sizeFormatted,
+                'status' => 'verified',
+            ]);
+        }
+
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'UPLOAD',
+            'entity_type' => 'ResidentDocument',
+            'entity_id' => $user->id,
+            'metadata' => json_encode(['details' => 'Uploaded document verification file: ' . $request->name . ' for resident ID: ' . $user->account_id]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Document successfully uploaded.');
+    }
+
+    public function update(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
+
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255|unique:users,email,' . $user->id,
+            'mobile' => 'nullable|string|max:20',
+        ]);
+
+        $user->update($request->only(['first_name', 'middle_name', 'last_name', 'email', 'mobile']));
+
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'UPDATE',
+            'entity_type' => 'Resident',
+            'entity_id' => $user->id,
+            'metadata' => json_encode(['details' => 'Updated core profile properties for resident account: ' . $user->account_id]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Resident information updated successfully.');
+    }
+
+    public function flag(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
+
+        $user->update([
+            'is_active' => !$user->is_active,
+        ]);
+
+        $statusText = $user->is_active ? 'unflagged/reactivated' : 'flagged';
+
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'FLAG',
+            'entity_type' => 'Resident',
+            'entity_id' => $user->id,
+            'metadata' => json_encode(['details' => "Toggled operational status to {$statusText} for resident account: " . $user->account_id]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', "Resident account has been successfully {$statusText}.");
+    }
+
+    public function message(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+        $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
+
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        Notification::create([
+            'id' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'channel' => 'in_app',
+            'event_type' => 'admin_message',
+            'title' => 'Message from Barangay Admin',
+            'body' => $request->message,
+            'is_read' => false,
+            'sent_at' => now(),
+        ]);
+
+        DB::table('audit_logs')->insert([
+            'barangay_id' => $barangayId,
+            'actor_id' => Auth::id(),
+            'action' => 'MESSAGE',
+            'entity_type' => 'Resident',
+            'entity_id' => $user->id,
+            'metadata' => json_encode(['details' => 'Sent direct command center communication message to resident ID: ' . $user->account_id]),
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Message successfully sent to resident.');
     }
 }
 

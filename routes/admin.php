@@ -29,7 +29,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Explicit directory mappings matching Admin/Reports/Index & Show
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
-    // ADDED: Route alias for reports queue matching frontend links
     Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
@@ -41,7 +40,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/reports/{id}/escalate', [ReportController::class, 'createMission'])->name('reports.escalate');
     
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
-    // ADDED: Route alias for mission-board matching frontend navigation
     Route::get('/mission-board', [MissionController::class, 'index'])->name('missions.board');
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
@@ -66,6 +64,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/residents', [ResidentController::class, 'store'])->name('residents.store');
     Route::post('/residents/import-csv', [ResidentController::class, 'importCsv'])->name('residents.import-csv');
     Route::get('/residents/{user}', [ResidentController::class, 'show'])->name('residents.show');
+    Route::put('/residents/{user}', [ResidentController::class, 'update'])->name('residents.update');
+    Route::post('/residents/{user}/flag', [ResidentController::class, 'flag'])->name('residents.flag');
+    Route::post('/residents/{user}/message', [ResidentController::class, 'message'])->name('residents.message');
+    Route::post('/residents/{user}/documents', [ResidentController::class, 'uploadDocument'])->name('residents.documents.upload');
 
     Route::get('/blotters', [BlotterController::class, 'index'])->name('blotters.index');
     Route::get('/blotters/{blotter}', [BlotterController::class, 'show'])->name('blotters.show');
@@ -80,10 +82,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library', [LibraryController::class, 'store'])->name('library.store');
+    // ADDED: Library Edit and Update routes
+    Route::get('/library/{id}/edit', [LibraryController::class, 'edit'])->name('library.edit');
+    Route::put('/library/{id}', [LibraryController::class, 'update'])->name('library.update');
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 
     Route::get('/audit', [AuditLogController::class, 'index'])->name('audit');
-    // ADDED: Route alias for audit-logs matching frontend links
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
