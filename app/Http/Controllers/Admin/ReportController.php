@@ -95,6 +95,7 @@ class ReportController extends Controller
                 'description' => $record->description,
                 'status' => $record->status->value ?? $record->status,
                 'location_label' => $record->address_text ?? 'Unknown Location',
+                'severity' => $record->severity ?? 'medium',
                 
                 // SAFETY NET: Explicitly cast the database values to floats (decimals)
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,

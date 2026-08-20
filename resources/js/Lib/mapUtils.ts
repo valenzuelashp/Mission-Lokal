@@ -32,3 +32,16 @@ export function severityFromScore(score: number): Severity {
     if (score >= 40) return 'medium';
     return 'low';
 }
+
+export function scoreFromSeverity(severity?: Severity | string | null): number {
+    switch (severity) {
+        case 'critical':
+            return 92;
+        case 'high':
+            return 78;
+        case 'low':
+            return 22;
+        default:
+            return 50;
+    }
+}

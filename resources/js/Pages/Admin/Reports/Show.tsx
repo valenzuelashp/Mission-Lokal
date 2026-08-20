@@ -62,7 +62,13 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                             </h4>
                             <MapView 
                                 center={[safeLat, safeLng]} 
-                                pins={[{ id: report?.id, lat: safeLat, lng: safeLng, title: report?.title }]} 
+                                pins={[{
+                                    id: report?.id,
+                                    lat: safeLat,
+                                    lng: safeLng,
+                                    title: report?.title,
+                                    severity: report?.severity ?? 'medium',
+                                }]} 
                                 className="h-64 rounded-md border shadow-sm z-0 relative" 
                             />
                         </div>
