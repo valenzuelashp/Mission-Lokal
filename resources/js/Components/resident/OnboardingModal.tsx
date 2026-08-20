@@ -3,6 +3,8 @@ import { usePage, router, Link } from '@inertiajs/react';
 import { ShieldAlert, Clock, XCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 
+declare const route: (name: string, params?: Record<string, unknown>) => string;
+
 export default function OnboardingModal() {
     const { auth } = usePage<any>().props;
     const user = auth?.user;
@@ -43,7 +45,7 @@ export default function OnboardingModal() {
                             Your identity has been successfully verified by the barangay! Before you enter the feed, please set a secure password for your account.
                         </p>
                         <Button asChild className="w-full bg-green-600 hover:bg-green-700">
-                            <Link href="/onboarding/password">
+                            <Link href={route('onboarding.password')}>
                                 Set Secure Password
                             </Link>
                         </Button>

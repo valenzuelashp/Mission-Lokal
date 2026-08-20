@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Added this import
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
@@ -67,5 +68,10 @@ class User extends Authenticatable
     public function concerns(): HasMany
     {
         return $this->hasMany(Concern::class, 'reporter_id');
+    }
+
+    public function needsPasswordSetup(): bool
+    {
+        return ! $this->is_active || Hash::check('password', $this->password);
     }
 }

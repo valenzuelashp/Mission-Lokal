@@ -2,15 +2,18 @@ import { Head, useForm } from '@inertiajs/react';
 import { KeyRound, ShieldAlert, Lock, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 
-declare const route: any;
+declare const route: (name: string, params?: Record<string, unknown>) => string;
 
-export default function PasswordPromptModal() {
-    const [showForm, setShowForm] = useState(false);
+interface Props {
+    mode?: 'prompt' | 'setup';
+}
 
-    // Form for dismissing (Remind me next time)
+export default function PasswordPromptModal({ mode = 'prompt' }: Props) {
+    const isSetupMode = mode === 'setup';
+    const [showForm, setShowForm] = useState(isSetupMode);
+
     const { post: postDismiss, processing: processingDismiss } = useForm({});
 
-    // Form for updating the password
     const { data, setData, post, processing, errors } = useForm({
         password: '',
         password_confirmation: '',
@@ -71,9 +74,13 @@ export default function PasswordPromptModal() {
                                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
                                     <Lock className="h-6 w-6 text-blue-600" />
                                 </div>
-                                <h2 className="text-2xl font-bold text-slate-900">Set New Password</h2>
+                                <h2 className="text-2xl font-bold text-slate-900">
+                                    {isSetupMode ? 'Set Secure Password' : 'Set New Password'}
+                                </h2>
                                 <p className="text-slate-500 mt-2 text-sm">
-                                    Must be at least 8 characters long and contain at least 1 number and 1 special symbol.
+                                    {isSetupMode
+                                        ? 'Your account has been approved. Create a personal password before using the feed.'
+                                        : 'Must be at least 8 characters long and contain at least 1 number and 1 special symbol.'}
                                 </p>
                             </div>
 
@@ -103,6 +110,10 @@ export default function PasswordPromptModal() {
                                     />
                                 </div>
 
+                                <p className="text-xs text-slate-500">
+                                    Must be at least 8 characters with 1 number and 1 special symbol.
+                                </p>
+
                                 <div className="space-y-2 pt-2">
                                     <button
                                         type="submit"
@@ -113,13 +124,15 @@ export default function PasswordPromptModal() {
                                         Save Secure Password
                                     </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowForm(false)}
-                                        className="w-full flex justify-center py-2.5 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors"
-                                    >
-                                        Back
-                                    </button>
+                                    {!isSetupMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowForm(false)}
+                                            className="w-full flex justify-center py-2.5 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                                        >
+                                            Back
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                         </>

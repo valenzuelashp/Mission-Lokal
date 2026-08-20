@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
-                'needs_password_setup' => $user ? \Illuminate\Support\Facades\Hash::check('password', $user->password) : false,
+                'needs_password_setup' => $user ? $user->needsPasswordSetup() : false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

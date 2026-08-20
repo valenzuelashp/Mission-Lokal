@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 
@@ -26,8 +25,8 @@ class EnsureResidentIsVerified
                 return $next($request);
             }
 
-            $usesDefaultPassword = Hash::check('password', $user->password);
-            $isFullyVerified = $user->verification_status === VerificationStatus::Approved && !$usesDefaultPassword;
+            $isFullyVerified = $user->verification_status === VerificationStatus::Approved
+                && ! $user->needsPasswordSetup();
 
             // 1. If fully verified and secured, let them interact with the app
             if ($isFullyVerified) {

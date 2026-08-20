@@ -63,7 +63,7 @@ class LoginController extends Controller
         }
 
         // If resident has not updated their temporary password yet and hasn't dismissed it, prompt them!
-        if (!$user->is_active && !session('dismissed_password_prompt')) {
+        if ($user->needsPasswordSetup() && ! session('dismissed_password_prompt')) {
             return route('password.prompt');
         }
 

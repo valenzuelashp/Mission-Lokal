@@ -30,6 +30,18 @@ class TemporaryPasswordController extends Controller
         return Inertia::render('Auth/PasswordPromptModal');
     }
 
+    // Onboarding step after admin approval — skip the "remind me later" prompt
+    public function showOnboardingForm(Request $request)
+    {
+        if (! $request->user()->needsPasswordSetup()) {
+            return redirect()->route('feed');
+        }
+
+        return Inertia::render('Auth/PasswordPromptModal', [
+            'mode' => 'setup',
+        ]);
+    }
+
     // Process and save the new password permanently
     public function update(Request $request)
     {

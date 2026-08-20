@@ -40,10 +40,10 @@ Route::get('/', function () {
         return redirect()->route('personnel.missions.index');
     }
 
-    // If resident hasn't changed password yet and hasn't dismissed the prompt this session
-    if (!$user->is_active && !session('dismissed_password_prompt')) {
-        return redirect()->route('password.prompt');
-    }
+        // If resident hasn't changed password yet and hasn't dismissed the prompt this session
+        if ($user->needsPasswordSetup() && ! session('dismissed_password_prompt')) {
+            return redirect()->route('password.prompt');
+        }
 
     return redirect()->route('feed');
 });
@@ -71,9 +71,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:resident'])->group(function () {
     Route::get('/welcome/password-prompt', [TemporaryPasswordController::class, 'showPrompt'])->name('password.prompt');
     Route::post('/welcome/password-prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');
-    
+
     Route::get('/welcome/setup-password', [TemporaryPasswordController::class, 'showForm'])->name('password.custom.show');
     Route::post('/welcome/setup-password', [TemporaryPasswordController::class, 'update'])->name('password.custom.store');
+
+    Route::prefix('onboarding')->name('onboarding.')->group(function () {
+        Route::get('/password', [TemporaryPasswordController::class, 'showOnboardingForm'])->name('password');
+    });
 });
 
 /*
