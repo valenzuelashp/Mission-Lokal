@@ -92,6 +92,7 @@ class ReportController extends Controller
                 'description' => $record->description,
                 'status' => $record->status->value ?? $record->status,
                 'location_label' => $record->address_text ?? 'Unknown Location',
+                'severity' => $record->severity ?? 'medium',
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),

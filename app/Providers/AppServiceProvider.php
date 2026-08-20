@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Sms\LogSmsGateway;
+use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;

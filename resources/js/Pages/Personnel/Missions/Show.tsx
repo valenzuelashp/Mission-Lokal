@@ -198,7 +198,20 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         <h3 className="text-sm font-semibold text-blue-900">Site map</h3>
                         <MapView
                             center={[mission.lat, mission.lng]}
-                            pins={[{ id: mission.id, lat: mission.lat, lng: mission.lng, title: mission.title }]}
+                            pins={[
+                                {
+                                    id: mission.id,
+                                    lat: mission.lat,
+                                    lng: mission.lng,
+                                    title: mission.title,
+                                    severity:
+                                        mission.priority === 'high'
+                                            ? 'high'
+                                            : mission.priority === 'low'
+                                              ? 'low'
+                                              : 'medium',
+                                },
+                            ]}
                             className="h-48 overflow-hidden rounded-lg sm:h-56"
                         />
                     </CardContent>

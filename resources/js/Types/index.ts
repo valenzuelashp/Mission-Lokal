@@ -177,6 +177,13 @@ export interface AdminDashboardStats {
     ongoing_missions: number;
     accomplished: number;
     pending_verification: number;
+    high_priority?: number;
+    by_severity?: {
+        critical: number;
+        high: number;
+        medium: number;
+        low: number;
+    };
 }
 
 export interface AdminIncident {

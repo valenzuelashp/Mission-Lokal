@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
+use App\Support\MapHelpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -22,18 +23,14 @@ class MapController extends Controller
             ->whereNotNull('location')
             ->get()
             ->map(function ($concern) {
-                $iconMap = [
-                    1 => 'light',
-                    2 => 'flood',
-                    3 => 'noise',
-                    'fire' => 'fire',
-                    'flood' => 'flood',
-                    'waste' => 'waste',
-                    'noise' => 'noise',
-                    'light' => 'light'
-                ];
+                $severity = in_array($concern->severity, ['low', 'medium', 'high', 'critical'], true)
+                    ? $concern->severity
+                    : 'medium';
 
-                // Safely check for active missions using query builder to prevent relationship mismatch errors
+                $status = $concern->status instanceof \App\Enums\ConcernStatus
+                    ? $concern->status->value
+                    : $concern->status;
+
                 $activeMission = DB::table('missions')
                     ->where('concern_id', $concern->id)
                     ->whereIn('status', ['assigned', 'acknowledged', 'in_progress'])
@@ -41,17 +38,18 @@ class MapController extends Controller
 
                 return [
                     'id' => (string) $concern->id,
-                    'report_id' => 'REP-' . strtoupper(substr($concern->id, 0, 4)),
+                    'report_id' => 'REP-'.strtoupper(substr($concern->id, 0, 4)),
                     'concern_id' => (string) $concern->id,
                     'lat' => (float) $concern->lat,
                     'lng' => (float) $concern->lng,
                     'incident_type' => $concern->title,
                     'location_label' => $concern->address_text ?? 'Pinned Location',
-                    'severity' => $concern->severity ?? 'medium',
-                    'status' => $concern->status instanceof \App\Enums\ConcernStatus ? $concern->status->value : $concern->status,
-                    'type_icon' => $iconMap[$concern->category_id] ?? 'light',
+                    'severity' => $severity,
+                    'status' => $status,
+                    'type_icon' => MapHelpers::typeIconFromText($concern->title, $concern->address_text),
                     'has_mission' => (bool) $activeMission,
                     'mission_id' => $activeMission ? (string) $activeMission->id : null,
+                    'ai_severity' => MapHelpers::scoreFromSeverity($severity),
                     'time_ago' => $concern->created_at ? $concern->created_at->diffForHumans() : 'Just now',
                 ];
             });

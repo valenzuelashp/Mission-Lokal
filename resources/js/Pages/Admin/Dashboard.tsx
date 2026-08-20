@@ -18,13 +18,17 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                     label="Total reports"
                     value={stats.total_reports}
                     icon={FileText}
-                    trend={{ value: '+12% vs last week', positive: true }}
+                    hint="All concerns in this barangay"
                 />
                 <KpiCard
                     label="Ongoing missions"
                     value={stats.ongoing_missions}
                     icon={Sparkles}
-                    hint="Active operations"
+                    hint={
+                        stats.high_priority
+                            ? `${stats.high_priority} high / critical reports`
+                            : 'Active operations'
+                    }
                 />
                 <KpiCard
                     label="Accomplished"
@@ -41,6 +45,23 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                     iconClassName="bg-amber-50 text-amber-600"
                 />
             </div>
+
+            {stats.by_severity && (
+                <div className="mb-4 flex flex-wrap gap-2 text-xs sm:mb-6">
+                    {(
+                        [
+                            ['critical', stats.by_severity.critical, 'bg-red-100 text-red-800'],
+                            ['high', stats.by_severity.high, 'bg-orange-100 text-orange-800'],
+                            ['medium', stats.by_severity.medium, 'bg-amber-100 text-amber-800'],
+                            ['low', stats.by_severity.low, 'bg-emerald-100 text-emerald-800'],
+                        ] as const
+                    ).map(([label, count, className]) => (
+                        <span key={label} className={`rounded-full px-2.5 py-1 font-medium capitalize ${className}`}>
+                            {label}: {count}
+                        </span>
+                    ))}
+                </div>
+            )}
 
             <section className="mb-4 rounded-lg border bg-card p-3 shadow-sm sm:mb-6 sm:p-4 lg:p-5">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

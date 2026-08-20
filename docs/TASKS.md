@@ -150,13 +150,14 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ## Phase 8 — Maps & dashboard
 
-- [-] Extend `MapView` — pins, popups, severity colors
-- [ ] Admin map filters
-- [ ] Geocoding / reverse geocode
-- [ ] Dashboard aggregates
+- [x] Extend `MapView` — pins, popups, severity colors (shared with admin mini-map)
+- [x] Admin map filters (severity / status / type) + keyword type icons until AI is wired
+- [ ] Geocoding / reverse geocode (deferred — pins still use lat/lng + `address_text`)
+- [x] Dashboard aggregates (real KPI counts, severity breakdown, no random severity)
 
 ---
-+## Phase 9 — PWA, security & compliance
+
+## Phase 9 — PWA, security & compliance
 
 - [ ] PWA install + service worker verification
 - [ ] Offline library cache
