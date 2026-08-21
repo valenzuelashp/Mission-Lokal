@@ -13,7 +13,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            injectRegister: null, // We manually register via Laravel route
+            injectRegister: null, 
             buildBase: '/build/',
             
             devOptions: {
@@ -30,14 +30,19 @@ export default defineConfig({
                 background_color: '#ffffff',
                 display: 'standalone',
                 start_url: '/feed',
-                scope: '/', // PHASE 9 FIX: Explicitly tell the browser this covers the whole app
+                scope: '/', 
                 icons: [
                     { src: '/icons/pwa/icon-192.png', sizes: '192x192', type: 'image/png' },
                     { src: '/icons/pwa/icon-512.png', sizes: '512x512', type: 'image/png' },
                 ],
             },
             workbox: {
-                inlineWorkboxRuntime: true, // PHASE 9 FIX: Bundle workbox directly into sw.js to prevent 404s
+                inlineWorkboxRuntime: true, 
+                navigateFallback: null, 
+                // PHASE 9 FIX: Explicitly map the assets folder to the Laravel build output
+                modifyURLPrefix: {
+                    'assets/': '/build/assets/',
+                },
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 runtimeCaching: [
                     {

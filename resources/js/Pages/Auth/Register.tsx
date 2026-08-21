@@ -18,6 +18,7 @@ export default function Register() {
         sex: 'Male',
         civil_status: 'Single',
         government_id: null as File | null,
+        consent: false, // PHASE 9: Track the consent checkbox state
     });
 
     const submit = (e: React.FormEvent) => {
@@ -127,6 +128,24 @@ export default function Register() {
                             required
                         />
                         {errors.government_id && <p className="text-xs text-red-600 mt-1">{errors.government_id}</p>}
+                    </div>
+
+                    {/* PHASE 9: Data Privacy Consent Checkbox */}
+                    <div className="pt-2">
+                        <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                            <input
+                                type="checkbox"
+                                id="consent"
+                                checked={data.consent}
+                                onChange={e => setData('consent', e.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                                required
+                            />
+                            <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed">
+                                By registering, I consent to the collection and processing of my personal data by Mission-Lokal for the purpose of barangay identity verification and community service management, in accordance with the Data Privacy Act of 2012.
+                            </label>
+                        </div>
+                        {errors.consent && <p className="text-xs font-medium text-red-600 mt-1">{errors.consent}</p>}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t">

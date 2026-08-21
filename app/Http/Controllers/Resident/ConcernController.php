@@ -68,7 +68,15 @@ class ConcernController extends Controller
                 ['value' => 'light', 'label' => 'Broken Streetlights'],
                 ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
-            'mapCenter' => [14.6507, 120.9793]
+            
+            // PHASE 10: Set exact center of Barangay Tambo, Paranaque
+            'mapCenter' => [14.5151, 120.9939],
+            
+            // Define the bounding box [SouthWest corner, NorthEast corner]
+            'barangayBounds' => [
+                [14.50820, 120.97668], 
+                [14.52547, 121.00114]  
+            ]
         ]);
     }
 
