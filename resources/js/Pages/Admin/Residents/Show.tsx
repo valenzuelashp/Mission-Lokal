@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, BookOpen, User, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, ShieldAlert, User, X } from 'lucide-react';
 import { useState } from 'react';
 import ResidentActivityTable from '@/Components/admin/ResidentActivityTable';
 import ResidentDocumentsList from '@/Components/admin/ResidentDocumentsList';
@@ -87,6 +87,9 @@ export default function Show({ resident, residentId }: Props) {
             : data.birthday;
 
     const fullAddress = data.zip_code ? `${data.address}, Zip: ${data.zip_code}` : data.address;
+
+    // Determine if this resident is a minor based on age or existence of guardian data
+    const isMinor = (data.age_years != null && data.age_years < 18) || (data as any).parent_name;
 
     return (
         <AdminLayout title="Mission-Lokal Admin">
@@ -261,6 +264,26 @@ export default function Show({ resident, residentId }: Props) {
                         <DetailRow label="Citizenship status" value={data.citizenship_status} />
                         <DetailRow label="Gender" value={data.gender} />
                         <DetailRow label="Civic XP" value={`${data.civic_xp} points · ${data.badge_count} badges`} />
+                        
+                        {/* --- GUARDIAN CARD SECTION FOR MINORS --- */}
+                        {isMinor && (
+                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                                <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider mb-2">
+                                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                    Minor Account Guardian Info
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    <div>
+                                        <span className="text-xs text-muted-foreground block">Guardian Name:</span>
+                                        <span className="font-medium text-foreground">{(data as any).parent_name ?? 'Not Provided'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-muted-foreground block">Guardian Contact:</span>
+                                        <span className="font-medium text-foreground">{(data as any).parent_contact ?? 'Not Provided'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

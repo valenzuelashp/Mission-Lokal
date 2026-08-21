@@ -88,6 +88,15 @@ class ConcernController extends Controller
 
         $user = auth()->user();
 
+        // --- NEW: AGE-BASED RESTRICTION VALIDATION FOR MINORS ---
+        if ($user->isMinor()) {
+            if ($request->category_id === 'vawc' || $request->category_id === 'noise') {
+                return back()->withErrors([
+                    'category_id' => 'Minors are restricted from filing private disputes or noise/peace complaints. Please ask your parent or guardian to file this.'
+                ]);
+            }
+        }
+
         // Map text values from the form to integer category IDs in your database table
         $categoryMap = [
             'light' => 1,     // Infrastructure & Utilities
@@ -102,14 +111,14 @@ class ConcernController extends Controller
 
         $visibility = ($request->category_id === 'vawc') ? 'private' : 'public';
         
-        DB::transaction(function () use ($request, $user, $categoryIdInt) {
+        DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility) {
             $concern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
                 'title' => $request->title,
                 'description' => $request->description,
                 'category_id' => $categoryIdInt,
-                'visibility' => 'private', 
+                'visibility' => $visibility, 
                 'status' => ConcernStatus::Submitted, 
                 'location' => DB::raw("ST_GeomFromText('POINT({$request->lng} {$request->lat})', 4326)"),
                 'address_text' => $request->address_text ?? "Coordinates: {$request->lat}, {$request->lng}",

@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne; 
-use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Added this import
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -35,6 +36,10 @@ class User extends Authenticatable
         'civic_xp',
         'is_active',
         'last_login_at',
+        // --- ADDED PARENT FIELDS FOR MINORS ---
+        'parent_user_id',
+        'parent_name',
+        'parent_contact',
     ];
 
     protected $hidden = [
@@ -64,10 +69,38 @@ class User extends Authenticatable
         return $this->hasOne(ResidentProfile::class);
     }
 
-    // <-- NEW RELATIONSHIP FOR TASK A8 ADDED HERE
     public function concerns(): HasMany
     {
         return $this->hasMany(Concern::class, 'reporter_id');
+    }
+
+    // --- NEW RELATIONSHIPS & HELPER METHODS FOR MINORS ---
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_user_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(User::class, 'parent_user_id');
+    }
+
+    public function isMinor(): bool
+    {
+        if ($this->role !== UserRole::Resident && $this->role !== 'resident') {
+            return false;
+        }
+
+        if (!$this->birthday) {
+            $profile = $this->residentProfile;
+            if (!$profile || !$profile->birthday) {
+                return false;
+            }
+            return Carbon::parse($profile->birthday)->age < 18;
+        }
+
+        return Carbon::parse($this->birthday)->age < 18;
     }
 
     public function needsPasswordSetup(): bool

@@ -36,9 +36,31 @@ class RegisteredUserController extends Controller
             'sex' => 'required|string|in:Male,Female,Other',
             'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
             'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            // --- NEW: CONDITIONAL VALIDATION FOR MINORS ---
+            'parent_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {
+                        $fail('The parent or guardian name is required for minors (under 18 years old).');
+                    }
+                },
+            ],
+            'parent_contact' => [
+                'nullable',
+                'string',
+                'max:20',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {
+                        $fail('The parent or guardian contact number is required for minors (under 18 years old).');
+                    }
+                },
+            ],
         ]);
 
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
+        $isMinor = Carbon::parse($parsedBirthday)->age < 18;
 
         // Check if matching preloaded census record exists
         $preloaded = PreloadedResident::where('first_name', 'like', $request->first_name)
@@ -59,6 +81,7 @@ class RegisteredUserController extends Controller
         $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
         \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
         // ---------------------------------------------
+        
         // 1. Save into temporary resident_registrations staging table
         ResidentRegistration::create([
             'barangay_id' => $barangayId,
@@ -76,6 +99,8 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'mobile' => $request->mobile,
             'government_id_path' => $idPath,
+            'parent_name' => $isMinor ? $request->parent_name : null,
+            'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
         // 2. Locate existing placeholder user account or create one if none preloaded
@@ -99,6 +124,8 @@ class RegisteredUserController extends Controller
                 'email' => $request->email,
                 'mobile' => $request->mobile,
                 'verification_status' => 'pending',
+                'parent_name' => $isMinor ? $request->parent_name : null,
+                'parent_contact' => $isMinor ? $request->parent_contact : null,
             ]);
         } else {
             // Create new if no preloaded entry existed at all
@@ -113,6 +140,8 @@ class RegisteredUserController extends Controller
                 'email' => $request->email,
                 'mobile' => $request->mobile,
                 'verification_status' => 'pending',
+                'parent_name' => $isMinor ? $request->parent_name : null,
+                'parent_contact' => $isMinor ? $request->parent_contact : null,
             ]);
         }
 

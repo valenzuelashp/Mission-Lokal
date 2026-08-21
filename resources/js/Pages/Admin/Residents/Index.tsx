@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Search, Users, UserPlus, Upload, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Search, Users, UserPlus, Upload, X, ShieldAlert } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 import ResidentsTable from '@/Components/admin/ResidentsTable';
 import { Input } from '@/Components/ui/input';
 import { Button } from '@/Components/ui/button';
@@ -26,6 +26,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
     const [activePanel, setActivePanel] = useState<'none' | 'manual' | 'csv'>('none');
+    const [isManualMinor, setIsManualMinor] = useState(false);
 
     const manualForm = useForm({
         first_name: '',
@@ -38,7 +39,25 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
         city: '',
         province: '',
         birthday: '',
+        parent_name: '',
+        parent_contact: '',
     });
+
+    // Watch birthday inside manual form to dynamically calculate if registered user is a minor (< 18)
+    useEffect(() => {
+        if (manualForm.data.birthday) {
+            const birthDate = new Date(manualForm.data.birthday);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            setIsManualMinor(age < 18);
+        } else {
+            setIsManualMinor(false);
+        }
+    }, [manualForm.data.birthday]);
 
     const csvForm = useForm<{ file: File | null }>({
         file: null,
@@ -50,6 +69,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
             onSuccess: () => {
                 setActivePanel('none');
                 manualForm.reset();
+                setIsManualMinor(false);
             },
         });
     };
@@ -164,6 +184,26 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                                 <Input type="date" value={manualForm.data.birthday} onChange={e => manualForm.setData('birthday', e.target.value)} required />
                             </div>
                         </div>
+
+                        {/* --- OPTIONAL GUARDIAN FIELDS FOR ADMIN MANUAL ADDITION OF MINORS --- */}
+                        {isManualMinor && (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
+                                <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider">
+                                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                    Minor Account — Parent / Guardian Information (Optional)
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-medium">Guardian Full Name</label>
+                                        <Input placeholder="Guardian Name (Optional)" value={manualForm.data.parent_name} onChange={e => manualForm.setData('parent_name', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium">Guardian Contact Number</label>
+                                        <Input placeholder="09123456789 (Optional)" value={manualForm.data.parent_contact} onChange={e => manualForm.setData('parent_contact', e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
                             <div>

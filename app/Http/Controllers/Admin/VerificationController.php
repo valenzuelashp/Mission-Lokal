@@ -83,6 +83,8 @@ class VerificationController extends Controller
             'province' => $registration->province,
             'email' => $registration->email,
             'mobile' => $registration->mobile,
+            'parent_name' => $registration->parent_name,         
+            'parent_contact' => $registration->parent_contact,   
             'resident_profile' => [
                 'government_id_storage_key' => $registration->government_id_path,
             ]
@@ -179,6 +181,21 @@ class VerificationController extends Controller
             $cleanLastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $request->last_name));
             $rawPassword = $accountId . '!' . $cleanLastName;
 
+            // --- AUTOMATIC PARENT / GUARDIAN USER ID LOOKUP ---
+            $parentUserId = null;
+            if (!empty($registration->parent_contact)) {
+                // Try finding parent by mobile or email match in the users table
+                $parentMatch = User::where('barangay_id', $barangayId ?? $registration->barangay_id)
+                    ->where(function($q) use ($registration) {
+                        $q->where('mobile', $registration->parent_contact)
+                          ->orWhere('email', $registration->parent_contact);
+                    })->first();
+
+                if ($parentMatch) {
+                    $parentUserId = $parentMatch->id;
+                }
+            }
+
             $user = User::updateOrCreate(
                 ['email' => $registration->email],
                 [
@@ -193,6 +210,9 @@ class VerificationController extends Controller
                     'password' => Hash::make($rawPassword),
                     'verification_status' => 'approved',
                     'is_active' => false,
+                    'parent_name' => $registration->parent_name,         
+                    'parent_contact' => $registration->parent_contact,   
+                    'parent_user_id' => $parentUserId,                  // <-- Automatically linked if parent account exists
                 ]
             );
 

@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEvent } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import MapPinPicker from '@/Components/maps/MapPinPicker';
@@ -12,6 +12,10 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { NewConcernPageProps } from '@/Types';
 
 export default function New({ categories = [], mapCenter = [14.6507, 120.9793] }: NewConcernPageProps) {
+    // Extract auth user to check if they are a minor
+    const { auth } = usePage().props as any;
+    const isMinor = auth?.user?.is_minor ?? false;
+
     const defaultLat = mapCenter && mapCenter[0] ? mapCenter[0] : 14.6507;
     const defaultLng = mapCenter && mapCenter[1] ? mapCenter[1] : 120.9793;
 
@@ -36,6 +40,16 @@ export default function New({ categories = [], mapCenter = [14.6507, 120.9793] }
                 title="Post a concern"
                 description="Describe the issue and pin it on the map. AI will help route and categorize your report."
             />
+
+            {/* Minor Restriction Notice Banner */}
+            {isMinor && (
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                    <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                    <div>
+                        <span className="font-semibold">Minor Account Guidelines:</span> You are logged in as a minor account. You can report public community issues (infrastructure, sanitation, utilities), but sensitive or private reports (such as VAWC or noise/peace complaints) are restricted.
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2">
                 <Card>
@@ -63,14 +77,21 @@ export default function New({ categories = [], mapCenter = [14.6507, 120.9793] }
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             >
                                 <option value="">Select a category</option>
-                                {categories.map((c) => (
-                                    <option key={c.value} value={c.value}>
-                                        {c.label}
-                                    </option>
-                                ))}
+                                {categories.map((c) => {
+                                    // If user is a minor, hide restricted choices
+                                    if (isMinor && (c.value === 'vawc' || c.value === 'noise')) {
+                                        return null;
+                                    }
+
+                                    return (
+                                        <option key={c.value} value={c.value}>
+                                            {c.label}
+                                        </option>
+                                    );
+                                })}
                             </select>
                             
-                            {/* Phase 9 Privacy Alert */}
+                            {/* Privacy Alert */}
                             {data.category_id === 'vawc' && (
                                 <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                                     <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />

@@ -22,7 +22,6 @@ class BlotterController extends Controller
             ->map(function ($blotter) {
                 return [
                     'id' => (string) $blotter->id,
-                    // FIX: Gracefully handle items that don't have a ticket number yet while pending review
                     'ticket_number' => $blotter->ticket_number ?? 'Pending Review',
                     'type' => $blotter->type === 'two_party' ? 'Two-Party Dispute' : 'One-Party Log',
                     'incident_date' => $blotter->incident_at ? $blotter->incident_at->format('M d, Y') : 'Unknown Date',
@@ -41,6 +40,15 @@ class BlotterController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        // --- NEW: BLOCK MINORS FROM FILING BLOTTERS ---
+        if ($user->isMinor()) {
+            return back()->withErrors([
+                'type' => 'Minors are restricted from filing standalone blotter complaints. Please ask your parent or guardian to file this on your behalf.'
+            ]);
+        }
+
         $validated = $request->validate([
             'type' => ['required', 'in:two_party,one_party'],
             'respondent_name' => ['required_if:type,two_party', 'nullable', 'string', 'max:255'],
@@ -48,15 +56,12 @@ class BlotterController extends Controller
             'incident_at' => ['required', 'date'],
             'incident_address' => ['required', 'string', 'max:512'],
             'relief_sought' => ['nullable', 'string'],
-            // Check for optional witness array structures matching the json model cast
             'witnesses' => ['nullable', 'array'],
             'witnesses.*' => ['string', 'max:255'],
         ], [
             'respondent_name.required_if' => 'The respondent / other party field is required for two-party disputes.',
             'narrative.required' => 'The statement of facts field is required.',
         ]);
-
-        $user = $request->user();
 
         Blotter::create([
             'barangay_id' => $user->barangay_id,
@@ -67,7 +72,7 @@ class BlotterController extends Controller
             'incident_at' => $validated['incident_at'],
             'incident_address' => $validated['incident_address'],
             'relief_sought' => $validated['relief_sought'],
-            'witnesses' => $request->input('witnesses', []), // Clean fallback to empty json array
+            'witnesses' => $request->input('witnesses', []), 
             'status' => 'pending_approval', 
         ]);
 

@@ -1,6 +1,8 @@
 import { Head, useForm, Link } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { ShieldAlert } from 'lucide-react';
 
 export default function Register() {
     const { data, setData, post, processing, errors } = useForm({
@@ -18,7 +20,27 @@ export default function Register() {
         sex: 'Male',
         civil_status: 'Single',
         government_id: null as File | null,
+        parent_name: '',
+        parent_contact: '',
     });
+
+    const [isMinor, setIsMinor] = useState(false);
+
+    // Watch birthday changes to dynamically calculate if user is a minor (< 18)
+    useEffect(() => {
+        if (data.birthday) {
+            const birthDate = new Date(data.birthday);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            setIsMinor(age < 18);
+        } else {
+            setIsMinor(false);
+        }
+    }, [data.birthday]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -84,6 +106,30 @@ export default function Register() {
                             {errors.birthday && <p className="text-xs text-red-600 mt-1">{errors.birthday}</p>}
                         </div>
                     </div>
+
+                    {/* --- CONDITIONAL GUARDIAN SECTION FOR MINORS --- */}
+                    {isMinor && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
+                            <div className="flex items-start gap-2">
+                                <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-xs text-amber-900 font-medium">
+                                    You have entered a birthdate indicating you are a minor (under 18 years old). Please provide your parent or guardian's details below.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-medium">Parent / Guardian Full Name *</label>
+                                    <Input placeholder="Guardian Name" value={data.parent_name} onChange={e => setData('parent_name', e.target.value)} required={isMinor} />
+                                    {errors.parent_name && <p className="text-xs text-red-600 mt-1">{errors.parent_name}</p>}
+                                </div>
+                                <div>
+                                    <label className="text-xs font-medium">Parent / Guardian Contact *</label>
+                                    <Input placeholder="09123456789" value={data.parent_contact} onChange={e => setData('parent_contact', e.target.value)} required={isMinor} />
+                                    {errors.parent_contact && <p className="text-xs text-red-600 mt-1">{errors.parent_contact}</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
                         <div>

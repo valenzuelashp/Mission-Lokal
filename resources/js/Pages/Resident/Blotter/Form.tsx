@@ -1,5 +1,5 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Shield } from 'lucide-react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 import { FormEvent } from 'react';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import { Button } from '@/Components/ui/button';
@@ -11,7 +11,6 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import { demoResidentProfile } from '@/Lib/residentDemo';
 import type { BlotterFormPageProps, BlotterType } from '@/Types';
 
-// Tell TypeScript that Ziggy's route function is globally available
 declare function route(name: string, parameters?: any, absolute?: boolean): string;
 
 type Props = Partial<BlotterFormPageProps>;
@@ -22,6 +21,8 @@ const titles: Record<BlotterType, string> = {
 };
 
 export default function Form({ blotterType = 'two-party' }: Props) {
+    const { auth } = usePage().props as any;
+    const isMinor = auth?.user?.is_minor ?? false;
     const isTwoParty = blotterType === 'two-party';
 
     const { data, setData, post, processing, errors, transform } = useForm({
@@ -39,7 +40,6 @@ export default function Form({ blotterType = 'two-party' }: Props) {
     const submit = (e: FormEvent) => {
         e.preventDefault();
 
-        // Transform form data dynamically into the snake_case keys the backend migration demands
         transform((formData) => ({
             type: formData.type === 'two-party' ? 'two_party' : 'one_party',
             respondent_name: isTwoParty ? formData.respondent_name : null,
@@ -81,6 +81,15 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                     </Link>
                 </Button>
 
+                {isMinor && (
+                    <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 shadow-sm">
+                        <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+                        <p className="font-medium">
+                            Minor accounts are restricted from filing formal standalone blotter complaints. Please have your parent or guardian file this on your behalf.
+                        </p>
+                    </div>
+                )}
+
                 <Card className="shadow-sm">
                     <CardContent className="p-4">
                         <h1 className="text-xl font-bold">{titles[blotterType]}</h1>
@@ -115,6 +124,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                         value={data.respondent_name}
                                         onChange={(e) => setData('respondent_name', e.target.value)}
                                         placeholder="Full name of the person complained against"
+                                        disabled={isMinor}
                                     />
                                     {errors.respondent_name && (
                                         <p className="text-sm text-destructive">{errors.respondent_name}</p>
@@ -137,6 +147,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                         type="date"
                                         value={data.incident_date}
                                         onChange={(e) => setData('incident_date', e.target.value)}
+                                        disabled={isMinor}
                                     />
                                     {errors.incident_date && (
                                         <p className="text-sm text-destructive">The incident date field is required.</p>
@@ -149,6 +160,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                         type="time"
                                         value={data.incident_time}
                                         onChange={(e) => setData('incident_time', e.target.value)}
+                                        disabled={isMinor}
                                     />
                                 </div>
                             </div>
@@ -159,6 +171,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     value={data.location}
                                     onChange={(e) => setData('location', e.target.value)}
                                     placeholder="Where did the incident occur?"
+                                    disabled={isMinor}
                                 />
                                 {errors.location && (
                                     <p className="text-sm text-destructive">{errors.location}</p>
@@ -172,6 +185,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     onChange={(e) => setData('statement', e.target.value)}
                                     placeholder="Describe what happened in detail…"
                                     rows={6}
+                                    disabled={isMinor}
                                 />
                                 {errors.statement && <p className="text-sm text-destructive">{errors.statement}</p>}
                             </div>
@@ -183,6 +197,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     onChange={(e) => setData('relief_sought', e.target.value)}
                                     placeholder="What outcome are you requesting from the barangay?"
                                     rows={3}
+                                    disabled={isMinor}
                                 />
                                 {errors.relief_sought && <p className="text-sm text-destructive">{errors.relief_sought}</p>}
                             </div>
@@ -194,6 +209,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                             type="checkbox"
                             checked={data.acknowledged}
                             onChange={(e) => setData('acknowledged', e.target.checked)}
+                            disabled={isMinor}
                             className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
                         />
                         <span>
@@ -204,7 +220,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                     {errors.acknowledged && <p className="text-sm text-destructive">{errors.acknowledged}</p>}
 
                     <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                        <Button type="submit" className="w-full sm:w-auto" disabled={processing || !data.acknowledged}>
+                        <Button type="submit" className="w-full sm:w-auto" disabled={processing || !data.acknowledged || isMinor}>
                             Submit blotter
                         </Button>
                         <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>

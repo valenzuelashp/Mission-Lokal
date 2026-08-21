@@ -35,6 +35,8 @@ class ProfileEditController extends Controller
                 'users.last_name',
                 'users.email as current_email',
                 'users.mobile as current_mobile',
+                'users.parent_name as current_parent_name',
+                'users.parent_contact as current_parent_contact',
                 'resident_profiles.house_street',
                 'resident_profiles.barangay_name',
                 'resident_profiles.city',
@@ -66,6 +68,8 @@ class ProfileEditController extends Controller
                         'full_name' => $currentFullName,
                         'email' => $edit->current_email ?? '—',
                         'mobile' => $edit->current_mobile ?? '—',
+                        'parent_name' => $edit->current_parent_name ?? '—',
+                        'parent_contact' => $edit->current_parent_contact ?? '—',
                         'sex' => $edit->sex ?? '—',
                         'civil_status' => $edit->civil_status ?? '—',
                         'birthday' => $edit->birthday ?? '—',
@@ -118,6 +122,12 @@ class ProfileEditController extends Controller
                 if (isset($changes['mobile'])) {
                     $userUpdates['mobile'] = $changes['mobile'];
                 }
+                if (isset($changes['parent_name'])) {
+                    $userUpdates['parent_name'] = $changes['parent_name'];
+                }
+                if (isset($changes['parent_contact'])) {
+                    $userUpdates['parent_contact'] = $changes['parent_contact'];
+                }
                 if (isset($changes['full_name'])) {
                     $nameParts = explode(' ', trim($changes['full_name']));
                     $userUpdates['first_name'] = array_shift($nameParts);
@@ -132,10 +142,8 @@ class ProfileEditController extends Controller
                     $profileUpdates['civil_status'] = $changes['civil_status'];
                 }
 
-                // 1. Commit base user model updates
                 User::where('id', $editRequest->user_id)->update($userUpdates);
 
-                // 2. Map individual address components straight to their separate database columns
                 if (isset($changes['house_street'])) {
                     $profileUpdates['house_street'] = $changes['house_street'];
                 }
@@ -154,7 +162,6 @@ class ProfileEditController extends Controller
                 }
             }
 
-            // 3. Mark request approved
             DB::table('profile_edit_requests')
                 ->where('id', $editRequest->id)
                 ->update([

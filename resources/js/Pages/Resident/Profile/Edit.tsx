@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import ResidentLayout from '@/Layouts/ResidentLayout';
+import { ShieldAlert } from 'lucide-react';
 
 export default function ProfileEdit({ profile }: { profile: any }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -14,7 +15,11 @@ export default function ProfileEdit({ profile }: { profile: any }) {
         barangay_name: profile?.barangay_name || '',
         city: profile?.city || '',
         province: profile?.province || '',
+        parent_name: profile?.parent_name || '',
+        parent_contact: profile?.parent_contact || '',
     });
+
+    const isMinor = profile?.is_minor || false;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,6 +73,28 @@ export default function ProfileEdit({ profile }: { profile: any }) {
                         </div>
                     </div>
 
+                    {/* --- GUARDIAN FIELDS FOR MINOR PROFILE EDITS --- */}
+                    {isMinor && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
+                            <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider">
+                                <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                Parent / Guardian Information (Required Review)
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Guardian Name *</label>
+                                    <Input value={data.parent_name} onChange={e => setData('parent_name', e.target.value)} required={isMinor} />
+                                    {errors.parent_name && <span className="text-xs text-red-600 mt-1 block">{errors.parent_name}</span>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Guardian Contact *</label>
+                                    <Input value={data.parent_contact} onChange={e => setData('parent_contact', e.target.value)} required={isMinor} />
+                                    {errors.parent_contact && <span className="text-xs text-red-600 mt-1 block">{errors.parent_contact}</span>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Email Address *</label>
@@ -81,7 +108,6 @@ export default function ProfileEdit({ profile }: { profile: any }) {
                         </div>
                     </div>
 
-                    {/* Divided Address Fields */}
                     <div>
                         <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">House / Street *</label>
                         <Input value={data.house_street} onChange={e => setData('house_street', e.target.value)} required />

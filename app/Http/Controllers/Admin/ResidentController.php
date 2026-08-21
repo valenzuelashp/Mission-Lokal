@@ -85,6 +85,9 @@ class ResidentController extends Controller
             'province' => 'required|string|max:255',
             'birthday' => 'required|date',
             'mobile' => 'nullable|string|max:20',
+            // --- OPTIONAL FOR ADMINS WHEN PRELOADING/MANUALLY ADDING ---
+            'parent_name' => 'nullable|string|max:255',
+            'parent_contact' => 'nullable|string|max:20',
         ]);
 
         $barangayId = $request->user()->barangay_id;
@@ -92,6 +95,7 @@ class ResidentController extends Controller
         $nextNumber = $latest ? ((int) str_replace('RES', '', $latest->account_id) + 1) : 1;
         $accountId = 'RES' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         $formattedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
+        $isMinor = Carbon::parse($formattedBirthday)->age < 18;
 
         DB::beginTransaction();
         try {
@@ -125,6 +129,8 @@ class ResidentController extends Controller
                 'mobile' => $request->mobile ?: null,
                 'password' => null,
                 'verification_status' => 'unverified',
+                'parent_name' => $isMinor ? $request->parent_name : null,         
+                'parent_contact' => $isMinor ? $request->parent_contact : null,   
             ]);
 
             DB::table('audit_logs')->insert([
@@ -272,6 +278,8 @@ class ResidentController extends Controller
             'middle_name' => $user->middle_name ?? '',
             'email' => $user->email ?? '—',
             'mobile' => $user->mobile ?? '—',
+            'parent_name' => $user->parent_name ?? null,       
+            'parent_contact' => $user->parent_contact ?? null, 
             'address' => $user->address ?? 'No physical address listed',
             'zip_code' => $user->zip_code ?? null,
             'verification_status' => $user->verification_status?->value ?? $user->verification_status ?? 'unverified',

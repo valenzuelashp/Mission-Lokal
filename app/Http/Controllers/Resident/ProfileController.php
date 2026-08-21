@@ -20,7 +20,6 @@ class ProfileController extends Controller
 
         $reportCount = Concern::where('reporter_id', $user->id)->count();
 
-        // Properly assemble full name including middle name and extension
         $firstName = $user->first_name ?? '';
         $middleName = $user->middle_name ?? '';
         $lastName = $user->last_name ?? '';
@@ -40,7 +39,6 @@ class ProfileController extends Controller
                 : $birthdayData->format('Y-m-d');
         }
 
-        // Build address string from individual resident_profile columns
         $profile = $user->residentProfile;
         $addressStr = 'No address registered';
         if ($profile) {
@@ -67,6 +65,9 @@ class ProfileController extends Controller
             'member_since'    => $user->created_at ? $user->created_at->format('F Y') : now()->format('F Y'),
             'report_count'    => $reportCount,
             'edit_status'     => $user->profile_edit_status ?? 'approved', 
+            'is_minor'        => $user->isMinor(),
+            'parent_name'     => $user->parent_name ?? '',
+            'parent_contact'  => $user->parent_contact ?? '',
             'badges'          => [],
         ];
 
@@ -85,7 +86,6 @@ class ProfileController extends Controller
 
         $user->load(['residentProfile']);
 
-        // Properly assemble full name including middle name and extension for edit view
         $firstName = $user->first_name ?? '';
         $middleName = $user->middle_name ?? '';
         $lastName = $user->last_name ?? '';
@@ -105,6 +105,9 @@ class ProfileController extends Controller
             'barangay_name' => $profile->barangay_name ?? '',
             'city'          => $profile->city ?? '',
             'province'      => $profile->province ?? '',
+            'is_minor'      => $user->isMinor(),
+            'parent_name'   => $user->parent_name ?? '',
+            'parent_contact'=> $user->parent_contact ?? '',
         ];
 
         return Inertia::render('Resident/Profile/Edit', [
@@ -122,7 +125,7 @@ class ProfileController extends Controller
 
         $user->load(['barangay', 'residentProfile']); 
 
-        $validated = $request->validate([
+        $rules = [
             'full_name'     => 'required|string|max:255',
             'email'         => 'required|email|max:255|unique:users,email,' . $user->id,
             'mobile'        => 'required|string|max:20',
@@ -132,7 +135,15 @@ class ProfileController extends Controller
             'barangay_name' => 'required|string|max:255',
             'city'          => 'required|string|max:255',
             'province'      => 'required|string|max:255',
-        ]);
+        ];
+
+        // --- STRICT REQUIREMENT: REQUIRE GUARDIAN FIELDS IF MINOR ---
+        if ($user->isMinor()) {
+            $rules['parent_name'] = 'required|string|max:255';
+            $rules['parent_contact'] = 'required|string|max:20';
+        }
+
+        $validated = $request->validate($rules);
 
         $barangayName = $user->barangay->name ?? ''; 
         
@@ -142,7 +153,6 @@ class ProfileController extends Controller
             ])->withInput();
         }
 
-        // Assemble current baseline values to compare against
         $currFirst = $user->first_name ?? '';
         $currMiddle = $user->middle_name ?? '';
         $currLast = $user->last_name ?? '';
@@ -151,7 +161,6 @@ class ProfileController extends Controller
         
         $profile = $user->residentProfile;
 
-        // Build array of changes, tracking each address component individually
         $changes = [];
         if (trim($validated['full_name']) !== trim($currentFullName)) {
             $changes['full_name'] = $validated['full_name'];
@@ -179,6 +188,16 @@ class ProfileController extends Controller
         }
         if (trim($validated['province'] ?? '') !== trim($profile->province ?? '')) {
             $changes['province'] = $validated['province'];
+        }
+
+        // Track guardian changes for minors
+        if ($user->isMinor()) {
+            if (trim($validated['parent_name'] ?? '') !== trim($user->parent_name ?? '')) {
+                $changes['parent_name'] = $validated['parent_name'];
+            }
+            if (trim($validated['parent_contact'] ?? '') !== trim($user->parent_contact ?? '')) {
+                $changes['parent_contact'] = $validated['parent_contact'];
+            }
         }
 
         if (empty($changes)) {

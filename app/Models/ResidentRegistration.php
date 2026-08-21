@@ -27,5 +27,7 @@ class ResidentRegistration extends Model
         'email',
         'mobile',
         'government_id_path',
+        'parent_name',
+        'parent_contact',
     ];
 }

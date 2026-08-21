@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\UserRole;
-use App\Models\Notification; // <-- Added the Notification model
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -27,24 +27,30 @@ class HandleInertiaRequests extends Middleware
                 ->where('is_read', false)
                 ->count();
             
-            // NEW: Safely extract the role and load the profile so React knows if they uploaded an ID
             $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
             if ($roleValue === 'resident') {
                 $user->load('residentProfile');
             }
         }
 
+        // Convert user to array and inject is_minor status dynamically
+        $userData = null;
+        if ($user) {
+            $userData = array_merge($user->toArray(), [
+                'is_minor' => $user->isMinor(),
+            ]);
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $user,
+                'user' => $userData,
                 'needs_password_setup' => $user ? $user->needsPasswordSetup() : false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            // Pass the dynamic count to the frontend React props
             'unread_count' => $unreadCount,
         ];
     }
