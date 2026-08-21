@@ -157,3 +157,14 @@ Route::get('/force-drop', function() {
     Illuminate\Support\Facades\DB::statement('DROP TABLE IF EXISTS audit_logs');
     return 'Table dropped successfully! You can now run the migration.';
 });
+
+//PHASE 9: Service Worker Global Scope Override
+Route::get('/sw.js', function () {
+    $path = public_path('build/sw.js');
+    if (!file_exists($path)) abort(404);
+    
+    return response()->file($path, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/',
+    ]);
+});

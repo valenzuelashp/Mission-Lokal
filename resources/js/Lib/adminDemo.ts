@@ -610,6 +610,9 @@ export const demoResidents: AdminResident[] = [
 
 const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResident>> = {
     'u-res-001': {
+        first_name: 'Juan',
+        middle_name: '',
+        last_name: 'Dela Cruz',
         birthday: 'Mar 14, 1990',
         age_years: 35,
         national_id_masked: 'XXXX-XXXX-4421',
@@ -651,6 +654,9 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         ],
     },
     'u-res-002': {
+        first_name: 'Maria',
+        middle_name: '',
+        last_name: 'Santos',
         birthday: 'Aug 22, 1988',
         age_years: 37,
         national_id_masked: 'XXXX-XXXX-4455',
@@ -678,6 +684,9 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         ],
     },
     'u-res-005': {
+        first_name: 'Ricardo',
+        middle_name: '',
+        last_name: 'Tan',
         birthday: 'Jul 22, 1985',
         age_years: 40,
         national_id_masked: 'XXXX-XXXX-1288',
@@ -718,6 +727,9 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
 };
 
 const defaultDetail: Omit<AdminResidentDetail, keyof AdminResident> = {
+    first_name: '—',
+    middle_name: '—',
+    last_name: '—',
     birthday: '—',
     age_years: null,
     national_id_masked: null,

@@ -13,6 +13,14 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
+            injectRegister: null, 
+            buildBase: '/build/',
+            
+            devOptions: {
+                enabled: true,
+                type: 'module',
+            },
+            
             includeAssets: ['icons/pwa/*.png'],
             manifest: {
                 name: 'Mission-Lokal',
@@ -22,20 +30,19 @@ export default defineConfig({
                 background_color: '#ffffff',
                 display: 'standalone',
                 start_url: '/feed',
+                scope: '/', 
                 icons: [
-                    {
-                        src: '/icons/pwa/icon-192.png',
-                        sizes: '192x192',
-                        type: 'image/png',
-                    },
-                    {
-                        src: '/icons/pwa/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                    },
+                    { src: '/icons/pwa/icon-192.png', sizes: '192x192', type: 'image/png' },
+                    { src: '/icons/pwa/icon-512.png', sizes: '512x512', type: 'image/png' },
                 ],
             },
             workbox: {
+                inlineWorkboxRuntime: true, 
+                navigateFallback: null, 
+                // PHASE 9 FIX: Explicitly map the assets folder to the Laravel build output
+                modifyURLPrefix: {
+                    'assets/': '/build/assets/',
+                },
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 runtimeCaching: [
                     {

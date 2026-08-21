@@ -57,6 +57,11 @@ class RegisteredUserController extends Controller
                     }
                 },
             ],
+            // PHASE 9 SECURITY: Enforce explicit data privacy consent
+            'consent' => 'accepted', 
+        ], [
+            // Custom error message for the consent checkbox
+            'consent.accepted' => 'You must accept the Privacy Policy and consent to data processing to register.',
         ]);
 
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
@@ -81,6 +86,7 @@ class RegisteredUserController extends Controller
         $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
         \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
         // ---------------------------------------------
+        
         
         // 1. Save into temporary resident_registrations staging table
         ResidentRegistration::create([
