@@ -51,7 +51,11 @@ class PreloadedResidentSeeder extends Seeder
                     'last_name'      => $data['last_name'],
                     'name_extension' => $data['name_extension'] ?: null,
                     'birthday'       => $data['birthday'],
-                    'address'        => $data['address'] ?: null,
+                    // Support the legacy CSV address column while storing the new address fields.
+                    'house_street'   => $data['house_street'] ?? ($data['address'] ?: null),
+                    'barangay_name'  => $data['barangay_name'] ?? 'Example',
+                    'city'           => $data['city'] ?? 'Paranaque',
+                    'province'       => $data['province'] ?? 'Metro Manila',
                     'email'          => $data['email'] ?: null,
                     'mobile'         => $data['mobile'] ?: null,
                 ]

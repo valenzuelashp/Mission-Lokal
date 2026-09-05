@@ -22,6 +22,7 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
     const [showMissionForm, setShowMissionForm] = useState(false);
 
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
+    const prescriptiveSteps = Array.isArray(report?.prescriptive_steps) ? report.prescriptive_steps : [];
 
     // SAFETY NET: Force into numbers, or fallback to default coordinates if undefined
     const safeLat = report?.lat ? Number(report.lat) : 14.6507;
@@ -76,6 +77,19 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                 </div>
 
                 <div className="space-y-6">
+                    <div className="rounded-lg border bg-card p-4 shadow-sm">
+                        <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Prescriptive Steps</h4>
+                        {prescriptiveSteps.length > 0 ? (
+                            <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                                {prescriptiveSteps.map((step: string, index: number) => (
+                                    <li key={`${step}-${index}`}>{step}</li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="text-sm text-slate-500">No prescriptive steps available for this report.</p>
+                        )}
+                    </div>
+
                     <div className="rounded-lg border bg-card p-6 shadow-sm">
                         {!isTerminal && !showMissionForm && !showRejectInput && !showMergeSelect && (
                             <div className="flex flex-col gap-2">

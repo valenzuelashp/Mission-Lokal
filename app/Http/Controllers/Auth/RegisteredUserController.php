@@ -67,13 +67,20 @@ class RegisteredUserController extends Controller
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
         $isMinor = Carbon::parse($parsedBirthday)->age < 18;
 
-        // Check if matching preloaded census record exists
-        $preloaded = PreloadedResident::where('first_name', 'like', $request->first_name)
-            ->where('last_name', 'like', $request->last_name)
-            ->whereDate('birthday', $parsedBirthday)
+        // Only allow registration if the resident exists in the barangay record list using
+        // the same full name, birthday, and email information that admin records hold.
+        $preloaded = PreloadedResident::whereRaw('LOWER(first_name) = ?', [strtolower(trim($request->first_name))])
+            ->whereRaw('LOWER(last_name) = ?', [strtolower(trim($request->last_name))])
+            ->where('birthday', $parsedBirthday)
             ->first();
 
-        $barangayId = $preloaded ? $preloaded->barangay_id : \App\Models\Barangay::first()?->id;
+        if (! $preloaded) {
+            return back()->withErrors([
+                'general' => 'This name and email do not match any record in the barangay database. Your account is not yet in the barangay records or has not been added by the admin.',
+            ])->withInput();
+        }
+
+        $barangayId = $preloaded->barangay_id ?? \App\Models\Barangay::first()?->id;
 
         // --- PHASE 9 SECURITY: ENCRYPT ID AT REST ---
         $file = $request->file('government_id');

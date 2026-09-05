@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
+use App\Models\ConcernAiAnalysis;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +67,9 @@ class ReportController extends Controller
         $record = Concern::where('barangay_id', $barangayId)->with('media')->findOrFail($id);
         
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
+        $aiAnalysis = ConcernAiAnalysis::where('concern_id', $record->id)
+            ->orderByDesc('processed_at')
+            ->first();
         
         $personnelList = User::where('barangay_id', $barangayId)
             ->where('role', 'personnel')
@@ -96,6 +100,7 @@ class ReportController extends Controller
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+                'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
             ],
             'personnel' => $personnelList,
             'masterCandidates' => $masterCandidates,
