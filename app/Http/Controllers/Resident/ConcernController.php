@@ -83,6 +83,9 @@ class ConcernController extends Controller
     /**
      * R9: Save formal community concern report records using atomic transactions.
      */
+/**
+     * R9: Save formal community concern report records using atomic transactions.
+     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -105,22 +108,21 @@ class ConcernController extends Controller
             }
         }
 
-        // Map text values from the form to integer category IDs in your database table
         $categoryMap = [
-            'light' => 1,     // Infrastructure & Utilities
-            'flood' => 2,     // Sanitation & Environment
-            'waste' => 2,     // Sanitation & Environment
-            'noise' => 3,     // Peace & Order
-            'fire' => 1,      // Infrastructure & Utilities
-            'vawc' => 4,      // Katarungang Pambarangay
+            'light' => 1,     
+            'flood' => 2,     
+            'waste' => 2,     
+            'noise' => 3,     
+            'fire' => 1,      
+            'vawc' => 4,      
         ];
 
         $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
-
         $visibility = ($request->category_id === 'vawc') ? 'private' : 'public';
         
-        DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility) {
-            $concern = Concern::create([
+        // Capture the newly created concern from the transaction closure
+        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility) {
+            $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
                 'title' => $request->title,
@@ -140,8 +142,8 @@ class ConcernController extends Controller
                 foreach ($request->file('images') as $index => $file) {
                     $path = $uploadService->upload($file, 'concerns', 'image');
 
-                    $concern->media()->create([
-                        'id' => Str::uuid()->toString(),
+                    $createdConcern->media()->create([
+                        'id' => \Illuminate\Support\Str::uuid()->toString(),
                         'storage_key' => $path,
                         'mime_type' => $file->getMimeType(),
                         'sort_order' => $index,
@@ -149,17 +151,21 @@ class ConcernController extends Controller
                 }
             }
 
-            // FIX: Ensure this model points to the correct singular table name 'concern_status_history' internally
             ConcernStatusHistory::create([
-                'concern_id' => $concern->id,
+                'concern_id' => $createdConcern->id,
                 'from_status' => null,
                 'to_status' => 'submitted',
                 'actor_id' => $user->id,
                 'note' => 'Concern posted by resident.',
             ]);
+            
+            return $createdConcern;
         });
 
-        return redirect()->route('feed')->with('success', 'Concern submitted successfully!');
+        // PHASE 4: Dispatch the AI processing job
+        \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
+
+        return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
     }
 
     /**
