@@ -6,6 +6,16 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import MapView from '@/Components/maps/MapView';
 
+function formatStep(step: unknown): string {
+    if (typeof step === 'string') return step;
+    if (step && typeof step === 'object') {
+        const value = step as Record<string, unknown>;
+        const text = value.step ?? value.title ?? value.instruction ?? value.action;
+        if (typeof text === 'string') return text;
+    }
+    return JSON.stringify(step);
+}
+
 interface Props {
     report: any;
     masterCandidates?: { id: string; label: string }[];
@@ -76,6 +86,24 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                 </div>
 
                 <div className="space-y-6">
+                    <div className="rounded-lg border bg-card p-6 shadow-sm">
+                        <h3 className="mb-4 text-lg font-semibold">Prescriptive Steps</h3>
+                        {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
+                            <ol className="space-y-3">
+                                {report.prescriptive_steps.map((step: unknown, index: number) => (
+                                    <li key={index} className="flex gap-3 text-sm text-slate-700">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                                            {index + 1}
+                                        </span>
+                                        <span className="pt-0.5">{formatStep(step)}</span>
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No prescriptive steps available.</p>
+                        )}
+                    </div>
+
                     <div className="rounded-lg border bg-card p-6 shadow-sm">
                         {!isTerminal && !showMissionForm && !showRejectInput && !showMergeSelect && (
                             <div className="flex flex-col gap-2">

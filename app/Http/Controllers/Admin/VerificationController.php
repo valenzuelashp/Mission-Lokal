@@ -179,7 +179,7 @@ class VerificationController extends Controller
             $accountId = $preloadedMatch ? $preloadedMatch->account_id : 'RES' . rand(1000, 9999);
 
             $cleanLastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $request->last_name));
-            $rawPassword = $accountId . '!' . $cleanLastName;
+            $rawPassword = $accountId . $cleanLastName;
 
             // --- AUTOMATIC PARENT / GUARDIAN USER ID LOOKUP ---
             $parentUserId = null;

@@ -66,14 +66,56 @@ class RegisteredUserController extends Controller
 
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
         $isMinor = Carbon::parse($parsedBirthday)->age < 18;
+        $firstName = strtolower(trim($request->first_name));
+        $lastName = strtolower(trim($request->last_name));
 
-        // Check if matching preloaded census record exists
-        $preloaded = PreloadedResident::where('first_name', 'like', $request->first_name)
-            ->where('last_name', 'like', $request->last_name)
-            ->whereDate('birthday', $parsedBirthday)
+        $approvedUser = User::where('role', 'resident')
+            ->where('verification_status', 'approved')
+            ->whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
+            ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
+            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {
+                $profileQuery->whereDate('birthday', $parsedBirthday);
+            })
             ->first();
 
-        $barangayId = $preloaded ? $preloaded->barangay_id : \App\Models\Barangay::first()?->id;
+        if ($approvedUser) {
+            return back()->withErrors([
+                'general' => 'An approved account already exists for this name and birthday. Please proceed to login instead.',
+            ])->withInput();
+        }
+
+        $pendingRegistration = ResidentRegistration::whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
+            ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
+            ->whereDate('birthday', $parsedBirthday)
+            ->exists();
+
+        if ($pendingRegistration) {
+            return back()->withErrors([
+                'general' => 'A registration for this name and birthday is already pending review.',
+            ])->withInput();
+        }
+
+        // Only allow registration if the resident exists in the barangay record list using
+        // the same full name, birthday, and email information that admin records hold.
+        $preloaded = PreloadedResident::whereRaw('LOWER(first_name) = ?', [strtolower(trim($request->first_name))])
+            ->whereRaw('LOWER(last_name) = ?', [strtolower(trim($request->last_name))])
+            ->where('birthday', $parsedBirthday)
+            ->first();
+
+        if (! $preloaded) {
+            return back()->withErrors([
+                'general' => "Your name and email are not in the barangay's record. Please contact the barangay administrator to have your record added before registering.",
+            ])->withInput();
+        }
+
+        $existingUser = User::whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])->first();
+        if ($existingUser && $existingUser->verification_status?->value === 'approved') {
+            return back()->withErrors([
+                'general' => 'An approved account already exists for this name and email. Please proceed to login instead.',
+            ])->withInput();
+        }
+
+        $barangayId = $preloaded->barangay_id ?? \App\Models\Barangay::first()?->id;
 
         // --- PHASE 9 SECURITY: ENCRYPT ID AT REST ---
         $file = $request->file('government_id');

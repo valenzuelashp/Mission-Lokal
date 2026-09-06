@@ -66,6 +66,11 @@ export default function Login() {
                             <Button type="submit" className="w-full" disabled={processing}>
                                 Sign in
                             </Button>
+                            <Button type="button" variant="outline" className="w-full" asChild>
+                                <Link href={route('register')}>
+                                    Register
+                                </Link>
+                            </Button>
                             <p className="text-center text-xs text-muted-foreground">
                                 Personnel?{' '}
                                 <a href="/personnel/login" className="text-primary underline-offset-4 hover:underline">

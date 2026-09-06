@@ -25,6 +25,7 @@ export default function Register() {
         parent_contact: '',
     });
 
+    const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
 
     // Watch birthday changes to dynamically calculate if user is a minor (< 18)
@@ -57,6 +58,12 @@ export default function Register() {
                     <h1 className="text-2xl font-bold text-blue-900">Mission-Lokal Resident Portal</h1>
                     <p className="text-sm text-muted-foreground mt-1">Submit your details to compare with barangay records and request verification.</p>
                 </div>
+
+                {formErrors.general && (
+                    <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {formErrors.general}
+                    </div>
+                )}
 
                 <form onSubmit={submit} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

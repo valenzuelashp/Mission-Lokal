@@ -63,7 +63,9 @@ class ReportController extends Controller
     public function show(Request $request, string $id): Response
     {
         $barangayId = $request->user()->barangay_id;
-        $record = Concern::where('barangay_id', $barangayId)->with('media')->findOrFail($id);
+        $record = Concern::where('barangay_id', $barangayId)
+            ->with(['media', 'currentAiAnalysis'])
+            ->findOrFail($id);
         
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
         
@@ -96,6 +98,7 @@ class ReportController extends Controller
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+                'prescriptive_steps' => $record->currentAiAnalysis?->prescriptive_steps ?? [],
             ],
             'personnel' => $personnelList,
             'masterCandidates' => $masterCandidates,
