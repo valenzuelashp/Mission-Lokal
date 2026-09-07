@@ -41,6 +41,8 @@ class PreloadedResidentSeeder extends Seeder
         // 4. Loop through the rows and create records in BOTH tables
         while ($row = fgetcsv($file)) {
             $data = array_combine($header, $row);
+            $address = trim($data['address'] ?? '');
+            $addressParts = array_map('trim', explode(',', $address, 2));
 
             // Step A: Create the offline Census Record
             PreloadedResident::updateOrCreate(
@@ -51,7 +53,8 @@ class PreloadedResidentSeeder extends Seeder
                     'last_name'      => $data['last_name'],
                     'name_extension' => $data['name_extension'] ?: null,
                     'birthday'       => $data['birthday'],
-                    'address'        => $data['address'] ?: null,
+                    'house_street'   => $addressParts[0] ?: null,
+                    'barangay_name'  => $addressParts[1] ?? null,
                     'email'          => $data['email'] ?: null,
                     'mobile'         => $data['mobile'] ?: null,
                 ]

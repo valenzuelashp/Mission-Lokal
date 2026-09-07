@@ -82,6 +82,11 @@ export default function ReportQueueTable({ reports }: Props) {
                                         <div className="flex items-center">
                                             <SeverityBar score={row.ai_severity} />
                                         </div>
+                                        {row.priority_reason && (
+                                            <div className="mt-1 text-[10px] text-muted-foreground" title={`Priority score: ${row.priority_score ?? 'n/a'}`}>
+                                                {row.priority_reason}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <Badge

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Search, ShieldCheck, Bell } from 'lucide-react'; // <-- Added Bell icon
+import { Search, ShieldCheck, Bell, CircleHelp } from 'lucide-react'; // <-- Added Bell icon
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import { Input } from '@/Components/ui/input';
 import { Badge } from '@/Components/ui/badge'; // <-- Added Badge component
@@ -40,6 +40,14 @@ export default function ResidentHeader() {
                     >
                         <ShieldCheck className="h-4 w-4" />
                         My Records
+                    </Link>
+
+                    <Link
+                        href="/help"
+                        className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+                    >
+                        <CircleHelp className="h-4 w-4" />
+                        Help
                     </Link>
 
                     {/* NEW: Notification Bell with Badge */}

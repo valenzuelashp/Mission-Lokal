@@ -1,7 +1,7 @@
 import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { Search, ShieldAlert } from 'lucide-react';
+import { Mail, Search, ShieldAlert } from 'lucide-react';
 
 interface SearchResult {
     id?: string;
@@ -105,6 +105,15 @@ export default function AccountStatus({ searchResult, query }: Props) {
                                             {searchResult.message}
                                         </p>
                                     </div>
+
+                                    {searchResult.status === 'approved' && (
+                                        <div className="flex items-start gap-3 rounded-md border border-green-200 bg-green-50 p-3 text-green-900">
+                                            <Mail className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
+                                            <p className="text-sm font-medium">
+                                                Please check the email address you submitted during verification. Your account ID and temporary password have been sent there.
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Rejection Feedback Box with Button to Resubmission Form Page */}
                                     {searchResult.status === 'rejected' && (

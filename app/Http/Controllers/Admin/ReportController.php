@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\User;
+use App\Support\MapHelpers;
 
 class ReportController extends Controller
 {
@@ -32,21 +33,38 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $barangayId = $request->user()->barangay_id;
-        $concerns = Concern::where('barangay_id', $barangayId)->with('media')->latest()->get();
+        $concerns = Concern::where('barangay_id', $barangayId)
+            ->with(['media', 'currentAiAnalysis.suggestedCategory'])
+            ->get();
 
-        $reports = $concerns->map(fn($c) => [
-            'id' => substr($c->id, 0, 8),
-            'concern_id' => $c->id,
-            'incident_type' => $c->title,
-            'status' => $c->status->value ?? $c->status,
-            'queue_status' => match($c->status->value ?? $c->status) {
-                'submitted', 'ai_processed' => 'ai_processed',
-                'under_review' => 'under_review',
-                'rejected', 'spam' => 'rejected',
-                default => 'active',
-            },
-            'submitted_at' => $c->created_at?->format('M d, g:i A') ?? 'Just now',
-        ]);
+        $reports = $concerns->map(function ($c) {
+            $status = $c->status->value ?? $c->status;
+            $priority = $this->priorityFor($c);
+
+            return [
+                'id' => substr($c->id, 0, 8),
+                'concern_id' => $c->id,
+                'incident_type' => $c->title,
+                'type_icon' => MapHelpers::typeIconFromText($c->title, $c->description),
+                'location' => $c->address_text ?? 'Unknown location',
+                'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name ?? 'Uncategorized',
+                'ai_severity' => MapHelpers::scoreFromSeverity($c->severity),
+                'severity' => $c->severity ?? 'medium',
+                'priority' => MapHelpers::priorityFromSeverity($c->severity),
+                'priority_score' => $priority['score'],
+                'priority_reason' => $priority['reason'],
+                'visibility' => $c->visibility,
+                'images' => $c->media->sortBy('sort_order')->map(fn ($m) => asset('storage/' . $m->storage_key))->values()->all(),
+                'status' => $status,
+                'queue_status' => match($status) {
+                    'submitted', 'ai_processed' => 'ai_processed',
+                    'under_review' => 'under_review',
+                    'rejected', 'spam' => 'rejected',
+                    default => 'active',
+                },
+                'submitted_at' => $c->created_at?->format('M d, g:i A') ?? 'Just now',
+            ];
+        })->sortByDesc('priority_score')->values();
 
         return Inertia::render('Admin/Reports/Index', [
             'reports' => $reports,
@@ -58,6 +76,34 @@ class ReportController extends Controller
                 'rejected' => $reports->where('queue_status', 'rejected')->count(),
             ],
         ]);
+    }
+
+    private function priorityFor(Concern $concern): array
+    {
+        $severityScore = match ($concern->severity) {
+            'critical' => 400,
+            'high' => 300,
+            'medium' => 200,
+            'low' => 100,
+            default => 150,
+        };
+        $text = strtolower($concern->title . ' ' . $concern->description);
+        $safetyTerms = ['fire', 'flood', 'live wire', 'electrical', 'collapse', 'injury', 'danger', 'gas leak', 'outbreak'];
+        $safetyMatches = collect($safetyTerms)->filter(fn ($term) => str_contains($text, $term))->count();
+        $ageHours = $concern->created_at ? max(0, now()->diffInHours($concern->created_at)) : 0;
+        $ageScore = min(48, $ageHours * 2);
+        $score = $severityScore + ($safetyMatches * 25) + $ageScore;
+
+        $reason = $concern->severity
+            ? ucfirst($concern->severity) . ' AI severity'
+            : 'Awaiting AI severity';
+        if ($safetyMatches > 0) {
+            $reason .= ' + safety keyword';
+        } elseif ($ageScore > 0) {
+            $reason .= ' + waiting time';
+        }
+
+        return ['score' => $score, 'reason' => $reason];
     }
 
     public function show(Request $request, string $id): Response

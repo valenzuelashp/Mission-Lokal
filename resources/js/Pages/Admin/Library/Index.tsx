@@ -11,6 +11,7 @@ interface ItemProp {
     title: string;
     type: string;
     content: string;
+    is_active: boolean;
     subtitle: string;
     role: string;
     phone: string;
@@ -29,6 +30,7 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
         role: '',
         phone: '',
         address: '',
+        is_active: true,
     });
 
     const filtered = items.filter(item => 
@@ -109,11 +111,14 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
                                                 </span>
                                             </td>
                                             <td className="p-4 text-xs text-slate-600 max-w-xs truncate">
-                                                {item.type === 'manual' && item.content}
+                                                {(item.type === 'manual' || item.type === 'faq') && item.content}
                                                 {item.type === 'evacuation_center' && item.address}
                                                 {(item.type === 'contact' || item.type === 'emergency') && `${item.role} · ${item.phone}`}
                                             </td>
                                             <td className="p-4 text-right">
+                                                <span className={`mr-2 text-xs font-semibold ${item.is_active ? 'text-green-700' : 'text-slate-400'}`}>
+                                                    {item.is_active ? 'Published' : 'Inactive'}
+                                                </span>
                                                 <div className="flex items-center justify-end gap-1">
                                                     {/* EDIT BUTTON LINK */}
                                                     <Button 
@@ -161,6 +166,7 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
                                     value={data.type}
                                     onChange={e => { reset(); setData('type', e.target.value); }}
                                 >
+                                    <option value="faq">FAQ / Chatbot Answer</option>
                                     <option value="manual">Preparedness Manual / Guide Text</option>
                                     <option value="emergency">Emergency Hotlines (Red Tag Alert)</option>
                                     <option value="contact">General Barangay Official Contact</option>
@@ -174,15 +180,15 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
                                 {errors.title && <span className="text-xs text-red-600 mt-1 block">{errors.title}</span>}
                             </div>
 
-                            {data.type === 'manual' && (
+                            {(data.type === 'manual' || data.type === 'faq') && (
                                 <>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Topic Subtitle Group</label>
                                         <Input placeholder="e.g., Typhoon Preparedness Guide" value={data.subtitle} onChange={e => setData('subtitle', e.target.value)} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Handbook Content</label>
-                                        <textarea required rows={4} className="w-full text-sm rounded-md border border-input bg-background p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="Write localized instructions here..." value={data.content} onChange={e => setData('content', e.target.value)} />
+                                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{data.type === 'faq' ? 'Official Answer' : 'Handbook Content'}</label>
+                                        <textarea required rows={4} className="w-full text-sm rounded-md border border-input bg-background p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder={data.type === 'faq' ? 'Write the verified barangay answer here...' : 'Write localized instructions here...'} value={data.content} onChange={e => setData('content', e.target.value)} />
                                         {errors.content && <span className="text-xs text-red-600 mt-1 block">{errors.content}</span>}
                                     </div>
                                 </>

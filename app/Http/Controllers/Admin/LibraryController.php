@@ -29,6 +29,7 @@ class LibraryController extends Controller
                     'title' => $item->title,
                     'type' => $item->type, 
                     'content' => $item->content ?? '',
+                    'is_active' => $item->is_active,
                     'subtitle' => $meta['subtitle'] ?? '',
                     'role' => $meta['role'] ?? '',
                     'phone' => $meta['phone'] ?? '',
@@ -45,8 +46,8 @@ class LibraryController extends Controller
     {
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center'],
-            'content' => ['required_if:type,manual', 'nullable', 'string'],
+            'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center,faq'],
+            'content' => ['required_if:type,manual,faq', 'nullable', 'string', 'max:10000'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'role' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -56,7 +57,7 @@ class LibraryController extends Controller
         $barangayId = $request->user()->barangay_id;
         $metadata = [];
         
-        if ($request->type === 'manual') {
+        if (in_array($request->type, ['manual', 'faq'], true)) {
             $metadata['subtitle'] = $request->subtitle ?? 'Emergency Guide';
             $metadata['icon'] = 'flood';
         } elseif ($request->type === 'evacuation_center') {
@@ -104,6 +105,7 @@ class LibraryController extends Controller
                 'title' => $item->title,
                 'type' => $item->type,
                 'content' => $item->content ?? '',
+                'is_active' => $item->is_active,
                 'subtitle' => $meta['subtitle'] ?? '',
                 'role' => $meta['role'] ?? '',
                 'phone' => $meta['phone'] ?? '',
@@ -116,13 +118,38 @@ class LibraryController extends Controller
     {
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center'],
+            'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center,faq'],
+            'content' => ['required_if:type,manual,faq', 'nullable', 'string', 'max:10000'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'role' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $barangayId = $request->user()->barangay_id;
         $item = LibraryItem::where('barangay_id', $barangayId)->findOrFail($id);
 
-        $item->update(['title' => $request->title, 'type' => $request->type]);
+        $metadata = [];
+        if (in_array($request->type, ['manual', 'faq'], true)) {
+            $metadata['subtitle'] = $request->subtitle ?? '';
+            $metadata['icon'] = 'flood';
+        } elseif ($request->type === 'evacuation_center') {
+            $metadata['address'] = $request->address ?? '';
+            $metadata['icon'] = 'office';
+        } else {
+            $metadata['role'] = $request->role ?? 'Barangay Staff';
+            $metadata['phone'] = $request->phone ?? 'N/A';
+            $metadata['icon'] = $request->type === 'emergency' ? 'fire' : 'office';
+        }
+
+        $item->update([
+            'title' => $request->title,
+            'type' => $request->type,
+            'content' => $request->content,
+            'metadata' => $metadata,
+            'is_active' => $request->boolean('is_active'),
+        ]);
 
         DB::table('audit_logs')->insert([
             'barangay_id' => $barangayId,

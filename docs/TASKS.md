@@ -80,7 +80,7 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 ## Phase 4 — AI concern pipeline
 
 - [ ] Queue job: `ProcessConcernWithAi`
-- [ ] Language detect (Filipino / English)
+- [-] Language detect (Filipino / English)
 - [ ] Category + subcategory classification
 - [ ] Public vs private routing
 - [ ] Severity scoring

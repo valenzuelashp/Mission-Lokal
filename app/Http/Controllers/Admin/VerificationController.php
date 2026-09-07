@@ -133,6 +133,7 @@ class VerificationController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $registration = ResidentRegistration::findOrFail($id);
+        $verificationEmail = $registration->email;
 
         DB::beginTransaction();
         try {
@@ -250,8 +251,8 @@ class VerificationController extends Controller
 
             DB::commit();
 
-            if ($user->email) {
-                Mail::to($user->email)->send(new VerificationApproved($user, $rawPassword));
+            if ($verificationEmail) {
+                Mail::to($verificationEmail)->send(new VerificationApproved($user, $rawPassword));
             }
 
             return redirect()->route('admin.verifications.index')

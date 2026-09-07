@@ -36,7 +36,7 @@ class ProcessConcernWithAi implements ShouldQueue
         $apiKey = config('services.gemini.key');
 
         if (!$apiKey) {
-            Log::error('Gemini API key is missing.');
+            Log::error('Gemini API key is missing.', ['concern_id' => $this->concern->id]);
             return;
         }
 
@@ -63,7 +63,9 @@ class ProcessConcernWithAi implements ShouldQueue
 
         try {
             // Laravel's Http facade handles the cURL request natively and securely.
-            $response = Http::withHeaders([
+            $response = Http::timeout(30)
+                ->retry(2, 1000)
+                ->withHeaders([
                 'Content-Type' => 'application/json',
                 'x-goog-api-key' => $apiKey,
             ])->post('https://generativelanguage.googleapis.com/v1beta/models/' . config('services.gemini.model') . ':generateContent', [
@@ -81,46 +83,60 @@ class ProcessConcernWithAi implements ShouldQueue
 
             if ($response->successful()) {
                 $result = $response->json();
-                
                 $rawText = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
-                if ($rawText) {
-                    $analysisData = json_decode($rawText, true);
-                    $severity = $analysisData['suggested_severity'] ?? 'medium';
-                    $severity = in_array($severity, ['low', 'medium', 'high', 'critical'], true)
-                        ? $severity
-                        : 'medium';
-
-                    // 1. Save the analysis to the concern_ai_analysis table
-                    ConcernAiAnalysis::create([
-                        'concern_id' => $this->concern->id,
-                        'is_current' => true,
-                        'detected_language' => $analysisData['detected_language'] ?? 'mixed',
-                        'suggested_visibility' => $analysisData['suggested_visibility'] ?? 'public',
-                        'suggested_severity' => $severity,
-                        'severity_confidence' => $analysisData['severity_confidence'] ?? 0.8,
-                        'prescriptive_steps' => $analysisData['prescriptive_steps'] ?? [],
-                        'suggested_duration_hours' => $analysisData['suggested_duration_hours'] ?? 24,
-                        'raw_model_output' => $analysisData,
-                        'processed_at' => now(),
-                    ]);
-
-                    // 2. Update the main concern status to 'ai_processed'
-                    $this->concern->update([
-                        'severity' => $severity,
-                        'status' => ConcernStatus::AiProcessed,
-                        'ai_processed_at' => now(),
-                    ]);
+                if (!$rawText) {
+                    throw new \RuntimeException('Gemini response did not contain candidate text.');
                 }
+
+                $analysisData = json_decode($rawText, true);
+                if (!is_array($analysisData) || json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \RuntimeException('Gemini response was not valid JSON.');
+                }
+
+                $severity = $analysisData['suggested_severity'] ?? 'medium';
+                $severity = in_array($severity, ['low', 'medium', 'high', 'critical'], true)
+                    ? $severity
+                    : 'medium';
+
+                ConcernAiAnalysis::where('concern_id', $this->concern->id)
+                    ->where('is_current', true)
+                    ->update(['is_current' => false]);
+
+                ConcernAiAnalysis::create([
+                    'concern_id' => $this->concern->id,
+                    'is_current' => true,
+                    'detected_language' => $analysisData['detected_language'] ?? 'mixed',
+                    'suggested_visibility' => $analysisData['suggested_visibility'] ?? 'public',
+                    'suggested_severity' => $severity,
+                    'severity_confidence' => $analysisData['severity_confidence'] ?? 0.8,
+                    'prescriptive_steps' => $analysisData['prescriptive_steps'] ?? [],
+                    'suggested_duration_hours' => $analysisData['suggested_duration_hours'] ?? 24,
+                    'raw_model_output' => $analysisData,
+                    'processed_at' => now(),
+                ]);
+
+                $this->concern->update([
+                    'severity' => $severity,
+                    'status' => ConcernStatus::AiProcessed,
+                    'ai_processed_at' => now(),
+                ]);
             } else {
                 if ($response->serverError() || $response->status() === 429) {
                     $response->throw();
                 }
 
-                Log::error('Gemini API Error: ' . $response->body());
+                Log::error('Gemini API Error.', [
+                    'concern_id' => $this->concern->id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
             }
         } catch (\Exception $e) {
-            Log::error('AI Processing Exception: ' . $e->getMessage());
+            Log::error('AI Processing Exception.', [
+                'concern_id' => $this->concern->id,
+                'message' => $e->getMessage(),
+            ]);
             throw $e;
         }
     }

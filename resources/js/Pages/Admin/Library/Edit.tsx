@@ -9,6 +9,7 @@ interface ItemProp {
     title: string;
     type: string;
     content: string;
+    is_active: boolean;
     subtitle: string;
     role: string;
     phone: string;
@@ -24,6 +25,7 @@ export default function Edit({ item }: { item: ItemProp }) {
         role: item.role ?? '',
         phone: item.phone ?? '',
         address: item.address ?? '',
+        is_active: item.is_active ?? true,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -54,6 +56,7 @@ export default function Edit({ item }: { item: ItemProp }) {
                             value={data.type}
                             onChange={e => setData('type', e.target.value)}
                         >
+                            <option value="faq">FAQ / Chatbot Answer</option>
                             <option value="manual">Preparedness Manual / Guide Text</option>
                             <option value="emergency">Emergency Hotlines (Red Tag Alert)</option>
                             <option value="contact">General Barangay Official Contact</option>
@@ -67,14 +70,14 @@ export default function Edit({ item }: { item: ItemProp }) {
                         {errors.title && <span className="text-xs text-red-600 mt-1 block">{errors.title}</span>}
                     </div>
 
-                    {data.type === 'manual' && (
+                    {(data.type === 'manual' || data.type === 'faq') && (
                         <>
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Topic Subtitle Group</label>
                                 <Input value={data.subtitle} onChange={e => setData('subtitle', e.target.value)} />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Handbook Content</label>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{data.type === 'faq' ? 'Official Answer' : 'Handbook Content'}</label>
                                 <textarea required rows={4} className="w-full text-sm rounded-md border border-input bg-background p-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={data.content} onChange={e => setData('content', e.target.value)} />
                                 {errors.content && <span className="text-xs text-red-600 mt-1 block">{errors.content}</span>}
                             </div>
@@ -100,6 +103,11 @@ export default function Edit({ item }: { item: ItemProp }) {
                             </div>
                         </>
                     )}
+
+                    <label className="flex items-center gap-2 border-t pt-4 text-sm font-medium text-slate-700">
+                        <input type="checkbox" checked={data.is_active} onChange={e => setData('is_active', e.target.checked)} />
+                        Published and available to residents and Barangay Help
+                    </label>
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                         <Button type="button" variant="outline" asChild>

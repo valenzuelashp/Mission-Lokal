@@ -97,6 +97,10 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     
     Route::get('/library', [LibraryController::class, 'index'])->name('library');
+    Route::get('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'index'])->name('help');
+    Route::post('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'ask'])
+        ->middleware('throttle:10,1')
+        ->name('help.ask');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
     
