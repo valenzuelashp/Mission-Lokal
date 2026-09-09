@@ -59,7 +59,7 @@ export default function AccountStatus({ searchResult, query }: Props) {
                             </label>
                             <div className="flex gap-2">
                                 <Input 
-                                    placeholder="e.g. Timothy Talagtag" 
+                                    placeholder="e.g. Juan Cruz" 
                                     value={data.query}
                                     onChange={e => setData('query', e.target.value)}
                                     required

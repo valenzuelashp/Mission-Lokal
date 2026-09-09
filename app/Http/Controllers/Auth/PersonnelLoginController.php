@@ -33,7 +33,7 @@ class PersonnelLoginController extends Controller
             ]);
         }
 
-        if (Auth::user()->role->value !== 'personnel') {
+        if (Auth::user()->role !== 'personnel') {
             Auth::logout();
             throw ValidationException::withMessages([
                 'account_id' => 'This portal is for personnel only.',

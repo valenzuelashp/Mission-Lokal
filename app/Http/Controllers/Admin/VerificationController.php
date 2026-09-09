@@ -50,7 +50,7 @@ class VerificationController extends Controller
 
         $userAccount = User::where('email', $registration->email)->first();
         if ($userAccount) {
-            $userAccount->update(['verification_status' => 'in_progress']);
+            $userAccount->residentProfile()->update(['verification_status' => 'in_progress']);
         }
 
         $parsedBirthday = Carbon::parse($registration->birthday)->format('Y-m-d');
@@ -179,13 +179,12 @@ class VerificationController extends Controller
 
             $accountId = $preloadedMatch ? $preloadedMatch->account_id : 'RES' . rand(1000, 9999);
 
-            $cleanLastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $request->last_name));
-            $rawPassword = $accountId . $cleanLastName;
+            $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', $request->last_name);
+            $rawPassword = $accountId . '!' . $cleanLastName; // Result: RES1001!DelaCruz
 
             // --- AUTOMATIC PARENT / GUARDIAN USER ID LOOKUP ---
             $parentUserId = null;
             if (!empty($registration->parent_contact)) {
-                // Try finding parent by mobile or email match in the users table
                 $parentMatch = User::where('barangay_id', $barangayId ?? $registration->barangay_id)
                     ->where(function($q) use ($registration) {
                         $q->where('mobile', $registration->parent_contact)
@@ -209,17 +208,18 @@ class VerificationController extends Controller
                     'name_extension' => $request->name_extension,
                     'mobile' => $request->mobile,
                     'password' => Hash::make($rawPassword),
-                    'verification_status' => 'approved',
                     'is_active' => false,
                     'parent_name' => $registration->parent_name,         
                     'parent_contact' => $registration->parent_contact,   
-                    'parent_user_id' => $parentUserId,                  // <-- Automatically linked if parent account exists
+                    'parent_user_id' => $parentUserId,                  
                 ]
             );
 
             ResidentProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
+                    'verification_status' => 'approved',
+                    'rejection_reason' => null,
                     'birthday' => Carbon::parse($request->birthday)->format('Y-m-d'),
                     'sex' => $request->sex,
                     'civil_status' => $request->civil_status,
@@ -280,16 +280,15 @@ class VerificationController extends Controller
         $firstName = $registration->first_name;
         $lastName = $registration->last_name;
 
-        // RETAIN user account record, but update its verification status and save the rejection reason
+        // Update verification status and rejection reason in residentProfile
         $userAccount = User::where('email', $email)->first();
         if ($userAccount) {
-            $userAccount->update([
+            $userAccount->residentProfile()->update([
                 'verification_status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason
             ]);
         }
 
-        // Delete only the temporary verification queue registration record
         $registration->delete();
 
         DB::table('audit_logs')->insert([
@@ -312,7 +311,6 @@ class VerificationController extends Controller
             ->with('success', 'Registration rejected and applicant notified.');
     }
 
-    // --- PHASE 9 SECURITY: DECRYPT ID ON-THE-FLY FOR VIEWING ---
     public function viewId(Request $request, string $path)
     {
         $userRole = Auth::user()->role;
@@ -329,12 +327,10 @@ class VerificationController extends Controller
         $disk = Storage::disk('public')->exists($path) ? 'public' : 'local';
         $fileContent = Storage::disk($disk)->get($path);
 
-        // If the file has our .enc extension, decrypt it back to normal bytes
         if (Str::endsWith($path, '.enc')) {
             $fileContent = Crypt::decrypt($fileContent);
         }
 
-        // Dynamically detect the Mime Type (e.g., image/jpeg or image/png) from the raw bytes
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $type = $finfo->buffer($fileContent);
 

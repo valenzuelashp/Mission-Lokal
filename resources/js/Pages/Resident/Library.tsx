@@ -43,7 +43,7 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
 
     return (
         <ResidentLayout wide>
-            <Head title="Resiliency Library" />
+            <Head title="Library" />
 
             <ResidentSocialShell right={rightAside}>
                 <Card className="shadow-sm">
@@ -52,7 +52,7 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
                             <BookOpen className="h-6 w-6" />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="text-xl font-bold">Resiliency library</h1>
+                            <h1 className="text-xl font-bold">Library</h1>
                             <p className="text-sm text-muted-foreground">
                                 Manuals and contacts for emergencies in your barangay
                             </p>

@@ -11,7 +11,6 @@ use App\Http\Controllers\Resident\AnnouncementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\Auth\AccountStatusController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -40,11 +39,6 @@ Route::get('/', function () {
         return redirect()->route('personnel.missions.index');
     }
 
-        // If resident hasn't changed password yet and hasn't dismissed the prompt this session
-        if ($user->needsPasswordSetup() && ! session('dismissed_password_prompt')) {
-            return redirect()->route('password.prompt');
-        }
-
     return redirect()->route('feed');
 });
 
@@ -60,23 +54,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
         Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
         Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
-    });
-});
-
-/*
-|--------------------------------------------------------------------------
-| Temporary Password Prompt & Setup Routes (For accounts using default credentials)
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'role:resident'])->group(function () {
-    Route::get('/welcome/password-prompt', [TemporaryPasswordController::class, 'showPrompt'])->name('password.prompt');
-    Route::post('/welcome/password-prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');
-
-    Route::get('/welcome/setup-password', [TemporaryPasswordController::class, 'showForm'])->name('password.custom.show');
-    Route::post('/welcome/setup-password', [TemporaryPasswordController::class, 'update'])->name('password.custom.store');
-
-    Route::prefix('onboarding')->name('onboarding.')->group(function () {
-        Route::get('/password', [TemporaryPasswordController::class, 'showOnboardingForm'])->name('password');
     });
 });
 

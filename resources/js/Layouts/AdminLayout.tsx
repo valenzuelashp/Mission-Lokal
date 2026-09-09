@@ -26,13 +26,14 @@ const nav = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { href: '/admin/reports', label: 'Report queue', icon: FileText },
     { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
+    { href: '/admin/personnel', label: 'Personnel', icon: Users },
     { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
     { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
     { href: '/admin/map', label: 'Map', icon: Map },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { href: '/admin/library', label: 'Library', icon: BookOpen },
     { href: '/admin/residents', label: 'Residents', icon: Users },
-    { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck }, // Matches the route above
+    { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
 ];
 

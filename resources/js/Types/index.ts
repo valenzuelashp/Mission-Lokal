@@ -10,10 +10,18 @@ export interface User {
     id: string;
     account_id: string;
     role: UserRole;
+    first_name?: string;
+    middle_name?: string;
+    last_name?: string;
+    name_extension?: string;
     email?: string;
     mobile?: string;
-    verification_status: VerificationStatus;
-    civic_xp: number;
+    civic_xp?: number;
+    verification_status?: VerificationStatus;
+    resident_profile?: {
+        civic_xp: number;
+        verification_status: VerificationStatus;
+    };
 }
 
 export interface PageProps {

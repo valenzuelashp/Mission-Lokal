@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
+use App\Models\Mission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\User;
+use App\Models\Personnel;
 use App\Support\MapHelpers;
 
 class ReportController extends Controller
@@ -110,21 +111,28 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $record = Concern::where('barangay_id', $barangayId)
-            ->with(['media', 'currentAiAnalysis'])
+            ->with(['media', 'currentAiAnalysis', 'mission.personnel'])
             ->findOrFail($id);
         
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
         
-        $personnelList = User::where('barangay_id', $barangayId)
-            ->where('role', 'personnel')
-            ->where('is_active', 1)
+        $personnelList = Personnel::with('user')
+            ->whereHas('user', function ($q) use ($barangayId) {
+                $q->where('barangay_id', $barangayId)
+                  ->where('role', 'personnel')
+                  ->where('is_active', 1);
+            })
             ->get()
-            ->map(function ($user) {
+            ->map(function ($personnel) {
+                $fullName = trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? ''));
                 return [
-                    'id' => $user->id,
-                    'name' => $user->full_name ?? $user->account_id,
+                    'id' => $personnel->id,
+                    'name' => $fullName ?: 'Unnamed Personnel',
                 ];
             });
+
+        // Pluck already assigned personnel IDs if a mission already exists for this concern
+        $assignedPersonnelIds = $record->mission?->personnel?->pluck('id')->values()->toArray() ?? [];
 
         $masterCandidates = Concern::where('barangay_id', $barangayId)
             ->where('id', '!=', $id)
@@ -145,6 +153,7 @@ class ReportController extends Controller
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
                 'prescriptive_steps' => $record->currentAiAnalysis?->prescriptive_steps ?? [],
+                'assigned_personnel_ids' => $assignedPersonnelIds, // Passed to frontend
             ],
             'personnel' => $personnelList,
             'masterCandidates' => $masterCandidates,
@@ -256,21 +265,41 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        $validated = $request->validate(['assigned_team' => 'required', 'mission_notes' => 'nullable']);
+        
+        $validated = $request->validate([
+            'personnel_ids' => ['present', 'array'],
+            'personnel_ids.*' => ['exists:personnel,id'],
+            'mission_notes' => ['nullable', 'string'],
+        ]);
 
-        $missionId = DB::transaction(function () use ($concern, $validated, $barangayId, $id, $request) {
-            $missionId = Str::uuid();
-            
-            DB::table('missions')->insert([
-                'id' => $missionId,
-                'barangay_id' => $barangayId,
-                'concern_id' => $concern->id,
-                'assigned_to' => $validated['assigned_team'],
-                'status' => 'assigned',
-                'created_by' => $request->user()->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        DB::transaction(function () use ($concern, $validated, $barangayId, $request) {
+            $mission = Mission::updateOrCreate(
+                ['concern_id' => $concern->id],
+                [
+                    'barangay_id' => $barangayId,
+                    'status' => 'assigned',
+                    'due_date' => now()->addDays(2),
+                    'created_by' => $request->user()->id,
+                ]
+            );
+
+            $syncData = [];
+            foreach ($validated['personnel_ids'] as $personnelId) {
+                $existingPivot = DB::table('mission_personnel')
+                    ->where('mission_id', $mission->id)
+                    ->where('personnel_id', $personnelId)
+                    ->first();
+
+                $syncData[$personnelId] = [
+                    'id' => $existingPivot ? $existingPivot->id : (string) Str::uuid(),
+                    'assigned_by' => $request->user()->id,
+                    'status' => 'assigned',
+                    'created_at' => $existingPivot ? $existingPivot->created_at : now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            $mission->personnel()->sync($syncData);
             
             $concern->update(['status' => 'active']);
             
@@ -279,13 +308,11 @@ class ReportController extends Controller
                 'actor_id' => Auth::id(),
                 'action' => 'ESCALATE',
                 'entity_type' => 'Mission',
-                'entity_id' => (string) $missionId,
-                'metadata' => json_encode(['details' => 'Escalated report into field mission assigned to personnel ID: ' . $validated['assigned_team']]),
+                'entity_id' => $mission->id,
+                'metadata' => json_encode(['details' => 'Escalated report into field mission with multiple personnel assigned']),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
-
-            return $missionId;
         });
 
         Notification::create([
@@ -297,6 +324,6 @@ class ReportController extends Controller
             'payload' => ['concern_id' => $concern->id],
         ]);
 
-        return redirect()->route('admin.missions.index')->with('success', 'Mission deployed.');
+        return redirect()->route('admin.reports.index')->with('success', 'Mission deployed.');
     }
 }

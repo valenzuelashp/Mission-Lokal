@@ -25,7 +25,8 @@ class ResidentController extends Controller
         $search = $request->input('search');
 
         $query = User::where('barangay_id', $barangayId)
-            ->where('role', 'resident');
+            ->where('role', 'resident')
+            ->with('residentProfile');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -37,7 +38,8 @@ class ResidentController extends Controller
         }
 
         $residents = $query->latest()->get()->map(function ($user) {
-            $status = $user->verification_status?->value ?? $user->verification_status ?? 'unverified';
+            $profileStatus = $user->residentProfile?->verification_status;
+            $status = $profileStatus?->value ?? $profileStatus ?? 'unverified';
             if ($status === 'verified') {
                 $status = 'approved';
             }
@@ -48,9 +50,9 @@ class ResidentController extends Controller
                 'full_name' => trim($user->first_name . ' ' . $user->last_name),
                 'email' => $user->email ?? '—',
                 'mobile' => $user->mobile ?? '—',
-                'address' => $user->address ?? 'No address listed',
+                'address' => $user->residentProfile?->address ?? $user->address ?? 'No address listed',
                 'verification_status' => $status,
-                'civic_xp' => (int)($user->civic_xp ?? 0),
+                'civic_xp' => (int)($user->residentProfile?->civic_xp ?? 0),
                 'badge_count' => (int)($user->badge_count ?? 0),
                 'joined_at' => $user->created_at ? $user->created_at->format('M d, Y') : 'Unknown',
             ];
@@ -79,6 +81,7 @@ class ResidentController extends Controller
             'last_name' => 'required|string|max:255',
             'name_extension' => 'nullable|string|max:20',
             'sex' => 'required|in:Male,Female,Other',
+            'civil_status' => 'nullable|string|in:Single,Married,Widowed,Separated',
             'house_street' => 'required|string|max:255',
             'barangay_name' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -107,6 +110,7 @@ class ResidentController extends Controller
                 'last_name' => $request->last_name,
                 'name_extension' => $request->name_extension,
                 'sex' => $request->sex,
+                'civil_status' => $request->civil_status ?? 'Single',
                 'house_street' => $request->house_street,
                 'barangay_name' => $request->barangay_name,
                 'city' => $request->city,
@@ -128,9 +132,20 @@ class ResidentController extends Controller
                 'email' => null,
                 'mobile' => $request->mobile ?: null,
                 'password' => null,
-                'verification_status' => 'unverified',
-                'parent_name' => $isMinor ? $request->parent_name : null,         
+                'parent_name' => $isMinor ? $request->parent_name : null,        
                 'parent_contact' => $isMinor ? $request->parent_contact : null,   
+            ]);
+
+            $newUser->residentProfile()->create([
+                'verification_status' => 'unverified',
+                'birthday' => $formattedBirthday,
+                'sex' => $request->sex,
+                'civil_status' => $request->civil_status ?? 'Single',
+                'house_street' => $request->house_street,
+                'barangay_name' => $request->barangay_name,
+                'city' => $request->city,
+                'province' => $request->province,
+                'address' => trim("{$request->house_street}, {$request->barangay_name}, {$request->city}, {$request->province}"),
             ]);
 
             DB::table('audit_logs')->insert([
@@ -193,6 +208,7 @@ class ResidentController extends Controller
                     'last_name' => $lastName,
                     'name_extension' => $nameExt,
                     'sex' => $sex,
+                    'civil_status' => 'Single',
                     'house_street' => $houseStreet,
                     'barangay_name' => $barangayName,
                     'city' => $city,
@@ -203,7 +219,7 @@ class ResidentController extends Controller
                     'is_claimed' => false,
                 ]);
 
-                User::create([
+                $newUser = User::create([
                     'barangay_id' => $barangayId,
                     'account_id' => $accountId,
                     'role' => 'resident',
@@ -214,8 +230,20 @@ class ResidentController extends Controller
                     'email' => null,
                     'mobile' => $mobile,
                     'password' => null,
-                    'verification_status' => 'unverified',
                 ]);
+
+                $newUser->residentProfile()->create([
+                    'verification_status' => 'unverified',
+                    'birthday' => $bday,
+                    'sex' => $sex,
+                    'civil_status' => 'Single',
+                    'house_street' => $houseStreet,
+                    'barangay_name' => $barangayName,
+                    'city' => $city,
+                    'province' => $province,
+                    'address' => trim("{$houseStreet}, {$barangayName}, {$city}, {$province}"),
+                ]);
+
                 $importedCount++;
             }
 
@@ -269,6 +297,12 @@ class ResidentController extends Controller
                 })->toArray();
         }
 
+        $profileStatus = $user->residentProfile?->verification_status;
+        $profile = $user->residentProfile;
+
+        $birthday = $profile?->birthday ? Carbon::parse($profile->birthday) : null;
+        $ageYears = $birthday ? $birthday->age : null;
+
         $profileDetail = [
             'id' => $user->id,
             'account_id' => $user->account_id,
@@ -280,13 +314,16 @@ class ResidentController extends Controller
             'mobile' => $user->mobile ?? '—',
             'parent_name' => $user->parent_name ?? null,       
             'parent_contact' => $user->parent_contact ?? null, 
-            'address' => $user->address ?? 'No physical address listed',
+            'address' => $profile?->address ?? $user->address ?? 'No physical address listed',
             'zip_code' => $user->zip_code ?? null,
-            'verification_status' => $user->verification_status?->value ?? $user->verification_status ?? 'unverified',
+            'verification_status' => $profileStatus?->value ?? $profileStatus ?? 'unverified',
             'national_id_masked' => $user->id_number ? mask_string($user->id_number) : '—',
-            'citizenship_status' => $user->citizenship_status ?? 'Citizen',
-            'gender' => $user->gender ?? 'Not specified',
-            'civic_xp' => (int)($user->civic_xp ?? 0),
+            'citizenship_status' => $user->citizenship_status ?? 'Filipino',
+            'sex' => $profile?->sex ?? '—',
+            'civil_status' => $profile?->civil_status ?? '—',
+            'birthday' => $birthday ? $birthday->format('M d, Y') : '—',
+            'age_years' => $ageYears,
+            'civic_xp' => (int)($profile?->civic_xp ?? 0),
             'badge_count' => (int)($user->badge_count ?? 0),
             'map_lat' => $coords->lat ?? 14.65,
             'map_lng' => $coords->lng ?? 120.98,

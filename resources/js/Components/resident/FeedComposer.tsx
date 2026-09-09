@@ -6,18 +6,18 @@ import { useAuth } from '@/Hooks/usePageProps';
 
 export default function FeedComposer() {
     const { user } = useAuth();
-    const initials = user?.account_id?.slice(0, 2) ?? 'R';
+    const initials = user?.first_name?.[0] ?? user?.account_id?.slice(0, 2) ?? 'R';
 
     return (
-        <Card className="overflow-hidden shadow-sm">
+        <Card className="overflow-hidden border-slate-200/80 shadow-xs">
             <CardContent className="p-3">
-                <Button asChild className="h-11 w-full gap-2 text-sm font-semibold">
+                <Button asChild className="h-11 w-full gap-2 text-sm font-semibold shadow-xs">
                     <Link href="/concerns/new">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
                             {initials}
                         </span>
                         <Plus className="h-4 w-4" />
-                        Post a concern
+                        Post a community concern
                     </Link>
                 </Button>
             </CardContent>

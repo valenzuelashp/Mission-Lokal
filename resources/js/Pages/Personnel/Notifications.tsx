@@ -4,30 +4,9 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
 import PersonnelLayout from '@/Layouts/PersonnelLayout';
-import type { PersonnelNotification, PersonnelNotificationsPageProps } from '@/Types';
+import type { PersonnelNotificationsPageProps } from '@/Types';
 
-const demoNotifications: PersonnelNotification[] = [
-    {
-        id: 'n1',
-        title: 'New mission assigned',
-        body: 'MS-8888 Illegal dumping cleanup — due Jun 19, 3:00 PM.',
-        sent_at: '2 hours ago',
-        read: false,
-        mission_id: 'MS-8888',
-    },
-    {
-        id: 'n2',
-        title: 'ACK reminder',
-        body: 'MS-8880 VAWC welfare check is overdue for acknowledgment.',
-        sent_at: '5 hours ago',
-        read: false,
-        mission_id: 'MS-8880',
-    },
-];
-
-export default function Notifications(props: Partial<PersonnelNotificationsPageProps>) {
-    const notifications = props.notifications ?? demoNotifications;
-
+export default function Notifications({ notifications = [] }: Partial<PersonnelNotificationsPageProps>) {
     return (
         <PersonnelLayout title="Mission-Lokal Personnel: Notifications">
             <Head title="Notifications" />

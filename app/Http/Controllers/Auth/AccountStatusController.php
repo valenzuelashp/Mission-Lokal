@@ -32,6 +32,7 @@ class AccountStatusController extends Controller
                 $user = User::where('role', 'resident')
                     ->where('first_name', 'like', $firstName)
                     ->where('last_name', 'like', $lastName)
+                    ->with('residentProfile')
                     ->first();
 
                 // Fallback check in preloaded_residents if not mapped to user yet
@@ -41,25 +42,26 @@ class AccountStatusController extends Controller
                         ->first();
 
                     if ($preloaded) {
-                        $user = User::where('account_id', $preloaded->account_id)->first();
+                        $user = User::where('account_id', $preloaded->account_id)->with('residentProfile')->first();
                     }
                 }
             }
 
             if ($user) {
-                $status = $user->verification_status?->value ?? $user->verification_status ?? 'unverified';
+                $profileStatus = $user->residentProfile?->verification_status;
+                $status = $profileStatus?->value ?? $profileStatus ?? 'unverified';
                 $result = [
                     'id' => $user->id,
                     'email' => $user->email,
                     'full_name' => trim("{$user->first_name} {$user->middle_name} {$user->last_name} {$user->name_extension}"),
                     'status' => $status,
                     'message' => $this->getStatusMessage($status),
-                    'rejection_reason' => $user->rejection_reason,
+                    'rejection_reason' => $user->residentProfile?->rejection_reason,
                 ];
             } else {
                 $result = [
                     'not_found' => true,
-                    'message' => 'No exact match found. Please enter your complete First Name and Last Name (e.g. Theo Amro Talag).',
+                    'message' => 'No exact match found. Please enter your complete First Name and Last Name (e.g. Juan Cruz).',
                 ];
             }
         }
@@ -72,7 +74,10 @@ class AccountStatusController extends Controller
 
     public function showResubmitForm(string $id): Response
     {
-        $user = User::where('id', $id)->where('verification_status', 'rejected')->firstOrFail();
+        $user = User::where('id', $id)
+            ->whereHas('residentProfile', fn($q) => $q->where('verification_status', 'rejected'))
+            ->with('residentProfile')
+            ->firstOrFail();
 
         return Inertia::render('Auth/ResubmitRegistration', [
             'resident' => [
@@ -90,7 +95,7 @@ class AccountStatusController extends Controller
                 'city' => $user->city ?? '',
                 'province' => $user->province ?? '',
                 'birthday' => $user->residentProfile?->birthday ?? '',
-                'rejection_reason' => $user->rejection_reason,
+                'rejection_reason' => $user->residentProfile?->rejection_reason,
             ]
         ]);
     }
@@ -104,17 +109,24 @@ class AccountStatusController extends Controller
             'government_id' => ['required', 'file', 'image', 'max:5120'], // Max 5MB image constraint
         ]);
 
-        $user = User::where('id', $id)->where('verification_status', 'rejected')->firstOrFail();
+        $user = User::where('id', $id)
+            ->whereHas('residentProfile', fn($q) => $q->where('verification_status', 'rejected'))
+            ->with('residentProfile')
+            ->firstOrFail();
 
         // Store the new government ID securely
         $path = $request->file('government_id')->store('government-ids', 'public');
 
-        // Update user text data if adjusted, and shift status back to pending
+        // Update user text data if adjusted
         $user->update([
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
             'last_name' => $request->last_name,
             'mobile' => $request->mobile,
+        ]);
+
+        // Shift verification status back to pending and clear rejection reason inside residentProfile
+        $user->residentProfile()->update([
             'verification_status' => 'pending',
             'rejection_reason' => null,
         ]);

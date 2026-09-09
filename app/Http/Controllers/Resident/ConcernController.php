@@ -30,24 +30,30 @@ class ConcernController extends Controller
                 $query->where('visibility', 'public')
                       ->orWhere('reporter_id', $user->id);
             })
+            ->with(['reporter', 'media'])
             ->withCount([
                 'votes as upvotes_count' => fn($q) => $q->where('vote', 'up'),
                 'votes as downvotes_count' => fn($q) => $q->where('vote', 'down')
             ])
             ->latest()
             ->get()
-            ->map(fn($item) => [
-                'id' => (string) $item->id,
-                'title' => $item->title,
-                'category' => ucwords(str_replace('_', ' ', $item->category_id)),
-                'severity' => $item->severity ?? 'medium',
-                'status' => $item->status->value ?? $item->status, 
-                'upvotes' => (int) $item->upvotes_count,
-                'downvotes' => (int) $item->downvotes_count,
-                'location_label' => $item->address_text ?? 'Pinpointed Coordinates',
-                'created_at' => $item->created_at->format('M d, Y'),
-                'images' => $item->media->take(1)->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
-            ]);
+            ->map(function ($item) {
+                $reporterName = trim(($item->reporter?->first_name ?? '') . ' ' . ($item->reporter?->last_name ?? ''));
+                
+                return [
+                    'id' => (string) $item->id,
+                    'title' => $item->title,
+                    'category' => ucwords(str_replace('_', ' ', $item->category_id)),
+                    'severity' => $item->severity ?? 'medium',
+                    'status' => $item->status->value ?? $item->status, 
+                    'upvotes' => (int) $item->upvotes_count,
+                    'downvotes' => (int) $item->downvotes_count,
+                    'location_label' => $item->address_text ?? 'Pinpointed Coordinates',
+                    'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
+                    'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                    'images' => $item->media->take(1)->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
+                ];
+            });
 
         return Inertia::render('Resident/Feed', [
             'concerns' => $concerns
@@ -69,10 +75,8 @@ class ConcernController extends Controller
                 ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
             
-            // PHASE 10: Set exact center of Barangay Tambo, Paranaque
             'mapCenter' => [14.5151, 120.9939],
             
-            // Define the bounding box [SouthWest corner, NorthEast corner]
             'barangayBounds' => [
                 [14.50820, 120.97668], 
                 [14.52547, 121.00114]  
@@ -81,9 +85,6 @@ class ConcernController extends Controller
     }
 
     /**
-     * R9: Save formal community concern report records using atomic transactions.
-     */
-/**
      * R9: Save formal community concern report records using atomic transactions.
      */
     public function store(Request $request): RedirectResponse
@@ -99,7 +100,6 @@ class ConcernController extends Controller
 
         $user = auth()->user();
 
-        // --- NEW: AGE-BASED RESTRICTION VALIDATION FOR MINORS ---
         if ($user->isMinor()) {
             if ($request->category_id === 'vawc' || $request->category_id === 'noise') {
                 return back()->withErrors([
@@ -120,7 +120,6 @@ class ConcernController extends Controller
         $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
         $visibility = ($request->category_id === 'vawc') ? 'private' : 'public';
         
-        // Capture the newly created concern from the transaction closure
         $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility) {
             $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
@@ -162,7 +161,6 @@ class ConcernController extends Controller
             return $createdConcern;
         });
 
-        // PHASE 4: Dispatch the AI processing job
         \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
 
         return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
@@ -175,7 +173,6 @@ class ConcernController extends Controller
     {
         $user = $request->user();
 
-        // Security authorization checkpoint rules
         if ($concern->barangay_id !== $user->barangay_id) {
             abort(403, 'Unauthorized access request outside geographic boundary.');
         }
@@ -184,13 +181,15 @@ class ConcernController extends Controller
             abort(403, 'This concern is private and restricted to the original reporter.');
         }
 
+        $concern->load('reporter');
+        $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
+
         $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$concern->id]);
 
         $upvotes = $concern->votes()->where('vote', 'up')->count();
         $downvotes = $concern->votes()->where('vote', 'down')->count();
         $userVote = $concern->votes()->where('user_id', $user->id)->value('vote');
 
-        // FIX: Changed from 'concern_status_histories' to 'concern_status_history' to match the database schema
         $timeline = DB::table('concern_status_history')
             ->where('concern_id', $concern->id)
             ->orderBy('created_at', 'asc')
@@ -227,7 +226,8 @@ class ConcernController extends Controller
                 'upvotes' => $upvotes,
                 'downvotes' => $downvotes,
                 'user_vote' => $userVote,
-                'created_at' => $concern->created_at->format('M d, Y'),
+                'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
                 'images' => $concern->media->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
                 'timeline' => $timeline
             ]
@@ -246,26 +246,21 @@ class ConcernController extends Controller
         $user = $request->user();
         $type = $request->type;
 
-        // An anti-gaming boundary: Users cannot artificially pump upvotes on their own posts
         if ($concern->reporter_id === $user->id) {
             return back()->with('error', 'You cannot vote on your own community report submission.');
         }
 
-        // Atomic toggle match check loop
         $existingVote = ConcernVote::where('concern_id', $concern->id)
             ->where('user_id', $user->id)
             ->first();
 
         if ($existingVote) {
             if ($existingVote->vote === $type) {
-                // If clicking the same option again, treat it as a removal of the vote
                 $existingVote->delete();
             } else {
-                // If changing minds, swap the internal value
                 $existingVote->update(['vote' => $type]);
             }
         } else {
-            // Spawn brand new database transaction track row record
             ConcernVote::create([
                 'id' => Str::uuid()->toString(),
                 'concern_id' => $concern->id,
@@ -286,13 +281,11 @@ class ConcernController extends Controller
             abort(403, 'Unauthorized row lifecycle action.');
         }
 
-        // Restricts destruction if the concern has already progressed past the initial status
         if ($concern->status !== ConcernStatus::Submitted) {
             return back()->with('error', 'This concern is currently being processed by your barangay team and is locked.');
         }
 
         DB::transaction(function () use ($concern) {
-            // Wipes storage assets from physical disks if matching data structures are purged
             foreach ($concern->media as $mediaItem) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($mediaItem->storage_key);
             }

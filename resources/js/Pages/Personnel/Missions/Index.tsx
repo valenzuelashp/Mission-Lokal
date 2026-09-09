@@ -5,7 +5,6 @@ import PersonnelMissionTable from '@/Components/personnel/PersonnelMissionTable'
 import EmptyState from '@/Components/shared/EmptyState';
 import { Button } from '@/Components/ui/button';
 import PersonnelLayout from '@/Layouts/PersonnelLayout';
-import { demoPersonnelMissions, personnelMissionCounts } from '@/Lib/personnelDemo';
 import { cn } from '@/Lib/utils';
 import type { PageProps, PersonnelMissionsPageProps } from '@/Types';
 
@@ -19,9 +18,7 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'overdue', label: 'Overdue' },
 ];
 
-export default function Index(props: Partial<PersonnelMissionsPageProps>) {
-    const missions = props.missions ?? demoPersonnelMissions;
-    const counts = props.counts ?? personnelMissionCounts(missions);
+export default function Index({ missions = [], counts = { all: 0, active: 0, in_progress: 0, completed: 0, overdue: 0 } }: Partial<PersonnelMissionsPageProps>) {
     const { flash } = usePage<PageProps>().props;
 
     const [filter, setFilter] = useState<FilterKey>('active');

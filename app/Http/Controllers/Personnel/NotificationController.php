@@ -14,13 +14,11 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        // 1. Fetch real database notifications for the logged-in personnel user
         $notificationsDb = Notification::where('user_id', $user->id)
             ->latest('created_at')
             ->get();
 
         $notifications = $notificationsDb->map(function ($notif) {
-            // Extract mission_id from payload if present
             $payload = is_array($notif->payload) ? $notif->payload : json_decode($notif->payload ?? '{}', true);
             
             return [
@@ -33,7 +31,6 @@ class NotificationController extends Controller
             ];
         });
 
-        // 2. Automatically mark unread notifications as read when visiting the page (optional convenience)
         Notification::where('user_id', $user->id)
             ->where('is_read', false)
             ->update([

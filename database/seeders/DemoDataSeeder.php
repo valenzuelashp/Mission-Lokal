@@ -39,20 +39,17 @@ class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Retrieve Barangay
         $barangay = Barangay::first();
         if (!$barangay) {
             $this->command->error("No Barangay found! Please run DatabaseSeeder first.");
             return;
         }
 
-        // 2. Populate Barangay Settings
         BarangaySetting::firstOrCreate(
             ['barangay_id' => $barangay->id],
             ['updated_at' => now()]
         );
 
-        // 3. Retrieve or Create Categories, Subcategories & Playbooks
         $category = ConcernCategory::first() ?? ConcernCategory::create([
             'barangay_id' => $barangay->id,
             'code' => 'INFRA',
@@ -82,7 +79,6 @@ class DemoDataSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        // 4. Create System Users (Admin, Personnel, Resident)
         $admin = User::updateOrCreate(
             ['email' => 'admin@missionlokal.test'],
             [
@@ -93,7 +89,6 @@ class DemoDataSeeder extends Seeder
                 'first_name' => 'System',
                 'last_name' => 'Admin',
                 'password' => Hash::make('password'),
-                'verification_status' => VerificationStatus::Approved,
                 'is_active' => true,
             ]
         );
@@ -109,10 +104,10 @@ class DemoDataSeeder extends Seeder
                 'last_name' => 'Personnel',
                 'mobile' => '09189999999',
                 'password' => Hash::make('password'),
-                'verification_status' => VerificationStatus::Approved,
                 'is_active' => true,
             ]
         );
+        $personnel->personnelProfile()->firstOrCreate(['user_id' => $personnel->id]);
 
         $resident = User::updateOrCreate(
             ['email' => 'resident@missionlokal.test'],
@@ -125,16 +120,15 @@ class DemoDataSeeder extends Seeder
                 'last_name' => 'Resident',
                 'mobile' => '09198888888',
                 'password' => Hash::make('password'),
-                'verification_status' => VerificationStatus::Approved,
-                'civic_xp' => 50,
                 'is_active' => true,
             ]
         );
 
-        // 5. Populate Profiles & Requests
         ResidentProfile::updateOrCreate(
             ['user_id' => $resident->id],
             [
+                'civic_xp' => 50,
+                'verification_status' => VerificationStatus::Approved,
                 'birthday' => '1992-04-12',
                 'address' => 'Phase 1 Zone 15, Barangay 176',
                 'digital_id_code' => 'ML-RES-9999',
@@ -167,7 +161,6 @@ class DemoDataSeeder extends Seeder
             ]
         );
 
-        // 6. Populate Concerns & Associated Tables
         $concern = Concern::create([
             'id' => Str::uuid(),
             'barangay_id' => $barangay->id,
@@ -221,12 +214,10 @@ class DemoDataSeeder extends Seeder
             'vote' => 1,
         ]);
 
-        // 7. Populate Missions & Associated Tables
         $mission = Mission::create([
             'id' => Str::uuid(),
             'barangay_id' => $barangay->id,
             'concern_id' => $concern->id,
-            'assigned_to' => $personnel->id,
             'playbook_id' => $playbook->id,
             'created_by' => $admin->id,
             'status' => 'in_progress',
@@ -279,7 +270,6 @@ class DemoDataSeeder extends Seeder
             'created_at' => now(),
         ]);
 
-        // 8. Populate Blotters & Media
         $blotter = Blotter::create([
             'id' => Str::uuid(),
             'barangay_id' => $barangay->id,
@@ -304,7 +294,6 @@ class DemoDataSeeder extends Seeder
             'created_at' => now(),
         ]);
 
-        // 9. Populate Announcements, Library Items & Notifications
         Announcement::create([
             'id' => Str::uuid(),
             'barangay_id' => $barangay->id,

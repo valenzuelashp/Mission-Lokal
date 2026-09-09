@@ -88,7 +88,6 @@ export default function Show({ resident, residentId }: Props) {
 
     const fullAddress = data.zip_code ? `${data.address}, Zip: ${data.zip_code}` : data.address;
 
-    // Determine if this resident is a minor based on age or existence of guardian data
     const isMinor = (data.age_years != null && data.age_years < 18) || (data as any).parent_name;
 
     return (
@@ -104,12 +103,9 @@ export default function Show({ resident, residentId }: Props) {
                 </Button>
             </div>
 
-            {/* FLOATING MODAL OVERLAY WRAPPER */}
             {modalMode !== 'none' && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl border transition-all">
-                        
-                        {/* EDIT MODAL CONTENT */}
                         {modalMode === 'edit' && (
                             <>
                                 <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -149,7 +145,6 @@ export default function Show({ resident, residentId }: Props) {
                             </>
                         )}
 
-                        {/* MESSAGE MODAL CONTENT */}
                         {modalMode === 'message' && (
                             <>
                                 <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -176,7 +171,6 @@ export default function Show({ resident, residentId }: Props) {
                             </>
                         )}
 
-                        {/* UPLOAD DOCUMENT MODAL CONTENT */}
                         {modalMode === 'upload' && (
                             <>
                                 <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -210,7 +204,6 @@ export default function Show({ resident, residentId }: Props) {
                             </>
                         )}
 
-                        {/* VIEW ALL ACTIVITIES MODAL CONTENT */}
                         {modalMode === 'view_all_activities' && (
                             <>
                                 <div className="flex items-center justify-between border-b pb-3 mb-4">
@@ -237,7 +230,6 @@ export default function Show({ resident, residentId }: Props) {
                                 </div>
                             </>
                         )}
-
                     </div>
                 </div>
             )}
@@ -260,12 +252,12 @@ export default function Show({ resident, residentId }: Props) {
                     </CardHeader>
                     <CardContent className="pt-0">
                         <DetailRow label="Date of birth" value={birthdayDisplay} />
+                        <DetailRow label="Sex" value={data.sex ?? '—'} />
+                        <DetailRow label="Civil Status" value={data.civil_status ?? '—'} />
                         <DetailRow label="National ID number" value={data.national_id_masked ?? '—'} />
                         <DetailRow label="Citizenship status" value={data.citizenship_status} />
-                        <DetailRow label="Gender" value={data.gender} />
                         <DetailRow label="Civic XP" value={`${data.civic_xp} points · ${data.badge_count} badges`} />
                         
-                        {/* --- GUARDIAN CARD SECTION FOR MINORS --- */}
                         {isMinor && (
                             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
                                 <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider mb-2">

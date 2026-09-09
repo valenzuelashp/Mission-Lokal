@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -17,7 +18,6 @@ class Mission extends Model
     protected $fillable = [
         'barangay_id',
         'concern_id',
-        'assigned_to',
         'playbook_id',
         'due_date',
         'estimated_duration_hours',
@@ -36,7 +36,7 @@ class Mission extends Model
     {
         return [
             'due_date' => 'date',
-            'status' => MissionStatus::class, // Converts the string to your MissionStatus PHP Enum
+            'status' => MissionStatus::class,
             'is_overdue' => 'boolean',
             'is_escalated' => 'boolean',
             'acknowledged_at' => 'datetime',
@@ -57,15 +57,16 @@ class Mission extends Model
         return $this->belongsTo(Concern::class);
     }
 
-    public function assignee(): BelongsTo
+    public function personnel(): BelongsToMany
     {
-        // Custom name 'assignee' pointing to the 'assigned_to' column in the users table
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsToMany(Personnel::class, 'mission_personnel', 'mission_id', 'personnel_id')
+                    ->using(MissionPersonnel::class)
+                    ->withPivot(['id', 'assigned_by', 'status', 'acknowledged_at', 'completed_at', 'sms_sent_at'])
+                    ->withTimestamps();
     }
 
     public function playbook(): BelongsTo
     {
-        // Links to the CategoryPlaybook model
         return $this->belongsTo(CategoryPlaybook::class, 'playbook_id');
     }
 

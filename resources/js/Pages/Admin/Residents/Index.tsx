@@ -34,6 +34,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
         last_name: '',
         name_extension: '',
         sex: 'Male',
+        civil_status: 'Single',
         house_street: '',
         barangay_name: '',
         city: '',
@@ -170,13 +171,22 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label className="text-xs font-medium">Sex</label>
                                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={manualForm.data.sex} onChange={e => manualForm.setData('sex', e.target.value)}>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium">Civil Status</label>
+                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={manualForm.data.civil_status} onChange={e => manualForm.setData('civil_status', e.target.value)}>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widowed">Widowed</option>
+                                    <option value="Separated">Separated</option>
                                 </select>
                             </div>
                             <div>

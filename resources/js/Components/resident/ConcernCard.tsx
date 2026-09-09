@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { MapPin, MessageCircle } from 'lucide-react';
+import { MapPin, MessageCircle, Calendar } from 'lucide-react';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -20,48 +20,67 @@ const severityLabel: Record<Severity, string> = {
 };
 
 type Props = {
-    concern: PublicConcern;
+    concern: PublicConcern & { reporter_name?: string };
 };
 
 export default function ConcernCard({ concern }: Props) {
     return (
-        <article className="overflow-hidden rounded-lg bg-white shadow-sm">
-            <div className="flex items-center gap-3 p-3 pb-2">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    ML
+        <article className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs transition-shadow hover:shadow-md">
+            {/* Top Author / Header Meta */}
+            <div className="flex items-center justify-between p-4 pb-2">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {concern.reporter_name ? concern.reporter_name.charAt(0) : 'ML'}
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-900">{concern.reporter_name ?? 'Verified Resident'}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{concern.category}</p>
+                    </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{concern.category}</p>
-                    <p className="text-xs text-muted-foreground">
-                        Public concern · {concern.created_at}
-                    </p>
+                <div className="flex items-center gap-2">
+                    <Badge variant={severityVariant[concern.severity]}>{severityLabel[concern.severity]}</Badge>
+                    <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/60">
+                        Public View
+                    </span>
                 </div>
-                <Badge variant={severityVariant[concern.severity]}>{severityLabel[concern.severity]}</Badge>
             </div>
 
-            <div className="px-3 pb-3">
-                <Link href={`/concerns/${concern.id}`} className="break-words text-base font-semibold hover:text-primary hover:underline">
+            {/* Title & Location / Date Row */}
+            <div className="px-4 py-2">
+                <Link href={`/concerns/${concern.id}`} className="block break-words text-lg font-bold text-slate-900 hover:text-primary transition-colors">
                     {concern.title}
                 </Link>
-                <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span className="line-clamp-2">{concern.location_label}</span>
-                </p>
-                {concern.images && concern.images.length > 0 && (
-                    <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-medium text-slate-600">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Posted on: {concern.created_at}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-medium text-slate-600 truncate max-w-[240px]">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">Location: {concern.location_label}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Media Image Container */}
+            {concern.images && concern.images.length > 0 && (
+                <div className="mt-3 bg-slate-900 overflow-hidden">
+                    <div className="flex gap-2 overflow-x-auto p-2">
                         {concern.images.map((url: string, idx: number) => (
                             <img 
                                 key={idx} 
                                 src={url} 
-                                alt="Concern Photo" 
-                                className="h-40 w-40 shrink-0 rounded-lg border border-slate-200 object-cover"
+                                alt="Concern Attachment" 
+                                className="h-64 w-full object-cover rounded-lg shadow-sm"
                             />
                         ))}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
+            {/* Status & Vote / Schedule Bar */}
+            <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 bg-slate-50/50">
                 <ConcernVoteButtons
                     concernId={concern.id}
                     upvotes={concern.upvotes}
@@ -69,16 +88,32 @@ export default function ConcernCard({ concern }: Props) {
                     userVote={concern.user_vote ?? null}
                     compact
                 />
-                <span className="text-xs capitalize text-muted-foreground">{concern.status.replace('_', ' ')}</span>
+                
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold capitalize text-slate-700 bg-white px-3 py-1 rounded-full border border-slate-200/80 shadow-2xs">
+                        {concern.status.replace('_', ' ')}
+                    </span>
+                    <span className="text-xs font-semibold text-white bg-primary px-3 py-1 rounded-full shadow-2xs">
+                        Active Queue
+                    </span>
+                </div>
             </div>
 
-            <div className="border-t p-1">
-                <Button variant="ghost" size="sm" className="w-full gap-2 font-semibold text-muted-foreground" asChild>
-                    <Link href={`/concerns/${concern.id}`}>
-                        <MessageCircle className="h-5 w-5" />
-                        View details
+            {/* Bottom Interaction / Comments Box */}
+            <div className="border-t border-slate-100 p-2 bg-slate-100/60">
+                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200/70 shadow-2xs">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-bold">
+                        R
+                    </div>
+                    <Link href={`/concerns/${concern.id}`} className="flex-1 text-sm text-slate-500 hover:text-slate-800 truncate">
+                        Write a comment or view discussion details...
                     </Link>
-                </Button>
+                    <Button variant="ghost" size="sm" asChild className="text-primary hover:bg-primary/10">
+                        <Link href={`/concerns/${concern.id}`}>
+                            <MessageCircle className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                </div>
             </div>
         </article>
     );

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Personnel;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Mission;
+use App\Models\Personnel;
 use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
@@ -15,11 +16,32 @@ use Inertia\Response;
 
 class MissionController extends Controller
 {
-    public function index(Request $request): Response
+    private function getPersonnelRecord(Request $request)
     {
         $user = $request->user();
+        
+        $personnel = Personnel::where('user_id', $user->id)->first();
 
-        $missionsQuery = Mission::with(['concern.media'])
+        if (!$personnel) {
+            $personnel = Personnel::find($user->id);
+        }
+
+        return $personnel;
+    }
+
+    public function index(Request $request): Response
+    {
+        $personnel = $this->getPersonnelRecord($request);
+
+        if (!$personnel) {
+            return Inertia::render('Personnel/Missions/Index', [
+                'missions' => [],
+                'counts' => ['all' => 0, 'active' => 0, 'in_progress' => 0, 'completed' => 0, 'overdue' => 0],
+            ]);
+        }
+
+        // Retrieve missions assigned to this personnel via the many-to-many pivot table
+        $missionsQuery = Mission::with(['concern.media', 'proof'])
             ->select('missions.*')
             ->addSelect([
                 'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
@@ -29,7 +51,9 @@ class MissionController extends Controller
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
-            ->where('assigned_to', $user->id)
+            ->whereHas('personnel', function ($query) use ($personnel) {
+                $query->where('personnel.id', $personnel->id);
+            })
             ->latest()
             ->get();
 
@@ -60,7 +84,7 @@ class MissionController extends Controller
                 'reporter_name' => null, 
                 'reporter_phone' => null,
                 'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
-                'proof_submitted' => $mission->relationLoaded('proof') && $mission->proof !== null,
+                'proof_submitted' => $mission->proof !== null,
             ];
         });
 
@@ -80,7 +104,13 @@ class MissionController extends Controller
 
     public function show(Request $request, string $id): Response
     {
-        $mission = Mission::with(['concern.media', 'proof.media', 'checklistItems'])
+        $personnel = $this->getPersonnelRecord($request);
+
+        if (!$personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
+
+        $mission = Mission::with(['concern.media', 'proof.media', 'checklistItems', 'personnel'])
             ->select('missions.*') 
             ->addSelect([
                 'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
@@ -90,11 +120,10 @@ class MissionController extends Controller
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
+            ->whereHas('personnel', function ($query) use ($personnel) {
+                $query->where('personnel.id', $personnel->id);
+            })
             ->findOrFail($id);
-
-        if ($mission->assigned_to !== $request->user()->id) {
-            abort(403, 'Unauthorized.');
-        }
 
         $concern = $mission->concern;
         $proof = $mission->proof;
@@ -153,11 +182,11 @@ class MissionController extends Controller
 
     public function updateStatus(Request $request, string $id): RedirectResponse
     {
-        $mission = Mission::findOrFail($id);
+        $personnel = $this->getPersonnelRecord($request);
 
-        if ($mission->assigned_to !== $request->user()->id) {
-            abort(403, 'Unauthorized.');
-        }
+        $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
+            $query->where('personnel.id', $personnel->id);
+        })->findOrFail($id);
 
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:acknowledged,in_progress'],
@@ -165,7 +194,6 @@ class MissionController extends Controller
 
         $updateData = ['status' => $validated['status']];
 
-        // Automatically stamp acknowledged_at if transitioning to acknowledged for the first time
         if ($validated['status'] === 'acknowledged' && !$mission->acknowledged_at) {
             $updateData['acknowledged_at'] = now();
         }
@@ -177,11 +205,11 @@ class MissionController extends Controller
 
     public function toggleChecklist(Request $request, string $id): RedirectResponse
     {
-        $mission = Mission::findOrFail($id);
+        $personnel = $this->getPersonnelRecord($request);
 
-        if ($mission->assigned_to !== $request->user()->id) {
-            abort(403, 'Unauthorized.');
-        }
+        $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
+            $query->where('personnel.id', $personnel->id);
+        })->findOrFail($id);
 
         $validated = $request->validate([
             'item_id' => ['required', 'string', 'exists:mission_checklist_items,id'],
@@ -196,7 +224,7 @@ class MissionController extends Controller
         $checklistItem->update([
             'is_completed' => $newState,
             'completed_at' => $newState ? now() : null,
-            'completed_by' => $newState ? $request->user()->id : null,
+            'completed_by' => $newState ? $personnel->id : null,
         ]);
 
         return back();
@@ -204,11 +232,11 @@ class MissionController extends Controller
 
     public function proofForm(Request $request, string $id): Response
     {
-        $mission = Mission::with('concern')->findOrFail($id);
+        $personnel = $this->getPersonnelRecord($request);
 
-        if ($mission->assigned_to !== $request->user()->id) {
-            abort(403, 'Unauthorized.');
-        }
+        $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
+            $query->where('personnel.id', $personnel->id);
+        })->findOrFail($id);
 
         $concern = $mission->concern;
 
@@ -226,11 +254,12 @@ class MissionController extends Controller
 
     public function storeProof(Request $request, string $id): RedirectResponse
     {
-        $mission = Mission::with('concern')->findOrFail($id);
+        $user = $request->user();
+        $personnel = $this->getPersonnelRecord($request);
 
-        if ($mission->assigned_to !== $request->user()->id) {
-            abort(403, 'Unauthorized.');
-        }
+        $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
+            $query->where('personnel.id', $personnel->id);
+        })->findOrFail($id);
 
         $validated = $request->validate([
             'notes' => ['required', 'string', 'max:2000'],
@@ -240,7 +269,7 @@ class MissionController extends Controller
 
         $proof = MissionProof::create([
             'mission_id' => $mission->id,
-            'submitted_by' => $request->user()->id,
+            'submitted_by' => $user->id,
             'notes' => $validated['notes'],
         ]);
 

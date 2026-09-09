@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\LibraryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\PersonnelController as AdminPersonnelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
     
+    // Personnel Management Routes
+    Route::get('/personnel', [AdminPersonnelController::class, 'index'])->name('personnel.index');
+    Route::post('/personnel', [AdminPersonnelController::class, 'store'])->name('personnel.store');
+    Route::delete('/personnel/{id}', [AdminPersonnelController::class, 'destroy'])->name('personnel.destroy');
+
     Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])
         ->where('path', '.*')
         ->name('view-id');

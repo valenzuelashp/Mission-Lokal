@@ -13,12 +13,8 @@ use Illuminate\Support\Facades\Hash;
 
 class PreloadedResidentSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // 1. Locate the CSV file
         $filePath = database_path('seeders/preloaded_residents.csv');
 
         if (!File::exists($filePath)) {
@@ -26,25 +22,21 @@ class PreloadedResidentSeeder extends Seeder
             return;
         }
 
-        // 2. Open the file and clean the header row
         $file = fopen($filePath, 'r');
         $header = fgetcsv($file);
-        $header[0] = trim($header[0], "\xEF\xBB\xBF"); // Remove invisible BOM characters
+        $header[0] = trim($header[0], "\xEF\xBB\xBF"); 
         
-        // 3. Get the first barangay to link the users to
         $barangay = Barangay::first();
         if (!$barangay) {
             $this->command->error("No Barangay found! Please run your DatabaseSeeder first to create a Barangay.");
             return;
         }
 
-        // 4. Loop through the rows and create records in BOTH tables
         while ($row = fgetcsv($file)) {
             $data = array_combine($header, $row);
             $address = trim($data['address'] ?? '');
             $addressParts = array_map('trim', explode(',', $address, 2));
 
-            // Step A: Create the offline Census Record
             PreloadedResident::updateOrCreate(
                 ['account_id' => $data['account_id']], 
                 [
@@ -60,35 +52,30 @@ class PreloadedResidentSeeder extends Seeder
                 ]
             );
 
-            // Step B: Create the live Shell Account for Logging In
+            // Removed verification_status from User array
             $user = User::updateOrCreate(
                 ['account_id' => $data['account_id']], 
                 [
                     'barangay_id'         => $barangay->id,
                     'role'                => UserRole::Resident,
-                    
-                    // Populate basic name info into the users table
                     'first_name'          => $data['first_name'],
                     'middle_name'         => $data['middle_name'] ?: null,
                     'last_name'           => $data['last_name'],
                     'name_extension'      => $data['name_extension'] ?: null,
-                    'email'    => $data['email'] ?: null,
-                    'mobile'   => $data['mobile'] ?: null,
-                    
-                    // FIX: Set the default password exactly to "password"
+                    'email'               => $data['email'] ?: null,
+                    'mobile'              => $data['mobile'] ?: null,
                     'password'            => Hash::make('password'),
-                    
-                    // CRITICAL: Set status to unverified so the Middleware traps them!
-                    'verification_status' => VerificationStatus::Unverified,
                     'is_active'           => true,
                 ]
             );
+            
+            // Verification status is set safely inside the residentProfile relationship
             $user->residentProfile()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
+                    'verification_status' => VerificationStatus::Unverified,
                     'birthday' => $data['birthday'],
                     'address'  => $data['address'] ?: null,
-                    
                 ]
             );
         }

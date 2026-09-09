@@ -16,9 +16,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            // Look for an existing barangay, otherwise leave it null to be overridden
             'barangay_id' => Barangay::inRandomOrder()->first()?->id,
-            // Generate a random account ID like RES12345
             'account_id' => 'RES' . fake()->unique()->numerify('#####'),
             'role' => UserRole::Resident,
             'first_name' => fake()->firstName(),
@@ -28,12 +26,19 @@ class UserFactory extends Factory
             'birthday' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
             'address' => fake()->streetAddress() . ', Demo Barangay',
             'email' => fake()->unique()->safeEmail(),
-            'mobile' => '09' . fake()->numerify('#########'), // Fake PH mobile number
-            'verification_status' => VerificationStatus::Approved,
+            'mobile' => '09' . fake()->numerify('#########'),
             'password' => static::$password ??= Hash::make('password'),
-            'civic_xp' => fake()->numberBetween(0, 100),
             'is_active' => true,
             'remember_token' => Str::random(10),
         ];
+    }
+
+    // Optional: Add a state to auto-generate the residentProfile with XP and Verification Status
+    public function residentProfile(array $attributes = [])
+    {
+        return $this->has(
+            \App\Models\ResidentProfile::factory()->state($attributes),
+            'residentProfile'
+        );
     }
 }

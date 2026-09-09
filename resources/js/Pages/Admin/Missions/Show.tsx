@@ -45,7 +45,7 @@ export default function Show({ mission }: any) {
                     <Card><CardContent className="p-5">
                         <h3 className="mb-3 font-semibold text-blue-900">Details</h3>
                         <dl className="text-sm space-y-2">
-                            <div className="flex justify-between"><dt className="text-muted-foreground">Assignee</dt><dd>{mission.assignee}</dd></div>
+                            <div className="flex justify-between"><dt className="text-muted-foreground">Personnel(s)</dt><dd>{mission.assignee}</dd></div>
                             <div className="flex justify-between"><dt className="text-muted-foreground">Priority</dt><dd><Badge variant="outline">{mission.priority}</Badge></dd></div>
                         </dl>
                     </CardContent></Card>

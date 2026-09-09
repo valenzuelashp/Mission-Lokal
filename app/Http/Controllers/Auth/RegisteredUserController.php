@@ -36,7 +36,6 @@ class RegisteredUserController extends Controller
             'sex' => 'required|string|in:Male,Female,Other',
             'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
             'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            // --- NEW: CONDITIONAL VALIDATION FOR MINORS ---
             'parent_name' => [
                 'nullable',
                 'string',
@@ -57,10 +56,8 @@ class RegisteredUserController extends Controller
                     }
                 },
             ],
-            // PHASE 9 SECURITY: Enforce explicit data privacy consent
             'consent' => 'accepted', 
         ], [
-            // Custom error message for the consent checkbox
             'consent.accepted' => 'You must accept the Privacy Policy and consent to data processing to register.',
         ]);
 
@@ -70,12 +67,12 @@ class RegisteredUserController extends Controller
         $lastName = strtolower(trim($request->last_name));
 
         $approvedUser = User::where('role', 'resident')
-            ->where('verification_status', 'approved')
+            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {
+                $profileQuery->where('verification_status', 'approved')
+                             ->whereDate('birthday', $parsedBirthday);
+            })
             ->whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
             ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
-            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {
-                $profileQuery->whereDate('birthday', $parsedBirthday);
-            })
             ->first();
 
         if ($approvedUser) {
@@ -95,8 +92,6 @@ class RegisteredUserController extends Controller
             ])->withInput();
         }
 
-        // Only allow registration if the resident exists in the barangay record list using
-        // the same full name, birthday, and email information that admin records hold.
         $preloaded = PreloadedResident::whereRaw('LOWER(first_name) = ?', [strtolower(trim($request->first_name))])
             ->whereRaw('LOWER(last_name) = ?', [strtolower(trim($request->last_name))])
             ->where('birthday', $parsedBirthday)
@@ -109,7 +104,7 @@ class RegisteredUserController extends Controller
         }
 
         $existingUser = User::whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])->first();
-        if ($existingUser && $existingUser->verification_status?->value === 'approved') {
+        if ($existingUser && $existingUser->residentProfile?->verification_status?->value === 'approved') {
             return back()->withErrors([
                 'general' => 'An approved account already exists for this name and email. Please proceed to login instead.',
             ])->withInput();
@@ -117,20 +112,14 @@ class RegisteredUserController extends Controller
 
         $barangayId = $preloaded->barangay_id ?? \App\Models\Barangay::first()?->id;
 
-        // --- PHASE 9 SECURITY: ENCRYPT ID AT REST ---
         $file = $request->file('government_id');
         $extension = $file->getClientOriginalExtension();
-        // Append .enc so we know this file is encrypted
         $cleanName = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension . '.enc';
         $idPath = 'government_ids/' . $cleanName;
 
-        // Extract raw bytes, scramble them using Laravel's encryption key, and save to the private 'local' disk
         $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
         \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
-        // ---------------------------------------------
         
-        
-        // 1. Save into temporary resident_registrations staging table
         ResidentRegistration::create([
             'barangay_id' => $barangayId,
             'first_name' => $request->first_name,
@@ -151,14 +140,12 @@ class RegisteredUserController extends Controller
             'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
-        // 2. Locate existing placeholder user account or create one if none preloaded
         $user = null;
         if ($preloaded) {
             $user = User::where('account_id', $preloaded->account_id)->first();
         }
 
         if (!$user) {
-            // Fallback match by name if preloaded link wasn't explicit
             $user = User::where('first_name', 'like', $request->first_name)
                 ->where('last_name', 'like', $request->last_name)
                 ->first();
@@ -167,17 +154,18 @@ class RegisteredUserController extends Controller
         $accountId = $preloaded ? $preloaded->account_id : ('RES' . rand(1000, 9999));
 
         if ($user) {
-            // Update the existing placeholder record directly so it doesn't duplicate
             $user->update([
                 'email' => $request->email,
                 'mobile' => $request->mobile,
-                'verification_status' => 'pending',
                 'parent_name' => $isMinor ? $request->parent_name : null,
                 'parent_contact' => $isMinor ? $request->parent_contact : null,
             ]);
+            $user->residentProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                ['verification_status' => 'pending']
+            );
         } else {
-            // Create new if no preloaded entry existed at all
-            User::create([
+            $newUser = User::create([
                 'barangay_id' => $barangayId,
                 'account_id' => $accountId,
                 'role' => 'resident',
@@ -187,9 +175,11 @@ class RegisteredUserController extends Controller
                 'name_extension' => $request->name_extension,
                 'email' => $request->email,
                 'mobile' => $request->mobile,
-                'verification_status' => 'pending',
                 'parent_name' => $isMinor ? $request->parent_name : null,
                 'parent_contact' => $isMinor ? $request->parent_contact : null,
+            ]);
+            $newUser->residentProfile()->create([
+                'verification_status' => 'pending',
             ]);
         }
 

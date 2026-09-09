@@ -10,11 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { useAuth } from '@/Hooks/usePageProps';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 
-const verificationBadge = {
-    approved: { label: 'Verified', variant: 'success' as const },
-    pending: { label: 'Pending', variant: 'warning' as const },
-    in_progress: { label: 'Under review', variant: 'warning' as const },
-    rejected: { label: 'Rejected', variant: 'danger' as const },
+const verificationBadge: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'outline' }> = {
+    approved: { label: 'Verified', variant: 'success' },
+    pending: { label: 'Pending', variant: 'warning' },
+    in_progress: { label: 'Under review', variant: 'warning' },
+    rejected: { label: 'Rejected', variant: 'danger' },
 };
 
 export default function ProfileIndex({ profile }: { profile: any }) {
@@ -35,8 +35,9 @@ export default function ProfileIndex({ profile }: { profile: any }) {
         badges: []
     };
 
-    const status = verificationBadge[user.verification_status] || { label: 'Unverified', variant: 'outline' as const };
+    const status = verificationBadge[user.verification_status as string] || { label: 'Unverified', variant: 'outline' as const };
     const isPendingEdit = activeProfile.edit_status === 'pending_approval';
+    const isVerifiedUser = user.verification_status === 'approved';
 
     const rightAside = (
         <>
@@ -45,6 +46,7 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                 accountId={user.account_id}
                 digitalIdCode={activeProfile.digital_id_code}
                 memberSince={activeProfile.member_since}
+                isVerified={isVerifiedUser}
             />
             <Card className="shadow-sm">
                 <CardHeader>
@@ -100,9 +102,9 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                 </Card>
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <StatCard label="Civic XP" value={user.civic_xp} icon={Award} hint="Earn more by reporting" />
-                    <StatCard label="Reports" value={activeProfile.report_count} icon={FileText} hint="Your submissions" />
-                    <StatCard label="Status" value={status.label} icon={Shield} hint={user.verification_status} />
+                    <StatCard label="Civic XP" value={user.civic_xp ?? 0} icon={Award} hint="Earn more by reporting" />
+                    <StatCard label="Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Your submissions" />
+                    <StatCard label="Status" value={status.label} icon={Shield} hint={user.verification_status ?? 'unverified'} />
                 </div>
 
                 <Card className="shadow-sm">

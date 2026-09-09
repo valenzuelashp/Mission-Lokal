@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
-use App\Enums\VerificationStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,12 +30,10 @@ class User extends Authenticatable
         'email',
         'mobile',
         'password',
-        'verification_status',
         'profile_edit_status',
-        'civic_xp',
         'is_active',
         'last_login_at',
-        // --- ADDED PARENT FIELDS FOR MINORS ---
+        // --- PARENT FIELDS FOR MINORS ---
         'parent_user_id',
         'parent_name',
         'parent_contact',
@@ -51,7 +48,6 @@ class User extends Authenticatable
     {
         return [
             'role' => UserRole::class,
-            'verification_status' => VerificationStatus::class,
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
@@ -69,12 +65,15 @@ class User extends Authenticatable
         return $this->hasOne(ResidentProfile::class);
     }
 
+    public function personnelProfile(): HasOne
+    {
+        return $this->hasOne(Personnel::class, 'user_id');
+    }
+
     public function concerns(): HasMany
     {
         return $this->hasMany(Concern::class, 'reporter_id');
     }
-
-    // --- NEW RELATIONSHIPS & HELPER METHODS FOR MINORS ---
 
     public function parent(): BelongsTo
     {

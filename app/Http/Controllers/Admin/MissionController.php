@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
+use App\Models\Personnel;
+use App\Models\User;
 use App\Enums\MissionStatus;
 use App\Enums\ConcernStatus;
 use Illuminate\Http\Request;
@@ -13,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 
 class MissionController extends Controller
@@ -27,7 +28,7 @@ class MissionController extends Controller
             ->latest()
             ->get();
 
-        $realMissions = Mission::with('assignee')
+        $realMissions = Mission::with('personnel.user')
             ->whereIn('concern_id', $concerns->pluck('id'))
             ->get()
             ->keyBy('concern_id');
@@ -35,18 +36,22 @@ class MissionController extends Controller
         $missions = $concerns->map(function ($concern) use ($realMissions) {
             $mission = $realMissions->get($concern->id);
 
-            // Use the mission ID if it exists, otherwise fallback to concern ID so it doesn't break
             $rawId = $mission ? $mission->id : $concern->id; 
 
+            $assigneeNames = $mission?->personnel?->map(function($p) {
+                return trim(($p->user?->first_name ?? '') . ' ' . ($p->user?->last_name ?? ''));
+            })->filter()->implode(', ') ?: null;
+
+            $personnelIds = $mission?->personnel?->pluck('id')->values()->toArray() ?? [];
+
             return [
-                // FIX: Give React the REAL UUID so routing works, and move MS- formatting to display_id
                 'id' => $rawId, 
                 'display_id' => 'MS-' . strtoupper(substr($rawId, 0, 4)),
-                
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
                 'location' => $concern->address_text ?? 'Unknown location',
-                'assignee' => $mission?->assignee?->full_name ?? $mission?->assignee?->account_id ?? null,
+                'assignee' => $assigneeNames,
+                'personnel_ids' => $personnelIds,
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
                 'status' => $mission ? ($mission->status->value ?? $mission->status) : 'assigned',
                 'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
@@ -65,14 +70,23 @@ class MissionController extends Controller
             'overdue' => $missions->where('is_overdue', true)->count(),
         ];
 
-        $personnelList = User::where('barangay_id', $barangayId)
+        User::where('barangay_id', $barangayId)
             ->where('role', 'personnel')
-            ->where('is_active', 1)
+            ->each(function ($user) {
+                Personnel::firstOrCreate(['user_id' => $user->id]);
+            });
+
+        $personnelList = Personnel::with('user')
+            ->whereHas('user', function ($q) use ($barangayId) {
+                $q->where('barangay_id', $barangayId)
+                  ->where('role', 'personnel')
+                  ->where('is_active', 1);
+            })
             ->get()
-            ->map(function ($user) {
+            ->map(function ($personnel) {
                 return [
-                    'id' => $user->id,
-                    'name' => $user->full_name ?? $user->account_id,
+                    'id' => $personnel->id,
+                    'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
                 ];
             });
 
@@ -87,7 +101,8 @@ class MissionController extends Controller
     {
         $validated = $request->validate([
             'concern_id' => ['required', 'exists:concerns,id'],
-            'assigned_to' => ['required', 'exists:users,id'],
+            'personnel_ids' => ['present', 'array'],
+            'personnel_ids.*' => ['exists:personnel,id'], 
         ]);
 
         $concern = Concern::findOrFail($validated['concern_id']);
@@ -97,44 +112,63 @@ class MissionController extends Controller
             abort(403, 'Unauthorized context registration.');
         }
 
-        $mission = DB::transaction(function () use ($validated, $concern, $request, $barangayId) {
+        DB::transaction(function () use ($validated, $concern, $request, $barangayId) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
                     'barangay_id' => $concern->barangay_id,
-                    'assigned_to' => $validated['assigned_to'],
                     'status' => 'assigned',
                     'due_date' => now()->addDays(2),
                     'created_by' => $request->user()->id,
                 ]
             );
 
-            DB::table('mission_assignments')->insert([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'mission_id' => $mission->id,
-                'personnel_id' => $validated['assigned_to'],
-                'assigned_by' => $request->user()->id,
-                'assigned_at' => now(),
-            ]);
+            $syncData = [];
+            foreach ($validated['personnel_ids'] as $personnelId) {
+                $existingPivot = DB::table('mission_personnel')
+                    ->where('mission_id', $mission->id)
+                    ->where('personnel_id', $personnelId)
+                    ->first();
 
-            // Audit log insertion
+                $syncData[$personnelId] = [
+                    'id' => $existingPivot ? $existingPivot->id : (string) \Illuminate\Support\Str::uuid(),
+                    'assigned_by' => $request->user()->id,
+                    'status' => 'assigned',
+                    'created_at' => $existingPivot ? $existingPivot->created_at : now(),
+                    'updated_at' => now(),
+                ];
+
+                // Automatically trigger an in-app notification for the assigned personnel user
+                $personnelRecord = Personnel::with('user')->find($personnelId);
+                if ($personnelRecord && $personnelRecord->user_id) {
+                    Notification::create([
+                        'user_id' => $personnelRecord->user_id,
+                        'barangay_id' => $barangayId,
+                        'channel' => 'in_app',
+                        'event_type' => 'new_mission_assigned',
+                        'title' => 'New mission assigned',
+                        'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
+                        'payload' => ['mission_id' => $mission->id],
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            $mission->personnel()->sync($syncData);
+
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
                 'actor_id' => Auth::id(),
                 'action' => 'CREATE',
                 'entity_type' => 'Mission',
                 'entity_id' => $mission->id,
-                'metadata' => json_encode(['details' => 'Assigned mission for concern: ' . $concern->title]),
+                'metadata' => json_encode(['details' => 'Updated personnel assignments for mission/concern: ' . $concern->title]),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
-
-            return $mission; 
         });
 
-        \App\Jobs\SendMissionAssignmentSms::dispatch($mission->id);
-
-        return back()->with('success', 'Personnel successfully assigned to mission!');
+        return back()->with('success', 'Personnel assignments successfully updated!');
     }
 
     public function show(Request $request, string $id): Response
@@ -142,12 +176,16 @@ class MissionController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $mission = Mission::where('barangay_id', $barangayId)
-            ->with(['concern.media', 'proof.media', 'assignee'])
+            ->with(['concern.media', 'proof.media', 'personnel.user'])
             ->findOrFail($id);
 
         $concern = $mission->concern;
         $concernImages = $concern->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
         $proofPhotos = $mission->proof?->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
+
+        $assigneeNames = $mission->personnel->map(function($p) {
+            return trim(($p->user?->first_name ?? '') . ' ' . ($p->user?->last_name ?? ''));
+        })->filter()->implode(', ') ?: 'Unassigned';
 
         return Inertia::render('Admin/Missions/Show', [
             'mission' => [
@@ -160,7 +198,7 @@ class MissionController extends Controller
                 'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
                 'is_overdue' => (bool)$mission->is_overdue,
                 'brief' => $concern->description,
-                'assignee' => $mission->assignee?->full_name ?? $mission->assignee?->account_id ?? 'Unassigned',
+                'assignee' => $assigneeNames,
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,
                 'proof_photos' => $proofPhotos,
@@ -187,15 +225,16 @@ class MissionController extends Controller
                 
                 Notification::create([
                     'user_id' => $concern->reporter_id,
+                    'barangay_id' => $barangayId,
                     'channel' => 'in_app',
                     'event_type' => 'concern_resolved',
                     'title' => 'Concern Resolved',
                     'body' => 'Your report has been fully verified and resolved. Thank you for keeping the community safe!',
                     'payload' => ['concern_id' => $concern->id],
+                    'is_read' => false,
                 ]);
             }
 
-            // Audit log insertion
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
                 'actor_id' => Auth::id(),
