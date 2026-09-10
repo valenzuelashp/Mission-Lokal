@@ -8,7 +8,7 @@ type Props = PropsWithChildren<{
 export default function ResidentSocialShell({ children, right }: Props) {
     return (
         <>
-            <div className="hidden w-full lg:grid lg:grid-cols-[280px_min(640px,100%)_280px] xl:grid-cols-[320px_min(680px,100%)_320px] justify-center gap-6 py-6">
+            <div className="hidden w-full lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,680px)_minmax(0,1fr)] justify-center gap-6 py-6">
                 <aside className="sticky top-[4.5rem] h-fit w-full">
                     <ResidentShortcuts />
                 </aside>
