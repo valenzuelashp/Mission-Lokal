@@ -3,6 +3,7 @@ import { FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
+import { PasswordInput } from '@/Components/ui/password-input';
 import { Label } from '@/Components/ui/label';
 
 export default function PersonnelLogin() {
@@ -22,7 +23,12 @@ export default function PersonnelLogin() {
             <Head title="Personnel Login" />
             <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
                 <Card className="w-full max-w-sm">
-                    <CardHeader>
+                    <CardHeader className="items-center text-center">
+                        <img
+                            src="/images/barangay-tambo-logo.png"
+                            alt="Barangay Tambo, City of Parañaque"
+                            className="h-28 w-28 object-contain sm:h-32 sm:w-32"
+                        />
                         <CardTitle>Personnel portal</CardTitle>
                         <CardDescription>Mission assignments &amp; proof upload</CardDescription>
                     </CardHeader>
@@ -40,9 +46,8 @@ export default function PersonnelLogin() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password</Label>
-                                <Input
+                                <PasswordInput
                                     id="password"
-                                    type="password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     autoComplete="current-password"

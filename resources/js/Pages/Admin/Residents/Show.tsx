@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, BookOpen, ShieldAlert, User, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, IdCard, ShieldAlert, User, X } from 'lucide-react';
 import { useState } from 'react';
 import ResidentActivityTable from '@/Components/admin/ResidentActivityTable';
 import ResidentDocumentsList from '@/Components/admin/ResidentDocumentsList';
@@ -310,6 +310,37 @@ export default function Show({ resident, residentId }: Props) {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card className="mb-6 shadow-sm">
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <IdCard className="h-4 w-4 text-muted-foreground" />
+                        Submitted government ID
+                    </CardTitle>
+                    <p className="text-sm font-medium text-foreground">
+                        {data.government_id_label ?? 'UNKNOWN ID'}
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    {data.government_id_url ? (
+                        data.government_id_is_pdf ? (
+                            <iframe
+                                src={data.government_id_url}
+                                title={data.government_id_label ?? 'Government ID'}
+                                className="h-[420px] w-full rounded-lg border bg-white"
+                            />
+                        ) : (
+                            <img
+                                src={data.government_id_url}
+                                alt={data.government_id_label ?? 'Government ID'}
+                                className="max-h-[420px] w-full rounded-lg border object-contain bg-slate-50"
+                            />
+                        )
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No government ID on file for this account.</p>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="grid gap-6 lg:grid-cols-2">
                 <ResidentActivityTable 

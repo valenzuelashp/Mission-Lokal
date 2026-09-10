@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class TemporaryPasswordController extends Controller
 {
-    // Process and save a custom password update if requested by the user
-    public function update(Request $request)
+    public function update(Request $request): RedirectResponse
     {
         $request->validate([
             'password' => [
@@ -20,13 +19,19 @@ class TemporaryPasswordController extends Controller
             ],
         ]);
 
-        $user = $request->user();
-
-        $user->update([
-            'password' => Hash::make($request->password),
-            'is_active' => true, 
+        $request->user()->update([
+            'password' => $request->password,
+            'is_active' => true,
+            'password_prompt_snoozed_on' => null,
         ]);
 
         return redirect()->route('feed')->with('success', 'Password successfully updated!');
+    }
+
+    public function dismiss(Request $request): RedirectResponse
+    {
+        $request->session()->put('password_prompt_dismissed', true);
+
+        return back();
     }
 }

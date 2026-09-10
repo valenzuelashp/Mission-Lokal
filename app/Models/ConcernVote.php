@@ -12,9 +12,11 @@ class ConcernVote extends Model
 
     protected $table = 'concern_votes';
 
-    // Disable auto-incrementing since this table uses a composite primary key (concern_id + user_id)
     public $incrementing = false;
-    protected $primaryKey = null;
+
+    protected $primaryKey = ['concern_id', 'user_id'];
+
+    protected $keyType = 'string';
 
     protected $fillable = [
         'concern_id',
@@ -27,6 +29,13 @@ class ConcernVote extends Model
         return [
             'vote' => 'integer',
         ];
+    }
+
+    protected function setKeysForSaveQuery($query)
+    {
+        return $query
+            ->where('concern_id', $this->getAttribute('concern_id'))
+            ->where('user_id', $this->getAttribute('user_id'));
     }
 
     public function concern(): BelongsTo

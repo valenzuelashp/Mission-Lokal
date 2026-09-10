@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Resident;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
@@ -46,7 +45,9 @@ class SecurityController extends Controller
 
         // Update the hashed password in the users table
         $user->update([
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
+            'is_active' => true,
+            'password_prompt_snoozed_on' => null,
         ]);
 
         return redirect()->route('profile')->with('success', 'Password successfully updated.');

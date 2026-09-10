@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Megaphone, Share2, ThumbsUp } from 'lucide-react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import { Button } from '@/Components/ui/button';
 import type { ResidentAnnouncement } from '@/Types';
 
@@ -31,10 +32,11 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
 
             {announcement.image_url && (
                 <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-50">
-                    <img
+                    <BufferedImage
                         src={announcement.image_url}
                         alt={announcement.title}
-                        className="max-h-96 w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
+                        className={compact ? 'aspect-video max-h-40 min-h-28 w-full' : 'aspect-video max-h-96 min-h-48 w-full'}
+                        imgClassName="transition-transform duration-300 hover:scale-[1.01]"
                     />
                 </Link>
             )}

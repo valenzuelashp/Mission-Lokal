@@ -43,7 +43,7 @@
 
         <!-- Action Button -->
         <div style="text-align: center; margin: 32px 0 24px 0;">
-            <a href="{{ config('app.url') }}login" style="background-color: #0d9488; color: #ffffff; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);">Log In to Your Account</a>
+            <a href="{{ url('/login') }}" style="background-color: #0d9488; color: #ffffff; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);">Log In to Your Account</a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />

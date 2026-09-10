@@ -18,7 +18,7 @@ class MapController extends Controller
 
         // Fetch concerns with media and safely load missions using table join or dynamic check
         $pins = Concern::with(['media'])
-            ->select('concerns.*', DB::raw('ST_Y(location) as lat, ST_X(location) as lng'))
+            ->select('concerns.*', \App\Support\MapHelpers::latLngSelect())
             ->where('barangay_id', $barangayId)
             ->whereNotNull('location')
             ->get()
@@ -59,7 +59,7 @@ class MapController extends Controller
         if (\Illuminate\Support\Facades\Schema::hasTable('hotspots')) {
             $hotspots = DB::table('hotspots')
                 ->where('barangay_id', $barangayId)
-                ->select('id', 'radius_m', 'report_count', 'risk_level', 'label', 'top_categories', DB::raw('ST_Y(center) as lat'), DB::raw('ST_X(center) as lng'))
+                ->select('id', 'radius_m', 'report_count', 'risk_level', 'label', 'top_categories', DB::raw('ST_X(center) as lat'), DB::raw('ST_Y(center) as lng'))
                 ->get()
                 ->map(function ($hotspot) {
                     return [

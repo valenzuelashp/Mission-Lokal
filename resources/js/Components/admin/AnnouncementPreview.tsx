@@ -1,4 +1,5 @@
 import { Megaphone } from 'lucide-react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 
@@ -36,11 +37,10 @@ export default function AnnouncementPreview({ title, body, imageUrl, isPublished
             </CardHeader>
             <CardContent className="space-y-3">
                 {imageUrl && (
-                    <img
+                    <BufferedImage
                         src={imageUrl}
                         alt=""
-                        className="w-full rounded-lg object-cover"
-                        style={{ maxHeight: '200px' }}
+                        className="aspect-video max-h-52 w-full rounded-lg"
                     />
                 )}
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">

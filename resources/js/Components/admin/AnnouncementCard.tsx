@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { MouseEvent } from 'react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
@@ -24,10 +25,10 @@ export default function AnnouncementCard({ announcement }: Props) {
             <CardContent className="space-y-3 p-4">
                 <div className="flex gap-3">
                     {announcement.image_url ? (
-                        <img
+                        <BufferedImage
                             src={announcement.image_url}
                             alt=""
-                            className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                            className="h-14 w-14 shrink-0 rounded-lg"
                         />
                     ) : (
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">

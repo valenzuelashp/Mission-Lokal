@@ -19,7 +19,8 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 - [x] Team guide ([TEAM_GUIDE.md](./TEAM_GUIDE.md))
 - [x] Base shadcn/ui components (Button, Input, Card, Badge, Label)
 - [x] Shared UI: PageHeader, EmptyState, mobile nav (ResidentLayout)
-- [ ] Shared UI: toasts, Dialog, Table, Form
+- [ ] Shared UI: Dialog, Table, Form
+- [x] Shared UI: flash toasts
 
 ---
 
@@ -79,15 +80,15 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 ## Phase 4 — AI concern pipeline
 
-- [ ] Queue job: `ProcessConcernWithAi`
-- [-] Language detect (Filipino / English)
-- [ ] Category + subcategory classification
-- [ ] Public vs private routing
-- [ ] Severity scoring
+- [x] Queue job: `ProcessConcernWithAi`
+- [x] Language detect (Filipino / English / mixed — Gemini, with local fallback)
+- [-] Category + subcategory classification
+- [x] Public vs private routing
+- [x] Severity scoring
 - [ ] Duplicate detection (geo + time window)
-- [ ] Prescriptive checklist from playbooks
-- [ ] Suggested due date
-- [ ] Persist `concern_ai_analysis`; status → `ai_processed`
+- [x] Prescriptive checklist from playbooks
+- [x] Suggested due date
+- [x] Persist `concern_ai_analysis`; status → `ai_processed`
 - [ ] Blotter redirect prompt for sensitive concerns
 - [ ] Admin queue notification
 
@@ -161,10 +162,10 @@ Task backlog aligned with [BLUEPRINT.md](./BLUEPRINT.md) and [DATABASE.md](./DAT
 
 - [ ] PWA install + service worker verification
 - [ ] Offline library cache
-- [-] Rate limiting (login, OTP, reports)
-- [-] Government ID encryption
-- [-] VAWC / domestic: force private visibility
-- [-] Privacy policy + registration consent
+- [x] Rate limiting (login, OTP, reports)
+- [x] Government ID encryption
+- [x] VAWC / domestic: force private visibility
+- [x] Privacy policy + registration consent
 - [ ] WCAG basics on key flows
 
 ---

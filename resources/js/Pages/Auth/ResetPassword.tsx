@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
+import { PasswordInput } from '@/Components/ui/password-input';
 import { Label } from '@/Components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 
@@ -36,28 +36,26 @@ export default function ResetPassword({ user_id }: Props) {
                     <form onSubmit={submit} className="space-y-4">
                         <input type="hidden" value={data.user_id} />
                         
-                        <div>
+                        <div className="space-y-1">
                             <Label htmlFor="password">New Password</Label>
-                            <Input 
-                                id="password" 
-                                type="password" 
-                                value={data.password} 
-                                onChange={e => setData('password', e.target.value)} 
-                                className="mt-1"
-                                required 
+                            <PasswordInput
+                                id="password"
+                                value={data.password}
+                                onChange={e => setData('password', e.target.value)}
+                                autoComplete="new-password"
+                                required
                             />
                             {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
                         </div>
 
-                        <div>
+                        <div className="space-y-1">
                             <Label htmlFor="password_confirmation">Confirm Password</Label>
-                            <Input 
-                                id="password_confirmation" 
-                                type="password" 
-                                value={data.password_confirmation} 
-                                onChange={e => setData('password_confirmation', e.target.value)} 
-                                className="mt-1"
-                                required 
+                            <PasswordInput
+                                id="password_confirmation"
+                                value={data.password_confirmation}
+                                onChange={e => setData('password_confirmation', e.target.value)}
+                                autoComplete="new-password"
+                                required
                             />
                             {errors.password_confirmation && <p className="text-sm text-red-500 mt-1">{errors.password_confirmation}</p>}
                         </div>

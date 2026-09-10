@@ -99,4 +99,27 @@ class Concern extends Model
     {
         return $this->hasMany(ConcernVote::class);
     }
+
+    public function denyUnlessVisibleToResident(User $user): void
+    {
+        if ($this->barangay_id !== $user->barangay_id) {
+            abort(403, 'Unauthorized access request outside geographic boundary.');
+        }
+
+        if ($this->visibility === 'private' && $this->reporter_id !== $user->id) {
+            abort(403, 'This concern is private and restricted to the original reporter.');
+        }
+    }
+
+    public static function shouldForcePrivate(?string $categoryKey, string $title = '', string $description = ''): bool
+    {
+        if ($categoryKey === 'vawc') {
+            return true;
+        }
+
+        return (bool) preg_match(
+            '/\b(vawc|domestic\s+violence|domestic\s+dispute|ra\s*9262)\b/i',
+            $title.' '.$description
+        );
+    }
 }

@@ -55,12 +55,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         ->where('path', '.*')
         ->name('view-id');
 
-    Route::prefix('verifications')->name('verifications.')->group(function () {
-        Route::get('/', [VerificationController::class, 'index'])->name('index');
-        Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
-        Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
-        Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
-    });
+        Route::prefix('verifications')->name('verifications.')->group(function () {
+            Route::get('/', [VerificationController::class, 'index'])->name('index');
+            Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
+            Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
+            Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
+        });
 
     Route::get('/profile-edits', [ProfileEditController::class, 'index'])->name('profile-edits.index');
     Route::post('/profile-edits/{id}/approve', [ProfileEditController::class, 'approve'])->name('profile-edits.approve');

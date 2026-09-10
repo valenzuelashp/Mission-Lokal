@@ -31,6 +31,7 @@ class NotificationController extends Controller
                 'read' => (bool) $notif->is_read,
                 'concern_id' => $payload['concern_id'] ?? null,
                 'mission_id' => $payload['mission_id'] ?? null,
+                'registration_id' => $payload['registration_id'] ?? null,
             ];
         });
 

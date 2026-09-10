@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Megaphone } from 'lucide-react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import { Button } from '@/Components/ui/button';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import { findPublishedAnnouncement, publishedAnnouncements } from '@/Lib/residentDemo';
@@ -27,11 +28,10 @@ export default function Show({ announcement, announcementId }: Props) {
 
             <article className="lg:max-w-3xl">
                 {item.image_url && (
-                    <img
+                    <BufferedImage
                         src={item.image_url}
-                        alt=""
-                        className="mb-6 w-full rounded-xl object-cover"
-                        style={{ maxHeight: '320px' }}
+                        alt={item.title}
+                        className="mb-6 aspect-video max-h-80 w-full rounded-xl"
                     />
                 )}
                 <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">

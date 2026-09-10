@@ -27,11 +27,15 @@ export interface User {
 export interface PageProps {
     auth: {
         user: User | null;
+        needs_password_setup?: boolean;
+        show_password_prompt?: boolean;
     };
     flash: {
         success?: string;
         error?: string;
     };
+    unread_count?: number;
+    pending_registrations_count?: number;
     [key: string]: unknown;
 }
 
@@ -185,6 +189,7 @@ export interface AdminDashboardStats {
     ongoing_missions: number;
     accomplished: number;
     pending_verification: number;
+    pending_registrations?: number;
     high_priority?: number;
     by_severity?: {
         critical: number;
@@ -310,11 +315,22 @@ export interface AdminActivity {
     icon: 'user' | 'ai' | 'success' | 'system';
 }
 
+export interface AdminDashboardRegistration {
+    id: number | string;
+    full_name: string;
+    email: string;
+    mobile: string;
+    submitted_at: string;
+    census_match?: boolean;
+    account_id?: string;
+}
+
 export interface AdminDashboardPageProps extends PageProps {
     stats: AdminDashboardStats;
     incidents: AdminIncident[];
     activities: AdminActivity[];
     map_pins: MapPin[];
+    registrations?: AdminDashboardRegistration[];
 }
 
 export interface AdminAnnouncement {
@@ -417,6 +433,9 @@ export interface AdminResidentDetail extends AdminResident {
     xp_events: AdminResidentXpEvent[];
     activities: AdminResidentActivity[];
     documents: AdminResidentDocument[];
+    government_id_url?: string | null;
+    government_id_label?: string | null;
+    government_id_is_pdf?: boolean;
 }
 
 export interface AdminResidentsPageProps extends PageProps {

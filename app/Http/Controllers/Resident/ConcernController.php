@@ -8,6 +8,7 @@ use App\Models\Concern;
 use App\Models\ConcernStatusHistory;
 use App\Enums\ConcernStatus;
 use App\Models\ConcernVote;
+use App\Support\MapHelpers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,15 +31,16 @@ class ConcernController extends Controller
                 $query->where('visibility', 'public')
                       ->orWhere('reporter_id', $user->id);
             })
-            ->with(['reporter', 'media'])
+            ->with(['reporter', 'media', 'votes' => fn ($query) => $query->where('user_id', $user->id)])
             ->withCount([
-                'votes as upvotes_count' => fn($q) => $q->where('vote', 'up'),
-                'votes as downvotes_count' => fn($q) => $q->where('vote', 'down')
+                'votes as upvotes_count' => fn($q) => $q->where('vote', 1),
+                'votes as downvotes_count' => fn($q) => $q->where('vote', -1)
             ])
             ->latest()
             ->get()
             ->map(function ($item) {
                 $reporterName = trim(($item->reporter?->first_name ?? '') . ' ' . ($item->reporter?->last_name ?? ''));
+                $rawVote = $item->votes->first()?->vote;
                 
                 return [
                     'id' => (string) $item->id,
@@ -48,6 +50,7 @@ class ConcernController extends Controller
                     'status' => $item->status->value ?? $item->status, 
                     'upvotes' => (int) $item->upvotes_count,
                     'downvotes' => (int) $item->downvotes_count,
+                    'user_vote' => ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null),
                     'location_label' => $item->address_text ?? 'Pinpointed Coordinates',
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
                     'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
@@ -118,9 +121,14 @@ class ConcernController extends Controller
         ];
 
         $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
-        $visibility = ($request->category_id === 'vawc') ? 'private' : 'public';
+        $forcePrivate = Concern::shouldForcePrivate(
+            $request->category_id,
+            $request->title ?? '',
+            $request->description ?? ''
+        );
+        $visibility = $forcePrivate ? 'private' : 'public';
         
-        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility) {
+        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility, $forcePrivate) {
             $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
@@ -129,9 +137,9 @@ class ConcernController extends Controller
                 'category_id' => $categoryIdInt,
                 'visibility' => $visibility, 
                 'status' => ConcernStatus::Submitted, 
-                'location' => DB::raw("ST_GeomFromText('POINT({$request->lng} {$request->lat})', 4326)"),
+                'location' => MapHelpers::pointFromLatLng((float) $request->lat, (float) $request->lng),
                 'address_text' => $request->address_text ?? "Coordinates: {$request->lat}, {$request->lng}",
-                'is_blotter_candidate' => false,
+                'is_blotter_candidate' => $forcePrivate,
                 'severity_confirmed' => false,
             ]);
 
@@ -161,7 +169,11 @@ class ConcernController extends Controller
             return $createdConcern;
         });
 
-        \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
+        if (! config('services.gemini.key') || config('queue.default') === 'sync') {
+            \App\Jobs\Ai\ProcessConcernWithAi::dispatchSync($concern);
+        } else {
+            \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
+        }
 
         return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
     }
@@ -172,23 +184,17 @@ class ConcernController extends Controller
     public function show(Request $request, Concern $concern): Response
     {
         $user = $request->user();
-
-        if ($concern->barangay_id !== $user->barangay_id) {
-            abort(403, 'Unauthorized access request outside geographic boundary.');
-        }
-
-        if ($concern->visibility === 'private' && $concern->reporter_id !== $user->id) {
-            abort(403, 'This concern is private and restricted to the original reporter.');
-        }
+        $concern->denyUnlessVisibleToResident($user);
 
         $concern->load('reporter');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
 
-        $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$concern->id]);
+        $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$concern->id]);
 
-        $upvotes = $concern->votes()->where('vote', 'up')->count();
-        $downvotes = $concern->votes()->where('vote', 'down')->count();
-        $userVote = $concern->votes()->where('user_id', $user->id)->value('vote');
+        $upvotes = $concern->votes()->where('vote', 1)->count();
+        $downvotes = $concern->votes()->where('vote', -1)->count();
+        $rawVote = $concern->votes()->where('user_id', $user->id)->value('vote');
+        $userVote = ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null);
 
         $timeline = DB::table('concern_status_history')
             ->where('concern_id', $concern->id)
@@ -240,11 +246,17 @@ class ConcernController extends Controller
     public function vote(Request $request, Concern $concern): RedirectResponse
     {
         $request->validate([
-            'type' => ['required', 'in:up,down']
+            'vote' => ['nullable', 'in:up,down'],
+            'type' => ['nullable', 'in:up,down'],
         ]);
 
         $user = $request->user();
-        $type = $request->type;
+        $concern->denyUnlessVisibleToResident($user);
+        $direction = $request->input('vote', $request->input('type'));
+        if (! in_array($direction, ['up', 'down'], true)) {
+            return back()->with('error', 'Invalid vote.');
+        }
+        $value = $direction === 'down' ? -1 : 1;
 
         if ($concern->reporter_id === $user->id) {
             return back()->with('error', 'You cannot vote on your own community report submission.');
@@ -255,17 +267,20 @@ class ConcernController extends Controller
             ->first();
 
         if ($existingVote) {
-            if ($existingVote->vote === $type) {
-                $existingVote->delete();
+            if ((int) $existingVote->vote === $value) {
+                ConcernVote::where('concern_id', $concern->id)
+                    ->where('user_id', $user->id)
+                    ->delete();
             } else {
-                $existingVote->update(['vote' => $type]);
+                ConcernVote::where('concern_id', $concern->id)
+                    ->where('user_id', $user->id)
+                    ->update(['vote' => $value]);
             }
         } else {
             ConcernVote::create([
-                'id' => Str::uuid()->toString(),
                 'concern_id' => $concern->id,
                 'user_id' => $user->id,
-                'vote' => $type,
+                'vote' => $value,
             ]);
         }
 

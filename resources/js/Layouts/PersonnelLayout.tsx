@@ -7,6 +7,7 @@ import { useAuth } from '@/Hooks/usePageProps';
 import { useActivePath } from '@/Hooks/useActivePath';
 import { cn } from '@/Lib/utils';
 import type { PageProps } from '@/Types';
+import FlashToasts from '@/Components/shared/FlashToasts';
 
 const nav = [
     { href: '/personnel/missions', label: 'My missions', icon: ClipboardList },
@@ -76,6 +77,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
 
     return (
         <div className="flex min-h-screen bg-slate-50">
+            <FlashToasts />
             <aside className="hidden w-60 shrink-0 flex-col border-r bg-slate-100/80 lg:flex">{sidebar}</aside>
 
             {mobileOpen && (

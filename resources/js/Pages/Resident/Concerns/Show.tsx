@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import StatusTimeline from '@/Components/resident/StatusTimeline';
 import { Badge } from '@/Components/ui/badge';
@@ -98,11 +99,11 @@ export default function Show({ concern }: Props) {
                                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Attached Photos</h3>
                                     <div className="flex gap-2 overflow-x-auto pb-1">
                                         {concern.images.map((url: string, idx: number) => (
-                                            <img 
-                                                key={idx} 
-                                                src={url} 
-                                                alt="Concern Photo" 
-                                                className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 object-cover shadow-2xs"
+                                            <BufferedImage
+                                                key={idx}
+                                                src={url}
+                                                alt="Concern photo"
+                                                className="h-24 w-24 shrink-0 rounded-lg border border-slate-200 shadow-2xs"
                                             />
                                         ))}
                                     </div>
@@ -118,11 +119,11 @@ export default function Show({ concern }: Props) {
                                     {concern.proof_photos && concern.proof_photos.length > 0 && (
                                         <div className="flex gap-1.5 overflow-x-auto">
                                             {concern.proof_photos.map((url: string, idx: number) => (
-                                                <img 
-                                                    key={idx} 
-                                                    src={url} 
-                                                    alt="Proof" 
-                                                    className="h-20 w-20 shrink-0 rounded border border-emerald-200 object-cover"
+                                                <BufferedImage
+                                                    key={idx}
+                                                    src={url}
+                                                    alt="Proof"
+                                                    className="h-20 w-20 shrink-0 rounded border border-emerald-200"
                                                 />
                                             ))}
                                         </div>

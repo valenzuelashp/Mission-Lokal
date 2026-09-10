@@ -31,7 +31,6 @@ use App\Models\Notification;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use App\Enums\ConcernStatus;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -82,13 +81,12 @@ class DemoDataSeeder extends Seeder
         $admin = User::updateOrCreate(
             ['email' => 'admin@missionlokal.test'],
             [
-                'id' => Str::uuid(),
                 'barangay_id' => $barangay->id,
                 'account_id' => 'ADMIN999',
                 'role' => UserRole::Admin,
                 'first_name' => 'System',
                 'last_name' => 'Admin',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'is_active' => true,
             ]
         );
@@ -96,30 +94,28 @@ class DemoDataSeeder extends Seeder
         $personnel = User::updateOrCreate(
             ['email' => 'personnel@missionlokal.test'],
             [
-                'id' => Str::uuid(),
                 'barangay_id' => $barangay->id,
                 'account_id' => 'PER999',
                 'role' => UserRole::Personnel,
                 'first_name' => 'Timothy',
                 'last_name' => 'Personnel',
                 'mobile' => '09189999999',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'is_active' => true,
             ]
         );
-        $personnel->personnelProfile()->firstOrCreate(['user_id' => $personnel->id]);
+        $personnelRecord = $personnel->personnelProfile()->firstOrCreate(['user_id' => $personnel->id]);
 
         $resident = User::updateOrCreate(
             ['email' => 'resident@missionlokal.test'],
             [
-                'id' => Str::uuid(),
                 'barangay_id' => $barangay->id,
                 'account_id' => 'RES999',
                 'role' => UserRole::Resident,
                 'first_name' => 'Juan',
                 'last_name' => 'Resident',
                 'mobile' => '09198888888',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'is_active' => true,
             ]
         );
@@ -174,7 +170,7 @@ class DemoDataSeeder extends Seeder
             'severity_confirmed' => true,
             'status' => ConcernStatus::Active,
             'address_text' => 'Phase 1 Curve, Zone 15',
-            'location' => DB::raw("ST_GeomFromText('POINT(120.9842 14.6507)', 4326)"),
+            'location' => DB::raw("ST_GeomFromText('POINT(14.6507 120.9842)', 4326)"),
         ]);
 
         ConcernAiAnalysis::create([
@@ -232,6 +228,14 @@ class DemoDataSeeder extends Seeder
             'personnel_id' => $personnel->id,
             'assigned_by' => $admin->id,
             'assigned_at' => now(),
+        ]);
+
+        $mission->personnel()->syncWithoutDetaching([
+            $personnelRecord->id => [
+                'id' => (string) Str::uuid(),
+                'assigned_by' => $admin->id,
+                'status' => 'in_progress',
+            ],
         ]);
 
         MissionChecklistItem::create([

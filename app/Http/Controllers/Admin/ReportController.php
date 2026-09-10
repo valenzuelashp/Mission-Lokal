@@ -114,7 +114,7 @@ class ReportController extends Controller
             ->with(['media', 'currentAiAnalysis', 'mission.personnel'])
             ->findOrFail($id);
         
-        $locationData = DB::selectOne("SELECT ST_X(location) as lng, ST_Y(location) as lat FROM concerns WHERE id = ?", [$record->id]);
+        $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$record->id]);
         
         $personnelList = Personnel::with('user')
             ->whereHas('user', function ($q) use ($barangayId) {

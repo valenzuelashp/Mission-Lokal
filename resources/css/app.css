@@ -39,3 +39,23 @@
 .leaflet-container {
     @apply z-0 h-full w-full rounded-md;
 }
+
+.media-shimmer {
+    background: linear-gradient(
+        90deg,
+        rgb(241 245 249) 0%,
+        rgb(226 232 240) 45%,
+        rgb(241 245 249) 100%
+    );
+    background-size: 200% 100%;
+    animation: media-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes media-shimmer {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
+}

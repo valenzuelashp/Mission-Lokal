@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ResidentRegistration;
 use App\Models\PreloadedResident;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +22,18 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'first_name' => $this->upperCase($request->first_name),
+            'middle_name' => $this->upperCase($request->middle_name),
+            'last_name' => $this->upperCase($request->last_name),
+            'name_extension' => $this->upperCase($request->name_extension),
+            'house_street' => $this->upperCase($request->house_street),
+            'barangay_name' => $this->upperCase($request->barangay_name),
+            'city' => $this->upperCase($request->city),
+            'province' => $this->upperCase($request->province),
+            'parent_name' => $this->upperCase($request->parent_name),
+            'email' => strtolower(trim((string) $request->email)),
+        ]);
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -92,16 +105,12 @@ class RegisteredUserController extends Controller
             ])->withInput();
         }
 
-        $preloaded = PreloadedResident::whereRaw('LOWER(first_name) = ?', [strtolower(trim($request->first_name))])
-            ->whereRaw('LOWER(last_name) = ?', [strtolower(trim($request->last_name))])
-            ->where('birthday', $parsedBirthday)
-            ->first();
-
-        if (! $preloaded) {
-            return back()->withErrors([
-                'general' => "Your name and email are not in the barangay's record. Please contact the barangay administrator to have your record added before registering.",
-            ])->withInput();
-        }
+        $preloaded = PreloadedResident::findByIdentity(
+            $request->first_name,
+            $request->last_name,
+            $parsedBirthday,
+            $request->middle_name
+        );
 
         $existingUser = User::whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])->first();
         if ($existingUser && $existingUser->residentProfile?->verification_status?->value === 'approved') {
@@ -120,7 +129,7 @@ class RegisteredUserController extends Controller
         $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
         \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
         
-        ResidentRegistration::create([
+        $registration = ResidentRegistration::create([
             'barangay_id' => $barangayId,
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
@@ -183,6 +192,29 @@ class RegisteredUserController extends Controller
             ]);
         }
 
+        $fullName = trim($request->first_name.' '.$request->last_name);
+        Notification::notifyBarangayAdmins(
+            $barangayId,
+            'resident_registration',
+            'New resident registration',
+            $fullName.' submitted a registration for review.',
+            ['registration_id' => $registration->id]
+        );
+
         return redirect()->route('account.status')->with('success', 'Registration submitted successfully! You can now track your verification status.');
+    }
+
+    private function upperCase(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        return mb_strtoupper($trimmed, 'UTF-8');
     }
 }

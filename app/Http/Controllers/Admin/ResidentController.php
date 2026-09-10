@@ -277,7 +277,7 @@ class ResidentController extends Controller
             }])
             ->findOrFail($id);
 
-        $coords = \App\Models\Concern::selectRaw('ST_Y(location) as lat, ST_X(location) as lng')
+        $coords = \App\Models\Concern::selectRaw('ST_X(location) as lat, ST_Y(location) as lng')
             ->where('reporter_id', $user->id)
             ->first();
 
@@ -337,6 +337,11 @@ class ResidentController extends Controller
                 ];
             })->toArray(),
             'documents' => $documents,
+            'government_id_url' => $profile?->government_id_storage_key
+                ? '/admin/view-id/'.collect(explode('/', $profile->government_id_storage_key))->map(fn ($part) => rawurlencode($part))->implode('/')
+                : null,
+            'government_id_label' => $user->governmentIdFileLabel(),
+            'government_id_is_pdf' => (bool) preg_match('/\.pdf(\.enc)?$/i', (string) ($profile?->government_id_storage_key ?? '')),
         ];
 
         return Inertia::render('Admin/Residents/Show', [

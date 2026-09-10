@@ -54,8 +54,8 @@ class ConcernFactory extends Factory
             'severity_confirmed' => fake()->boolean(),
             'is_blotter_candidate' => fake()->boolean(10),
             
-            'location' => DB::raw("ST_GeomFromText('POINT($lng $lat)', 4326)"),
-            'public_location' => DB::raw("ST_GeomFromText('POINT($lng $lat)', 4326)"),
+            'location' => DB::raw("ST_GeomFromText('POINT($lat $lng)', 4326)"),
+            'public_location' => DB::raw("ST_GeomFromText('POINT($lat $lng)', 4326)"),
         ];
     }
 }

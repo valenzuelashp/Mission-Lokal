@@ -3,6 +3,7 @@ import { FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
+import { PasswordInput } from '@/Components/ui/password-input';
 import { Label } from '@/Components/ui/label';
 
 // Tell TypeScript about Ziggy's route function
@@ -25,7 +26,12 @@ export default function Login() {
             <Head title="Login" />
             <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
                 <Card className="w-full max-w-sm">
-                    <CardHeader>
+                    <CardHeader className="items-center text-center">
+                        <img
+                            src="/images/barangay-tambo-logo.png"
+                            alt="Barangay Tambo, City of Parañaque"
+                            className="h-28 w-28 object-contain sm:h-32 sm:w-32"
+                        />
                         <CardTitle>Mission-Lokal</CardTitle>
                         <CardDescription>Resident &amp; admin sign in</CardDescription>
                     </CardHeader>
@@ -53,9 +59,8 @@ export default function Login() {
                                         Forgot password?
                                     </Link>
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="password"
-                                    type="password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     autoComplete="current-password"
@@ -72,10 +77,21 @@ export default function Login() {
                                 </Link>
                             </Button>
                             <p className="text-center text-xs text-muted-foreground">
+                                Already submitted?{' '}
+                                <Link href="/account-status" className="text-primary underline-offset-4 hover:underline">
+                                    Check registration status
+                                </Link>
+                            </p>
+                            <p className="text-center text-xs text-muted-foreground">
                                 Personnel?{' '}
                                 <a href="/personnel/login" className="text-primary underline-offset-4 hover:underline">
                                     Personnel portal
                                 </a>
+                            </p>
+                            <p className="text-center text-xs text-muted-foreground">
+                                <Link href="/privacy" className="text-primary underline-offset-4 hover:underline">
+                                    Privacy Policy
+                                </Link>
                             </p>
                         </form>
                     </CardContent>

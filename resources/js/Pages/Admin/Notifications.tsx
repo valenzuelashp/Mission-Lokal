@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Bell, FileText, ClipboardList } from 'lucide-react';
+import { Bell, FileText, ClipboardList, CheckSquare } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/shared/PageHeader';
 import EmptyState from '@/Components/shared/EmptyState';
@@ -14,6 +14,7 @@ interface Notification {
     read: boolean;
     concern_id: string | null;
     mission_id: string | null;
+    registration_id?: string | null;
 }
 
 interface Props {
@@ -53,6 +54,9 @@ export default function Notifications({ notifications }: Props) {
                             } else if (notif.mission_id) {
                                 href = `/admin/missions/${notif.mission_id}`;
                                 Icon = ClipboardList;
+                            } else if (notif.registration_id) {
+                                href = `/admin/verifications/${notif.registration_id}`;
+                                Icon = CheckSquare;
                             }
 
                             const content = (

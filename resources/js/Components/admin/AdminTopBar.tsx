@@ -1,7 +1,8 @@
 import { Bell, Menu, Search, Settings, User } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import type { PageProps } from '@/Types';
 
 type Props = {
     title: string;
@@ -10,6 +11,7 @@ type Props = {
 
 export default function AdminTopBar({ title, onMenuClick }: Props) {
     const shortTitle = title.includes(':') ? title.split(':').pop()?.trim() ?? title : title;
+    const unread = usePage<PageProps>().props.unread_count ?? 0;
 
     return (
         <header className="flex items-center gap-2 border-b bg-card px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3 lg:px-6">
@@ -25,10 +27,14 @@ export default function AdminTopBar({ title, onMenuClick }: Props) {
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="pl-9" placeholder="Search mission ID…" readOnly />
                 </div>
-                {/* Wired to notifications page */}
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" asChild>
+                <Button variant="ghost" size="icon" className="relative" asChild>
                     <Link href="/admin/notifications">
                         <Bell className="h-5 w-5" />
+                        {unread > 0 && (
+                            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                                {unread > 99 ? '99+' : unread}
+                            </span>
+                        )}
                     </Link>
                 </Button>
                 {/* Wired to settings page */}

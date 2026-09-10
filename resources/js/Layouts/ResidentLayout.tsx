@@ -1,6 +1,8 @@
 import { PropsWithChildren } from 'react';
 import ResidentHeader from '@/Components/resident/ResidentHeader';
 import MobileBottomNav from '@/Components/shared/MobileBottomNav';
+import FlashToasts from '@/Components/shared/FlashToasts';
+import PasswordPromptModal from '@/Pages/Auth/PasswordPromptModal';
 import { cn } from '@/Lib/utils';
 
 type Props = PropsWithChildren<{
@@ -10,6 +12,8 @@ type Props = PropsWithChildren<{
 export default function ResidentLayout({ children, wide = false }: Props) {
     return (
         <div className="min-h-screen bg-[#f0f2f5]">
+            <FlashToasts />
+            <PasswordPromptModal />
             <ResidentHeader />
             <main
                 className={cn(

@@ -1,5 +1,6 @@
 import { Head, useForm, Link } from '@inertiajs/react';
 import React, { useState } from 'react';
+import { PasswordInput } from '@/Components/ui/password-input';
 
 // Tell TypeScript about Ziggy's route function
 declare function route(name: string): string;
@@ -138,11 +139,10 @@ export default function ForgotPassword() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">New Password</label>
                                 <div className="mt-1">
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         value={data.password}
                                         onChange={e => setData('password', e.target.value)}
-                                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        autoComplete="new-password"
                                         required
                                     />
                                     {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
@@ -151,11 +151,10 @@ export default function ForgotPassword() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
                                 <div className="mt-1">
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         value={data.password_confirmation}
                                         onChange={e => setData('password_confirmation', e.target.value)}
-                                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        autoComplete="new-password"
                                         required
                                     />
                                 </div>

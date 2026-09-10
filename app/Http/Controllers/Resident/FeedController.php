@@ -23,8 +23,8 @@ class FeedController extends Controller
             ])
             // FIX: Match the new 'up' and 'down' strings in the database
             ->withCount([
-                'votes as upvotes' => fn ($query) => $query->where('vote', 'up'),
-                'votes as downvotes' => fn ($query) => $query->where('vote', 'down'),
+                'votes as upvotes' => fn ($query) => $query->where('vote', 1),
+                'votes as downvotes' => fn ($query) => $query->where('vote', -1),
             ])
             ->where('visibility', 'public')
             ->latest()
@@ -38,7 +38,8 @@ class FeedController extends Controller
 
                 // FIX: Use the string value directly since the DB no longer uses integers
                 $userVoteRecord = $concern->votes->first();
-                $userVoteStatus = $userVoteRecord ? $userVoteRecord->vote : null;
+                $rawVote = $userVoteRecord?->vote;
+                $userVoteStatus = ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null);
 
                 return [
                     'id' => $concern->id,

@@ -32,6 +32,7 @@ class User extends Authenticatable
         'password',
         'profile_edit_status',
         'is_active',
+        'password_prompt_snoozed_on',
         'last_login_at',
         // --- PARENT FIELDS FOR MINORS ---
         'parent_user_id',
@@ -50,6 +51,7 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'password_prompt_snoozed_on' => 'date',
             'last_login_at' => 'datetime',
             'birthday' => 'date',
         ];
@@ -104,6 +106,30 @@ class User extends Authenticatable
 
     public function needsPasswordSetup(): bool
     {
+        if (! $this->password) {
+            return true;
+        }
+
         return ! $this->is_active || Hash::check('password', $this->password);
+    }
+
+    public function shouldShowPasswordPrompt(): bool
+    {
+        return $this->needsPasswordSetup();
+    }
+
+    public function governmentIdFileLabel(): string
+    {
+        $last = mb_strtoupper(trim((string) preg_replace('/\s+/u', ' ', (string) $this->last_name)));
+        $initials = mb_strtoupper(mb_substr(trim((string) $this->first_name), 0, 1));
+        $middle = trim((string) $this->middle_name);
+        if ($middle !== '') {
+            $initials .= mb_strtoupper(mb_substr($middle, 0, 1));
+        }
+
+        $last = $last !== '' ? $last : 'UNKNOWN';
+        $initials = $initials !== '' ? $initials : 'X';
+
+        return "{$last}, {$initials} ID";
     }
 }

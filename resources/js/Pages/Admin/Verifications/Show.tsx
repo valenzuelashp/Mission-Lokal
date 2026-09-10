@@ -25,6 +25,8 @@ interface User {
     province: string;
     email: string;
     mobile: string;
+    parent_name?: string;
+    parent_contact?: string;
     resident_profile: ResidentProfile | null;
 }
 
@@ -43,6 +45,7 @@ interface CensusData {
     city: string;
     province: string;
     mobile?: string;
+    email?: string;
 }
 
 export default function Show({ resident, censusData }: { resident: User, censusData: CensusData | null }) {
@@ -71,7 +74,7 @@ export default function Show({ resident, censusData }: { resident: User, censusD
 
     const handleApprove = (e: React.FormEvent) => {
         e.preventDefault();
-        if (confirm('Approve this resident? Any updated fields will overwrite outdated barangay records, and account credentials will be generated.')) {
+        if (confirm('Approve this resident and email their login credentials?')) {
             approveForm.post(route('admin.verifications.approve', resident.id));
         }
     };
@@ -86,8 +89,25 @@ export default function Show({ resident, censusData }: { resident: User, censusD
     const getImageUrl = (path: string) => {
         if (!path) return '';
         if (path.startsWith('http')) return path;
-        return `/admin/view-id/${path}`;
+        return `/admin/view-id/${path.split('/').map(encodeURIComponent).join('/')}`;
     };
+
+    const idPath = resident.resident_profile?.government_id_storage_key || '';
+    const isPdfId = /\.pdf(\.enc)?$/i.test(idPath);
+    const idLabel = `${(resident.last_name || 'UNKNOWN').toUpperCase()}, ${[resident.first_name, resident.middle_name]
+        .filter((part) => (part || '').trim())
+        .map((part) => (part || '').trim().charAt(0).toUpperCase())
+        .join('')} ID`;
+
+    const mismatch = (left?: string, right?: string) => {
+        if (!censusData) return false;
+        return (left || '').trim().toLowerCase() !== (right || '').trim().toLowerCase();
+    };
+
+    const unknown = (value?: string | null) => (value && value.trim() ? value : 'Unknown');
+
+    const rowClass = (left?: string, right?: string) =>
+        `grid grid-cols-2 gap-3 border-b pb-3 ${mismatch(left, right) ? 'rounded bg-amber-50/80 p-2 ring-1 ring-amber-200' : ''}`;
 
     return (
         <AdminLayout title={`Reviewing Registration: ${resident.first_name} ${resident.last_name}`}>
@@ -98,7 +118,7 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Thorough Comparison & Record Override</h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            {censusData ? `Census Match ID: ${censusData.account_id}` : 'No Census Match Found — New Independent Record'}
+                            {censusData ? `Census Match ID: ${censusData.account_id}` : 'Unknown — no matching barangay record'}
                         </p>
                     </div>
                     <Link 
@@ -120,75 +140,75 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                     <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide ${
                                         censusData ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
                                     }`}>
-                                        {censusData ? 'Census Roster Matched' : 'New Resident Entry'}
+                                        {censusData ? 'Census Roster Matched' : 'Unknown'}
                                     </span>
                                 </div>
                                 
                                 <div className="p-6 space-y-4 text-sm">
                                     <p className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
-                                        ℹ️ Compare resident input against outdated barangay records. You can modify any field below before approval to overwrite official records with the latest verified data.
+                                        Compare the resident submission with the barangay census. Highlighted rows do not match. Approve writes these fields into the barangay record and emails login credentials.
                                     </p>
+                                    {approveForm.errors.error && (
+                                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">{approveForm.errors.error}</p>
+                                    )}
 
                                     {/* Name Fields (First & Middle) */}
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                    <div className={rowClass(approveForm.data.first_name, censusData?.first_name)}>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident First Name</label>
                                             <Input value={approveForm.data.first_name} onChange={e => approveForm.setData('first_name', e.target.value)} required />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census First Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.first_name || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.first_name)}</div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                    <div className={rowClass(approveForm.data.middle_name, censusData?.middle_name)}>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Middle Name</label>
                                             <Input value={approveForm.data.middle_name} onChange={e => approveForm.setData('middle_name', e.target.value)} />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Middle Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.middle_name || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.middle_name)}</div>
                                         </div>
                                     </div>
 
-                                    {/* Name Fields (Last & Extension) */}
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                    <div className={rowClass(approveForm.data.last_name, censusData?.last_name)}>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Last Name</label>
                                             <Input value={approveForm.data.last_name} onChange={e => approveForm.setData('last_name', e.target.value)} required />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Last Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.last_name || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.last_name)}</div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                    <div className={rowClass(approveForm.data.name_extension, censusData?.name_extension)}>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Name Extension</label>
                                             <Input placeholder="e.g. Jr., III" value={approveForm.data.name_extension} onChange={e => approveForm.setData('name_extension', e.target.value)} />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Name Extension</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.name_extension || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.name_extension)}</div>
                                         </div>
                                     </div>
 
-                                    {/* Birthday */}
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3">
+                                    <div className={rowClass(approveForm.data.birthday, censusData?.birthday)}>
                                         <div>
                                             <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Birthday</label>
                                             <Input type="date" value={approveForm.data.birthday} onChange={e => approveForm.setData('birthday', e.target.value)} required />
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Birthday</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.birthday || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.birthday)}</div>
                                         </div>
                                     </div>
 
-                                    {/* Sex & Civil Status (Editable Overrides) */}
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3 bg-amber-50/40 p-2 rounded">
+                                    <div className={rowClass(approveForm.data.sex, censusData?.sex)}>
                                         <div>
                                             <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Sex (Editable)</label>
                                             <select 
@@ -203,11 +223,11 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Sex</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.sex || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.sex)}</div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 border-b pb-3 bg-amber-50/40 p-2 rounded">
+                                    <div className={rowClass(approveForm.data.civil_status, censusData?.civil_status)}>
                                         <div>
                                             <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Civil Status (Editable)</label>
                                             <select 
@@ -223,57 +243,93 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Civil Status</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{censusData?.civil_status || '—'}</div>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.civil_status)}</div>
                                         </div>
                                     </div>
 
-                                    {/* Address Breakdown */}
-                                    <div className="space-y-2 border-b pb-3">
-                                        <label className="text-xs font-bold text-blue-600 uppercase block">Address Override Fields</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground">House / Street</span>
-                                                <Input value={approveForm.data.house_street} onChange={e => approveForm.setData('house_street', e.target.value)} required />
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground">Barangay</span>
-                                                <Input value={approveForm.data.barangay_name} onChange={e => approveForm.setData('barangay_name', e.target.value)} required />
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground">City</span>
-                                                <Input value={approveForm.data.city} onChange={e => approveForm.setData('city', e.target.value)} required />
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground">Province</span>
-                                                <Input value={approveForm.data.province} onChange={e => approveForm.setData('province', e.target.value)} required />
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 text-xs text-muted-foreground">
-                                            <strong>Census Address on File:</strong> {censusData ? `${censusData.house_street}, ${censusData.barangay_name || ''}, ${censusData.city}, ${censusData.province}` : 'None'}
-                                        </div>
-                                    </div>
-
-                                    {/* Contact Information (Editable Mobile & Read-only Email) */}
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className={rowClass(approveForm.data.house_street, censusData?.house_street)}>
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Mobile Number (Editable)</label>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident House / Street</label>
+                                            <Input value={approveForm.data.house_street} onChange={e => approveForm.setData('house_street', e.target.value)} required />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census House / Street</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.house_street)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={rowClass(approveForm.data.barangay_name, censusData?.barangay_name)}>
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Barangay</label>
+                                            <Input value={approveForm.data.barangay_name} onChange={e => approveForm.setData('barangay_name', e.target.value)} required />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Barangay</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.barangay_name)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={rowClass(approveForm.data.city, censusData?.city)}>
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident City</label>
+                                            <Input value={approveForm.data.city} onChange={e => approveForm.setData('city', e.target.value)} required />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census City</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.city)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={rowClass(approveForm.data.province, censusData?.province)}>
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Province</label>
+                                            <Input value={approveForm.data.province} onChange={e => approveForm.setData('province', e.target.value)} required />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Province</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.province)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={rowClass(approveForm.data.mobile, censusData?.mobile)}>
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Mobile</label>
                                             <Input value={approveForm.data.mobile} onChange={e => approveForm.setData('mobile', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Email (Account Login)</label>
-                                            <div className="p-2 bg-gray-50 rounded border text-gray-800 text-xs truncate">{resident.email}</div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Mobile</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.mobile)}</div>
                                         </div>
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Email</label>
+                                            <div className="p-2 bg-gray-50 rounded border text-gray-800 text-xs truncate">{resident.email}</div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Email</label>
+                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.email)}</div>
+                                        </div>
+                                    </div>
+
+                                    {(resident.parent_name || resident.parent_contact) && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+                                            <p className="text-xs font-bold uppercase text-amber-800">Parent / Guardian</p>
+                                            <p className="mt-1">{resident.parent_name || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">{resident.parent_contact || '—'}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="flex gap-4">
+                            <div className="flex flex-col gap-3 sm:flex-row">
                                 <button 
                                     type="submit"
                                     disabled={approveForm.processing || rejecting}
                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-sm transition-colors focus:ring-4 focus:ring-green-200 disabled:opacity-50"
                                 >
-                                    {approveForm.processing ? 'Overwriting & Approving...' : '✓ Overwrite & Approve Account'}
+                                    {approveForm.processing ? 'Sending credentials...' : 'Approve & send login credentials'}
                                 </button>
                                 <button 
                                     type="button"
@@ -281,7 +337,7 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                     disabled={approveForm.processing || rejecting}
                                     className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-4 px-6 rounded-xl transition-colors disabled:opacity-50"
                                 >
-                                    ✕ Reject ID
+                                    Reject
                                 </button>
                             </div>
                         </div>
@@ -290,14 +346,23 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                         <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col">
                             <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
                                 <h3 className="text-lg font-semibold text-white">Submitted Government ID</h3>
+                                <p className="mt-1 text-sm font-mono text-gray-300">{idLabel}</p>
                             </div>
                             <div className="flex-1 p-6 flex justify-center items-center bg-gray-800 min-h-[400px]">
-                                {resident.resident_profile?.government_id_storage_key ? (
-                                    <img 
-                                        src={getImageUrl(resident.resident_profile.government_id_storage_key)} 
-                                        alt="Resident Government ID" 
-                                        className="max-w-full max-h-[600px] object-contain rounded border border-gray-600 shadow-2xl"
-                                    />
+                                {idPath ? (
+                                    isPdfId ? (
+                                        <iframe
+                                            src={getImageUrl(idPath)}
+                                            title="Resident Government ID"
+                                            className="h-[600px] w-full rounded border border-gray-600 bg-white"
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={getImageUrl(idPath)} 
+                                            alt="Resident Government ID" 
+                                            className="max-w-full max-h-[600px] object-contain rounded border border-gray-600 shadow-2xl"
+                                        />
+                                    )
                                 ) : (
                                     <div className="text-center text-gray-500">
                                         <svg className="mx-auto h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -9,7 +9,6 @@ use App\Models\Barangay;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 
 class PreloadedResidentSeeder extends Seeder
 {
@@ -49,6 +48,7 @@ class PreloadedResidentSeeder extends Seeder
                     'barangay_name'  => $addressParts[1] ?? null,
                     'email'          => $data['email'] ?: null,
                     'mobile'         => $data['mobile'] ?: null,
+                    'civil_status'   => 'Single',
                 ]
             );
 
@@ -64,7 +64,7 @@ class PreloadedResidentSeeder extends Seeder
                     'name_extension'      => $data['name_extension'] ?: null,
                     'email'               => $data['email'] ?: null,
                     'mobile'              => $data['mobile'] ?: null,
-                    'password'            => Hash::make('password'),
+                    'password'            => 'password',
                     'is_active'           => true,
                 ]
             );

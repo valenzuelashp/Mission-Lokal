@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\PreloadedResident;
 use App\Models\ResidentRegistration;
+use App\Services\GovernmentIdStorage;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -49,7 +51,9 @@ class AccountStatusController extends Controller
 
             if ($user) {
                 $profileStatus = $user->residentProfile?->verification_status;
-                $status = $profileStatus?->value ?? $profileStatus ?? 'unverified';
+                $status = $profileStatus instanceof \App\Enums\VerificationStatus
+                    ? $profileStatus->value
+                    : ($profileStatus ?? 'unverified');
                 $result = [
                     'id' => $user->id,
                     'email' => $user->email,
@@ -59,16 +63,58 @@ class AccountStatusController extends Controller
                     'rejection_reason' => $user->residentProfile?->rejection_reason,
                 ];
             } else {
-                $result = [
-                    'not_found' => true,
-                    'message' => 'No exact match found. Please enter your complete First Name and Last Name (e.g. Juan Cruz).',
-                ];
+                $registration = null;
+
+                if (count($terms) >= 2) {
+                    $registration = ResidentRegistration::where('first_name', 'like', $firstName)
+                        ->where('last_name', 'like', $lastName)
+                        ->first();
+                }
+
+                if (! $registration && filter_var($query, FILTER_VALIDATE_EMAIL)) {
+                    $registration = ResidentRegistration::whereRaw('LOWER(email) = ?', [strtolower($query)])->first();
+                }
+
+                if ($registration) {
+                    $result = [
+                        'email' => $registration->email,
+                        'full_name' => trim("{$registration->first_name} {$registration->middle_name} {$registration->last_name}"),
+                        'status' => 'pending',
+                        'message' => $this->getStatusMessage('pending'),
+                    ];
+                } else {
+                    $result = [
+                        'not_found' => true,
+                        'message' => 'No exact match found. Please enter your complete First Name and Last Name (e.g. Juan Cruz).',
+                    ];
+                }
             }
         }
 
         return Inertia::render('Auth/AccountStatus', [
             'searchResult' => $result,
             'query' => $query,
+        ]);
+    }
+
+    public function waiting(Request $request): Response|RedirectResponse
+    {
+        $user = $request->user();
+        $user->loadMissing('residentProfile');
+
+        $status = $user->residentProfile?->verification_status;
+        $statusValue = $status instanceof \App\Enums\VerificationStatus
+            ? $status->value
+            : ($status ?? 'unverified');
+
+        if ($statusValue === 'approved') {
+            return redirect()->route('feed');
+        }
+
+        return Inertia::render('Auth/VerificationWaiting', [
+            'status' => $statusValue,
+            'rejection_reason' => $user->residentProfile?->rejection_reason,
+            'full_name' => trim("{$user->first_name} {$user->last_name}"),
         ]);
     }
 
@@ -106,7 +152,7 @@ class AccountStatusController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email',
-            'government_id' => ['required', 'file', 'image', 'max:5120'], // Max 5MB image constraint
+            'government_id' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
         ]);
 
         $user = User::where('id', $id)
@@ -114,8 +160,7 @@ class AccountStatusController extends Controller
             ->with('residentProfile')
             ->firstOrFail();
 
-        // Store the new government ID securely
-        $path = $request->file('government_id')->store('government-ids', 'public');
+        $path = app(GovernmentIdStorage::class)->storeEncrypted($request->file('government_id'));
 
         // Update user text data if adjusted
         $user->update([
@@ -132,7 +177,7 @@ class AccountStatusController extends Controller
         ]);
 
         // Recreate the temporary registration entry so it pops back up in the admin verification queue
-        ResidentRegistration::create([
+        $registration = ResidentRegistration::create([
             'barangay_id' => $user->barangay_id,
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
@@ -149,6 +194,14 @@ class AccountStatusController extends Controller
             'birthday' => $request->birthday ?? now(),
             'government_id_path' => $path,
         ]);
+
+        Notification::notifyBarangayAdmins(
+            $user->barangay_id,
+            'resident_registration',
+            'Registration resubmitted',
+            trim($request->first_name.' '.$request->last_name).' resubmitted a registration for review.',
+            ['registration_id' => $registration->id]
+        );
 
         return redirect()->route('account.status')
             ->with('success', 'Your updated registration and new ID have been successfully re-submitted and are back in the admin review queue.');

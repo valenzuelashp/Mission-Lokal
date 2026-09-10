@@ -3,6 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { Settings as SettingsIcon, User, ShieldAlert, CheckCircle, Info } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { PasswordInput } from '@/Components/ui/password-input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { PageProps } from '@/Types';
@@ -140,17 +141,17 @@ export default function Settings({ user, barangay }: Props) {
                                 <form onSubmit={handleSecuritySubmit} className="space-y-4 max-w-md">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Current Active Password</label>
-                                        <Input type="password" value={securityForm.data.current_password} onChange={e => securityForm.setData('current_password', e.target.value)} required />
+                                        <PasswordInput value={securityForm.data.current_password} onChange={e => securityForm.setData('current_password', e.target.value)} autoComplete="current-password" required />
                                         {securityForm.errors.current_password && <span className="text-xs text-red-600 mt-1 block">{securityForm.errors.current_password}</span>}
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 uppercase mb-1">New Complex Password</label>
-                                        <Input type="password" value={securityForm.data.password} onChange={e => securityForm.setData('password', e.target.value)} required />
+                                        <PasswordInput value={securityForm.data.password} onChange={e => securityForm.setData('password', e.target.value)} autoComplete="new-password" required />
                                         {securityForm.errors.password && <span className="text-xs text-red-600 mt-1 block">{securityForm.errors.password}</span>}
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Confirm New Password</label>
-                                        <Input type="password" value={securityForm.data.password_confirmation} onChange={e => securityForm.setData('password_confirmation', e.target.value)} required />
+                                        <PasswordInput value={securityForm.data.password_confirmation} onChange={e => securityForm.setData('password_confirmation', e.target.value)} autoComplete="new-password" required />
                                         {securityForm.errors.password_confirmation && <span className="text-xs text-red-600 mt-1 block">{securityForm.errors.password_confirmation}</span>}
                                     </div>
                                     <div className="pt-2">

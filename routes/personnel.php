@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('personnel')->name('personnel.')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::get('/login', [PersonnelLoginController::class, 'create'])->name('login');
-        Route::post('/login', [PersonnelLoginController::class, 'store']);
+        Route::post('/login', [PersonnelLoginController::class, 'store'])->middleware('throttle:login');
     });
 
     Route::middleware(['auth', 'role:personnel'])->group(function () {

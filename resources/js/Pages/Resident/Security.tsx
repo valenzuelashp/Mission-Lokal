@@ -4,7 +4,7 @@ import { FormEvent } from 'react';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Input } from '@/Components/ui/input';
+import { PasswordInput } from '@/Components/ui/password-input';
 import { Label } from '@/Components/ui/label';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { PageProps } from '@/Types';
@@ -59,9 +59,8 @@ export default function Security() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="current_password">Current password</Label>
-                            <Input
+                            <PasswordInput
                                 id="current_password"
-                                type="password"
                                 autoComplete="current-password"
                                 value={data.current_password}
                                 onChange={(e) => setData('current_password', e.target.value)}
@@ -72,9 +71,8 @@ export default function Security() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">New password</Label>
-                            <Input
+                            <PasswordInput
                                 id="password"
-                                type="password"
                                 autoComplete="new-password"
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
@@ -83,9 +81,8 @@ export default function Security() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password_confirmation">Confirm new password</Label>
-                            <Input
+                            <PasswordInput
                                 id="password_confirmation"
-                                type="password"
                                 autoComplete="new-password"
                                 value={data.password_confirmation}
                                 onChange={(e) => setData('password_confirmation', e.target.value)}

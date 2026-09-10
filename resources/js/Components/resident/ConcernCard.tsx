@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { MapPin, MessageCircle, Calendar } from 'lucide-react';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -68,11 +69,11 @@ export default function ConcernCard({ concern }: Props) {
                 <div className="mt-3 bg-slate-900 overflow-hidden">
                     <div className="flex gap-2 overflow-x-auto p-2">
                         {concern.images.map((url: string, idx: number) => (
-                            <img 
-                                key={idx} 
-                                src={url} 
-                                alt="Concern Attachment" 
-                                className="h-64 w-full object-cover rounded-lg shadow-sm"
+                            <BufferedImage
+                                key={idx}
+                                src={url}
+                                alt="Concern attachment"
+                                className="h-64 w-full rounded-lg shadow-sm"
                             />
                         ))}
                     </div>

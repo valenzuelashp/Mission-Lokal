@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController; 
-use App\Http\Controllers\Admin\VerificationController;
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\ProfileController;
@@ -12,6 +10,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AccountStatusController;
+use App\Http\Controllers\Auth\TemporaryPasswordController;
+use App\Http\Controllers\PrivacyPolicyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -39,22 +39,15 @@ Route::get('/', function () {
         return redirect()->route('personnel.missions.index');
     }
 
-    return redirect()->route('feed');
-});
+    $user->loadMissing('residentProfile');
+    $status = $user->residentProfile?->verification_status;
+    $statusValue = $status instanceof \App\Enums\VerificationStatus ? $status->value : ($status ?? 'unverified');
 
-/*
-|--------------------------------------------------------------------------
-| Admin Portal Routes
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::prefix('verifications')->name('verifications.')->group(function () {
-        Route::get('/', [VerificationController::class, 'index'])->name('index');
-        Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
-        Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
-        Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
-    });
+    if ($statusValue !== 'approved') {
+        return redirect()->route('verification.waiting');
+    }
+
+    return redirect()->route('feed');
 });
 
 /*
@@ -101,6 +94,8 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
 | Guest Authentication Routes (Including Registration & Forgot Password)
 |--------------------------------------------------------------------------
 */
+Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     
@@ -125,6 +120,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+Route::middleware(['auth', 'role:resident'])->group(function () {
+    Route::get('/verification/waiting', [AccountStatusController::class, 'waiting'])->name('verification.waiting');
+    Route::post('/password/custom', [TemporaryPasswordController::class, 'update'])->name('password.custom.store');
+    Route::post('/password/prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');
+});
 
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';

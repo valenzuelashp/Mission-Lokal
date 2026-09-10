@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Enums\UserRole;
+use App\Enums\VerificationStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,8 +37,12 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->forget('password_prompt_dismissed');
 
-        return redirect($this->homeFor(Auth::user()));
+        $user = Auth::user();
+        $user?->forceFill(['last_login_at' => now()])->save();
+
+        return redirect($this->homeFor($user));
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -63,9 +68,12 @@ class LoginController extends Controller
             return route('personnel.missions.index');
         }
 
-        // If resident has not updated their temporary password yet and hasn't dismissed it, prompt them!
-        if ($user->needsPasswordSetup() && ! session('dismissed_password_prompt')) {
-            return route('feed');
+        $user->loadMissing('residentProfile');
+        $status = $user->residentProfile?->verification_status;
+        $statusValue = $status instanceof VerificationStatus ? $status->value : ($status ?? 'unverified');
+
+        if ($statusValue !== VerificationStatus::Approved->value) {
+            return route('verification.waiting');
         }
 
         return route('feed');

@@ -2,8 +2,25 @@
 
 namespace App\Support;
 
+use Illuminate\Database\Query\Expression;
+use Illuminate\Support\Facades\DB;
+
 class MapHelpers
 {
+    /**
+     * MySQL SRID 4326 expects POINT(latitude longitude).
+     * ST_X() is latitude and ST_Y() is longitude.
+     */
+    public static function pointFromLatLng(float $lat, float $lng): Expression
+    {
+        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326)", $lat, $lng));
+    }
+
+    public static function latLngSelect(string $column = 'location'): Expression
+    {
+        return DB::raw("ST_X({$column}) as lat, ST_Y({$column}) as lng");
+    }
+
     public static function scoreFromSeverity(?string $severity): int
     {
         return match ($severity) {

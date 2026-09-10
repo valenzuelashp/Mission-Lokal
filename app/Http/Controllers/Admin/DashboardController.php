@@ -6,6 +6,8 @@ use App\Enums\MissionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\Mission;
+use App\Models\PreloadedResident;
+use App\Models\ResidentRegistration;
 use App\Support\MapHelpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +48,9 @@ class DashboardController extends Controller
                 })
                 ->where('status', MissionStatus::Completed->value)->count(),
             'high_priority' => $highPriority,
+            'pending_registrations' => ResidentRegistration::query()
+                ->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId))
+                ->count(),
             'by_severity' => [
                 'critical' => Concern::where('barangay_id', $barangayId)->where('severity', 'critical')->count(),
                 'high' => Concern::where('barangay_id', $barangayId)->where('severity', 'high')->count(),
@@ -90,7 +95,7 @@ class DashboardController extends Controller
             });
 
         // 3. Extract GPS coordinates cleanly for the mini Map Pins
-        $mapPins = Concern::select('id', 'title', 'severity', 'status', DB::raw('ST_Y(location) as lat, ST_X(location) as lng'))
+        $mapPins = Concern::select('id', 'title', 'severity', 'status', MapHelpers::latLngSelect())
             ->where('barangay_id', $barangayId)
             ->whereNotNull('location')
             ->take(10)
@@ -122,12 +127,37 @@ class DashboardController extends Controller
                 ];
             })->toArray();
 
+        $registrations = ResidentRegistration::query()
+            ->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId))
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($reg) {
+                $censusMatch = PreloadedResident::findByIdentity(
+                    $reg->first_name,
+                    $reg->last_name,
+                    $reg->birthday,
+                    $reg->middle_name
+                );
+
+                return [
+                    'id' => $reg->id,
+                    'full_name' => trim("{$reg->first_name} {$reg->last_name}"),
+                    'email' => $reg->email ?: 'Unknown',
+                    'mobile' => $reg->mobile ?: 'Unknown',
+                    'submitted_at' => $reg->created_at?->diffForHumans(),
+                    'census_match' => (bool) $censusMatch,
+                    'account_id' => $censusMatch?->account_id ?? 'Unknown',
+                ];
+            });
+
         // 5. Send the real data to the React Frontend!
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'incidents' => $incidents,
             'map_pins' => $mapPins,
             'activities' => $activities,
+            'registrations' => $registrations,
         ]);
     }
 }

@@ -21,6 +21,7 @@ import { useAuth } from '@/Hooks/usePageProps';
 import { cn } from '@/Lib/utils';
 import { useActivePath } from '@/Hooks/useActivePath';
 import type { PageProps } from '@/Types';
+import FlashToasts from '@/Components/shared/FlashToasts';
 
 const nav = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -33,6 +34,7 @@ const nav = [
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { href: '/admin/library', label: 'Library', icon: BookOpen },
     { href: '/admin/residents', label: 'Residents', icon: Users },
+    { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },
     { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
 ];
@@ -46,8 +48,9 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     
-    const { unread_count } = usePage<PageProps & { unread_count?: number }>().props;
+    const { unread_count, pending_registrations_count } = usePage<PageProps>().props;
     const unread = unread_count ?? 0;
+    const pendingRegistrations = pending_registrations_count ?? 0;
 
     const active = (href: string, exact?: boolean) => {
         if (exact) return isActive('/admin') && href === '/admin';
@@ -88,6 +91,11 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         <item.icon className="h-4 w-4 shrink-0" />
                         {item.label}
                         
+                        {item.href.includes('verifications') && pendingRegistrations > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingRegistrations > 99 ? '99+' : pendingRegistrations}
+                            </Badge>
+                        )}
                         {item.href.includes('notifications') && unread > 0 && (
                             <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
                                 {unread > 99 ? '99+' : unread}
@@ -109,6 +117,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
 
     return (
         <div className="flex min-h-screen bg-slate-50">
+            <FlashToasts />
             <aside className="hidden w-60 shrink-0 flex-col border-r bg-slate-100/80 lg:flex">{sidebar}</aside>
 
             {mobileOpen && (

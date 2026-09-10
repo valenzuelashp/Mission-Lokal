@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { Megaphone, Pencil, Trash2 } from 'lucide-react';
 import AnnouncementCard from '@/Components/admin/AnnouncementCard';
+import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import type { AdminAnnouncement } from '@/Types';
@@ -46,10 +47,10 @@ export default function AnnouncementsTable({ announcements }: Props) {
                                 <td className="px-4 py-3">
                                     <div className="flex items-start gap-3">
                                         {row.image_url ? (
-                                            <img
+                                            <BufferedImage
                                                 src={row.image_url}
                                                 alt=""
-                                                className="mt-0.5 h-12 w-12 shrink-0 rounded-lg object-cover"
+                                                className="mt-0.5 h-12 w-12 shrink-0 rounded-lg"
                                             />
                                         ) : (
                                             <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">

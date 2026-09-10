@@ -4,6 +4,32 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ShieldAlert } from 'lucide-react';
 
+function toUpperCase(value: string) {
+    return value.toUpperCase();
+}
+
+function CapsInput({
+    value,
+    onChange,
+    required,
+    placeholder,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    required?: boolean;
+    placeholder?: string;
+}) {
+    return (
+        <Input
+            value={value}
+            placeholder={placeholder}
+            required={required}
+            className="uppercase"
+            onChange={(e) => onChange(toUpperCase(e.target.value))}
+        />
+    );
+}
+
 export default function Register() {
     const { data, setData, post, processing, errors } = useForm({
         first_name: '',
@@ -69,24 +95,24 @@ export default function Register() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-medium">First Name *</label>
-                            <Input value={data.first_name} onChange={e => setData('first_name', e.target.value)} required />
+                            <CapsInput value={data.first_name} onChange={(value) => setData('first_name', value)} required />
                             {errors.first_name && <p className="text-xs text-red-600 mt-1">{errors.first_name}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">Middle Name</label>
-                            <Input value={data.middle_name} onChange={e => setData('middle_name', e.target.value)} />
+                            <CapsInput value={data.middle_name} onChange={(value) => setData('middle_name', value)} />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-medium">Last Name *</label>
-                            <Input value={data.last_name} onChange={e => setData('last_name', e.target.value)} required />
+                            <CapsInput value={data.last_name} onChange={(value) => setData('last_name', value)} required />
                             {errors.last_name && <p className="text-xs text-red-600 mt-1">{errors.last_name}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">Name Extension</label>
-                            <Input placeholder="Jr, III, etc." value={data.name_extension} onChange={e => setData('name_extension', e.target.value)} />
+                            <CapsInput placeholder="JR, III, etc." value={data.name_extension} onChange={(value) => setData('name_extension', value)} />
                         </div>
                     </div>
 
@@ -127,7 +153,7 @@ export default function Register() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-medium">Parent / Guardian Full Name *</label>
-                                    <Input placeholder="Guardian Name" value={data.parent_name} onChange={e => setData('parent_name', e.target.value)} required={isMinor} />
+                                    <CapsInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="Guardian Name" />
                                     {errors.parent_name && <p className="text-xs text-red-600 mt-1">{errors.parent_name}</p>}
                                 </div>
                                 <div>
@@ -142,23 +168,26 @@ export default function Register() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
                         <div>
                             <label className="text-xs font-medium">House / Street *</label>
-                            <Input placeholder="House #, Street" value={data.house_street} onChange={e => setData('house_street', e.target.value)} required />
+                            <CapsInput placeholder="House #, Street" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
                         </div>
                         <div>
                             <label className="text-xs font-medium">Barangay Name *</label>
-                            <Input placeholder="Barangay" value={data.barangay_name} onChange={e => setData('barangay_name', e.target.value)} required />
+                            <CapsInput placeholder="Barangay" value={data.barangay_name} onChange={(value) => setData('barangay_name', value)} required />
                         </div>
                         <div>
                             <label className="text-xs font-medium">City / Municipality *</label>
-                            <Input placeholder="City" value={data.city} onChange={e => setData('city', e.target.value)} required />
+                            <CapsInput placeholder="City" value={data.city} onChange={(value) => setData('city', value)} required />
                         </div>
                         <div>
                             <label className="text-xs font-medium">Province *</label>
-                            <Input placeholder="Province" value={data.province} onChange={e => setData('province', e.target.value)} required />
+                            <CapsInput placeholder="Province" value={data.province} onChange={(value) => setData('province', value)} required />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
+                        <div className="sm:col-span-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                            Email and phone number are not in the barangay census yet. Please add them here so the admin can send your login credentials after approval.
+                        </div>
                         <div>
                             <label className="text-xs font-medium">Email Address *</label>
                             <Input type="email" value={data.email} onChange={e => setData('email', e.target.value)} required />
@@ -195,7 +224,11 @@ export default function Register() {
                                 required
                             />
                             <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed">
-                                By registering, I consent to the collection and processing of my personal data by Mission-Lokal for the purpose of barangay identity verification and community service management, in accordance with the Data Privacy Act of 2012.
+                                By registering, I consent to the collection and processing of my personal data by Mission-Lokal for the purpose of barangay identity verification and community service management, in accordance with the Data Privacy Act of 2012. I have read the{' '}
+                                <Link href="/privacy" className="font-medium text-blue-700 underline underline-offset-2">
+                                    Privacy Policy
+                                </Link>
+                                .
                             </label>
                         </div>
                         {errors.consent && <p className="text-xs font-medium text-red-600 mt-1">{errors.consent}</p>}
