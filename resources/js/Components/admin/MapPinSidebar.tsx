@@ -73,73 +73,89 @@ export default function MapPinSidebar({
     counts,
 }: Props) {
     return (
-        <div className="flex h-full flex-col rounded-lg border bg-card shadow-sm">
-            <div className="border-b p-4">
-                <h3 className="text-sm font-semibold text-blue-900">Filters</h3>
-                <div className="relative mt-3">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-card shadow-md overflow-hidden">
+            {/* Search and Filters Header Group */}
+            <div className="border-b bg-slate-50/70 p-4 space-y-3 shrink-0">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Map Filters</h3>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700">
+                        <input
+                            type="checkbox"
+                            checked={showHotspots}
+                            onChange={onToggleHotspots}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                        />
+                        Show hotspots
+                    </label>
+                </div>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                         value={search}
                         onChange={(e) => onSearch(e.target.value)}
-                        placeholder="Search location or report…"
-                        className="pl-9"
+                        placeholder="Search location or report ID…"
+                        className="pl-9 bg-white text-xs h-9"
                     />
                 </div>
-                <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={showHotspots}
-                        onChange={onToggleHotspots}
-                        className="rounded border-gray-300"
-                    />
-                    Show hotspot zones
-                </label>
             </div>
 
-            <div className="space-y-3 border-b p-4">
+            {/* Filter Rows Section */}
+            <div className="space-y-3.5 border-b p-4 bg-white shrink-0">
                 <FilterRow label="Severity" tabs={severityTabs} active={severity} onChange={onSeverity} counts={counts} prefix="sev" />
                 <FilterRow label="Status" tabs={statusTabs} active={status} onChange={onStatus} counts={counts} prefix="status" />
-                <FilterRow label="Type" tabs={typeTabs} active={type} onChange={onType} counts={counts} prefix="type" />
+                <FilterRow label="Incident Type" tabs={typeTabs} active={type} onChange={onType} counts={counts} prefix="type" />
             </div>
 
-            <div className="flex items-center justify-between border-b px-4 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Pins ({pins.length})
+            {/* Pins Header Tracker */}
+            <div className="flex items-center justify-between border-b bg-slate-100/80 px-4 py-2.5 shrink-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Visible Pins ({pins.length})
                 </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            {/* Fully Scrollable Expanded Pins Container */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 bg-white min-h-0">
                 {pins.length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground">No pins match the current filters.</p>
+                    <div className="p-8 text-center">
+                        <p className="text-sm font-medium text-slate-500">No pins match the current filter selection.</p>
+                    </div>
                 ) : (
                     pins.map((pin) => {
-                        const Icon = typeIcons[pin.type_icon];
+                        const Icon = typeIcons[pin.type_icon] || Flame;
                         const sev = pin.severity ?? 'medium';
+                        const isSelected = selectedId === pin.id;
                         return (
                             <button
                                 key={pin.id}
                                 type="button"
                                 onClick={() => onSelect(pin.id)}
                                 className={cn(
-                                    'flex w-full gap-3 border-b px-4 py-3 text-left transition-colors hover:bg-muted/40',
-                                    selectedId === pin.id && 'bg-red-50',
+                                    'flex w-full items-start gap-4 p-4 text-left transition-all hover:bg-slate-50/80',
+                                    isSelected ? 'bg-blue-50/90 border-l-4 border-blue-600 shadow-inner' : 'bg-white',
                                 )}
                             >
+                                {/* Enlarged Icon Box Container */}
                                 <div
-                                    className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                                    style={{ backgroundColor: `${severityColors[sev]}22` }}
+                                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-xs mt-0.5"
+                                    style={{ backgroundColor: `${severityColors[sev]}20` }}
                                 >
-                                    <Icon className="h-4 w-4" style={{ color: severityColors[sev] }} />
+                                    <Icon className="h-6 w-6" style={{ color: severityColors[sev] }} />
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium">{pin.incident_type}</p>
-                                    <p className="truncate text-xs text-muted-foreground">{pin.location_label}</p>
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                        <Badge variant="outline" className="text-[10px]">
+                                <div className="min-w-0 flex-1 space-y-1.5">
+                                    <p className={cn('text-sm font-bold leading-snug line-clamp-2', isSelected ? 'text-blue-950' : 'text-slate-900')}>
+                                        {pin.incident_type}
+                                    </p>
+                                    <p className="text-xs text-slate-500 line-clamp-1 font-medium">{pin.location_label}</p>
+                                    
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        <Badge variant="outline" className="text-[11px] font-semibold text-slate-700 bg-slate-50 px-2 py-0.5">
                                             {pin.report_id}
                                         </Badge>
+                                        <Badge variant="outline" className="text-[11px] capitalize font-medium text-slate-600 px-2 py-0.5">
+                                            {pin.severity}
+                                        </Badge>
                                         {pin.has_mission && (
-                                            <Badge className="bg-blue-700 text-[10px]">Mission</Badge>
+                                            <Badge className="bg-blue-600 text-[11px] font-semibold text-white px-2 py-0.5">Active Mission</Badge>
                                         )}
                                     </div>
                                 </div>
@@ -164,22 +180,22 @@ type FilterRowProps<T extends string> = {
 function FilterRow<T extends string>({ label, tabs, active, onChange, counts, prefix }: FilterRowProps<T>) {
     return (
         <div>
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-            <div className="flex flex-wrap gap-1">
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-600">{label}</p>
+            <div className="flex flex-wrap gap-1.5">
                 {tabs.map((tab) => (
                     <button
                         key={tab.key}
                         type="button"
                         onClick={() => onChange(tab.key)}
                         className={cn(
-                            'rounded-full px-2 py-1 text-xs font-medium transition-colors',
+                            'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors shadow-2xs',
                             active === tab.key
-                                ? 'bg-red-600 text-white'
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
                         )}
                     >
                         {tab.label}
-                        <span className="ml-1 opacity-75">({counts[`${prefix}_${tab.key}`] ?? 0})</span>
+                        <span className="ml-1.5 opacity-80 text-[11px]">({counts[`${prefix}_${tab.key}`] ?? 0})</span>
                     </button>
                 ))}
             </div>
