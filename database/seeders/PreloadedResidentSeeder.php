@@ -31,13 +31,19 @@ class PreloadedResidentSeeder extends Seeder
             return;
         }
 
+        $demoApprovedIds = ['RES001', 'RES002', 'RES003', 'RES004', 'RES005'];
+        $demoLogins = [];
+
         while ($row = fgetcsv($file)) {
             $data = array_combine($header, $row);
+            $accountId = $data['account_id'];
             $address = trim($data['address'] ?? '');
             $addressParts = array_map('trim', explode(',', $address, 2));
+            $isDemoApproved = in_array($accountId, $demoApprovedIds, true);
+            $tempPassword = $this->temporaryPassword($accountId, $data['last_name']);
 
-            PreloadedResident::updateOrCreate(
-                ['account_id' => $data['account_id']], 
+            $census = PreloadedResident::updateOrCreate(
+                ['account_id' => $accountId],
                 [
                     'first_name'     => $data['first_name'],
                     'middle_name'    => $data['middle_name'] ?: null,
@@ -49,12 +55,13 @@ class PreloadedResidentSeeder extends Seeder
                     'email'          => $data['email'] ?: null,
                     'mobile'         => $data['mobile'] ?: null,
                     'civil_status'   => 'Single',
+                    'is_claimed'     => $isDemoApproved,
+                    'claimed_at'     => $isDemoApproved ? now() : null,
                 ]
             );
 
-            // Removed verification_status from User array
             $user = User::updateOrCreate(
-                ['account_id' => $data['account_id']], 
+                ['account_id' => $accountId],
                 [
                     'barangay_id'         => $barangay->id,
                     'role'                => UserRole::Resident,
@@ -62,26 +69,49 @@ class PreloadedResidentSeeder extends Seeder
                     'middle_name'         => $data['middle_name'] ?: null,
                     'last_name'           => $data['last_name'],
                     'name_extension'      => $data['name_extension'] ?: null,
-                    'email'               => $data['email'] ?: null,
+                    'email'               => $data['email'] ?: strtolower($accountId).'@example.com',
                     'mobile'              => $data['mobile'] ?: null,
-                    'password'            => 'password',
-                    'is_active'           => true,
+                    'password'            => $isDemoApproved ? $tempPassword : 'password',
+                    'is_active'           => ! $isDemoApproved,
                 ]
             );
-            
-            // Verification status is set safely inside the residentProfile relationship
+
+            if ($isDemoApproved) {
+                $census->update(['user_id' => $user->id]);
+                $demoLogins[] = "{$accountId} / {$tempPassword}";
+            }
+
             $user->residentProfile()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'verification_status' => VerificationStatus::Unverified,
+                    'verification_status' => $isDemoApproved
+                        ? VerificationStatus::Approved
+                        : VerificationStatus::Unverified,
                     'birthday' => $data['birthday'],
                     'address'  => $data['address'] ?: null,
+                    'digital_id_code' => $isDemoApproved
+                        ? 'ML-ID-'.strtoupper(substr(md5($user->id), 0, 8))
+                        : null,
                 ]
             );
         }
 
         fclose($file);
-        
+
         $this->command->info('Preloaded residents AND user shell accounts successfully seeded from CSV!');
+        if ($demoLogins !== []) {
+            $this->command->info('Demo approved residents (change-password prompt on login):');
+            foreach ($demoLogins as $login) {
+                $this->command->line('  '.$login);
+            }
+        }
+    }
+
+    private function temporaryPassword(string $accountId, string $lastName): string
+    {
+        $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', $lastName);
+        $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Resident'));
+
+        return $accountId.'!'.$readableLastName;
     }
 }
