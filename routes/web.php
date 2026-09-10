@@ -7,6 +7,7 @@ use App\Http\Controllers\Resident\LibraryController;
 use App\Http\Controllers\Resident\SecurityController;
 use App\Http\Controllers\Resident\AnnouncementController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\AdminPersonnelLoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AccountStatusController;
@@ -97,10 +98,13 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
 Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
 
 Route::middleware('guest')->group(function () {
+    // Resident Login Portal
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    
-    // ATTACHED RATE LIMITER: Prevents brute-force guessing (max 5 per minute)
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
+    
+    // Admin & Personnel Login Portal
+    Route::get('/admin-personnel/login', [AdminPersonnelLoginController::class, 'create'])->name('admin-personnel.login');
+    Route::post('/admin-personnel/login', [AdminPersonnelLoginController::class, 'store'])->middleware('throttle:login');
     
     // Resident Registration Routes
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');

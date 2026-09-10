@@ -66,7 +66,7 @@ export default function ConcernCard({ concern }: Props) {
 
             {/* Main Media Image Container */}
             {concern.images && concern.images.length > 0 && (
-                <div className="mt-3 bg-slate-900 overflow-hidden">
+                <div className="mt-3 bg-slate-1000 overflow-hidden">
                     <div className="flex gap-2 overflow-x-auto p-2">
                         {concern.images.map((url: string, idx: number) => (
                             <BufferedImage

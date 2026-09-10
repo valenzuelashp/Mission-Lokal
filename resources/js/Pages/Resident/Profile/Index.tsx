@@ -28,6 +28,7 @@ export default function ProfileIndex({ profile }: { profile: any }) {
         birthday: '—',
         sex: '—',
         civil_status: '—',
+        verification_status: 'unverified',
         digital_id_code: 'ML-PENDING',
         member_since: 'July 2026',
         report_count: 0,
@@ -35,9 +36,10 @@ export default function ProfileIndex({ profile }: { profile: any }) {
         badges: []
     };
 
-    const status = verificationBadge[user.verification_status as string] || { label: 'Unverified', variant: 'outline' as const };
+    const statusKey = activeProfile.verification_status ?? 'unverified';
+    const status = verificationBadge[statusKey] || { label: 'Unverified', variant: 'outline' as const };
     const isPendingEdit = activeProfile.edit_status === 'pending_approval';
-    const isVerifiedUser = user.verification_status === 'approved';
+    const isVerifiedUser = statusKey === 'approved';
 
     const rightAside = (
         <>
@@ -102,9 +104,9 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                 </Card>
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <StatCard label="Civic XP" value={user.civic_xp ?? 0} icon={Award} hint="Earn more by reporting" />
+                    <StatCard label="Civic XP" value={user.civic_xp ?? 50} icon={Award} hint="Earn more by reporting" />
                     <StatCard label="Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Your submissions" />
-                    <StatCard label="Status" value={status.label} icon={Shield} hint={user.verification_status ?? 'unverified'} />
+                    <StatCard label="Status" value={status.label} icon={Shield} hint={statusKey} />
                 </div>
 
                 <Card className="shadow-sm">

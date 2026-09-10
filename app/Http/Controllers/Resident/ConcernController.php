@@ -25,7 +25,13 @@ class ConcernController extends Controller
     {
         $user = $request->user();
 
-        // 1. Row-level access query rules for private vs public visibility bounds
+        // 1. Compute personal report metrics for the logged-in resident only
+        $userTotalReports = Concern::where('reporter_id', $user->id)->count();
+        $userActiveReports = Concern::where('reporter_id', $user->id)
+            ->whereIn('status', [ConcernStatus::Submitted, ConcernStatus::UnderReview, ConcernStatus::Active, 'submitted', 'under_review', 'active'])
+            ->count();
+
+        // 2. Row-level access query rules for private vs public visibility bounds on the feed
         $concerns = Concern::where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($user) {
                 $query->where('visibility', 'public')
@@ -59,7 +65,11 @@ class ConcernController extends Controller
             });
 
         return Inertia::render('Resident/Feed', [
-            'concerns' => $concerns
+            'concerns' => $concerns,
+            'userStats' => [
+                'total_reports' => $userTotalReports,
+                'active_reports' => $userActiveReports,
+            ],
         ]);
     }
 

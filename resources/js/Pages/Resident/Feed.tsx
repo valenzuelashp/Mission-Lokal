@@ -10,12 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { useAuth } from '@/Hooks/usePageProps';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import { publishedAnnouncements } from '@/Lib/residentDemo';
-import type { FeedPageProps, PageProps } from '@/Types';
+import type { PageProps } from '@/Types';
 
-export default function Feed({ concerns }: FeedPageProps) {
+type FeedPageProps = PageProps & {
+    concerns: any[];
+    userStats: {
+        total_reports: number;
+        active_reports: number;
+    };
+};
+
+export default function Feed({ concerns, userStats }: FeedPageProps) {
     const { user } = useAuth();
     const { flash } = usePage<PageProps>().props;
-    const activeCount = concerns.filter((c) => c.status === 'active').length;
+
+    const totalReports = userStats?.total_reports ?? 0;
+    const activeReports = userStats?.active_reports ?? 0;
 
     const rightAside = (
         <>
@@ -34,16 +44,16 @@ export default function Feed({ concerns }: FeedPageProps) {
                     <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-muted-foreground">
                             <FileText className="h-4 w-4" />
-                            Open reports
+                            Total records
                         </span>
-                        <span className="font-semibold">{concerns.length}</span>
+                        <span className="font-semibold">{totalReports}</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-muted-foreground">
                             <AlertCircle className="h-4 w-4" />
                             Active
                         </span>
-                        <span className="font-semibold">{activeCount}</span>
+                        <span className="font-semibold">{activeReports}</span>
                     </div>
                 </CardContent>
             </Card>

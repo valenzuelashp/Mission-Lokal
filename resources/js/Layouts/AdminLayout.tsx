@@ -48,9 +48,14 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     
-    const { unread_count, pending_registrations_count } = usePage<PageProps>().props;
-    const unread = unread_count ?? 0;
-    const pendingRegistrations = pending_registrations_count ?? 0;
+    // Safely cast props to resolve TypeScript inference conflicts
+    const { unread_count, pending_registrations_count } = usePage<PageProps & { 
+        unread_count?: number; 
+        pending_registrations_count?: number; 
+    }>().props;
+    
+    const unread = Number(unread_count ?? 0);
+    const pendingRegistrations = Number(pending_registrations_count ?? 0);
 
     const active = (href: string, exact?: boolean) => {
         if (exact) return isActive('/admin') && href === '/admin';

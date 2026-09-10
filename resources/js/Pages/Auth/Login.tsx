@@ -49,7 +49,6 @@ export default function Login() {
                             </div>
                             
                             <div className="space-y-2">
-                                {/* UPDATED: Flex container to hold Label and Forgot Password link side-by-side */}
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="password">Password</Label>
                                     <Link 
@@ -81,12 +80,6 @@ export default function Login() {
                                 <Link href="/account-status" className="text-primary underline-offset-4 hover:underline">
                                     Check registration status
                                 </Link>
-                            </p>
-                            <p className="text-center text-xs text-muted-foreground">
-                                Personnel?{' '}
-                                <a href="/personnel/login" className="text-primary underline-offset-4 hover:underline">
-                                    Personnel portal
-                                </a>
                             </p>
                             <p className="text-center text-xs text-muted-foreground">
                                 <Link href="/privacy" className="text-primary underline-offset-4 hover:underline">

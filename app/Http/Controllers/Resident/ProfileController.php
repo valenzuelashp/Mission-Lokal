@@ -53,22 +53,29 @@ class ProfileController extends Controller
             }
         }
 
+        $profileStatus = $profile?->verification_status;
+        $profileStatusValue = $profileStatus instanceof \UnitEnum ? $profileStatus->value : ($profileStatus ?? 'unverified');
+        if ($profileStatusValue === 'verified') {
+            $profileStatusValue = 'approved';
+        }
+
         $profileData = [
-            'full_name'       => $fullName,
-            'email'           => $user->email,
-            'mobile'          => $user->mobile ?? '—',
-            'sex'             => $profile->sex ?? 'Not Specified',
-            'civil_status'    => $profile->civil_status ?? 'Not Specified',
-            'address'         => $addressStr,
-            'birthday'        => $birthdayStr,
-            'digital_id_code' => $profile->digital_id_code ?? 'ML-ID-' . strtoupper(substr($user->id ?? '12345678', 0, 8)),
-            'member_since'    => $user->created_at ? $user->created_at->format('F Y') : now()->format('F Y'),
-            'report_count'    => $reportCount,
-            'edit_status'     => $user->profile_edit_status ?? 'approved', 
-            'is_minor'        => $user->isMinor(),
-            'parent_name'     => $user->parent_name ?? '',
-            'parent_contact'  => $user->parent_contact ?? '',
-            'badges'          => [],
+            'full_name'           => $fullName,
+            'email'               => $user->email,
+            'mobile'              => $user->mobile ?? '—',
+            'sex'                 => $profile->sex ?? 'Not Specified',
+            'civil_status'        => $profile->civil_status ?? 'Not Specified',
+            'address'             => $addressStr,
+            'birthday'            => $birthdayStr,
+            'verification_status' => $profileStatusValue,
+            'digital_id_code'     => $profile->digital_id_code ?? 'ML-ID-' . strtoupper(substr($user->id ?? '12345678', 0, 8)),
+            'member_since'        => $user->created_at ? $user->created_at->format('F Y') : now()->format('F Y'),
+            'report_count'        => $reportCount,
+            'edit_status'         => $user->profile_edit_status ?? 'approved', 
+            'is_minor'            => $user->isMinor(),
+            'parent_name'         => $user->parent_name ?? '',
+            'parent_contact'      => $user->parent_contact ?? '',
+            'badges'              => [],
         ];
 
         return Inertia::render('Resident/Profile/Index', [
@@ -137,7 +144,6 @@ class ProfileController extends Controller
             'province'      => 'required|string|max:255',
         ];
 
-        // --- STRICT REQUIREMENT: REQUIRE GUARDIAN FIELDS IF MINOR ---
         if ($user->isMinor()) {
             $rules['parent_name'] = 'required|string|max:255';
             $rules['parent_contact'] = 'required|string|max:20';
@@ -190,7 +196,6 @@ class ProfileController extends Controller
             $changes['province'] = $validated['province'];
         }
 
-        // Track guardian changes for minors
         if ($user->isMinor()) {
             if (trim($validated['parent_name'] ?? '') !== trim($user->parent_name ?? '')) {
                 $changes['parent_name'] = $validated['parent_name'];

@@ -6,7 +6,7 @@ import { Input } from '@/Components/ui/input';
 import { PasswordInput } from '@/Components/ui/password-input';
 import { Label } from '@/Components/ui/label';
 
-export default function PersonnelLogin() {
+export default function AdminPersonnelLogin() {
     const { data, setData, post, processing, errors } = useForm({
         account_id: '',
         password: '',
@@ -15,12 +15,12 @@ export default function PersonnelLogin() {
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        post('/personnel/login');
+        post('/admin-personnel/login'); // <--- UPDATED TO MATCH YOUR NEW ROUTE
     };
 
     return (
         <>
-            <Head title="Personnel Login" />
+            <Head title="Admin & Personnel Login" />
             <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
                 <Card className="w-full max-w-sm">
                     <CardHeader className="items-center text-center">
@@ -29,13 +29,13 @@ export default function PersonnelLogin() {
                             alt="Barangay Tambo, City of Parañaque"
                             className="h-28 w-28 object-contain sm:h-32 sm:w-32"
                         />
-                        <CardTitle>Personnel portal</CardTitle>
-                        <CardDescription>Mission assignments &amp; proof upload</CardDescription>
+                        <CardTitle>Command Portal</CardTitle>
+                        <CardDescription>Admin &amp; personnel sign in</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={submit} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="account_id">Account ID</Label>
+                                <Label htmlFor="account_id">Account ID / Email</Label>
                                 <Input
                                     id="account_id"
                                     value={data.account_id}
@@ -58,9 +58,9 @@ export default function PersonnelLogin() {
                                 Sign in
                             </Button>
                             <p className="text-center text-xs text-muted-foreground">
-                                Resident or admin?{' '}
+                                Resident?{' '}
                                 <Link href="/login" className="text-primary underline">
-                                    Main login
+                                    Resident login
                                 </Link>
                             </p>
                         </form>
