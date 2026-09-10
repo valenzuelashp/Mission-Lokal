@@ -1,20 +1,25 @@
 import { Link, useForm, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
-import { ImagePlus, X } from 'lucide-react';
+import { Bell, CalendarDays, HandHelping, ImagePlus, X } from 'lucide-react';
 import AnnouncementPreview from '@/Components/admin/AnnouncementPreview';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { cn } from '@/Lib/utils';
+import { announcementKindOptions, type AnnouncementKind } from '@/Types';
 
 type FormData = {
     title: string;
     body: string;
+    kind: AnnouncementKind;
     is_published: boolean;
     image: File | null;
     remove_image: boolean;
 };
+
+type Volunteer = { id: string; name: string; joined_at: string | null };
 
 type Props = {
     action: string;
@@ -23,6 +28,7 @@ type Props = {
     existingImageUrl?: string | null;
     cancelHref: string;
     submitLabel: string;
+    volunteers?: Volunteer[];
 };
 
 export default function AnnouncementForm({
@@ -32,6 +38,7 @@ export default function AnnouncementForm({
     existingImageUrl,
     cancelHref,
     submitLabel,
+    volunteers = [],
 }: Props) {
     const { data, setData, processing, errors } = useForm(defaults);
     const [previewUrl, setPreviewUrl] = useState<string | null>(existingImageUrl ?? null);
@@ -48,19 +55,17 @@ export default function AnnouncementForm({
         e.preventDefault();
 
         const publishState = publishOverride ? true : data.is_published;
-
-        // Construct standard FormData to handle files and text fields reliably
         const formData = new FormData();
         formData.append('title', data.title);
         formData.append('body', data.body);
+        formData.append('kind', data.kind);
         formData.append('is_published', publishState ? '1' : '0');
         formData.append('remove_image', data.remove_image ? '1' : '0');
-        
+
         if (data.image) {
             formData.append('image', data.image);
         }
 
-        // Method spoofing for PUT requests containing file payloads in Laravel
         if (method === 'put') {
             formData.append('_method', 'PUT');
         }
@@ -95,6 +100,44 @@ export default function AnnouncementForm({
                     <CardTitle className="text-base">Announcement details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Post type</Label>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            {announcementKindOptions.map((option) => {
+                                const Icon =
+                                    option.value === 'advisory'
+                                        ? Bell
+                                        : option.value === 'event'
+                                          ? CalendarDays
+                                          : HandHelping;
+                                const selected = data.kind === option.value;
+
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setData('kind', option.value)}
+                                        className={cn(
+                                            'rounded-xl border px-3 py-3 text-left transition',
+                                            selected
+                                                ? 'border-teal-600 bg-teal-50 ring-1 ring-teal-600'
+                                                : 'border-slate-200 bg-white hover:border-teal-200 hover:bg-slate-50',
+                                        )}
+                                    >
+                                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                            <Icon className="h-4 w-4 text-teal-700" />
+                                            {option.label}
+                                        </span>
+                                        <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">
+                                            {option.hint}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {errors.kind && <p className="text-sm text-destructive">{errors.kind}</p>}
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="title">Title</Label>
                         <Input
@@ -189,12 +232,31 @@ export default function AnnouncementForm({
                             <Link href={cancelHref}>Cancel</Link>
                         </Button>
                     </div>
+
+                    {data.kind === 'volunteer' && volunteers.length > 0 && (
+                        <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-4">
+                            <p className="text-sm font-semibold text-teal-900">
+                                Volunteers ({volunteers.length})
+                            </p>
+                            <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+                                {volunteers.map((person) => (
+                                    <li key={person.id} className="flex items-center justify-between gap-2">
+                                        <span>{person.name}</span>
+                                        {person.joined_at && (
+                                            <span className="text-xs text-muted-foreground">{person.joined_at}</span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
             <AnnouncementPreview
                 title={data.title}
                 body={data.body}
+                kind={data.kind}
                 imageUrl={previewUrl}
                 isPublished={data.is_published}
                 publishedAt={data.is_published ? 'Just now' : null}

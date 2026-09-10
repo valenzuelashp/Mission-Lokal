@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Personnel\CalendarController;
 use App\Http\Controllers\Personnel\MissionController;
 use App\Http\Controllers\Personnel\NotificationController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('personnel')->name('personnel.')->middleware(['auth', 'role:personnel'])->group(function () {
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
     Route::patch('/missions/{mission}/status', [MissionController::class, 'updateStatus'])->name('missions.status');

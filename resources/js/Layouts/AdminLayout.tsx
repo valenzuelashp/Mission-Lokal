@@ -1,18 +1,4 @@
-import {
-    ClipboardList,
-    FileText,
-    LayoutDashboard,
-    LogOut,
-    Map,
-    Megaphone,
-    UserCircle,
-    Users,
-    ShieldAlert,
-    Bell,
-    CheckSquare,
-    BookOpen,
-    ShieldCheck,
-} from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
@@ -32,6 +18,7 @@ const nav = [
     { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
     { href: '/admin/map', label: 'Map', icon: Map },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+    { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
     { href: '/admin/library', label: 'Library', icon: BookOpen },
     { href: '/admin/residents', label: 'Residents', icon: Users },
     { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },

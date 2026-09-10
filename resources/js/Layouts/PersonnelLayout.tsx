@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bell, ClipboardList, LogOut, UserCircle } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, LogOut, UserCircle } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import PersonnelTopBar from '@/Components/personnel/PersonnelTopBar';
 import { Badge } from '@/Components/ui/badge';
@@ -11,6 +11,7 @@ import FlashToasts from '@/Components/shared/FlashToasts';
 
 const nav = [
     { href: '/personnel/missions', label: 'My missions', icon: ClipboardList },
+    { href: '/personnel/calendar', label: 'Calendar', icon: CalendarDays },
     { href: '/personnel/notifications', label: 'Notifications', icon: Bell },
 ];
 

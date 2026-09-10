@@ -298,15 +298,32 @@ class DemoDataSeeder extends Seeder
             'created_at' => now(),
         ]);
 
-        Announcement::create([
-            'id' => Str::uuid(),
-            'barangay_id' => $barangay->id,
-            'title' => 'Community Road Repair Advisory',
-            'body' => 'Phase 1 road repairs will commence this week.',
-            'is_published' => true,
-            'published_at' => now(),
-            'created_by' => $admin->id,
-        ]);
+        $this->publishAnnouncement(
+            $barangay->id,
+            $admin->id,
+            'Community Road Repair Advisory',
+            'Phase 1 road repairs will commence this week. Expect slower traffic near the curve of Zone 15.',
+            now(),
+            'advisory',
+        );
+
+        $this->publishAnnouncement(
+            $barangay->id,
+            $admin->id,
+            'Barangay Fiesta 2026',
+            'Join the barangay fiesta at the covered court. There will be a morning mass, parlor games, and a community lunch. Residents are invited to wear traditional attire.',
+            now('Asia/Manila')->setDate(2026, 9, 19)->setTime(8, 0),
+            'event',
+        );
+
+        $this->publishAnnouncement(
+            $barangay->id,
+            $admin->id,
+            'Relief Goods Distribution',
+            'The barangay hall will distribute relief goods to registered households. Volunteers are needed to pack and hand out goods. Bring a valid ID and your digital barangay ID. Queuing starts at 9:00 AM at the covered court.',
+            now('Asia/Manila')->setDate(2026, 9, 15)->setTime(9, 0),
+            'volunteer',
+        );
 
         LibraryItem::create([
             'id' => Str::uuid(),
@@ -330,5 +347,28 @@ class DemoDataSeeder extends Seeder
         ]);
 
         $this->command->info('All database tables successfully seeded!');
+    }
+
+    private function publishAnnouncement(
+        string $barangayId,
+        string $createdBy,
+        string $title,
+        string $body,
+        mixed $publishedAt,
+        string $kind = 'advisory',
+    ): void {
+        Announcement::updateOrCreate(
+            [
+                'barangay_id' => $barangayId,
+                'title' => $title,
+            ],
+            [
+                'body' => $body,
+                'kind' => $kind,
+                'is_published' => true,
+                'published_at' => $publishedAt,
+                'created_by' => $createdBy,
+            ],
+        );
     }
 }

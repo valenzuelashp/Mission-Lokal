@@ -22,6 +22,7 @@ class ProcessConcernWithAiTest extends TestCase
             $table->string('title');
             $table->text('description');
             $table->string('severity')->nullable();
+            $table->string('visibility')->nullable();
             $table->string('status')->default('submitted');
             $table->timestamp('ai_processed_at')->nullable();
             $table->timestamps();
@@ -93,7 +94,7 @@ class ProcessConcernWithAiTest extends TestCase
         $this->assertSame('high', $concern->fresh()->severity);
     }
 
-    public function test_it_rejects_malformed_ai_output_for_queue_retry(): void
+    public function test_it_falls_back_to_heuristic_analysis_when_ai_output_is_malformed(): void
     {
         Http::fake([
             'https://generativelanguage.googleapis.com/*' => Http::response([
@@ -108,8 +109,12 @@ class ProcessConcernWithAiTest extends TestCase
             'description' => 'Test description.',
         ]);
 
-        $this->expectException(\RuntimeException::class);
-
         (new ProcessConcernWithAi($concern))->handle();
+
+        $this->assertDatabaseHas('concern_ai_analysis', [
+            'concern_id' => $concern->id,
+            'is_current' => 1,
+        ]);
+        $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
     }
 }

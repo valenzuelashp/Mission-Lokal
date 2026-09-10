@@ -41,9 +41,11 @@ export default function Edit({ announcement }: Props) {
                 cancelHref="/admin/announcements"
                 submitLabel="Save changes"
                 existingImageUrl={announcement.image_url}
+                volunteers={announcement.volunteers}
                 defaults={{
                     title: announcement.title,
                     body: announcement.body,
+                    kind: announcement.kind ?? 'advisory',
                     is_published: announcement.is_published,
                     image: null,
                     remove_image: false,

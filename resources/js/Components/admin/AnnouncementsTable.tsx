@@ -59,6 +59,10 @@ export default function AnnouncementsTable({ announcements }: Props) {
                                         )}
                                         <div className="min-w-0">
                                             <p className="font-medium text-foreground">{row.title}</p>
+                                            <p className="mt-0.5 text-xs font-medium text-teal-700">
+                                                {row.kind_label ?? 'Advisory'}
+                                                {row.kind === 'volunteer' ? ` · ${row.volunteer_count ?? 0} volunteer${(row.volunteer_count ?? 0) === 1 ? '' : 's'}` : ''}
+                                            </p>
                                             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{row.body}</p>
                                         </div>
                                     </div>

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FileText, Home, Megaphone, User } from 'lucide-react';
+import { BookOpen, CalendarDays, FileText, Home, Megaphone, User } from 'lucide-react';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import { Card, CardContent } from '@/Components/ui/card';
 import { useAuth } from '@/Hooks/usePageProps';
@@ -9,6 +9,7 @@ import { cn } from '@/Lib/utils';
 const shortcuts = [
     { href: '/feed', label: 'Public feed', icon: Home },
     { href: '/announcements', label: 'Announcements', icon: Megaphone },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
     { href: '/blotter/new', label: 'File blotter', icon: FileText },
     { href: '/library', label: 'Library', icon: BookOpen },
     { href: '/profile', label: 'My profile', icon: User },

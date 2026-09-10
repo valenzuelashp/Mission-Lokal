@@ -20,7 +20,6 @@ type BlotterDetail = {
 };
 
 export default function Show({ blotter }: { blotter: BlotterDetail }) {
-    
     const handleApprove = () => {
         if (confirm("Are you sure you want to officially file this blotter and issue a ticket number?")) {
             router.post(`/admin/blotters/${blotter.id}/approve`);
@@ -53,7 +52,6 @@ export default function Show({ blotter }: { blotter: BlotterDetail }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* LEFT COLUMN: Narrative Details */}
                 <div className="md:col-span-2 space-y-6">
                     <Card className="shadow-sm">
                         <CardContent className="p-6">
@@ -65,7 +63,6 @@ export default function Show({ blotter }: { blotter: BlotterDetail }) {
                         </CardContent>
                     </Card>
 
-                    {/* Action Authorization Deck */}
                     {blotter.status === 'pending_approval' && (
                         <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
                             <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -84,7 +81,6 @@ export default function Show({ blotter }: { blotter: BlotterDetail }) {
                     )}
                 </div>
 
-                {/* RIGHT COLUMN: Case Metadata */}
                 <div className="space-y-6">
                     <Card className="shadow-sm">
                         <CardContent className="p-6 space-y-4 text-sm">

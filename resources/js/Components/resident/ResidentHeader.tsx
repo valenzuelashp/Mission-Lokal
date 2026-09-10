@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Search, ShieldCheck, Bell, CircleHelp } from 'lucide-react';
+import { CalendarDays, Search, ShieldCheck, Bell, CircleHelp } from 'lucide-react';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import { Input } from '@/Components/ui/input';
 import { Badge } from '@/Components/ui/badge';
@@ -33,6 +33,14 @@ export default function ResidentHeader() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-2 sm:gap-4">
+                    <Link
+                        href="/calendar"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors"
+                        aria-label="Calendar"
+                    >
+                        <CalendarDays className="h-5 w-5" />
+                    </Link>
+
                     <Link 
                         href="/blotters" 
                         className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-primary transition-colors"

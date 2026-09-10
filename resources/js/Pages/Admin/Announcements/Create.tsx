@@ -18,7 +18,7 @@ export default function Create() {
             <div className="mb-4 sm:mb-6">
                 <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">New announcement</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Draft an advisory or publish it immediately to the resident feed.
+                    Draft an advisory, event, or volunteer call and publish it to residents.
                 </p>
             </div>
 
@@ -27,7 +27,7 @@ export default function Create() {
                 method="post"
                 cancelHref="/admin/announcements"
                 submitLabel="Save announcement"
-                defaults={{ title: '', body: '', is_published: false, image: null, remove_image: false }}
+                defaults={{ title: '', body: '', kind: 'advisory', is_published: false, image: null, remove_image: false }}
             />
         </AdminLayout>
     );

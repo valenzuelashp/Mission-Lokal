@@ -74,6 +74,8 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
         ->name('help.ask');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+    Route::post('/announcements/{announcement}/volunteer', [AnnouncementController::class, 'volunteer'])->name('announcements.volunteer');
+    Route::get('/calendar', [\App\Http\Controllers\Resident\CalendarController::class, 'index'])->name('calendar');
     
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');

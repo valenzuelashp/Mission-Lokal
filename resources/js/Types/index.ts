@@ -109,13 +109,29 @@ export interface FeedPageProps extends PageProps {
     concerns: PublicConcern[];
 }
 
+export type AnnouncementKind = 'advisory' | 'event' | 'volunteer';
+
+export const announcementKindOptions: {
+    value: AnnouncementKind;
+    label: string;
+    hint: string;
+}[] = [
+    { value: 'advisory', label: 'Advisory', hint: 'Official notice — weather, interruption, safety' },
+    { value: 'event', label: 'Event', hint: 'Fiesta, assembly, or community gathering' },
+    { value: 'volunteer', label: 'Volunteer call', hint: 'Ask residents to help' },
+];
+
 export interface ResidentAnnouncement {
     id: string;
     title: string;
     body: string;
+    kind?: AnnouncementKind;
+    kind_label?: string;
     image_url?: string | null;
     published_at: string;
     author_name: string;
+    volunteer_count?: number;
+    has_joined?: boolean;
 }
 
 export interface AnnouncementsPageProps extends PageProps {
@@ -124,6 +140,29 @@ export interface AnnouncementsPageProps extends PageProps {
 
 export interface AnnouncementShowPageProps extends PageProps {
     announcement: ResidentAnnouncement;
+}
+
+export type CalendarEventType = 'announcement' | 'mission';
+
+export interface CalendarEvent {
+    id: string;
+    date: string;
+    time: string | null;
+    title: string;
+    subtitle: string | null;
+    type: CalendarEventType;
+    href: string;
+    going?: boolean;
+}
+
+export interface CalendarPageProps extends PageProps {
+    year: number;
+    month: number;
+    month_label: string;
+    today: string;
+    prev: { year: number; month: number };
+    next: { year: number; month: number };
+    events: CalendarEvent[];
 }
 
 export interface ResidentProfileData {
@@ -337,12 +376,16 @@ export interface AdminAnnouncement {
     id: string;
     title: string;
     body: string;
+    kind?: AnnouncementKind;
+    kind_label?: string;
     image_url?: string | null;
     is_published: boolean;
     published_at: string | null;
     author_name: string;
     created_at: string;
     updated_at: string;
+    volunteer_count?: number;
+    volunteers?: { id: string; name: string; joined_at: string | null }[];
 }
 
 export interface AdminAnnouncementsPageProps extends PageProps {

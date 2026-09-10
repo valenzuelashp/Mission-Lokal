@@ -49,6 +49,12 @@ export default function AnnouncementCard({ announcement }: Props) {
                             </Badge>
                         </div>
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{announcement.body}</p>
+                        <p className="mt-2 text-xs font-medium text-teal-700">
+                            {announcement.kind_label ?? 'Advisory'}
+                            {announcement.kind === 'volunteer'
+                                ? ` · ${announcement.volunteer_count ?? 0} volunteer${(announcement.volunteer_count ?? 0) === 1 ? '' : 's'}`
+                                : ''}
+                        </p>
                         <p className="mt-2 text-xs text-muted-foreground">
                             {announcement.author_name} · {announcement.updated_at}
                         </p>

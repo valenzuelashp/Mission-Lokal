@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\MapController;
 use App\Http\Controllers\Admin\ProfileEditController;
 use App\Http\Controllers\Admin\ResidentController;
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\LibraryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -78,6 +79,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/blotters', [BlotterController::class, 'index'])->name('blotters.index');
     Route::get('/blotters/{blotter}', [BlotterController::class, 'show'])->name('blotters.show');
     Route::post('/blotters/{blotter}/approve', [BlotterController::class, 'approve'])->name('blotters.approve');
+
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');

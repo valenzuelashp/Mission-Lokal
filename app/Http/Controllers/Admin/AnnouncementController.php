@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\AnnouncementKind;
 use App\Models\Announcement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,23 +23,29 @@ class AnnouncementController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $announcements = Announcement::with('creator')
+            ->withCount('volunteers')
             ->where('barangay_id', $barangayId)
             ->latest()
             ->get()
             ->map(function ($item) {
-                $authorName = $item->creator 
-                    ? trim($item->creator->first_name . ' ' . $item->creator->last_name) 
+                $authorName = $item->creator
+                    ? trim($item->creator->first_name . ' ' . $item->creator->last_name)
                     : 'Barangay Admin';
+                $kind = $item->resolvedKind();
 
                 return [
                     'id' => $item->id,
                     'title' => $item->title,
-                    'body' => $item->body, 
-                    'category' => $item->category ?? 'General',
-                    'is_published' => (bool)$item->is_published,
-                    'author_name' => $authorName, 
-                    'image_url' => $item->cover_image_url ? Storage::url($item->cover_image_url) : null,
+                    'body' => $item->body,
+                    'kind' => $kind->value,
+                    'kind_label' => $kind->label(),
+                    'is_published' => (bool) $item->is_published,
+                    'author_name' => $authorName,
+                    'image_url' => $item->imageUrl(),
+                    'volunteer_count' => $kind === AnnouncementKind::Volunteer ? (int) $item->volunteers_count : 0,
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y h:i A') : 'Recently',
+                    'published_at' => $item->published_at ? $item->published_at->format('M d, Y h:i A') : null,
+                    'updated_at' => $item->updated_at ? $item->updated_at->format('M d, Y h:i A') : 'Recently',
                 ];
             });
 
@@ -70,9 +77,9 @@ class AnnouncementController extends Controller
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
-            'category' => ['nullable', 'string', 'max:50'],
+            'kind' => ['required', 'in:advisory,event,volunteer'],
             'is_published' => ['nullable', 'boolean'],
-            'image' => ['nullable', 'image', 'max:5120'], // Max 5MB file size constraint
+            'image' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $barangayId = $request->user()->barangay_id;
@@ -87,7 +94,8 @@ class AnnouncementController extends Controller
         $announcement = Announcement::create([
             'barangay_id' => $barangayId,
             'title' => $request->title,
-            'body' => $request->body, 
+            'body' => $request->body,
+            'kind' => $request->kind,
             'cover_image_url' => $imagePath,
             'is_published' => $isPublished,
             'published_at' => $isPublished ? now() : null,
@@ -116,17 +124,31 @@ class AnnouncementController extends Controller
     public function edit(Request $request, string $id): Response
     {
         $barangayId = $request->user()->barangay_id;
-        $announcement = Announcement::where('barangay_id', $barangayId)->findOrFail($id);
+        $announcement = Announcement::where('barangay_id', $barangayId)
+            ->with(['volunteers.user'])
+            ->findOrFail($id);
+        $kind = $announcement->resolvedKind();
 
         return Inertia::render('Admin/Announcements/Edit', [
             'announcement' => [
                 'id' => $announcement->id,
                 'title' => $announcement->title,
                 'body' => $announcement->body,
-                'category' => $announcement->category ?? 'General',
-                'is_published' => (bool)$announcement->is_published,
-                'image_url' => $announcement->cover_image_url ? Storage::url($announcement->cover_image_url) : null,
-            ]
+                'kind' => $kind->value,
+                'kind_label' => $kind->label(),
+                'is_published' => (bool) $announcement->is_published,
+                'image_url' => $announcement->imageUrl(),
+                'volunteer_count' => $kind === AnnouncementKind::Volunteer ? $announcement->volunteers->count() : 0,
+                'volunteers' => $kind === AnnouncementKind::Volunteer
+                    ? $announcement->volunteers->map(fn ($signup) => [
+                        'id' => $signup->id,
+                        'name' => $signup->user
+                            ? trim($signup->user->first_name.' '.$signup->user->last_name)
+                            : 'Resident',
+                        'joined_at' => $signup->created_at?->timezone('Asia/Manila')->format('M d, Y g:i A'),
+                    ])->values()->all()
+                    : [],
+            ],
         ]);
     }
 
@@ -141,7 +163,7 @@ class AnnouncementController extends Controller
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
-            'category' => ['nullable', 'string', 'max:50'],
+            'kind' => ['required', 'in:advisory,event,volunteer'],
             'is_published' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -165,7 +187,7 @@ class AnnouncementController extends Controller
         $announcement->update([
             'title' => $request->title,
             'body' => $request->body,
-            'category' => $request->category ?? 'General',
+            'kind' => $request->kind,
             'cover_image_url' => $imagePath,
             'is_published' => $isPublished,
             'published_at' => $isPublished ? ($announcement->published_at ?? now()) : null,

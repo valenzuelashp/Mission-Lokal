@@ -21,7 +21,7 @@ export default function Announcements(props: Partial<AnnouncementsPageProps>) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <p>Official advisories, emergency alerts, and community updates from your barangay hall.</p>
+                    <p>Official advisories, community events, and volunteer calls from your barangay hall.</p>
                     <p className="text-xs">
                         {announcements.length} published post{announcements.length !== 1 ? 's' : ''}
                     </p>
@@ -54,7 +54,7 @@ export default function Announcements(props: Partial<AnnouncementsPageProps>) {
                         <div className="min-w-0">
                             <h1 className="text-xl font-bold">Barangay announcements</h1>
                             <p className="text-sm text-muted-foreground">
-                                Advisories and updates from your Barangay officials
+                                Advisories, events, and volunteer calls from your Barangay officials
                             </p>
                         </div>
                     </CardContent>
