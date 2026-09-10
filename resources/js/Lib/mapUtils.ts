@@ -15,14 +15,20 @@ export const hotspotColors: Record<AdminMapHotspot['risk_level'], string> = {
 };
 
 export function createPinIcon(severity: Severity, selected = false) {
-    const size = selected ? 18 : 14;
+    // INCREASED SIZES: Changed default from 14px to 28px, selected from 18px to 36px so they are easily visible at any zoom level
+    const size = selected ? 36 : 28;
     const color = severityColors[severity];
+
+    const shadowStyle = selected 
+        ? '0 0 0 4px rgba(59, 130, 246, 0.7), 0 4px 12px rgba(0,0,0,0.6)' 
+        : '0 2px 6px rgba(0,0,0,0.5)';
 
     return L.divIcon({
         className: '',
-        html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.45)"></div>`,
+        html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3px solid white;box-shadow:${shadowStyle};display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2],
     });
 }
 
