@@ -26,16 +26,13 @@ export interface User {
 
 export interface PageProps {
     auth: {
+        show_password_prompt: any;
         user: User | null;
-        needs_password_setup?: boolean;
-        show_password_prompt?: boolean;
     };
     flash: {
         success?: string;
         error?: string;
     };
-    unread_count?: number;
-    pending_registrations_count?: number;
     [key: string]: unknown;
 }
 
@@ -109,29 +106,13 @@ export interface FeedPageProps extends PageProps {
     concerns: PublicConcern[];
 }
 
-export type AnnouncementKind = 'advisory' | 'event' | 'volunteer';
-
-export const announcementKindOptions: {
-    value: AnnouncementKind;
-    label: string;
-    hint: string;
-}[] = [
-    { value: 'advisory', label: 'Advisory', hint: 'Official notice — weather, interruption, safety' },
-    { value: 'event', label: 'Event', hint: 'Fiesta, assembly, or community gathering' },
-    { value: 'volunteer', label: 'Volunteer call', hint: 'Ask residents to help' },
-];
-
 export interface ResidentAnnouncement {
     id: string;
     title: string;
     body: string;
-    kind?: AnnouncementKind;
-    kind_label?: string;
     image_url?: string | null;
     published_at: string;
     author_name: string;
-    volunteer_count?: number;
-    has_joined?: boolean;
 }
 
 export interface AnnouncementsPageProps extends PageProps {
@@ -140,29 +121,6 @@ export interface AnnouncementsPageProps extends PageProps {
 
 export interface AnnouncementShowPageProps extends PageProps {
     announcement: ResidentAnnouncement;
-}
-
-export type CalendarEventType = 'announcement' | 'mission';
-
-export interface CalendarEvent {
-    id: string;
-    date: string;
-    time: string | null;
-    title: string;
-    subtitle: string | null;
-    type: CalendarEventType;
-    href: string;
-    going?: boolean;
-}
-
-export interface CalendarPageProps extends PageProps {
-    year: number;
-    month: number;
-    month_label: string;
-    today: string;
-    prev: { year: number; month: number };
-    next: { year: number; month: number };
-    events: CalendarEvent[];
 }
 
 export interface ResidentProfileData {
@@ -228,7 +186,6 @@ export interface AdminDashboardStats {
     ongoing_missions: number;
     accomplished: number;
     pending_verification: number;
-    pending_registrations?: number;
     high_priority?: number;
     by_severity?: {
         critical: number;
@@ -354,38 +311,33 @@ export interface AdminActivity {
     icon: 'user' | 'ai' | 'success' | 'system';
 }
 
-export interface AdminDashboardRegistration {
-    id: number | string;
-    full_name: string;
-    email: string;
-    mobile: string;
-    submitted_at: string;
-    census_match?: boolean;
-    account_id?: string;
-}
-
 export interface AdminDashboardPageProps extends PageProps {
     stats: AdminDashboardStats;
     incidents: AdminIncident[];
     activities: AdminActivity[];
     map_pins: MapPin[];
-    registrations?: AdminDashboardRegistration[];
+}
+
+export interface AnnouncementVolunteer {
+    id: string;
+    name: string;
+    joined_at: string;
 }
 
 export interface AdminAnnouncement {
     id: string;
     title: string;
     body: string;
-    kind?: AnnouncementKind;
-    kind_label?: string;
-    image_url?: string | null;
+    kind: 'advisory' | 'event' | 'volunteer';
+    kind_label: string;
     is_published: boolean;
-    published_at: string | null;
-    author_name: string;
-    created_at: string;
-    updated_at: string;
-    volunteer_count?: number;
-    volunteers?: { id: string; name: string; joined_at: string | null }[];
+    image_url: string | null;
+    volunteer_count: number;
+    volunteers?: AnnouncementVolunteer[];
+    author_name?: string;
+    created_at?: string;
+    published_at?: string | null;
+    updated_at?: string;
 }
 
 export interface AdminAnnouncementsPageProps extends PageProps {
@@ -459,6 +411,8 @@ export interface AdminResidentEmergencyContact {
 }
 
 export interface AdminResidentDetail extends AdminResident {
+    civil_status: string;
+    sex: string;
     first_name: string;
     middle_name: string;
     last_name: string;
@@ -476,9 +430,6 @@ export interface AdminResidentDetail extends AdminResident {
     xp_events: AdminResidentXpEvent[];
     activities: AdminResidentActivity[];
     documents: AdminResidentDocument[];
-    government_id_url?: string | null;
-    government_id_label?: string | null;
-    government_id_is_pdf?: boolean;
 }
 
 export interface AdminResidentsPageProps extends PageProps {

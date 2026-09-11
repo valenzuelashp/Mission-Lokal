@@ -276,12 +276,11 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                                 <Input
                                     id="password"
                                     type="text"
-                                    placeholder="Auto-generated ID!surname"
                                     value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                    required
+                                    readOnly
+                                    className="bg-slate-100 text-slate-600 font-medium cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0 border-slate-200"
                                 />
-                                <p className="mt-1 text-xs text-muted-foreground">Auto-updates as you type the Last Name (e.g., PER002!DelaCruz).</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Auto-generated password based on Account ID and Last Name.</p>
                                 {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
                             </div>
 
