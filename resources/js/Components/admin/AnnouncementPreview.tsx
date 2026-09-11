@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, HandHelping, Megaphone } from 'lucide-react';
+import { Bell, CalendarDays, HandHelping, Megaphone, LucideIcon } from 'lucide-react';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -14,7 +14,7 @@ type Props = {
     publishedAt?: string | null;
 };
 
-const kindIcons = {
+const kindIcons: Record<AnnouncementKind, LucideIcon> = {
     advisory: Bell,
     event: CalendarDays,
     volunteer: HandHelping,

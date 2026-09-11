@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { Megaphone, Pencil, Trash2 } from 'lucide-react';
 import AnnouncementCard from '@/Components/admin/AnnouncementCard';
 import BufferedImage from '@/Components/shared/BufferedImage';
@@ -83,16 +83,19 @@ export default function AnnouncementsTable({ announcements }: Props) {
                                 <td className="px-4 py-3 text-muted-foreground">{row.updated_at}</td>
                                 <td className="px-4 py-3">
                                     <div className="flex gap-1">
-                                        <Button size="sm" variant="outline" className="h-8" asChild>
-                                            <Link href={`/admin/announcements/${row.id}/edit`}>
-                                                <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                                                Edit
-                                            </Link>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 cursor-pointer"
+                                            onClick={() => router.visit(`/admin/announcements/${row.id}/edit`)}
+                                        >
+                                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                                            Edit
                                         </Button>
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="h-8 text-destructive hover:text-destructive"
+                                            className="h-8 text-destructive hover:text-destructive cursor-pointer"
                                             onClick={() => remove(row.id, row.title)}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />

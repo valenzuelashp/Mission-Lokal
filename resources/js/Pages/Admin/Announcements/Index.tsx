@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import AnnouncementsTable from '@/Components/admin/AnnouncementsTable';
@@ -36,7 +36,7 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                 !q ||
                 row.title.toLowerCase().includes(q) ||
                 row.body.toLowerCase().includes(q) ||
-                row.author_name.toLowerCase().includes(q);
+                (row.author_name?.toLowerCase() ?? '').includes(q);
 
             return matchesFilter && matchesSearch;
         });
@@ -61,11 +61,13 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                         Create and publish barangay advisories visible to all residents.
                     </p>
                 </div>
-                <Button size="sm" className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto" asChild>
-                    <Link href="/admin/announcements/create">
-                        <Plus className="mr-2 h-4 w-4" />
-                        New announcement
-                    </Link>
+                <Button 
+                    size="sm" 
+                    className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto cursor-pointer" 
+                    onClick={() => router.visit('/admin/announcements/create')}
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    New announcement
                 </Button>
             </div>
 

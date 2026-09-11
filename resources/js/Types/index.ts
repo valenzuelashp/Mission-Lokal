@@ -318,6 +318,14 @@ export interface AdminDashboardPageProps extends PageProps {
     map_pins: MapPin[];
 }
 
+export type AnnouncementKind = 'advisory' | 'event' | 'volunteer';
+
+export const announcementKindOptions = [
+    { value: 'advisory', label: 'Advisory', hint: 'Important community notices or updates' },
+    { value: 'event', label: 'Event', hint: 'Barangay activities, meetings, or gatherings' },
+    { value: 'volunteer', label: 'Volunteer Call', hint: 'Calls for community helpers or cleanups' },
+] as const;
+
 export interface AnnouncementVolunteer {
     id: string;
     name: string;
@@ -328,7 +336,7 @@ export interface AdminAnnouncement {
     id: string;
     title: string;
     body: string;
-    kind: 'advisory' | 'event' | 'volunteer';
+    kind: AnnouncementKind;
     kind_label: string;
     is_published: boolean;
     image_url: string | null;

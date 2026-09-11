@@ -17,6 +17,7 @@ type FormData = {
     is_published: boolean;
     image: File | null;
     remove_image: boolean;
+    [key: string]: any;
 };
 
 type Volunteer = { id: string; name: string; joined_at: string | null };
@@ -40,7 +41,7 @@ export default function AnnouncementForm({
     submitLabel,
     volunteers = [],
 }: Props) {
-    const { data, setData, processing, errors } = useForm(defaults);
+    const { data, setData, processing, errors } = useForm<FormData>(defaults);
     const [previewUrl, setPreviewUrl] = useState<string | null>(existingImageUrl ?? null);
 
     useEffect(() => {
@@ -116,7 +117,7 @@ export default function AnnouncementForm({
                                     <button
                                         key={option.value}
                                         type="button"
-                                        onClick={() => setData('kind', option.value)}
+                                        onClick={() => setData('kind', option.value as AnnouncementKind)}
                                         className={cn(
                                             'rounded-xl border px-3 py-3 text-left transition',
                                             selected
