@@ -136,16 +136,6 @@ Route::middleware(['auth', 'role:resident'])->group(function () {
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';
 
-/*
-|--------------------------------------------------------------------------
-| Testing & Utility Routes
-|--------------------------------------------------------------------------
-*/
-Route::get('/force-drop', function() {
-    Illuminate\Support\Facades\DB::statement('DROP TABLE IF EXISTS audit_logs');
-    return 'Table dropped successfully! You can now run the migration.';
-});
-
 //PHASE 9: Service Worker Global Scope Override
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');
