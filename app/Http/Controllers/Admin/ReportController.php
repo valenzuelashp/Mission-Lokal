@@ -35,7 +35,7 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $concerns = Concern::where('barangay_id', $barangayId)
-            ->with(['media', 'currentAiAnalysis.suggestedCategory'])
+            ->with(['media', 'category', 'currentAiAnalysis.suggestedCategory'])
             ->get();
 
         $reports = $concerns->map(function ($c) {
@@ -48,7 +48,9 @@ class ReportController extends Controller
                 'incident_type' => $c->title,
                 'type_icon' => MapHelpers::typeIconFromText($c->title, $c->description),
                 'location' => $c->address_text ?? 'Unknown location',
-                'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name ?? 'Uncategorized',
+                'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name
+                    ?? $c->category?->name
+                    ?? 'Uncategorized',
                 'ai_severity' => MapHelpers::scoreFromSeverity($c->severity),
                 'severity' => $c->severity ?? 'medium',
                 'priority' => MapHelpers::priorityFromSeverity($c->severity),

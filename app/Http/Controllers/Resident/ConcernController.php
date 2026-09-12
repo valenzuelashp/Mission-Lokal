@@ -87,7 +87,7 @@ class ConcernController extends Controller
                 ['value' => 'flood', 'label' => 'Flooding & Drainage'],
                 ['value' => 'waste', 'label' => 'Solid Waste & Illegal Dumping'],
                 ['value' => 'noise', 'label' => 'Noise Disturbance'],
-                ['value' => 'light', 'label' => 'Broken Streetlights'],
+                ['value' => 'light', 'label' => 'Infrastructure & Utilities'],
                 ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
             
@@ -125,6 +125,7 @@ class ConcernController extends Controller
         }
 
         $categoryMap = [
+            'infrastructure' => 1,
             'light' => 1,     
             'flood' => 2,     
             'waste' => 2,     
