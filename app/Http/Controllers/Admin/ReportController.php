@@ -128,6 +128,7 @@ class ReportController extends Controller
                 return [
                     'id' => $personnel->id,
                     'name' => $fullName ?: 'Unnamed Personnel',
+                    'category' => $personnel->category?->label() ?? 'Category not set',
                 ];
             });
 

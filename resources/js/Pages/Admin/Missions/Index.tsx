@@ -27,14 +27,23 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'overdue', label: 'Overdue' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string }[] }>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, category: string }[] }>) {
     const missions = (props.missions ?? demoMissions) as AdminMission[];
     const counts = props.counts ?? missionCounts(missions);
     const personnel = props.personnel ?? [];
+    const categories = ['Tanod', 'Lupon', 'Public works', 'Sanitation', 'VAW Desk'];
+
+    const groupedPersonnel = [
+        ...categories.map((category) => ({
+            category,
+            members: personnel.filter((member) => member.category === category),
+        })),
+    ];
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
     const [selectedMission, setSelectedMission] = useState<AdminMission | null>(null);
+    const [personnelCategoryFilter, setPersonnelCategoryFilter] = useState('all');
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         concern_id: '',
@@ -63,6 +72,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
     const openAssignModal = (mission: AdminMission) => {
         reset();
         clearErrors();
+        setPersonnelCategoryFilter('all');
         setSelectedMission(mission);
         setData({
             concern_id: mission.concern_id,
@@ -222,22 +232,56 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
 
                         <form onSubmit={submitAssignment} className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-slate-700">Select Personnel (Multiple allowed)</label>
-                                <div className="max-h-48 overflow-y-auto rounded-md border border-slate-300 p-2.5 space-y-2 bg-slate-50">
+                                <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <label className="block text-sm font-medium text-slate-700">Select Personnel (Multiple allowed)</label>
+                                    <select
+                                        aria-label="Filter personnel by category"
+                                        value={personnelCategoryFilter}
+                                        onChange={(e) => setPersonnelCategoryFilter(e.target.value)}
+                                        className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-700"
+                                    >
+                                        <option value="all">All categories</option>
+                                        {categories.map((category) => (
+                                            <option key={category} value={category}>{category}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="min-h-[5.5rem] max-h-52 overflow-y-auto rounded-md border border-slate-300 bg-slate-50 p-2.5">
                                     {personnel.length === 0 ? (
                                         <p className="text-xs text-muted-foreground">No active personnel found in barangay.</p>
                                     ) : (
-                                        personnel.map(p => (
-                                            <label key={p.id} className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 hover:bg-slate-100 p-1.5 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={data.personnel_ids.includes(p.id)}
-                                                    onChange={() => togglePersonnelSelection(p.id)}
-                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                                                />
-                                                <span>{p.name}</span>
-                                            </label>
-                                        ))
+                                        <>
+                                            {groupedPersonnel
+                                                .filter((group) => personnelCategoryFilter === 'all' || group.category === personnelCategoryFilter)
+                                                .map((group) => (
+                                                    <div key={group.category} className="mb-2 space-y-1.5">
+                                                        <p className="px-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                            {group.category}
+                                                        </p>
+                                                        {group.members.length > 0 ? group.members.map((p) => (
+                                                            <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded p-1.5 text-sm text-slate-700 hover:bg-slate-100">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={data.personnel_ids.includes(p.id)}
+                                                                    onChange={() => togglePersonnelSelection(p.id)}
+                                                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                                />
+                                                                <span>{p.name}</span>
+                                                            </label>
+                                                        )) : (
+                                                            <p className="px-1.5 py-1 text-sm text-muted-foreground">No personnel in this category yet.</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            {personnelCategoryFilter !== 'all' && !groupedPersonnel.some((group) => group.category === personnelCategoryFilter) && (
+                                                <div className="space-y-2 p-1.5">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                        {personnelCategoryFilter}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">No personnel in this category yet.</p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                                 {errors.personnel_ids && <p className="mt-1 text-xs text-red-600">{errors.personnel_ids}</p>}

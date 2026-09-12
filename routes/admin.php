@@ -50,6 +50,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Personnel Management Routes
     Route::get('/personnel', [AdminPersonnelController::class, 'index'])->name('personnel.index');
     Route::post('/personnel', [AdminPersonnelController::class, 'store'])->name('personnel.store');
+    Route::patch('/personnel/{id}/category', [AdminPersonnelController::class, 'updateCategory'])->name('personnel.category.update');
+    Route::patch('/personnel/{id}/information', [AdminPersonnelController::class, 'updateInformation'])->name('personnel.information.update');
     Route::delete('/personnel/{id}', [AdminPersonnelController::class, 'destroy'])->name('personnel.destroy');
 
     Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])

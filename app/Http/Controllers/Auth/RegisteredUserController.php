@@ -22,6 +22,10 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->boolean('no_middle_name')) {
+            $request->merge(['middle_name' => 'N/A']);
+        }
+
         $request->merge([
             'first_name' => $this->upperCase($request->first_name),
             'middle_name' => $this->upperCase($request->middle_name),
@@ -37,6 +41,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
+            'no_middle_name' => 'nullable|boolean',
             'last_name' => 'required|string|max:255',
             'name_extension' => 'nullable|string|max:20',
             'house_street' => 'required|string|max:150',

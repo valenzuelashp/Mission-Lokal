@@ -35,6 +35,7 @@ type Props = CalendarPageProps & {
     heading?: string;
     description?: string;
     split?: boolean;
+    onSelectedDayChange?: (date: string) => void;
 };
 
 function pad(value: number): string {
@@ -122,6 +123,7 @@ export default function CalendarMonthView({
     heading,
     description,
     split = false,
+    onSelectedDayChange,
 }: Props) {
     const monthEvents = useMemo(() => {
         const prefix = `${year}-${pad(month)}-`;
@@ -162,7 +164,8 @@ export default function CalendarMonthView({
 
     useEffect(() => {
         setSelected(defaultDay);
-    }, [defaultDay]);
+        onSelectedDayChange?.(defaultDay);
+    }, [defaultDay, onSelectedDayChange]);
 
     const cells = useMemo(() => {
         const firstWeekday = new Date(year, month - 1, 1).getDay();
@@ -357,7 +360,10 @@ export default function CalendarMonthView({
                                     key={cell.key}
                                     type="button"
                                     disabled={!cell.inMonth}
-                                    onClick={() => setSelected(cell.iso)}
+                                    onClick={() => {
+                                        setSelected(cell.iso);
+                                        onSelectedDayChange?.(cell.iso);
+                                    }}
                                     className={cn(
                                         'flex min-h-[4.25rem] flex-col items-center rounded-2xl px-1 py-1.5 text-left transition sm:min-h-[5.5rem] sm:items-stretch sm:px-1.5',
                                         cell.inMonth && cell.weekend && !isSelected && 'bg-slate-50/80',

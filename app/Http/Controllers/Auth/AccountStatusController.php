@@ -57,7 +57,7 @@ class AccountStatusController extends Controller
                 $result = [
                     'id' => $user->id,
                     'email' => $user->email,
-                    'full_name' => trim("{$user->first_name} {$user->middle_name} {$user->last_name} {$user->name_extension}"),
+                    'full_name' => $this->formatFullName($user->first_name, $user->middle_name, $user->last_name, $user->name_extension),
                     'status' => $status,
                     'message' => $this->getStatusMessage($status),
                     'rejection_reason' => $user->residentProfile?->rejection_reason,
@@ -78,7 +78,7 @@ class AccountStatusController extends Controller
                 if ($registration) {
                     $result = [
                         'email' => $registration->email,
-                        'full_name' => trim("{$registration->first_name} {$registration->middle_name} {$registration->last_name}"),
+                        'full_name' => $this->formatFullName($registration->first_name, $registration->middle_name, $registration->last_name),
                         'status' => 'pending',
                         'message' => $this->getStatusMessage('pending'),
                     ];
@@ -95,6 +95,14 @@ class AccountStatusController extends Controller
             'searchResult' => $result,
             'query' => $query,
         ]);
+    }
+
+    private function formatFullName(?string ...$parts): string
+    {
+        return collect($parts)
+            ->filter(fn (?string $part) => filled($part) && strtoupper(trim($part)) !== 'N/A')
+            ->map(fn (string $part) => trim($part))
+            ->implode(' ');
     }
 
     public function waiting(Request $request): Response|RedirectResponse

@@ -1,5 +1,5 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Trash2, UserCheck, UserPlus, X, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, UserCheck, UserPlus, X, AlertCircle } from 'lucide-react';
 import { useState, FormEvent, useEffect } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -11,6 +11,8 @@ import type { PageProps } from '@/Types';
 interface PersonnelMember {
     id: string;
     account_id: string;
+    category: string | null;
+    category_value: string | null;
     first_name?: string;
     middle_name?: string;
     last_name?: string;
@@ -26,6 +28,15 @@ interface PersonnelMember {
 export default function PersonnelIndex({ personnel = [], next_account_id }: { personnel: PersonnelMember[], next_account_id: string }) {
     const { flash } = usePage<PageProps>().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingPersonnel, setEditingPersonnel] = useState<PersonnelMember | null>(null);
+
+    const categories = [
+        { value: 'tanod', label: 'Tanod' },
+        { value: 'lupon', label: 'Lupon' },
+        { value: 'public_works', label: 'Public works' },
+        { value: 'sanitation', label: 'Sanitation' },
+        { value: 'vaw_desk', label: 'VAW Desk' },
+    ];
 
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         account_id: next_account_id,
@@ -37,6 +48,22 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
         email: '',
         mobile: '',
         password: `${next_account_id}!${''}`,
+        category: '',
+    });
+
+    const {
+        data: informationData,
+        setData: setInformationData,
+        patch: patchInformation,
+        processing: informationProcessing,
+        errors: informationErrors,
+        clearErrors: clearInformationErrors,
+    } = useForm({
+        category: '',
+        birthday: '',
+        email: '',
+        mobile: '',
+        status: 'active',
     });
 
     // Automatically update password format whenever account_id or last_name changes
@@ -63,6 +90,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
             email: '',
             mobile: '',
             password: `${next_account_id}!`,
+            category: '',
         });
         setIsModalOpen(true);
     };
@@ -83,6 +111,32 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
         if (confirm(`Are you sure you want to delete personnel account for ${name}?`)) {
             router.delete(`/admin/personnel/${id}`);
         }
+    };
+
+    const openInformationEditor = (member: PersonnelMember) => {
+        clearInformationErrors();
+        setInformationData({
+            category: member.category_value ?? '',
+            birthday: member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : '',
+            email: member.email ?? '',
+            mobile: member.mobile ?? '',
+            status: member.is_active ? 'active' : 'inactive',
+        });
+        setEditingPersonnel(member);
+    };
+
+    const closeInformationEditor = () => {
+        setEditingPersonnel(null);
+        clearInformationErrors();
+    };
+
+    const submitInformation = (e: FormEvent) => {
+        e.preventDefault();
+        if (!editingPersonnel) return;
+
+        patchInformation(`/admin/personnel/${editingPersonnel.id}/information`, {
+            onSuccess: closeInformationEditor,
+        });
     };
 
     return (
@@ -117,6 +171,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                                 <tr>
                                     <th className="px-4 py-3">Account ID</th>
                                     <th className="px-4 py-3">Full Name</th>
+                                    <th className="px-4 py-3">Category</th>
                                     <th className="px-4 py-3">Birthday</th>
                                     <th className="px-4 py-3">Contact Info</th>
                                     <th className="px-4 py-3">Status</th>
@@ -126,7 +181,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                             <tbody className="divide-y divide-slate-100">
                                 {personnel.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                        <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                             No personnel accounts created yet. Click "Add Personnel" to register staff.
                                         </td>
                                     </tr>
@@ -135,17 +190,31 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                                         <tr key={p.id} className="hover:bg-slate-50/50">
                                             <td className="px-4 py-3 font-medium text-slate-900">{p.account_id}</td>
                                             <td className="px-4 py-3 font-medium text-slate-800">{p.name}</td>
+                                            <td className="px-4 py-3 text-slate-600">
+                                                {p.category ?? 'Unassigned'}
+                                            </td>
                                             <td className="px-4 py-3 text-slate-600">{p.birthday ?? 'N/A'}</td>
                                             <td className="px-4 py-3 text-slate-600">
                                                 <div>{p.mobile || 'No mobile'}</div>
                                                 <div className="text-xs text-muted-foreground">{p.email || 'No email'}</div>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                                                    <UserCheck className="h-3 w-3" /> Active
+                                                <span className={p.is_active
+                                                    ? 'inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700'
+                                                    : 'inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600'}>
+                                                    <UserCheck className="h-3 w-3" /> {p.is_active ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                                    onClick={() => openInformationEditor(p)}
+                                                    title={`Edit information for ${p.name}`}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -166,8 +235,8 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
 
             {/* ADD PERSONNEL MODAL */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-2 backdrop-blur-sm sm:p-4">
+                    <div className="max-h-[calc(100dvh-1rem)] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
                         <div className="mb-5 flex items-center justify-between">
                             <h3 className="text-xl font-bold text-blue-900">Add New Personnel Account</h3>
                             <button onClick={closeModal} className="rounded-full p-1 hover:bg-slate-100">
@@ -176,6 +245,23 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                         </div>
 
                         <form onSubmit={submitPersonnel} className="space-y-4">
+                            <div>
+                                <Label htmlFor="category">Personnel Category</Label>
+                                <select
+                                    id="category"
+                                    value={data.category}
+                                    onChange={(e) => setData('category', e.target.value)}
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map((category) => (
+                                        <option key={category.value} value={category.value}>{category.label}</option>
+                                    ))}
+                                </select>
+                                {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category}</p>}
+                            </div>
+
                             <div>
                                 <Label htmlFor="account_id">Account ID / Username</Label>
                                 <Input
@@ -290,6 +376,113 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
                                 </Button>
                                 <Button type="submit" disabled={processing} className="bg-blue-700 text-white hover:bg-blue-800">
                                     {processing ? 'Saving...' : 'Create Personnel Account'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {editingPersonnel && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-2 backdrop-blur-sm sm:p-4">
+                    <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-xl sm:p-6">
+                        <div className="mb-5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-blue-900">Edit Personnel Information</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{editingPersonnel.name}</p>
+                            </div>
+                            <button onClick={closeInformationEditor} className="rounded-full p-1 hover:bg-slate-100">
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={submitInformation} className="space-y-4">
+                            <div>
+                                <Label htmlFor="edit_category">Personnel Category</Label>
+                                <select
+                                    id="edit_category"
+                                    value={informationData.category}
+                                    onChange={(e) => setInformationData('category', e.target.value)}
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map((category) => (
+                                        <option key={category.value} value={category.value}>{category.label}</option>
+                                    ))}
+                                </select>
+                                {informationErrors.category && <p className="mt-1 text-xs text-red-600">{informationErrors.category}</p>}
+                            </div>
+
+                            <div>
+                                <Label htmlFor="edit_birthday">Birthday</Label>
+                                <Input
+                                    id="edit_birthday"
+                                    type="date"
+                                    value={informationData.birthday}
+                                    onChange={(e) => setInformationData('birthday', e.target.value)}
+                                />
+                                {informationErrors.birthday && <p className="mt-1 text-xs text-red-600">{informationErrors.birthday}</p>}
+                            </div>
+
+                            <div>
+                                <Label htmlFor="edit_mobile">Mobile Number</Label>
+                                <Input
+                                    id="edit_mobile"
+                                    placeholder="09123456789"
+                                    value={informationData.mobile}
+                                    onChange={(e) => setInformationData('mobile', e.target.value)}
+                                />
+                                {informationErrors.mobile && <p className="mt-1 text-xs text-red-600">{informationErrors.mobile}</p>}
+                            </div>
+
+                            <div>
+                                <Label htmlFor="edit_email">Email Address</Label>
+                                <Input
+                                    id="edit_email"
+                                    type="email"
+                                    placeholder="personnel@barangay.gov.ph"
+                                    value={informationData.email}
+                                    onChange={(e) => setInformationData('email', e.target.value)}
+                                />
+                                {informationErrors.email && <p className="mt-1 text-xs text-red-600">{informationErrors.email}</p>}
+                            </div>
+
+                            <div>
+                                <Label>Status</Label>
+                                <div className="mt-2 flex gap-4">
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="radio"
+                                            name="personnel_status"
+                                            value="active"
+                                            checked={informationData.status === 'active'}
+                                            onChange={(e) => setInformationData('status', e.target.value)}
+                                            className="h-4 w-4 border-slate-300 accent-emerald-600 focus:ring-emerald-500"
+                                        />
+                                        Active
+                                    </label>
+                                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                                        <input
+                                            type="radio"
+                                            name="personnel_status"
+                                            value="inactive"
+                                            checked={informationData.status === 'inactive'}
+                                            onChange={(e) => setInformationData('status', e.target.value)}
+                                            className="h-4 w-4 border-slate-300 accent-slate-500 focus:ring-slate-400"
+                                        />
+                                        Inactive
+                                    </label>
+                                </div>
+                                {informationErrors.status && <p className="mt-1 text-xs text-red-600">{informationErrors.status}</p>}
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <Button type="button" variant="outline" onClick={closeInformationEditor}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={informationProcessing} className="bg-blue-700 text-white hover:bg-blue-800">
+                                    {informationProcessing ? 'Saving...' : 'Save Information'}
                                 </Button>
                             </div>
                         </form>

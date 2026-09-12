@@ -60,6 +60,9 @@ class ConcernController extends Controller
                     'location_label' => $item->address_text ?? 'Pinpointed Coordinates',
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
                     'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                    'is_owner' => $item->reporter_id === auth()->id(),
+                    'visibility' => $item->visibility,
+                    'privacy_locked' => (bool) $item->is_blotter_candidate,
                     'images' => $item->media->take(1)->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
                 ];
             });
@@ -297,6 +300,25 @@ class ConcernController extends Controller
         return back();
     }
 
+    public function updateVisibility(Request $request, Concern $concern): RedirectResponse
+    {
+        if ($concern->reporter_id !== $request->user()->id) {
+            abort(403, 'Unauthorized row update.');
+        }
+
+        $validated = $request->validate([
+            'visibility' => ['required', 'in:public,private'],
+        ]);
+
+        if ($concern->is_blotter_candidate && $validated['visibility'] !== 'private') {
+            return back()->with('error', 'This concern was marked private for safety and cannot be made public.');
+        }
+
+        $concern->update(['visibility' => $validated['visibility']]);
+
+        return back()->with('success', 'Post privacy updated successfully.');
+    }
+
     /**
      * Clean Lifecycle Mutator Rule: Revoke or delete report records before review actions occur.
      */
@@ -306,7 +328,7 @@ class ConcernController extends Controller
             abort(403, 'Unauthorized row lifecycle action.');
         }
 
-        if ($concern->status !== ConcernStatus::Submitted) {
+        if (! in_array($concern->status, [ConcernStatus::Submitted, ConcernStatus::Rejected], true)) {
             return back()->with('error', 'This concern is currently being processed by your barangay team and is locked.');
         }
 

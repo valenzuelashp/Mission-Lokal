@@ -98,6 +98,9 @@ export interface PublicConcern {
     downvotes: number;    
     location_label: string;
     created_at: string;
+    visibility?: 'public' | 'private';
+    is_owner?: boolean;
+    privacy_locked?: boolean;
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
 }
@@ -447,4 +450,27 @@ export interface AdminResidentsPageProps extends PageProps {
 
 export interface AdminResidentShowPageProps extends PageProps {
     resident?: AdminResidentDetail;
+}
+
+export type CalendarEventType = 'announcement' | 'mission';
+
+export interface CalendarEvent {
+    id: string;
+    date: string;
+    time: string | null;
+    title: string;
+    subtitle: string | null;
+    type: CalendarEventType;
+    href: string;
+    going: boolean;
+}
+
+export interface CalendarPageProps extends PageProps {
+    year: number;
+    month: number;
+    month_label: string;
+    today: string;
+    prev: { year: number; month: number };
+    next: { year: number; month: number };
+    events: CalendarEvent[];
 }

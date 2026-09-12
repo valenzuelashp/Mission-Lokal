@@ -87,6 +87,7 @@ class MissionController extends Controller
                 return [
                     'id' => $personnel->id,
                     'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                    'category' => $personnel->category?->label() ?? 'Category not set',
                 ];
             });
 

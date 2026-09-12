@@ -13,17 +13,20 @@ function CapsInput({
     onChange,
     required,
     placeholder,
+    disabled,
 }: {
     value: string;
     onChange: (value: string) => void;
     required?: boolean;
     placeholder?: string;
+    disabled?: boolean;
 }) {
     return (
         <Input
             value={value}
             placeholder={placeholder}
             required={required}
+            disabled={disabled}
             className="uppercase"
             onChange={(e) => onChange(toUpperCase(e.target.value))}
         />
@@ -34,6 +37,7 @@ export default function Register() {
     const { data, setData, post, processing, errors } = useForm({
         first_name: '',
         middle_name: '',
+        no_middle_name: false,
         last_name: '',
         name_extension: '',
         house_street: '',
@@ -100,7 +104,24 @@ export default function Register() {
                         </div>
                         <div>
                             <label className="text-xs font-medium">Middle Name</label>
-                            <CapsInput value={data.middle_name} onChange={(value) => setData('middle_name', value)} />
+                            <CapsInput
+                                value={data.middle_name}
+                                onChange={(value) => setData('middle_name', value)}
+                                disabled={data.no_middle_name}
+                            />
+                            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                                <input
+                                    type="checkbox"
+                                    checked={data.no_middle_name}
+                                    onChange={(e) => {
+                                        const noMiddleName = e.target.checked;
+                                        setData('no_middle_name', noMiddleName);
+                                        setData('middle_name', noMiddleName ? 'N/A' : '');
+                                    }}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                                />
+                                No middle name
+                            </label>
                         </div>
                     </div>
 

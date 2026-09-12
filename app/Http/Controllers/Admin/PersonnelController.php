@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelCategory;
 use App\Models\Personnel;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -65,12 +66,14 @@ class PersonnelController extends Controller
                 return [
                     'id' => $p->id,
                     'account_id' => $p->user?->account_id,
+                    'category' => $p->category?->label(),
+                    'category_value' => $p->category?->value,
                     'first_name' => $p->user?->first_name,
                     'middle_name' => $p->user?->middle_name,
                     'last_name' => $p->user?->last_name,
                     'name_extension' => $p->user?->name_extension,
                     'name' => preg_replace('/\s+/', ' ', $fullName),
-                    'birthday' => $p->user?->birthday ? $p->user->birthday->format('M d, Y') : null,
+                    'birthday' => $p->birthday?->format('M d, Y'),
                     'email' => $p->user?->email,
                     'mobile' => $p->user?->mobile,
                     'is_active' => (bool)($p->user?->is_active ?? $p->is_active),
@@ -96,6 +99,7 @@ class PersonnelController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'mobile' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:6'],
+            'category' => ['required', 'string', 'in:' . implode(',', array_column(PersonnelCategory::cases(), 'value'))],
         ]);
 
         $barangayId = $request->user()->barangay_id;
@@ -109,7 +113,6 @@ class PersonnelController extends Controller
                 'middle_name' => $validated['middle_name'] ?? null,
                 'last_name' => $validated['last_name'],
                 'name_extension' => $validated['name_extension'] ?? null,
-                'birthday' => $validated['birthday'] ?? null,
                 'email' => $validated['email'] ?? null,
                 'mobile' => $validated['mobile'] ?? null,
                 'password' => Hash::make($validated['password']),
@@ -120,6 +123,8 @@ class PersonnelController extends Controller
             $personnel = Personnel::create([
                 'id' => (string) Str::uuid(),
                 'user_id' => $user->id,
+                'birthday' => $validated['birthday'] ?? null,
+                'category' => $validated['category'],
                 'is_active' => 1,
             ]);
 
@@ -138,6 +143,56 @@ class PersonnelController extends Controller
         });
 
         return back()->with('success', 'Personnel account successfully created!');
+    }
+
+    public function updateCategory(Request $request, string $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'category' => ['required', 'string', 'in:' . implode(',', array_column(PersonnelCategory::cases(), 'value'))],
+        ]);
+
+        $personnel = Personnel::with('user')->findOrFail($id);
+
+        if ($personnel->user->barangay_id !== $request->user()->barangay_id) {
+            abort(403);
+        }
+
+        $personnel->update(['category' => $validated['category']]);
+
+        return back()->with('success', 'Personnel category updated successfully.');
+    }
+
+    public function updateInformation(Request $request, string $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'category' => ['required', 'string', 'in:' . implode(',', array_column(PersonnelCategory::cases(), 'value'))],
+            'birthday' => ['nullable', 'date'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'mobile' => ['nullable', 'string', 'max:20'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $personnel = Personnel::with('user')->findOrFail($id);
+
+        if ($personnel->user->barangay_id !== $request->user()->barangay_id) {
+            abort(403);
+        }
+
+        DB::transaction(function () use ($personnel, $validated) {
+            $personnel->update([
+                'category' => $validated['category'],
+                'birthday' => $validated['birthday'] ?? null,
+                'is_active' => $validated['status'] === 'active',
+            ]);
+
+            $personnel->user->update([
+                'email' => $validated['email'] ?? null,
+                'mobile' => $validated['mobile'] ?? null,
+                'is_active' => $validated['status'] === 'active',
+            ]);
+        });
+
+        return back()->with('success', 'Personnel information updated successfully.');
     }
 
     public function destroy(Request $request, string $id): RedirectResponse

@@ -1,5 +1,6 @@
-import { Link } from '@inertiajs/react';
-import { MapPin, MessageCircle, Calendar } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
@@ -25,6 +26,19 @@ type Props = {
 };
 
 export default function ConcernCard({ concern }: Props) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [privacyEditorOpen, setPrivacyEditorOpen] = useState(false);
+
+    const handleDelete = () => {
+        if (confirm('Delete this community concern? This cannot be undone.')) {
+            router.delete(`/concerns/${concern.id}`);
+        }
+    };
+
+    const updateVisibility = (visibility: 'public' | 'private') => {
+        router.patch(`/concerns/${concern.id}/visibility`, { visibility });
+    };
+
     return (
         <article className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs transition-shadow hover:shadow-md">
             {/* Top Author / Header Meta */}
@@ -40,9 +54,62 @@ export default function ConcernCard({ concern }: Props) {
                 </div>
                 <div className="flex items-center gap-2">
                     <Badge variant={severityVariant[concern.severity]}>{severityLabel[concern.severity]}</Badge>
-                    <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/60">
-                        Public View
-                    </span>
+                    {concern.is_owner ? (
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpen((open) => !open)}
+                                title="Post options"
+                                aria-label="Post options"
+                                aria-expanded={menuOpen}
+                                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            >
+                                <MoreHorizontal className="h-5 w-5" />
+                            </button>
+                            {menuOpen && (
+                                <div className="absolute right-0 top-10 z-10 w-44 rounded-md border border-slate-200 bg-white p-1.5 text-left shadow-lg">
+                                    {!concern.privacy_locked && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPrivacyEditorOpen((open) => !open)}
+                                                className="w-full rounded px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                            >
+                                                Edit privacy
+                                            </button>
+                                            {privacyEditorOpen && (
+                                                <select
+                                                    aria-label="Post privacy"
+                                                    value={concern.visibility === 'private' ? 'private' : 'public'}
+                                                    onChange={(event) => {
+                                                        updateVisibility(event.target.value as 'public' | 'private');
+                                                        setMenuOpen(false);
+                                                        setPrivacyEditorOpen(false);
+                                                    }}
+                                                    className="mx-2 mb-1 h-8 w-[calc(100%-1rem)] rounded border border-slate-200 bg-white px-2 text-xs text-slate-600"
+                                                >
+                                                    <option value="public">Everyone</option>
+                                                    <option value="private">Only me</option>
+                                                </select>
+                                            )}
+                                        </>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleDelete}
+                                        className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete post
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/60">
+                            Public View
+                        </span>
+                    )}
                 </div>
             </div>
 

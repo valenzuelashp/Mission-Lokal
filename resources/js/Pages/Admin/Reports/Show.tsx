@@ -19,7 +19,7 @@ function formatStep(step: unknown): string {
 interface Props {
     report: any;
     masterCandidates?: { id: string; label: string }[];
-    personnel?: { id: string; name: string }[];
+    personnel?: { id: string; name: string; category: string }[];
 }
 
 export default function Show({ report, masterCandidates = [], personnel = [] }: Props) {
@@ -145,7 +145,7 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                                                     onChange={() => togglePersonnelSelection(p.id)}
                                                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
                                                 />
-                                                <span>{p.name}</span>
+                                                <span>{p.name} <span className="text-xs text-muted-foreground">({p.category})</span></span>
                                             </label>
                                         ))
                                     )}
