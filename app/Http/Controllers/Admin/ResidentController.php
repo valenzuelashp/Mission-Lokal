@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\PreloadedResident;
 use App\Models\Notification;
 use App\Models\ResidentDocument;
+use App\Services\LocalIdentifier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -94,9 +95,7 @@ class ResidentController extends Controller
         ]);
 
         $barangayId = $request->user()->barangay_id;
-        $latest = PreloadedResident::orderBy('id', 'desc')->first();
-        $nextNumber = $latest ? ((int) str_replace('RES', '', $latest->account_id) + 1) : 1;
-        $accountId = 'RES' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $accountId = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
         $formattedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
         $isMinor = Carbon::parse($formattedBirthday)->age < 18;
 
@@ -185,9 +184,7 @@ class ResidentController extends Controller
             foreach ($data as $row) {
                 if (count($row) < 10) continue; 
 
-                $latest = PreloadedResident::orderBy('id', 'desc')->first();
-                $nextNumber = $latest ? ((int) str_replace('RES', '', $latest->account_id) + 1) : 1;
-                $accountId = 'RES' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+                $accountId = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
                 $bday = Carbon::parse(trim($row[9]))->format('Y-m-d');
                 $firstName = trim($row[0]);
                 $lastName = trim($row[2]);

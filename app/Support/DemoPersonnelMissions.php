@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\LocalIdentifier;
+
 class DemoPersonnelMissions
 {
     private const SESSION_KEY = 'demo_personnel_missions';
@@ -9,7 +11,7 @@ class DemoPersonnelMissions
     /** @return list<array<string, mixed>> */
     public static function seed(string $accountId): array
     {
-        if ($accountId !== 'PER001') {
+        if (LocalIdentifier::typeOf($accountId) !== LocalIdentifier::PER || LocalIdentifier::numberFrom($accountId) !== 1) {
             return [];
         }
 

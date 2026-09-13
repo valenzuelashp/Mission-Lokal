@@ -31,6 +31,7 @@ use App\Models\Notification;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use App\Enums\ConcernStatus;
+use App\Services\LocalIdentifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -82,7 +83,7 @@ class DemoDataSeeder extends Seeder
             ['email' => 'admin@missionlokal.test'],
             [
                 'barangay_id' => $barangay->id,
-                'account_id' => 'ADMIN999',
+                'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::ADM, 999),
                 'role' => UserRole::Admin,
                 'first_name' => 'System',
                 'last_name' => 'Admin',
@@ -95,7 +96,7 @@ class DemoDataSeeder extends Seeder
             ['email' => 'personnel@missionlokal.test'],
             [
                 'barangay_id' => $barangay->id,
-                'account_id' => 'PER999',
+                'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::PER, 999),
                 'role' => UserRole::Personnel,
                 'first_name' => 'Timothy',
                 'last_name' => 'Personnel',
@@ -110,7 +111,7 @@ class DemoDataSeeder extends Seeder
             ['email' => 'resident@missionlokal.test'],
             [
                 'barangay_id' => $barangay->id,
-                'account_id' => 'RES999',
+                'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 999),
                 'role' => UserRole::Resident,
                 'first_name' => 'Juan',
                 'last_name' => 'Resident',
@@ -127,7 +128,7 @@ class DemoDataSeeder extends Seeder
                 'verification_status' => VerificationStatus::Approved,
                 'birthday' => '1992-04-12',
                 'address' => 'Phase 1 Zone 15, Barangay 176',
-                'digital_id_code' => 'ML-RES-9999',
+                'digital_id_code' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 999),
                 'government_id_storage_key' => 'demo/gov_id.jpg',
             ]
         );
@@ -284,7 +285,7 @@ class DemoDataSeeder extends Seeder
             'narrative' => 'Disagreement regarding shared property boundary.',
             'incident_at' => now()->subDays(2),
             'incident_address' => 'Phase 1 Zone 15',
-            'ticket_number' => 'BLT-9991',
+            'ticket_number' => LocalIdentifier::format($barangay, LocalIdentifier::BLT, 9991),
             'status' => 'filed',
             'approved_by' => $admin->id,
             'approved_at' => now(),

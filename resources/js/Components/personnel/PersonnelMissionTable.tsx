@@ -3,6 +3,7 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import PersonnelMissionCard from '@/Components/personnel/PersonnelMissionCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { MissionStatus, PersonnelMission } from '@/Types';
 
 const statusLabel: Record<MissionStatus, string> = {
@@ -55,8 +56,14 @@ export default function PersonnelMissionTable({ missions }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {missions.map((row) => (
-                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                        {missions.map((row) => {
+                            const href = `/personnel/missions/${row.id}`;
+                            return (
+                            <tr
+                                key={row.id}
+                                className="cursor-pointer border-b last:border-0 hover:bg-muted/20"
+                                {...rowNavProps(href)}
+                            >
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
                                         {/* Show the first image if it exists, otherwise show a gray placeholder box */}
@@ -123,11 +130,12 @@ export default function PersonnelMissionTable({ missions }: Props) {
                                 </td>
                                 <td className="px-4 py-3">
                                     <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                        <Link href={`/personnel/missions/${row.id}`}>Open</Link>
+                                        <Link href={href} onClick={stopRowNav}>Open</Link>
                                     </Button>
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

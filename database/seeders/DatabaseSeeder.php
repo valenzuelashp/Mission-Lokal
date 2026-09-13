@@ -8,6 +8,7 @@ use App\Models\Barangay;
 use App\Models\BarangaySetting;
 use App\Models\User;
 use App\Models\ConcernCategory;
+use App\Services\LocalIdentifier;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -30,8 +31,8 @@ class DatabaseSeeder extends Seeder
         }
 
         $barangay = Barangay::query()->create([
-            'code' => 'demo-barangay',
-            'name' => 'Demo Barangay',
+            'code' => 'TAMBO',
+            'name' => 'Barangay Tambo',
             'contact_phone' => '09171234567',
             'contact_email' => 'barangay@demo.local',
             'office_hours' => [
@@ -47,7 +48,7 @@ class DatabaseSeeder extends Seeder
 
         $admin = User::query()->create([
             'barangay_id' => $barangay->id,
-            'account_id' => 'ADMIN001',
+            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::ADM, 1),
             'role' => UserRole::Admin,
             'first_name' => 'System', 
             'middle_name' => null,    
@@ -60,7 +61,7 @@ class DatabaseSeeder extends Seeder
 
         $personnel = User::query()->create([
             'barangay_id' => $barangay->id,
-            'account_id' => 'PER001',
+            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::PER, 1),
             'role' => UserRole::Personnel,
             'first_name' => 'Barangay', 
             'middle_name' => 'Talon',    
@@ -78,7 +79,7 @@ class DatabaseSeeder extends Seeder
         // Resident shell user creation (removed verification_status from here)
         $resident = User::query()->create([
             'barangay_id' => $barangay->id,
-            'account_id' => 'RES001',
+            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 1),
             'role' => UserRole::Resident,
             'first_name' => 'Barangay', 
             'middle_name' => null,    
@@ -95,7 +96,7 @@ class DatabaseSeeder extends Seeder
             'verification_status' => VerificationStatus::Approved,
             'birthday' => '1985-05-15',
             'address' => 'Barangay Hall, Demo Barangay',
-            'digital_id_code' => 'ML-ID-' . strtoupper(substr($resident->id ?? '12345678', 0, 8)),
+            'digital_id_code' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 1),
             'government_id_storage_key' => 'demo/ids/gov_id.jpg',
         ]);
         

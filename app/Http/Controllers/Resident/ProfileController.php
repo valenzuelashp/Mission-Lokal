@@ -68,7 +68,7 @@ class ProfileController extends Controller
             'address'             => $addressStr,
             'birthday'            => $birthdayStr,
             'verification_status' => $profileStatusValue,
-            'digital_id_code'     => $profile->digital_id_code ?? 'ML-ID-' . strtoupper(substr($user->id ?? '12345678', 0, 8)),
+            'digital_id_code'     => $profile?->digital_id_code ?: ($user->account_id ?? 'PENDING'),
             'member_since'        => $user->created_at ? $user->created_at->format('F Y') : now()->format('F Y'),
             'report_count'        => $reportCount,
             'edit_status'         => $user->profile_edit_status ?? 'approved', 
@@ -102,16 +102,25 @@ class ProfileController extends Controller
 
         $profile = $user->residentProfile;
 
+        $birthdayStr = '—';
+        $birthdayData = $profile?->birthday;
+        if (! empty($birthdayData)) {
+            $birthdayStr = is_string($birthdayData)
+                ? date('F d, Y', strtotime($birthdayData))
+                : $birthdayData->format('F d, Y');
+        }
+
         $profileData = [
             'full_name'     => $fullName,
             'email'         => $user->email,
             'mobile'        => $user->mobile ?? '',
-            'sex'           => $profile->sex ?? 'Male',
-            'civil_status'  => $profile->civil_status ?? 'Single',
-            'house_street'  => $profile->house_street ?? '',
-            'barangay_name' => $profile->barangay_name ?? '',
-            'city'          => $profile->city ?? '',
-            'province'      => $profile->province ?? '',
+            'sex'           => $profile?->sex ?? '—',
+            'civil_status'  => $profile?->civil_status ?? '—',
+            'birthday'      => $birthdayStr,
+            'house_street'  => $profile?->house_street ?? '',
+            'barangay_name' => $profile?->barangay_name ?? '',
+            'city'          => $profile?->city ?? '',
+            'province'      => $profile?->province ?? '',
             'is_minor'      => $user->isMinor(),
             'parent_name'   => $user->parent_name ?? '',
             'parent_contact'=> $user->parent_contact ?? '',
@@ -130,18 +139,11 @@ class ProfileController extends Controller
             return back()->with('error', 'Cannot submit parallel edits while your current request is pending administrative evaluation.');
         }
 
-        $user->load(['barangay', 'residentProfile']); 
+        $user->load(['barangay', 'residentProfile']);
 
         $rules = [
-            'full_name'     => 'required|string|max:255',
-            'email'         => 'required|email|max:255|unique:users,email,' . $user->id,
-            'mobile'        => 'required|string|max:20',
-            'sex'           => 'required|string',
-            'civil_status'  => 'required|string',
-            'house_street'  => 'required|string|max:255',
-            'barangay_name' => 'required|string|max:255',
-            'city'          => 'required|string|max:255',
-            'province'      => 'required|string|max:255',
+            'email'  => 'required|email|max:255|unique:users,email,'.$user->id,
+            'mobile' => 'required|string|max:20',
         ];
 
         if ($user->isMinor()) {
@@ -151,49 +153,12 @@ class ProfileController extends Controller
 
         $validated = $request->validate($rules);
 
-        $barangayName = $user->barangay->name ?? ''; 
-        
-        if (!empty($barangayName) && !Str::contains(strtolower($validated['barangay_name']), strtolower($barangayName))) {
-            return back()->withErrors([
-                'barangay_name' => "The barangay must match your assigned jurisdiction (nasasakupan) of {$barangayName}."
-            ])->withInput();
-        }
-
-        $currFirst = $user->first_name ?? '';
-        $currMiddle = $user->middle_name ?? '';
-        $currLast = $user->last_name ?? '';
-        $currExt = $user->name_extension ?? '';
-        $currentFullName = trim("{$currFirst} " . (!empty($currMiddle) ? "{$currMiddle} " : "") . "{$currLast}" . (!empty($currExt) ? " {$currExt}" : ""));
-        
-        $profile = $user->residentProfile;
-
         $changes = [];
-        if (trim($validated['full_name']) !== trim($currentFullName)) {
-            $changes['full_name'] = $validated['full_name'];
-        }
         if (trim($validated['email']) !== trim($user->email ?? '')) {
             $changes['email'] = $validated['email'];
         }
         if (trim($validated['mobile']) !== trim($user->mobile ?? '')) {
             $changes['mobile'] = $validated['mobile'];
-        }
-        if (trim($validated['sex'] ?? '') !== trim($profile->sex ?? '')) {
-            $changes['sex'] = $validated['sex'];
-        }
-        if (trim($validated['civil_status'] ?? '') !== trim($profile->civil_status ?? '')) {
-            $changes['civil_status'] = $validated['civil_status'];
-        }
-        if (trim($validated['house_street'] ?? '') !== trim($profile->house_street ?? '')) {
-            $changes['house_street'] = $validated['house_street'];
-        }
-        if (trim($validated['barangay_name'] ?? '') !== trim($profile->barangay_name ?? '')) {
-            $changes['barangay_name'] = $validated['barangay_name'];
-        }
-        if (trim($validated['city'] ?? '') !== trim($profile->city ?? '')) {
-            $changes['city'] = $validated['city'];
-        }
-        if (trim($validated['province'] ?? '') !== trim($profile->province ?? '')) {
-            $changes['province'] = $validated['province'];
         }
 
         if ($user->isMinor()) {
@@ -205,8 +170,10 @@ class ProfileController extends Controller
             }
         }
 
-        if (empty($changes)) {
-            return back()->withErrors(['house_street' => 'No changes were detected in your profile submission.'])->withInput();
+        if ($changes === []) {
+            return back()->withErrors([
+                'email' => 'No contact changes were detected. Census details can only be corrected at the barangay hall.',
+            ])->withInput();
         }
 
         DB::transaction(function () use ($user, $changes) {

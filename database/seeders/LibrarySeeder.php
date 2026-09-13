@@ -12,7 +12,8 @@ class LibrarySeeder extends Seeder
     public function run(): void
     {
         // First, find the demo barangay we created in the main DatabaseSeeder
-        $barangay = Barangay::where('code', 'demo-barangay')->first();
+        $barangay = Barangay::whereIn('code', ['TAMBO', 'demo-barangay'])->first()
+            ?? Barangay::query()->first();
 
         if (!$barangay) {
             return; // If the barangay doesn't exist, stop the script safely

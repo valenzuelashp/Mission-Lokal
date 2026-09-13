@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use App\Http\Controllers\Controller;
+use App\Services\LocalIdentifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class LoginController extends Controller
             'account_id' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
-        $credentials['account_id'] = strtoupper(trim($credentials['account_id']));
+        $credentials['account_id'] = LocalIdentifier::resolveAccountId($credentials['account_id']);
 
         if (! Auth::attempt(
             ['account_id' => $credentials['account_id'], 'password' => $credentials['password']],

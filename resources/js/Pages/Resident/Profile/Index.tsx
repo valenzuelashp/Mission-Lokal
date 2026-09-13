@@ -64,7 +64,7 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                         ) : (
                             <Link href="/profile/edit">
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit profile
+                                Update contact details
                             </Link>
                         )}
                     </Button>

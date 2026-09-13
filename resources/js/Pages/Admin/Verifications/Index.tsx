@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 
 declare function route(name: string, params?: any): string;
 
@@ -60,7 +61,11 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {queue.map((person) => (
-                                    <tr key={person.id} className="hover:bg-gray-50 transition-colors">
+                                    <tr
+                                        key={person.id}
+                                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                                        {...rowNavProps(route('admin.verifications.show', person.id))}
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                                             {person.census_match ? person.account_id : 'Unknown'}
                                         </td>
@@ -95,6 +100,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <Link 
                                                 href={route('admin.verifications.show', person.id)}
+                                                onClick={stopRowNav}
                                                 className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md transition-colors inline-block"
                                             >
                                                 Compare & Review

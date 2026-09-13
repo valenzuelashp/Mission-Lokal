@@ -3,6 +3,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 
 type Blotter = {
     id: string;
@@ -48,7 +49,11 @@ export default function Index({ blotters = [] }: { blotters: Blotter[] }) {
                                 </thead>
                                 <tbody>
                                     {blotters.map((blotter) => (
-                                        <tr key={blotter.id} className="border-b transition-colors hover:bg-slate-50/50">
+                                        <tr
+                                            key={blotter.id}
+                                            className="cursor-pointer border-b transition-colors hover:bg-slate-50/50"
+                                            {...rowNavProps(`/admin/blotters/${blotter.id}`)}
+                                        >
                                             <td className="p-3">
                                                 <div className="font-medium text-blue-700">{blotter.ticket_number}</div>
                                                 <Badge variant={blotter.status === 'pending_approval' ? 'secondary' : 'default'} className="mt-1 capitalize">
@@ -61,7 +66,7 @@ export default function Index({ blotters = [] }: { blotters: Blotter[] }) {
                                             <td className="p-3 text-slate-500">{blotter.created_at}</td>
                                             <td className="p-3">
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/blotters/${blotter.id}`}>Review</Link>
+                                                    <Link href={`/admin/blotters/${blotter.id}`} onClick={stopRowNav}>Review</Link>
                                                 </Button>
                                             </td>
                                         </tr>

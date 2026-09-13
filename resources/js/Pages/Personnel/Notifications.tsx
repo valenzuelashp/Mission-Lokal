@@ -4,6 +4,8 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
 import PersonnelLayout from '@/Layouts/PersonnelLayout';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
+import { cn } from '@/Lib/utils';
 import type { PersonnelNotificationsPageProps } from '@/Types';
 
 export default function Notifications({ notifications = [] }: Partial<PersonnelNotificationsPageProps>) {
@@ -61,10 +63,17 @@ export default function Notifications({ notifications = [] }: Partial<PersonnelN
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {notifications.map((item) => (
+                                    {notifications.map((item) => {
+                                        const href = item.mission_id ? `/personnel/missions/${item.mission_id}` : null;
+                                        return (
                                         <tr
                                             key={item.id}
-                                            className={`border-b last:border-0 hover:bg-muted/20 ${!item.read ? 'bg-blue-50/50' : ''}`}
+                                            className={cn(
+                                                'border-b last:border-0 hover:bg-muted/20',
+                                                !item.read && 'bg-blue-50/50',
+                                                href && 'cursor-pointer',
+                                            )}
+                                            {...rowNavProps(href)}
                                         >
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
@@ -77,16 +86,17 @@ export default function Notifications({ notifications = [] }: Partial<PersonnelN
                                                 {item.sent_at}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {item.mission_id ? (
+                                                {href ? (
                                                     <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                                        <Link href={`/personnel/missions/${item.mission_id}`}>Open</Link>
+                                                        <Link href={href} onClick={stopRowNav}>Open</Link>
                                                     </Button>
                                                 ) : (
                                                     <span className="text-muted-foreground">—</span>
                                                 )}
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

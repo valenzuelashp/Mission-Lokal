@@ -3,6 +3,7 @@ import ReportQueueCard from '@/Components/admin/ReportQueueCard';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminReport } from '@/Types';
 
 const queueLabel: Record<AdminReport['queue_status'], string> = {
@@ -55,8 +56,13 @@ export default function ReportQueueTable({ reports }: Props) {
                     </thead>
                     <tbody>
                         {reports.map((row) => {
+                            const href = `/admin/reports/${row.concern_id}`;
                             return (
-                                <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                                <tr
+                                    key={row.id}
+                                    className="cursor-pointer border-b last:border-0 hover:bg-muted/20"
+                                    {...rowNavProps(href)}
+                                >
                                     <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
@@ -110,7 +116,7 @@ export default function ReportQueueTable({ reports }: Props) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                            <Link href={`/admin/reports/${row.concern_id}`}>Review</Link>
+                                            <Link href={href} onClick={stopRowNav}>Review</Link>
                                         </Button>
                                     </td>
                                 </tr>

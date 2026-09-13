@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Barangay;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
+use App\Services\LocalIdentifier;
 use Illuminate\Support\Facades\File;
 
 class PreloadedResidentSeeder extends Seeder
@@ -31,15 +32,15 @@ class PreloadedResidentSeeder extends Seeder
             return;
         }
 
-        $demoApprovedIds = ['RES001', 'RES002', 'RES003', 'RES004', 'RES005'];
         $demoLogins = [];
 
         while ($row = fgetcsv($file)) {
             $data = array_combine($header, $row);
-            $accountId = $data['account_id'];
+            $accountId = LocalIdentifier::normalize($data['account_id'], $barangay);
             $address = trim($data['address'] ?? '');
             $addressParts = array_map('trim', explode(',', $address, 2));
-            $isDemoApproved = in_array($accountId, $demoApprovedIds, true);
+            $isDemoApproved = LocalIdentifier::typeOf($accountId) === LocalIdentifier::RES
+                && in_array(LocalIdentifier::numberFrom($accountId), [1, 2, 3, 4, 5], true);
             $tempPassword = $this->temporaryPassword($accountId, $data['last_name']);
 
             $census = PreloadedResident::updateOrCreate(
@@ -89,9 +90,7 @@ class PreloadedResidentSeeder extends Seeder
                         : VerificationStatus::Unverified,
                     'birthday' => $data['birthday'],
                     'address'  => $data['address'] ?: null,
-                    'digital_id_code' => $isDemoApproved
-                        ? 'ML-ID-'.strtoupper(substr(md5($user->id), 0, 8))
-                        : null,
+                    'digital_id_code' => $isDemoApproved ? $accountId : null,
                 ]
             );
         }

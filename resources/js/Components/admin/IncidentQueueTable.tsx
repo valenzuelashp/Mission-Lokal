@@ -4,6 +4,7 @@ import IncidentQueueCard from '@/Components/admin/IncidentQueueCard';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminIncident } from '@/Types';
 
 const typeIcons: Record<string, typeof Flame> = {
@@ -48,10 +49,15 @@ export default function IncidentQueueTable({ incidents }: Props) {
                     <tbody>
                         {incidents.map((row) => {
                             const Icon = typeIcons[row.type_icon] ?? Flame;
+                            const href = `/admin/reports/${row.concern_id}`;
                             return (
-                                <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                                <tr
+                                    key={row.id}
+                                    className="cursor-pointer border-b last:border-0 hover:bg-muted/20"
+                                    {...rowNavProps(href)}
+                                >
                                     <td className="px-4 py-3">
-                                        <Link href={`/admin/reports/${row.concern_id}`} className="font-medium text-blue-700">
+                                        <Link href={href} onClick={stopRowNav} className="font-medium text-blue-700">
                                             {row.display_id ?? row.id}
                                         </Link>
                                     </td>
@@ -94,7 +100,7 @@ export default function IncidentQueueTable({ incidents }: Props) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                            <Link href={`/admin/reports/${row.concern_id}`}>View details</Link>
+                                            <Link href={href} onClick={stopRowNav}>View details</Link>
                                         </Button>
                                     </td>
                                 </tr>

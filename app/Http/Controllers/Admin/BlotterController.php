@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Blotter;
 use App\Mail\BlotterTicketIssued;
+use App\Services\LocalIdentifier;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
@@ -68,14 +69,7 @@ class BlotterController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $year = now()->format('Y');
-            // Count existing tickets in this barangay for this year
-            $count = Blotter::where('barangay_id', $barangayId)
-                ->where('status', 'filed')
-                ->whereYear('approved_at', $year)
-                ->count();
-            
-            $ticketNumber = 'BL-' . $year . '-' . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+            $ticketNumber = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::BLT);
 
             $blotter->update([
                 'status' => 'filed',

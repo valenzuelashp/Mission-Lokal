@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Enums\PersonnelCategory;
 use App\Models\Personnel;
 use App\Models\User;
+use App\Services\LocalIdentifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -33,19 +34,8 @@ class PersonnelController extends Controller
             );
         }
 
-        // Generate the next incremental Account ID (e.g., PER001, PER002)
-        $lastPersonnel = User::where('barangay_id', $barangayId)
-            ->where('role', 'personnel')
-            ->where('account_id', 'like', 'PER%')
-            ->orderByRaw('CAST(SUBSTRING(account_id, 4) AS UNSIGNED) DESC')
-            ->first();
-
-        $nextIdNumber = 1;
-        if ($lastPersonnel) {
-            $lastNumber = (int) substr($lastPersonnel->account_id, 3);
-            $nextIdNumber = $lastNumber + 1;
-        }
-        $nextAccountId = 'PER' . str_pad($nextIdNumber, 3, '0', STR_PAD_LEFT);
+        $barangay = $request->user()->barangay;
+        $nextAccountId = LocalIdentifier::next($barangay, LocalIdentifier::PER);
 
         $personnel = Personnel::with('user')
             ->whereHas('user', function ($q) use ($barangayId) {

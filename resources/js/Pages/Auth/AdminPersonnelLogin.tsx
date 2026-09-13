@@ -41,6 +41,7 @@ export default function AdminPersonnelLogin() {
                                     value={data.account_id}
                                     onChange={(e) => setData('account_id', e.target.value)}
                                     autoComplete="username"
+                                    placeholder="TAMBO_ADM_0001"
                                 />
                                 {errors.account_id && <p className="text-sm text-destructive">{errors.account_id}</p>}
                             </div>

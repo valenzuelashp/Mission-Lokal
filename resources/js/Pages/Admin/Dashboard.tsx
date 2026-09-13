@@ -6,6 +6,7 @@ import IncidentQueueTable from '@/Components/admin/IncidentQueueTable';
 import KpiCard from '@/Components/admin/KpiCard';
 import { Button } from '@/Components/ui/button';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminDashboardPageProps } from '@/Types';
 
 export default function Dashboard({ stats, incidents = [], activities = [], map_pins = [], registrations = [] }: AdminDashboardPageProps) {
@@ -101,7 +102,11 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                             </thead>
                             <tbody>
                                 {registrations.map((item) => (
-                                    <tr key={item.id} className="border-t">
+                                    <tr
+                                        key={item.id}
+                                        className="cursor-pointer border-t"
+                                        {...rowNavProps(`/admin/verifications/${item.id}`)}
+                                    >
                                         <td className="py-3 pr-4 font-medium">{item.full_name}</td>
                                         <td className="py-3 pr-4">
                                             {item.census_match ? (
@@ -118,7 +123,7 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                         <td className="py-3 pr-4">{item.mobile || 'Unknown'}</td>
                                         <td className="py-3 pr-4 text-muted-foreground">{item.submitted_at}</td>
                                         <td className="py-3 text-right">
-                                            <Link href={`/admin/verifications/${item.id}`} className="font-medium text-blue-700 hover:underline">
+                                            <Link href={`/admin/verifications/${item.id}`} onClick={stopRowNav} className="font-medium text-blue-700 hover:underline">
                                                 Compare
                                             </Link>
                                         </td>

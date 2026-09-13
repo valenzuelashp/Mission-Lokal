@@ -3,6 +3,7 @@ import { Award, ChevronRight } from 'lucide-react';
 import ResidentCard from '@/Components/admin/ResidentCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminResident, VerificationStatus } from '@/Types';
 
 const statusLabel: Record<VerificationStatus, string> = {
@@ -52,7 +53,11 @@ export default function ResidentsTable({ residents }: Props) {
                     </thead>
                     <tbody>
                         {residents.map((row) => (
-                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                            <tr
+                                key={row.id}
+                                className="cursor-pointer border-b last:border-0 hover:bg-muted/20"
+                                {...rowNavProps(`/admin/residents/${row.id}`)}
+                            >
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800">
@@ -88,7 +93,7 @@ export default function ResidentsTable({ residents }: Props) {
                                 <td className="px-4 py-3 text-muted-foreground">{row.joined_at}</td>
                                 <td className="px-4 py-3">
                                     <Button size="sm" variant="outline" className="h-8" asChild>
-                                        <Link href={`/admin/residents/${row.id}`}>
+                                        <Link href={`/admin/residents/${row.id}`} onClick={stopRowNav}>
                                             View
                                             <ChevronRight className="ml-1 h-3.5 w-3.5" />
                                         </Link>

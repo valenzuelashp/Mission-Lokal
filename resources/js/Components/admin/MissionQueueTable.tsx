@@ -3,6 +3,8 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import MissionQueueCard from '@/Components/admin/MissionQueueCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
+import { cn } from '@/Lib/utils';
 import type { AdminMission, MissionStatus } from '@/Types';
 
 const statusLabel: Record<MissionStatus, string> = {
@@ -56,8 +58,14 @@ export default function MissionQueueTable({ missions }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {missions.map((row) => (
-                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                        {missions.map((row) => {
+                            const href = row.id ? `/admin/missions/${row.id}` : null;
+                            return (
+                            <tr
+                                key={row.id}
+                                className={cn('border-b last:border-0 hover:bg-muted/20', href && 'cursor-pointer')}
+                                {...rowNavProps(href)}
+                            >
                                 <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
                                 <td className="max-w-[180px] px-4 py-3">
                                     <p className="font-medium leading-snug">{row.concern_title}</p>
@@ -115,14 +123,15 @@ export default function MissionQueueTable({ missions }: Props) {
                                 <td className="px-4 py-3">
                                     {row.id ? (
                                         <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                            <Link href={`/admin/missions/${row.id}`}>Manage</Link>
+                                            <Link href={`/admin/missions/${row.id}`} onClick={stopRowNav}>Manage</Link>
                                         </Button>
                                     ) : (
                                         <span className="text-sm italic text-muted-foreground">Not assigned</span>
                                     )}
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

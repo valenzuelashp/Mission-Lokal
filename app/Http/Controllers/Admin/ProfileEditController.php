@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\ResidentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -113,9 +112,11 @@ class ProfileEditController extends Controller
 
         DB::transaction(function () use ($editRequest, $changes) {
             $userUpdates = ['profile_edit_status' => 'none'];
-            $profileUpdates = [];
 
             if (is_array($changes)) {
+                $allowed = ['email', 'mobile', 'parent_name', 'parent_contact'];
+                $changes = array_intersect_key($changes, array_flip($allowed));
+
                 if (isset($changes['email'])) {
                     $userUpdates['email'] = $changes['email'];
                 }
@@ -128,38 +129,8 @@ class ProfileEditController extends Controller
                 if (isset($changes['parent_contact'])) {
                     $userUpdates['parent_contact'] = $changes['parent_contact'];
                 }
-                if (isset($changes['full_name'])) {
-                    $nameParts = explode(' ', trim($changes['full_name']));
-                    $userUpdates['first_name'] = array_shift($nameParts);
-                    $userUpdates['last_name'] = count($nameParts) > 0 ? array_pop($nameParts) : '';
-                    $userUpdates['middle_name'] = count($nameParts) > 0 ? implode(' ', $nameParts) : null;
-                }
-
-                if (isset($changes['sex'])) {
-                    $profileUpdates['sex'] = $changes['sex'];
-                }
-                if (isset($changes['civil_status'])) {
-                    $profileUpdates['civil_status'] = $changes['civil_status'];
-                }
 
                 User::where('id', $editRequest->user_id)->update($userUpdates);
-
-                if (isset($changes['house_street'])) {
-                    $profileUpdates['house_street'] = $changes['house_street'];
-                }
-                if (isset($changes['barangay_name'])) {
-                    $profileUpdates['barangay_name'] = $changes['barangay_name'];
-                }
-                if (isset($changes['city'])) {
-                    $profileUpdates['city'] = $changes['city'];
-                }
-                if (isset($changes['province'])) {
-                    $profileUpdates['province'] = $changes['province'];
-                }
-
-                if (!empty($profileUpdates)) {
-                    ResidentProfile::where('user_id', $editRequest->user_id)->update($profileUpdates);
-                }
             }
 
             DB::table('profile_edit_requests')

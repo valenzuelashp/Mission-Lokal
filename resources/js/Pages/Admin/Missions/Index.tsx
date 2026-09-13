@@ -1,14 +1,14 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { Filter, Search, UserCheck, X } from 'lucide-react';
 import { useMemo, useState, FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { demoMissions, missionCounts } from '@/Lib/adminDemo';
+import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import { cn } from '@/Lib/utils';
 import type { AdminMission as BaseAdminMission, AdminMissionQueuePageProps, MissionStatus } from '@/Types';
 import { Badge } from '@/Components/ui/badge';
-import { Link } from '@inertiajs/react';
 
 type AdminMission = BaseAdminMission & {
     display_id?: string;
@@ -180,10 +180,14 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 </tr>
                             ) : (
                                 filtered.map((m: AdminMission) => (
-                                    <tr key={m.id} className="hover:bg-slate-50/50">
+                                    <tr
+                                        key={m.id}
+                                        className="cursor-pointer hover:bg-slate-50/50"
+                                        {...rowNavProps(`/admin/missions/${m.id}`)}
+                                    >
                                         <td className="px-4 py-3 font-medium text-slate-900">{m.display_id ?? `MS-${m.id.substring(0, 4).toUpperCase()}`}</td>
                                         <td className="px-4 py-3 font-medium text-blue-900">
-                                            <Link href={`/admin/missions/${m.id}`} className="hover:underline">
+                                            <Link href={`/admin/missions/${m.id}`} onClick={stopRowNav} className="hover:underline">
                                                 {m.concern_title}
                                             </Link>
                                         </td>
@@ -200,10 +204,14 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button
+                                                type="button"
                                                 size="sm"
                                                 variant="outline"
                                                 className="h-8 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                                                onClick={() => openAssignModal(m)}
+                                                onClick={(e) => {
+                                                    stopRowNav(e);
+                                                    openAssignModal(m);
+                                                }}
                                             >
                                                 <UserCheck className="mr-1 h-3.5 w-3.5" />
                                                 {m.assignee ? 'Manage Assignees' : 'Assign Personnel'}

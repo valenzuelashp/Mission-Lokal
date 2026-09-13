@@ -12,6 +12,7 @@ use App\Enums\VerificationStatus;
 use App\Mail\VerificationApproved;
 use App\Mail\VerificationRejected;
 use App\Models\Notification;
+use App\Services\LocalIdentifier;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
@@ -154,7 +155,7 @@ class VerificationController extends Controller
                 ]));
             }
 
-            $accountId = $preloadedMatch?->account_id ?? $this->nextAccountId();
+            $accountId = $preloadedMatch?->account_id ?? LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
             $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['last_name']);
             $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Resident'));
             $rawPassword = $accountId.'!'.$readableLastName;
@@ -205,7 +206,7 @@ class VerificationController extends Controller
                     'city' => $validated['city'],
                     'province' => $validated['province'],
                     'government_id_storage_key' => $registration->government_id_path,
-                    'digital_id_code' => 'ML-ID-'.strtoupper(substr(md5($user->id), 0, 8)),
+                    'digital_id_code' => $accountId,
                 ]
             );
 
@@ -395,7 +396,7 @@ class VerificationController extends Controller
 
     private function findCensusMatch(ResidentRegistration $registration, ?User $userAccount, string $parsedBirthday): ?PreloadedResident
     {
-        if ($userAccount && $userAccount->account_id && str_starts_with($userAccount->account_id, 'RES')) {
+        if ($userAccount && $userAccount->account_id && LocalIdentifier::isResidentAccount($userAccount->account_id)) {
             $match = PreloadedResident::where('account_id', $userAccount->account_id)->first();
             if ($match) {
                 return $match;
@@ -438,17 +439,5 @@ class VerificationController extends Controller
                 $profileQuery->whereDate('birthday', Carbon::parse($registration->birthday)->toDateString());
             })
             ->first();
-    }
-
-    private function nextAccountId(): string
-    {
-        do {
-            $accountId = 'RES'.random_int(1000, 9999);
-        } while (
-            User::where('account_id', $accountId)->exists()
-            || PreloadedResident::where('account_id', $accountId)->exists()
-        );
-
-        return $accountId;
     }
 }

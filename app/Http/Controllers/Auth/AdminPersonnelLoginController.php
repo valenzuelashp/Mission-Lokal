@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\LocalIdentifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,7 +31,7 @@ class AdminPersonnelLoginController extends Controller
         $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'account_id';
 
         if ($field === 'account_id') {
-            $loginInput = strtoupper($loginInput);
+            $loginInput = LocalIdentifier::resolveAccountId($loginInput);
         } else {
             $loginInput = strtolower($loginInput);
         }
