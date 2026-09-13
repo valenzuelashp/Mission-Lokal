@@ -34,7 +34,11 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-slate-900">{kindLabel}</p>
-                    <p className="text-xs text-muted-foreground">{announcement.published_at}</p>
+                    {announcement.event_at ? (
+                        <p className="text-xs font-medium text-teal-800">Happening {announcement.event_at}</p>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">{announcement.published_at}</p>
+                    )}
                 </div>
             </div>
 

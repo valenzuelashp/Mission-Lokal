@@ -7,6 +7,7 @@ use App\Enums\AnnouncementKind;
 use App\Models\Announcement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +45,8 @@ class AnnouncementController extends Controller
                     'image_url' => $item->imageUrl(),
                     'volunteer_count' => $kind === AnnouncementKind::Volunteer ? (int) $item->volunteers_count : 0,
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y h:i A') : 'Recently',
-                    'published_at' => $item->published_at ? $item->published_at->format('M d, Y h:i A') : null,
+                    'published_at' => $item->published_at ? $item->published_at->timezone('Asia/Manila')->format('M d, Y h:i A') : null,
+                    'event_at' => $item->eventAtLabel('M d, Y g:i A'),
                     'updated_at' => $item->updated_at ? $item->updated_at->format('M d, Y h:i A') : 'Recently',
                 ];
             });
@@ -78,6 +80,7 @@ class AnnouncementController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'kind' => ['required', 'in:advisory,event,volunteer'],
+            'event_at' => ['nullable', 'required_if:kind,event,volunteer', 'date'],
             'is_published' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -99,6 +102,7 @@ class AnnouncementController extends Controller
             'cover_image_url' => $imagePath,
             'is_published' => $isPublished,
             'published_at' => $isPublished ? now() : null,
+            'event_at' => $this->resolvedEventAt($request),
             'created_by' => Auth::id(),
         ]);
 
@@ -139,6 +143,8 @@ class AnnouncementController extends Controller
                 'is_published' => (bool) $announcement->is_published,
                 'image_url' => $announcement->imageUrl(),
                 'volunteer_count' => $kind === AnnouncementKind::Volunteer ? $announcement->volunteers->count() : 0,
+                'event_at' => $announcement->eventAtLabel('M d, Y g:i A'),
+                'event_at_input' => $announcement->eventAtInputValue(),
                 'volunteers' => $kind === AnnouncementKind::Volunteer
                     ? $announcement->volunteers->map(fn ($signup) => [
                         'id' => $signup->id,
@@ -164,6 +170,7 @@ class AnnouncementController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'kind' => ['required', 'in:advisory,event,volunteer'],
+            'event_at' => ['nullable', 'required_if:kind,event,volunteer', 'date'],
             'is_published' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -191,6 +198,7 @@ class AnnouncementController extends Controller
             'cover_image_url' => $imagePath,
             'is_published' => $isPublished,
             'published_at' => $isPublished ? ($announcement->published_at ?? now()) : null,
+            'event_at' => $this->resolvedEventAt($request),
         ]);
 
         DB::table('audit_logs')->insert([
@@ -238,5 +246,19 @@ class AnnouncementController extends Controller
 
         return redirect()->route('admin.announcements.index')
             ->with('success', 'Announcement permanently removed.');
+    }
+
+    private function resolvedEventAt(Request $request): ?Carbon
+    {
+        if (! in_array($request->kind, ['event', 'volunteer'], true)) {
+            return null;
+        }
+
+        $raw = trim((string) $request->input('event_at'));
+        if ($raw === '') {
+            return null;
+        }
+
+        return Carbon::parse($raw, 'Asia/Manila');
     }
 }

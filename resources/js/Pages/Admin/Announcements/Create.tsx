@@ -27,7 +27,7 @@ export default function Create() {
                 method="post"
                 cancelHref="/admin/announcements"
                 submitLabel="Save announcement"
-                defaults={{ title: '', body: '', kind: 'advisory', is_published: false, image: null, remove_image: false }}
+                defaults={{ title: '', body: '', kind: 'advisory', event_at: '', is_published: false, image: null, remove_image: false }}
             />
         </AdminLayout>
     );

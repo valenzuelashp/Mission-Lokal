@@ -46,6 +46,7 @@ export default function Edit({ announcement }: Props) {
                     title: announcement.title,
                     body: announcement.body,
                     kind: announcement.kind ?? 'advisory',
+                    event_at: announcement.event_at_input ?? '',
                     is_published: announcement.is_published,
                     image: null,
                     remove_image: false,

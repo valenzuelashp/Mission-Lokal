@@ -113,9 +113,14 @@ export interface ResidentAnnouncement {
     id: string;
     title: string;
     body: string;
+    kind?: AnnouncementKind;
+    kind_label?: string;
     image_url?: string | null;
     published_at: string;
+    event_at?: string | null;
     author_name: string;
+    volunteer_count?: number;
+    has_joined?: boolean;
 }
 
 export interface AnnouncementsPageProps extends PageProps {
@@ -348,6 +353,8 @@ export interface AdminAnnouncement {
     author_name?: string;
     created_at?: string;
     published_at?: string | null;
+    event_at?: string | null;
+    event_at_input?: string | null;
     updated_at?: string;
 }
 

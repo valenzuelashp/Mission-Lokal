@@ -266,7 +266,7 @@ class VerificationController extends Controller
         $firstName = $registration->first_name;
         $lastName = $registration->last_name;
 
-        $userAccount = User::where('email', $email)->first();
+        $userAccount = $this->userAccountForRegistration($registration);
         if ($userAccount) {
             $userAccount->residentProfile()->updateOrCreate(
                 ['user_id' => $userAccount->id],
@@ -408,6 +408,36 @@ class VerificationController extends Controller
             $parsedBirthday,
             $registration->middle_name
         );
+    }
+
+    private function userAccountForRegistration(ResidentRegistration $registration): ?User
+    {
+        $email = strtolower(trim((string) $registration->email));
+        if ($email !== '') {
+            $byEmail = User::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
+            if ($byEmail) {
+                return $byEmail;
+            }
+        }
+
+        $census = $this->findCensusMatch($registration, null, Carbon::parse($registration->birthday)->format('Y-m-d'));
+        if ($census?->account_id) {
+            $byCensus = User::where('account_id', $census->account_id)->first();
+            if ($byCensus) {
+                return $byCensus;
+            }
+        }
+
+        $firstName = strtolower(trim((string) $registration->first_name));
+        $lastName = strtolower(trim((string) $registration->last_name));
+
+        return User::where('role', 'resident')
+            ->whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
+            ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
+            ->whereHas('residentProfile', function ($profileQuery) use ($registration) {
+                $profileQuery->whereDate('birthday', Carbon::parse($registration->birthday)->toDateString());
+            })
+            ->first();
     }
 
     private function nextAccountId(): string

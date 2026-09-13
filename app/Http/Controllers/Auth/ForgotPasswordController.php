@@ -80,8 +80,9 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'email'    => 'required|email|exists:users,email',
+            'otp'      => 'required|string|size:6',
             // Enforcing custom rule: 8+ characters, 1 number & 1 symbol
-            'password' => ['required', 'confirmed', Password::min(8)->numbers()->symbols()], 
+            'password' => ['required', 'confirmed', Password::min(8)->numbers()->symbols()],
         ], [
             // Overriding framework defaults to merge numbers and symbols text explicitly
             'password.numbers' => 'The password field must contain at least one number & one symbol.',
@@ -89,10 +90,21 @@ class ForgotPasswordController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-        $user->password = Hash::make($request->password);
+        $record = DB::table('password_reset_tokens')->where('user_id', $user->id)->first();
+
+        if (
+            ! $record
+            || ! Hash::check($request->otp, $record->otp_hash)
+            || Carbon::parse($record->expires_at)->isPast()
+        ) {
+            return back()->withErrors([
+                'otp' => 'Please verify a valid code before resetting your password.',
+            ]);
+        }
+
+        $user->password = $request->password;
         $user->save();
 
-        // Clean up the token using user_id
         DB::table('password_reset_tokens')->where('user_id', $user->id)->delete();
 
         return redirect()->route('login')->with('success', 'Password reset successfully. You can now log in.');

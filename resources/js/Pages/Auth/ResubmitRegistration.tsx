@@ -48,12 +48,10 @@ export default function ResubmitRegistration({ resident }: { resident: any }) {
                     </div>
 
                     {/* Admin Rejection Feedback Box */}
-                    {resident.rejection_reason && (
-                        <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-xs text-red-900">
-                            <strong className="block font-bold mb-1 uppercase tracking-wider text-red-800">Reason for Rejection:</strong>
-                            "{resident.rejection_reason}"
-                        </div>
-                    )}
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-xs text-red-900">
+                        <strong className="block font-bold mb-1 uppercase tracking-wider text-red-800">Reason for Rejection:</strong>
+                        "{resident.rejection_reason || 'Please correct your details and re-upload a valid government ID document.'}"
+                    </div>
 
                     <form onSubmit={submit} className="space-y-4">
                         {/* Name Fields */}

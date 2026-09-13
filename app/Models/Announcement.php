@@ -3,6 +3,10 @@
 namespace App\Models;
 
 use App\Enums\AnnouncementKind;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +32,7 @@ class Announcement extends Model
         'cover_image_url',
         'is_published',
         'published_at',
+        'event_at',
         'created_by',
     ];
 
@@ -43,6 +48,33 @@ class Announcement extends Model
             'published_at' => 'datetime',
             'kind' => AnnouncementKind::class,
         ];
+    }
+
+    /**
+     * Event/volunteer times are barangay local (Asia/Manila) wall-clock values.
+     */
+    protected function eventAt(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if ($value === null || $value === '') {
+                    return null;
+                }
+
+                return Carbon::parse($value, 'Asia/Manila');
+            },
+            set: function ($value) {
+                if ($value === null || $value === '') {
+                    return ['event_at' => null];
+                }
+
+                $parsed = $value instanceof DateTimeInterface
+                    ? Carbon::parse($value)->timezone('Asia/Manila')
+                    : Carbon::parse($value, 'Asia/Manila');
+
+                return ['event_at' => $parsed->format('Y-m-d H:i:s.v')];
+            },
+        );
     }
 
     // --- Relationships ---
@@ -73,6 +105,40 @@ class Announcement extends Model
         return $this->kind instanceof AnnouncementKind
             ? $this->kind
             : AnnouncementKind::tryFrom((string) $this->kind) ?? AnnouncementKind::Advisory;
+    }
+
+    public function isScheduledKind(): bool
+    {
+        $kind = $this->resolvedKind();
+
+        return $kind === AnnouncementKind::Event || $kind === AnnouncementKind::Volunteer;
+    }
+
+    public function calendarAt(): ?CarbonInterface
+    {
+        if ($this->isScheduledKind() && $this->event_at) {
+            return $this->event_at;
+        }
+
+        return $this->published_at ?? $this->created_at;
+    }
+
+    public function eventAtInputValue(): ?string
+    {
+        if (! $this->event_at) {
+            return null;
+        }
+
+        return $this->event_at->format('Y-m-d\TH:i');
+    }
+
+    public function eventAtLabel(?string $format = 'M d, Y g:i A'): ?string
+    {
+        if (! $this->event_at) {
+            return null;
+        }
+
+        return $this->event_at->format($format);
     }
 
     public function imageUrl(): ?string
@@ -109,8 +175,9 @@ class Announcement extends Model
             'kind_label' => $kind->label(),
             'image_url' => $this->imageUrl(),
             'published_at' => $this->published_at
-                ? $this->published_at->format($fullBody ? 'F d, Y g:i A' : 'M d, Y')
-                : $this->created_at?->format($fullBody ? 'F d, Y' : 'M d, Y'),
+                ? $this->published_at->timezone('Asia/Manila')->format($fullBody ? 'F d, Y g:i A' : 'M d, Y')
+                : $this->created_at?->timezone('Asia/Manila')->format($fullBody ? 'F d, Y' : 'M d, Y'),
+            'event_at' => $this->eventAtLabel($fullBody ? 'F d, Y g:i A' : 'M d, Y g:i A'),
             'author_name' => $this->creator
                 ? trim($this->creator->first_name.' '.$this->creator->last_name)
                 : 'Barangay Desk',

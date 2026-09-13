@@ -34,7 +34,7 @@ export default function Calendar(props: CalendarPageProps) {
                         <Bell className="h-4 w-4" />
                     </span>
                     <p className="text-muted-foreground">
-                        <span className="font-medium text-slate-800">Advisories</span> posted by your barangay hall.
+                        <span className="font-medium text-slate-800">Advisories, events, and volunteer calls</span> from your barangay hall.
                     </p>
                 </div>
                 <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
@@ -80,7 +80,7 @@ export default function Calendar(props: CalendarPageProps) {
                     {...props}
                     basePath="/calendar"
                     heading="Barangay calendar"
-                    description={`Published advisories for ${props.month_label}.`}
+                    description={`Events and advisories for ${props.month_label}.`}
                     legend={['announcement']}
                     onSelectedDayChange={setSelectedDate}
                 />

@@ -30,11 +30,12 @@ export default function AnnouncementsTable({ announcements }: Props) {
             </div>
 
             <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <table className="w-full min-w-[800px] text-sm">
+                <table className="w-full min-w-[920px] text-sm">
                     <thead>
                         <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             <th className="px-4 py-3">Title</th>
                             <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Event</th>
                             <th className="px-4 py-3">Published</th>
                             <th className="px-4 py-3">Author</th>
                             <th className="px-4 py-3">Updated</th>
@@ -78,6 +79,7 @@ export default function AnnouncementsTable({ announcements }: Props) {
                                         {row.is_published ? 'Published' : 'Draft'}
                                     </Badge>
                                 </td>
+                                <td className="px-4 py-3 text-muted-foreground">{row.event_at ?? '—'}</td>
                                 <td className="px-4 py-3 text-muted-foreground">{row.published_at ?? '—'}</td>
                                 <td className="px-4 py-3 text-muted-foreground">{row.author_name}</td>
                                 <td className="px-4 py-3 text-muted-foreground">{row.updated_at}</td>

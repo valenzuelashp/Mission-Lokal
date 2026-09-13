@@ -26,7 +26,14 @@ class AccountStatusController extends Controller
 
             $user = null;
 
-            if (count($terms) >= 2) {
+            if (filter_var($query, FILTER_VALIDATE_EMAIL)) {
+                $user = User::where('role', 'resident')
+                    ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower($query)])
+                    ->with('residentProfile')
+                    ->first();
+            }
+
+            if (! $user && count($terms) >= 2) {
                 // Precise exact matching for First and Last name using standard LIKE
                 $firstName = $terms[0];
                 $lastName = end($terms);
@@ -66,6 +73,8 @@ class AccountStatusController extends Controller
                 $registration = null;
 
                 if (count($terms) >= 2) {
+                    $firstName = $terms[0];
+                    $lastName = end($terms);
                     $registration = ResidentRegistration::where('first_name', 'like', $firstName)
                         ->where('last_name', 'like', $lastName)
                         ->first();
@@ -81,6 +90,7 @@ class AccountStatusController extends Controller
                         'full_name' => $this->formatFullName($registration->first_name, $registration->middle_name, $registration->last_name),
                         'status' => 'pending',
                         'message' => $this->getStatusMessage('pending'),
+                        'rejection_reason' => null,
                     ];
                 } else {
                     $result = [

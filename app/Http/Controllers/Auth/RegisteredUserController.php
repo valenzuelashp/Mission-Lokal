@@ -49,7 +49,7 @@ class RegisteredUserController extends Controller
             'city' => 'required|string|max:100',
             'province' => 'required|string|max:100',
             'birthday' => 'required|date',
-            'email' => 'required|string|email|max:255|unique:users|unique:resident_registrations',
+            'email' => 'required|string|email|max:255|unique:resident_registrations',
             'mobile' => 'required|string|max:20',
             'sex' => 'required|string|in:Male,Female,Other',
             'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
@@ -117,10 +117,22 @@ class RegisteredUserController extends Controller
             $request->middle_name
         );
 
-        $existingUser = User::whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])->first();
-        if ($existingUser && $existingUser->residentProfile?->verification_status?->value === 'approved') {
+        if (! $preloaded) {
             return back()->withErrors([
-                'general' => 'An approved account already exists for this name and email. Please proceed to login instead.',
+                'general' => 'No matching record was found in the barangay list. Please go to the barangay hall with a valid ID so your identity can be confirmed.',
+            ])->withInput();
+        }
+
+        $user = User::where('account_id', $preloaded->account_id)->first();
+
+        $emailTaken = User::query()
+            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])
+            ->when($user, fn ($query) => $query->where('id', '!=', $user->id))
+            ->exists();
+
+        if ($emailTaken) {
+            return back()->withErrors([
+                'email' => 'The email has already been taken.',
             ])->withInput();
         }
 
@@ -154,19 +166,6 @@ class RegisteredUserController extends Controller
             'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
-        $user = null;
-        if ($preloaded) {
-            $user = User::where('account_id', $preloaded->account_id)->first();
-        }
-
-        if (!$user) {
-            $user = User::where('first_name', 'like', $request->first_name)
-                ->where('last_name', 'like', $request->last_name)
-                ->first();
-        }
-
-        $accountId = $preloaded ? $preloaded->account_id : ('RES' . rand(1000, 9999));
-
         if ($user) {
             $user->update([
                 'email' => $request->email,
@@ -176,23 +175,26 @@ class RegisteredUserController extends Controller
             ]);
             $user->residentProfile()->updateOrCreate(
                 ['user_id' => $user->id],
-                ['verification_status' => 'pending']
+                [
+                    'verification_status' => 'pending',
+                    'rejection_reason' => null,
+                ]
             );
         } else {
-            $newUser = User::create([
+            $user = User::create([
                 'barangay_id' => $barangayId,
-                'account_id' => $accountId,
+                'account_id' => $preloaded->account_id,
                 'role' => 'resident',
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name,
-                'name_extension' => $request->name_extension,
+                'first_name' => $preloaded->first_name,
+                'middle_name' => $preloaded->middle_name,
+                'last_name' => $preloaded->last_name,
+                'name_extension' => $preloaded->name_extension,
                 'email' => $request->email,
                 'mobile' => $request->mobile,
                 'parent_name' => $isMinor ? $request->parent_name : null,
                 'parent_contact' => $isMinor ? $request->parent_contact : null,
             ]);
-            $newUser->residentProfile()->create([
+            $user->residentProfile()->create([
                 'verification_status' => 'pending',
             ]);
         }
@@ -206,7 +208,9 @@ class RegisteredUserController extends Controller
             ['registration_id' => $registration->id]
         );
 
-        return redirect()->route('account.status')->with('success', 'Registration submitted successfully! You can now track your verification status.');
+        return redirect()->route('account.status', [
+            'query' => trim($request->first_name.' '.$request->last_name),
+        ])->with('success', 'Registration submitted successfully! You can now track your verification status.');
     }
 
     private function upperCase(?string $value): ?string

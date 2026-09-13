@@ -55,6 +55,9 @@ export default function AnnouncementCard({ announcement }: Props) {
                                 ? ` · ${announcement.volunteer_count ?? 0} volunteer${(announcement.volunteer_count ?? 0) === 1 ? '' : 's'}`
                                 : ''}
                         </p>
+                        {announcement.event_at && (
+                            <p className="mt-1 text-xs font-medium text-slate-700">Event: {announcement.event_at}</p>
+                        )}
                         <p className="mt-2 text-xs text-muted-foreground">
                             {announcement.author_name} · {announcement.updated_at}
                         </p>

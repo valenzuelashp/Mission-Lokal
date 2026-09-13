@@ -40,9 +40,9 @@ export default function VerificationWaiting({ status, rejection_reason, full_nam
                     <h1 className="mt-2 text-2xl font-bold text-slate-900">{title}</h1>
                     <p className="mt-3 text-sm text-slate-600">{body}</p>
 
-                    {status === 'rejected' && rejection_reason && (
+                    {status === 'rejected' && (
                         <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                            {rejection_reason}
+                            {rejection_reason || 'Please correct your details and re-upload a valid government ID document.'}
                         </p>
                     )}
 

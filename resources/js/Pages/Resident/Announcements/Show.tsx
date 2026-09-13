@@ -47,9 +47,15 @@ export default function Show({ announcement, announcementId }: Props) {
                 <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="font-medium text-teal-800">{kindLabel}</span>
+                    {item.event_at && (
+                        <>
+                            <span>·</span>
+                            <span className="font-medium text-slate-700">Happening {item.event_at}</span>
+                        </>
+                    )}
                     <span>·</span>
                     <span className="break-words">
-                        {item.published_at} · Posted by {item.author_name}
+                        Posted {item.published_at} by {item.author_name}
                     </span>
                 </div>
                 <h1 className="break-words text-xl font-bold tracking-tight sm:text-2xl">{item.title}</h1>

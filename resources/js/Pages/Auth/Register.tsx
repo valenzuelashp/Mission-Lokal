@@ -206,9 +206,6 @@ export default function Register() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
-                        <div className="sm:col-span-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                            Email and phone number are not in the barangay census yet. Please add them here so the admin can send your login credentials after approval.
-                        </div>
                         <div>
                             <label className="text-xs font-medium">Email Address *</label>
                             <Input type="email" value={data.email} onChange={e => setData('email', e.target.value)} required />

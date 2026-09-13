@@ -14,6 +14,7 @@ type FormData = {
     title: string;
     body: string;
     kind: AnnouncementKind;
+    event_at: string;
     is_published: boolean;
     image: File | null;
     remove_image: boolean;
@@ -43,6 +44,7 @@ export default function AnnouncementForm({
 }: Props) {
     const { data, setData, processing, errors } = useForm<FormData>(defaults);
     const [previewUrl, setPreviewUrl] = useState<string | null>(existingImageUrl ?? null);
+    const needsSchedule = data.kind === 'event' || data.kind === 'volunteer';
 
     useEffect(() => {
         return () => {
@@ -60,6 +62,7 @@ export default function AnnouncementForm({
         formData.append('title', data.title);
         formData.append('body', data.body);
         formData.append('kind', data.kind);
+        formData.append('event_at', needsSchedule ? data.event_at : '');
         formData.append('is_published', publishState ? '1' : '0');
         formData.append('remove_image', data.remove_image ? '1' : '0');
 
@@ -162,6 +165,23 @@ export default function AnnouncementForm({
                         {errors.body && <p className="text-sm text-destructive">{errors.body}</p>}
                     </div>
 
+                    {needsSchedule && (
+                        <div className="space-y-2">
+                            <Label htmlFor="event_at">
+                                {data.kind === 'volunteer' ? 'Volunteer activity date and time' : 'Event date and time'}
+                            </Label>
+                            <Input
+                                id="event_at"
+                                type="datetime-local"
+                                value={data.event_at}
+                                onChange={(e) => setData('event_at', e.target.value)}
+                                required
+                            />
+                            <p className="text-xs text-muted-foreground">Philippine time. This is what appears on the calendar.</p>
+                            {errors.event_at && <p className="text-sm text-destructive">{errors.event_at}</p>}
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <Label htmlFor="image">Cover image (optional)</Label>
                         {previewUrl ? (
@@ -261,6 +281,7 @@ export default function AnnouncementForm({
                 imageUrl={previewUrl}
                 isPublished={data.is_published}
                 publishedAt={data.is_published ? 'Just now' : null}
+                eventAt={needsSchedule ? data.event_at : null}
             />
         </form>
     );

@@ -11,7 +11,7 @@ export default function Calendar(props: CalendarPageProps) {
                 {...props}
                 basePath="/personnel/calendar"
                 heading="My calendar"
-                description="Assigned mission due dates and published barangay advisories."
+                description="Assigned mission due dates plus barangay events and advisories."
                 legend={['announcement', 'mission']}
                 split
             />

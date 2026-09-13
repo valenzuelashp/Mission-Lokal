@@ -136,6 +136,9 @@ export default function ForgotPassword() {
                     {/* ============================== */}
                     {step === 3 && (
                         <form className="space-y-6" onSubmit={submitNewPassword}>
+                            {errors.otp && (
+                                <p className="text-sm text-center text-red-600">{errors.otp}</p>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">New Password</label>
                                 <div className="mt-1">

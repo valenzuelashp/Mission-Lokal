@@ -12,7 +12,20 @@ type Props = {
     imageUrl?: string | null;
     isPublished: boolean;
     publishedAt?: string | null;
+    eventAt?: string | null;
 };
+
+function formatEventAt(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('en-PH', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    });
+}
 
 const kindIcons: Record<AnnouncementKind, LucideIcon> = {
     advisory: Bell,
@@ -27,6 +40,7 @@ export default function AnnouncementPreview({
     imageUrl,
     isPublished,
     publishedAt,
+    eventAt,
 }: Props) {
     const Icon = kindIcons[kind] ?? Megaphone;
     const kindLabel = announcementKindOptions.find((option) => option.value === kind)?.label ?? 'Advisory';
@@ -49,6 +63,11 @@ export default function AnnouncementPreview({
                         <CardTitle className="text-base leading-snug">
                             {title.trim() || 'Announcement title'}
                         </CardTitle>
+                        {eventAt && (
+                            <p className="mt-1 text-xs font-medium text-teal-800">
+                                Happening {formatEventAt(eventAt)}
+                            </p>
+                        )}
                         {isPublished && publishedAt && (
                             <p className="mt-1 text-xs text-muted-foreground">Posted {publishedAt}</p>
                         )}

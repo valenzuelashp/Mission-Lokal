@@ -312,8 +312,9 @@ class DemoDataSeeder extends Seeder
             $admin->id,
             'Barangay Fiesta 2026',
             'Join the barangay fiesta at the covered court. There will be a morning mass, parlor games, and a community lunch. Residents are invited to wear traditional attire.',
-            now('Asia/Manila')->setDate(2026, 9, 19)->setTime(8, 0),
+            now(),
             'event',
+            now('Asia/Manila')->setDate(2026, 9, 19)->setTime(8, 0),
         );
 
         $this->publishAnnouncement(
@@ -321,8 +322,9 @@ class DemoDataSeeder extends Seeder
             $admin->id,
             'Relief Goods Distribution',
             'The barangay hall will distribute relief goods to registered households. Volunteers are needed to pack and hand out goods. Bring a valid ID and your digital barangay ID. Queuing starts at 9:00 AM at the covered court.',
-            now('Asia/Manila')->setDate(2026, 9, 15)->setTime(9, 0),
+            now(),
             'volunteer',
+            now('Asia/Manila')->setDate(2026, 9, 15)->setTime(9, 0),
         );
 
         LibraryItem::create([
@@ -356,6 +358,7 @@ class DemoDataSeeder extends Seeder
         string $body,
         mixed $publishedAt,
         string $kind = 'advisory',
+        mixed $eventAt = null,
     ): void {
         Announcement::updateOrCreate(
             [
@@ -367,6 +370,7 @@ class DemoDataSeeder extends Seeder
                 'kind' => $kind,
                 'is_published' => true,
                 'published_at' => $publishedAt,
+                'event_at' => $eventAt,
                 'created_by' => $createdBy,
             ],
         );

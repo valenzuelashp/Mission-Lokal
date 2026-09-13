@@ -112,15 +112,25 @@ class CalendarService
                 ]);
             })
             ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('published_at', [$start, $end])
+                $query->whereBetween('event_at', [$start, $end])
                     ->orWhere(function ($inner) use ($start, $end) {
-                        $inner->whereNull('published_at')->whereBetween('created_at', [$start, $end]);
+                        $inner->whereNull('event_at')
+                            ->where(function ($posted) use ($start, $end) {
+                                $posted->whereBetween('published_at', [$start, $end])
+                                    ->orWhere(function ($created) use ($start, $end) {
+                                        $created->whereNull('published_at')->whereBetween('created_at', [$start, $end]);
+                                    });
+                            });
                     });
             })
             ->get();
 
         return $items->map(function (Announcement $item) use ($audience) {
-            $at = $item->published_at ?? $item->created_at;
+            $at = $item->calendarAt();
+            if (! $at) {
+                return null;
+            }
+
             $kind = $item->resolvedKind();
             $going = $kind === AnnouncementKind::Volunteer && (bool) $item->joined;
 
@@ -136,7 +146,7 @@ class CalendarService
                 subtitle: $going ? 'You are going' : $kind->calendarSubtitle((bool) $item->is_published),
                 going: $going,
             );
-        });
+        })->filter()->values();
     }
 
     private function missionEvents(
@@ -191,7 +201,11 @@ class CalendarService
             $parsed = CarbonImmutable::parse($date, 'Asia/Manila')->startOfDay();
             $time = null;
         } else {
-            $parsed = CarbonImmutable::parse($date, config('app.timezone') ?: 'UTC')->timezone('Asia/Manila');
+            if ($date instanceof \DateTimeInterface) {
+                $parsed = CarbonImmutable::instance(\Carbon\Carbon::parse($date)->timezone('Asia/Manila'));
+            } else {
+                $parsed = CarbonImmutable::parse($date, config('app.timezone') ?: 'UTC')->timezone('Asia/Manila');
+            }
             $time = $parsed->format('H:i') === '00:00' ? null : $parsed->format('g:i A');
         }
 
