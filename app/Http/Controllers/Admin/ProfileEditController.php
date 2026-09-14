@@ -14,7 +14,7 @@ use Inertia\Response;
 class ProfileEditController extends Controller
 {
     /**
-     * View all pending account information changes.
+     * View all pending account information changes, sorted by most recent first.
      */
     public function index(Request $request): Response
     {
@@ -25,6 +25,7 @@ class ProfileEditController extends Controller
             ->leftJoin('resident_profiles', 'users.id', '=', 'resident_profiles.user_id')
             ->where('users.barangay_id', $barangayId)
             ->where('profile_edit_requests.status', 'pending')
+            ->orderBy('profile_edit_requests.created_at', 'desc') // <--- Displays the recent one at the top
             ->select(
                 'profile_edit_requests.id',
                 'profile_edit_requests.user_id',
@@ -32,6 +33,7 @@ class ProfileEditController extends Controller
                 'users.first_name',
                 'users.middle_name',
                 'users.last_name',
+                'users.name_extension',
                 'users.email as current_email',
                 'users.mobile as current_mobile',
                 'users.parent_name as current_parent_name',
@@ -56,7 +58,7 @@ class ProfileEditController extends Controller
                     }
                 }
 
-                $currentFullName = trim(($edit->first_name ?? '') . ' ' . ($edit->middle_name ? $edit->middle_name . ' ' : '') . ($edit->last_name ?? ''));
+                $currentFullName = trim(($edit->first_name ?? '') . ' ' . ($edit->middle_name ? $edit->middle_name . ' ' : '') . ($edit->last_name ?? '') . ($edit->name_extension ? ' ' . $edit->name_extension : ''));
                 
                 return [
                     'id' => $edit->id,
@@ -64,6 +66,10 @@ class ProfileEditController extends Controller
                     'account_id' => $edit->account_id,
                     'resident_name' => $currentFullName,
                     'current_values' => [
+                        'first_name' => $edit->first_name ?? '—',
+                        'middle_name' => $edit->middle_name ?? '—',
+                        'last_name' => $edit->last_name ?? '—',
+                        'name_extension' => $edit->name_extension ?? '—',
                         'full_name' => $currentFullName,
                         'email' => $edit->current_email ?? '—',
                         'mobile' => $edit->current_mobile ?? '—',
@@ -71,7 +77,7 @@ class ProfileEditController extends Controller
                         'parent_contact' => $edit->current_parent_contact ?? '—',
                         'sex' => $edit->sex ?? '—',
                         'civil_status' => $edit->civil_status ?? '—',
-                        'birthday' => $edit->birthday ?? '—',
+                        'birthday' => $edit->birthday ? \Carbon\Carbon::parse($edit->birthday)->format('Y-m-d') : '—',
                         'house_street' => $edit->house_street ?? '—',
                         'barangay_name' => $edit->barangay_name ?? '—',
                         'city' => $edit->city ?? '—',
@@ -88,7 +94,7 @@ class ProfileEditController extends Controller
     }
 
     /**
-     * Approve change sets and write directly into the registry.
+     * Approve change sets and write directly into the registry across users and resident_profiles.
      */
     public function approve(Request $request, string $id): RedirectResponse
     {
@@ -111,26 +117,29 @@ class ProfileEditController extends Controller
         }
 
         DB::transaction(function () use ($editRequest, $changes) {
-            $userUpdates = ['profile_edit_status' => 'none'];
-
             if (is_array($changes)) {
-                $allowed = ['email', 'mobile', 'parent_name', 'parent_contact'];
-                $changes = array_intersect_key($changes, array_flip($allowed));
+                $userAllowed = ['first_name', 'middle_name', 'last_name', 'name_extension', 'email', 'mobile', 'parent_name', 'parent_contact'];
+                $profileAllowed = ['birthday', 'sex', 'civil_status', 'house_street', 'barangay_name', 'city', 'province'];
 
-                if (isset($changes['email'])) {
-                    $userUpdates['email'] = $changes['email'];
-                }
-                if (isset($changes['mobile'])) {
-                    $userUpdates['mobile'] = $changes['mobile'];
-                }
-                if (isset($changes['parent_name'])) {
-                    $userUpdates['parent_name'] = $changes['parent_name'];
-                }
-                if (isset($changes['parent_contact'])) {
-                    $userUpdates['parent_contact'] = $changes['parent_contact'];
+                $userUpdates = ['profile_edit_status' => 'none'];
+                $profileUpdates = [];
+
+                foreach ($changes as $key => $value) {
+                    if (in_array($key, $userAllowed)) {
+                        $userUpdates[$key] = $value;
+                    }
+                    if (in_array($key, $profileAllowed)) {
+                        $profileUpdates[$key] = $value;
+                    }
                 }
 
                 User::where('id', $editRequest->user_id)->update($userUpdates);
+
+                if (!empty($profileUpdates)) {
+                    DB::table('resident_profiles')
+                        ->where('user_id', $editRequest->user_id)
+                        ->update($profileUpdates);
+                }
             }
 
             DB::table('profile_edit_requests')

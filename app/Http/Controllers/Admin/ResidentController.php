@@ -45,10 +45,12 @@ class ResidentController extends Controller
                 $status = 'approved';
             }
 
+            $fullName = trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ($user->name_extension ? ' ' . $user->name_extension : ''));
+
             return [
                 'id' => $user->id,
                 'account_id' => $user->account_id,
-                'full_name' => trim($user->first_name . ' ' . $user->last_name),
+                'full_name' => $fullName,
                 'email' => $user->email ?? '—',
                 'mobile' => $user->mobile ?? '—',
                 'address' => $user->residentProfile?->address ?? $user->address ?? 'No address listed',
@@ -82,7 +84,7 @@ class ResidentController extends Controller
             'last_name' => 'required|string|max:255',
             'name_extension' => 'nullable|string|max:20',
             'sex' => 'required|in:Male,Female,Other',
-            'civil_status' => 'nullable|string|in:Single,Married,Widowed,Separated',
+            'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
             'house_street' => 'required|string|max:255',
             'barangay_name' => 'required|string|max:255',
             'city' => 'required|string|max:255',
@@ -109,7 +111,7 @@ class ResidentController extends Controller
                 'last_name' => $request->last_name,
                 'name_extension' => $request->name_extension,
                 'sex' => $request->sex,
-                'civil_status' => $request->civil_status ?? 'Single',
+                'civil_status' => $request->civil_status,
                 'house_street' => $request->house_street,
                 'barangay_name' => $request->barangay_name,
                 'city' => $request->city,
@@ -139,7 +141,7 @@ class ResidentController extends Controller
                 'verification_status' => 'unverified',
                 'birthday' => $formattedBirthday,
                 'sex' => $request->sex,
-                'civil_status' => $request->civil_status ?? 'Single',
+                'civil_status' => $request->civil_status,
                 'house_street' => $request->house_street,
                 'barangay_name' => $request->barangay_name,
                 'city' => $request->city,
@@ -176,7 +178,7 @@ class ResidentController extends Controller
         $file = $request->file('file');
         $path = $file->getRealPath();
         $data = array_map('str_getcsv', file($path));
-        array_shift($data);
+        array_shift($data); // Remove header row
 
         DB::beginTransaction();
         try {
@@ -185,17 +187,19 @@ class ResidentController extends Controller
                 if (count($row) < 10) continue; 
 
                 $accountId = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
-                $bday = Carbon::parse(trim($row[9]))->format('Y-m-d');
+                
                 $firstName = trim($row[0]);
-                $lastName = trim($row[2]);
                 $middleName = trim($row[1] ?? '');
+                $lastName = trim($row[2]);
                 $nameExt = trim($row[3] ?? '');
                 $sex = trim($row[4] ?? 'Male');
-                $houseStreet = trim($row[5]);
-                $barangayName = trim($row[6]);
-                $city = trim($row[7]);
-                $province = trim($row[8]);
-                $mobile = !empty(trim($row[10] ?? '')) ? trim($row[10]) : null;
+                $civilStatus = trim($row[5] ?? 'Single');
+                $houseStreet = trim($row[6]);
+                $barangayName = trim($row[7]);
+                $city = trim($row[8]);
+                $province = trim($row[9]);
+                $bday = Carbon::parse(trim($row[10]))->format('Y-m-d');
+                $mobile = !empty(trim($row[11] ?? '')) ? trim($row[11]) : null;
 
                 PreloadedResident::create([
                     'barangay_id' => $barangayId,
@@ -205,7 +209,7 @@ class ResidentController extends Controller
                     'last_name' => $lastName,
                     'name_extension' => $nameExt,
                     'sex' => $sex,
-                    'civil_status' => 'Single',
+                    'civil_status' => $civilStatus,
                     'house_street' => $houseStreet,
                     'barangay_name' => $barangayName,
                     'city' => $city,
@@ -233,7 +237,7 @@ class ResidentController extends Controller
                     'verification_status' => 'unverified',
                     'birthday' => $bday,
                     'sex' => $sex,
-                    'civil_status' => 'Single',
+                    'civil_status' => $civilStatus,
                     'house_street' => $houseStreet,
                     'barangay_name' => $barangayName,
                     'city' => $city,
@@ -259,7 +263,7 @@ class ResidentController extends Controller
             return redirect()->back()->with('success', 'CSV residents batch imported successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->withErrors(['file' => 'Failed to parse CSV file format. Check structure alignment.']);
+            return redirect()->back()->withErrors(['file' => 'Failed to parse CSV file format. Check structure alignment: ' . $e->getMessage()]);
         }
     }
 
@@ -300,10 +304,12 @@ class ResidentController extends Controller
         $birthday = $profile?->birthday ? Carbon::parse($profile->birthday) : null;
         $ageYears = $birthday ? $birthday->age : null;
 
+        $fullName = trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ($user->name_extension ? ' ' . $user->name_extension : ''));
+
         $profileDetail = [
             'id' => $user->id,
             'account_id' => $user->account_id,
-            'full_name' => trim($user->first_name . ' ' . $user->last_name),
+            'full_name' => $fullName,
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'middle_name' => $user->middle_name ?? '',

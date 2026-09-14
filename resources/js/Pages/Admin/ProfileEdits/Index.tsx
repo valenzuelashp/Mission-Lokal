@@ -33,7 +33,24 @@ export default function Index({ pendingEdits = [] }: Props) {
     };
 
     const formatKeyLabel = (key: string) => {
-        return key.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        const labels: Record<string, string> = {
+            first_name: 'First Name',
+            middle_name: 'Middle Name',
+            last_name: 'Last Name',
+            name_extension: 'Name Extension',
+            birthday: 'Birthday',
+            sex: 'Sex',
+            civil_status: 'Civil Status',
+            house_street: 'House / Street',
+            barangay_name: 'Barangay',
+            city: 'City / Municipality',
+            province: 'Province',
+            email: 'Email Address',
+            mobile: 'Mobile Number',
+            parent_name: 'Guardian Name',
+            parent_contact: 'Guardian Contact',
+        };
+        return labels[key] || key.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
     return (
@@ -74,7 +91,7 @@ export default function Index({ pendingEdits = [] }: Props) {
                             {/* Comparison Table View */}
                             <div className="p-5">
                                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 mb-3">
-                                    <UserCog className="h-4 w-4 text-blue-600" /> Side-by-Side Field Comparison
+                                    <UserCog className="h-4 w-4 text-blue-600" /> Side-by-Side Field Comparison (All Modified Fields)
                                 </h4>
 
                                 <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -116,7 +133,7 @@ export default function Index({ pendingEdits = [] }: Props) {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleReject(request.id)}
-                                        className="text-red-600 border-red-200 hover:bg-red-50 text-xs h-9"
+                                        className="text-red-600 border-red-200 hover:bg-red-50 text-xs h-9 cursor-pointer"
                                     >
                                         <UserX className="mr-1.5 h-4 w-4" /> Reject Request
                                     </Button>
@@ -124,7 +141,7 @@ export default function Index({ pendingEdits = [] }: Props) {
                                         disabled={processing}
                                         size="sm"
                                         onClick={() => handleApprove(request.id)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 cursor-pointer"
                                     >
                                         <UserCheck className="mr-1.5 h-4 w-4" /> Commit Changes
                                     </Button>

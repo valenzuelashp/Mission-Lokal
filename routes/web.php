@@ -1,5 +1,4 @@
 <?php
-
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\ProfileController;
@@ -29,7 +28,6 @@ Route::get('/', function () {
 
     $user = auth()->user();
     
-    // Safely parse role whether it's an Enum instance or a raw string database column
     $role = $user->role instanceof UserRole ? $user->role->value : $user->role;
 
     if ($role === 'admin' || $role === UserRole::Admin) {
@@ -61,7 +59,6 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     
-    // ATTACHED RATE LIMITER: Prevents concern spam (max 3 per minute)
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:reports');
     
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
@@ -83,9 +80,12 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.edit.store');
     
+    Route::get('/profile/security/request', [SecurityController::class, 'requestOtp'])->name('profile.security.request');
+    Route::get('/profile/security/verify', [SecurityController::class, 'showVerifyForm'])->name('profile.security.verify.form');
+    Route::post('/profile/security/verify', [SecurityController::class, 'verifyOtp'])->name('profile.security.verify');
     Route::get('/profile/security', [SecurityController::class, 'index'])->name('profile.security');
     Route::put('/profile/security', [SecurityController::class, 'updatePassword'])->name('profile.security.update');
-    
+
     Route::get('/blotter/new', fn () => Inertia::render('Resident/Blotter/TypeSelect'))->name('blotter.create');
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
@@ -96,34 +96,34 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
 
 /*
 |--------------------------------------------------------------------------
-| Guest Authentication Routes (Including Registration & Forgot Password)
+| Account Status Search & Resubmission (Public / Unverified Access)
+|--------------------------------------------------------------------------
+*/
+Route::get('/account-status', [AccountStatusController::class, 'search'])->name('account.status');
+Route::get('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'showResubmitForm'])->name('account.resubmit.form');
+Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'storeResubmit'])->name('account.resubmit.store');
+
+/*
+|--------------------------------------------------------------------------
+| Guest Authentication Routes
 |--------------------------------------------------------------------------
 */
 Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
 
 Route::middleware('guest')->group(function () {
-    // Resident Login Portal
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
     
-    // Admin & Personnel Login Portal
     Route::get('/admin-personnel/login', [AdminPersonnelLoginController::class, 'create'])->name('admin-personnel.login');
     Route::post('/admin-personnel/login', [AdminPersonnelLoginController::class, 'store'])->middleware('throttle:login');
     
-    // Resident Registration Routes
+    // Secure Registration Routes (strictly for guests)
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
 
-    Route::get('/account-status', [AccountStatusController::class, 'search'])->name('account.status');
-    Route::get('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'showResubmitForm'])->name('account.resubmit.form');
-    Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::class, 'storeResubmit'])->name('account.resubmit.store');
-
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
-    
-    // ATTACHED RATE LIMITER: Prevents email sending spam (max 3 per minute)
     Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email')->middleware('throttle:otp');
     Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify')->middleware('throttle:otp');
-    
     Route::post('/forgot-password/reset', [ForgotPasswordController::class, 'resetPassword'])->name('password.update')->middleware('throttle:otp');
 });
 
@@ -138,7 +138,6 @@ Route::middleware(['auth', 'role:resident'])->group(function () {
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';
 
-//PHASE 9: Service Worker Global Scope Override
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');
     if (!file_exists($path)) abort(404);

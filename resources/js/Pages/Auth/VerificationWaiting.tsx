@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Clock3, ShieldAlert } from 'lucide-react';
 
 interface Props {
@@ -8,8 +8,6 @@ interface Props {
 }
 
 export default function VerificationWaiting({ status, rejection_reason, full_name }: Props) {
-    const { post, processing } = useForm({});
-
     const title = status === 'rejected'
         ? 'Registration needs updates'
         : status === 'in_progress'
@@ -23,6 +21,11 @@ export default function VerificationWaiting({ status, rejection_reason, full_nam
         : status === 'unverified'
             ? 'Your name is in the barangay list, but you still need to submit a registration with your email, phone number, and government ID.'
             : 'An administrator will compare your details with barangay records. Login credentials will be emailed to you after approval.';
+
+    const handleLogout = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post('/logout');
+    };
 
     return (
         <>
@@ -46,25 +49,11 @@ export default function VerificationWaiting({ status, rejection_reason, full_nam
                         </p>
                     )}
 
-                    <div className="mt-6 space-y-3">
-                        {status === 'unverified' && (
-                            <Link href="/register" className="block w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700">
-                                Go to registration
-                            </Link>
-                        )}
-                        {status === 'rejected' && (
-                            <Link href="/account-status" className="block w-full rounded-md bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700">
-                                Check status and resubmit
-                            </Link>
-                        )}
-                        <Link href="/account-status" className="block text-sm font-medium text-blue-600 hover:underline">
-                            Check registration status
-                        </Link>
+                    <div className="mt-8 pt-4 border-t border-slate-100">
                         <button
                             type="button"
-                            disabled={processing}
-                            onClick={() => post('/logout')}
-                            className="text-sm text-slate-500 hover:text-slate-800"
+                            onClick={handleLogout}
+                            className="w-full rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors cursor-pointer"
                         >
                             Log out
                         </button>

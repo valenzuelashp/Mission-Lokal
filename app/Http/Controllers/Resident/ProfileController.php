@@ -92,30 +92,25 @@ class ProfileController extends Controller
         }
 
         $user->load(['residentProfile']);
-
-        $firstName = $user->first_name ?? '';
-        $middleName = $user->middle_name ?? '';
-        $lastName = $user->last_name ?? '';
-        $extension = $user->name_extension ?? '';
-
-        $fullName = trim("{$firstName} " . (!empty($middleName) ? "{$middleName} " : "") . "{$lastName}" . (!empty($extension) ? " {$extension}" : ""));
-
         $profile = $user->residentProfile;
 
-        $birthdayStr = '—';
+        $birthdayStr = '';
         $birthdayData = $profile?->birthday;
         if (! empty($birthdayData)) {
             $birthdayStr = is_string($birthdayData)
-                ? date('F d, Y', strtotime($birthdayData))
-                : $birthdayData->format('F d, Y');
+                ? date('Y-m-d', strtotime($birthdayData))
+                : $birthdayData->format('Y-m-d');
         }
 
         $profileData = [
-            'full_name'     => $fullName,
-            'email'         => $user->email,
+            'first_name'    => $user->first_name ?? '',
+            'middle_name'   => $user->middle_name ?? '',
+            'last_name'     => $user->last_name ?? '',
+            'name_extension'=> $user->name_extension ?? '',
+            'email'         => $user->email ?? '',
             'mobile'        => $user->mobile ?? '',
-            'sex'           => $profile?->sex ?? '—',
-            'civil_status'  => $profile?->civil_status ?? '—',
+            'sex'           => $profile?->sex ?? 'Male',
+            'civil_status'  => $profile?->civil_status ?? 'Single',
             'birthday'      => $birthdayStr,
             'house_street'  => $profile?->house_street ?? '',
             'barangay_name' => $profile?->barangay_name ?? '',
@@ -142,8 +137,19 @@ class ProfileController extends Controller
         $user->load(['barangay', 'residentProfile']);
 
         $rules = [
-            'email'  => 'required|email|max:255|unique:users,email,'.$user->id,
-            'mobile' => 'required|string|max:20',
+            'first_name'    => 'required|string|max:255',
+            'middle_name'   => 'nullable|string|max:255',
+            'last_name'     => 'required|string|max:255',
+            'name_extension'=> 'nullable|string|max:20',
+            'birthday'      => 'required|date',
+            'sex'           => 'required|string|in:Male,Female,Other',
+            'civil_status'  => 'required|string|in:Single,Married,Widowed,Separated',
+            'house_street'  => 'required|string|max:150',
+            'barangay_name' => 'required|string|max:100',
+            'city'          => 'required|string|max:100',
+            'province'      => 'required|string|max:100',
+            'email'         => 'required|email|max:255|unique:users,email,'.$user->id,
+            'mobile'        => 'required|string|max:20',
         ];
 
         if ($user->isMinor()) {
@@ -153,13 +159,24 @@ class ProfileController extends Controller
 
         $validated = $request->validate($rules);
 
+        $profile = $user->residentProfile;
         $changes = [];
-        if (trim($validated['email']) !== trim($user->email ?? '')) {
-            $changes['email'] = $validated['email'];
-        }
-        if (trim($validated['mobile']) !== trim($user->mobile ?? '')) {
-            $changes['mobile'] = $validated['mobile'];
-        }
+
+        // Compare and track modifications across all fields
+        if (trim($validated['first_name']) !== trim($user->first_name ?? '')) $changes['first_name'] = $validated['first_name'];
+        if (trim($validated['middle_name'] ?? '') !== trim($user->middle_name ?? '')) $changes['middle_name'] = $validated['middle_name'];
+        if (trim($validated['last_name']) !== trim($user->last_name ?? '')) $changes['last_name'] = $validated['last_name'];
+        if (trim($validated['name_extension'] ?? '') !== trim($user->name_extension ?? '')) $changes['name_extension'] = $validated['name_extension'];
+        if (trim($validated['email']) !== trim($user->email ?? '')) $changes['email'] = $validated['email'];
+        if (trim($validated['mobile']) !== trim($user->mobile ?? '')) $changes['mobile'] = $validated['mobile'];
+
+        if (trim($validated['birthday']) !== ($profile?->birthday ? $profile->birthday->format('Y-m-d') : '')) $changes['birthday'] = $validated['birthday'];
+        if (trim($validated['sex']) !== trim($profile?->sex ?? '')) $changes['sex'] = $validated['sex'];
+        if (trim($validated['civil_status']) !== trim($profile?->civil_status ?? '')) $changes['civil_status'] = $validated['civil_status'];
+        if (trim($validated['house_street']) !== trim($profile?->house_street ?? '')) $changes['house_street'] = $validated['house_street'];
+        if (trim($validated['barangay_name']) !== trim($profile?->barangay_name ?? '')) $changes['barangay_name'] = $validated['barangay_name'];
+        if (trim($validated['city']) !== trim($profile?->city ?? '')) $changes['city'] = $validated['city'];
+        if (trim($validated['province']) !== trim($profile?->province ?? '')) $changes['province'] = $validated['province'];
 
         if ($user->isMinor()) {
             if (trim($validated['parent_name'] ?? '') !== trim($user->parent_name ?? '')) {
@@ -172,7 +189,7 @@ class ProfileController extends Controller
 
         if ($changes === []) {
             return back()->withErrors([
-                'email' => 'No contact changes were detected. Census details can only be corrected at the barangay hall.',
+                'email' => 'No profile modifications were detected.',
             ])->withInput();
         }
 
@@ -187,6 +204,6 @@ class ProfileController extends Controller
             $user->update(['profile_edit_status' => 'pending_approval']);
          });
 
-        return redirect()->route('profile')->with('success', 'Edit request submitted for admin review.');
+        return redirect()->route('profile')->with('success', 'Profile modification request submitted for admin review.');
     }
 }

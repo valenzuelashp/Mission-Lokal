@@ -148,8 +148,10 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                     <p className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
                                         Compare the resident submission with the barangay census. Highlighted rows do not match. Approve writes these fields into the barangay record and emails login credentials.
                                     </p>
-                                    {approveForm.errors.error && (
-                                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">{approveForm.errors.error}</p>
+                                    {(approveForm.errors as Record<string, string>).general && (
+                                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                                            {(approveForm.errors as Record<string, string>).general}
+                                        </p>
                                     )}
 
                                     {/* Name Fields (First & Middle) */}
@@ -394,9 +396,9 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                     Reason for Rejection / Resubmission <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm p-3"
                                     rows={4}
-                                    placeholder="e.g. Your ID photo is blurry. Please re-upload."
+                                    placeholder="e.g. Please visit the barangay hall in person to present your physical valid ID and provide/verify your barangay personal record details."
                                     value={rejectData.rejection_reason}
                                     onChange={e => setRejectData('rejection_reason', e.target.value)}
                                     required
@@ -410,14 +412,14 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                 <button
                                     type="button"
                                     onClick={() => setShowRejectModal(false)}
-                                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors text-sm"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={rejecting || !rejectData.rejection_reason}
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 text-sm"
                                 >
                                     {rejecting ? 'Processing...' : 'Confirm Rejection'}
                                 </button>

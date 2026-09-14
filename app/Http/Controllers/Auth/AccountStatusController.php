@@ -21,7 +21,6 @@ class AccountStatusController extends Controller
         $result = null;
 
         if ($query) {
-            // Clean up query terms
             $terms = array_values(array_filter(explode(' ', preg_replace('/[^a-zA-Z0-9\s]/', '', $query))));
 
             $user = null;
@@ -34,7 +33,6 @@ class AccountStatusController extends Controller
             }
 
             if (! $user && count($terms) >= 2) {
-                // Precise exact matching for First and Last name using standard LIKE
                 $firstName = $terms[0];
                 $lastName = end($terms);
 
@@ -44,7 +42,6 @@ class AccountStatusController extends Controller
                     ->with('residentProfile')
                     ->first();
 
-                // Fallback check in preloaded_residents if not mapped to user yet
                 if (!$user) {
                     $preloaded = PreloadedResident::where('first_name', 'like', $firstName)
                         ->where('last_name', 'like', $lastName)
@@ -133,6 +130,7 @@ class AccountStatusController extends Controller
             'status' => $statusValue,
             'rejection_reason' => $user->residentProfile?->rejection_reason,
             'full_name' => trim("{$user->first_name} {$user->last_name}"),
+            'userId' => $user->id,
         ]);
     }
 
@@ -180,7 +178,6 @@ class AccountStatusController extends Controller
 
         $path = app(GovernmentIdStorage::class)->storeEncrypted($request->file('government_id'));
 
-        // Update user text data if adjusted
         $user->update([
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
@@ -188,13 +185,11 @@ class AccountStatusController extends Controller
             'mobile' => $request->mobile,
         ]);
 
-        // Shift verification status back to pending and clear rejection reason inside residentProfile
         $user->residentProfile()->update([
             'verification_status' => 'pending',
             'rejection_reason' => null,
         ]);
 
-        // Recreate the temporary registration entry so it pops back up in the admin verification queue
         $registration = ResidentRegistration::create([
             'barangay_id' => $user->barangay_id,
             'first_name' => $request->first_name,

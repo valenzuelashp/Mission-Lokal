@@ -21,8 +21,9 @@ class ReportController extends Controller
     private function validateTransition(string $current, string $next): bool
     {
         $map = [
-            'submitted'    => ['under_review', 'rejected'],
-            'under_review' => ['active', 'in_progress', 'rejected'],
+            'submitted'    => ['under_review', 'rejected', 'spam'],
+            'ai_processed' => ['under_review', 'rejected', 'spam', 'active', 'resolved'],
+            'under_review' => ['active', 'in_progress', 'rejected', 'resolved', 'closed'],
             'in_progress'  => ['resolved'],
             'active'       => ['resolved', 'closed'],
             'resolved'     => ['closed'],
@@ -116,6 +117,27 @@ class ReportController extends Controller
             ->with(['media', 'currentAiAnalysis', 'mission.personnel'])
             ->findOrFail($id);
         
+        // Automatically transition fresh reports to 'under_review'
+        $currentStatus = $record->status->value ?? $record->status;
+        if (in_array($currentStatus, ['submitted', 'ai_processed'])) {
+            $record->update([
+                'status' => 'under_review',
+                'staff_reviewed_by' => Auth::id(),
+                'staff_reviewed_at' => now(),
+            ]);
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'REVIEW',
+                'entity_type' => 'Concern',
+                'entity_id' => $id,
+                'metadata' => json_encode(['details' => 'Moved report to under_review upon admin inspection']),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        }
+        
         $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$record->id]);
         
         $personnelList = Personnel::with('user')
@@ -127,14 +149,15 @@ class ReportController extends Controller
             ->get()
             ->map(function ($personnel) {
                 $fullName = trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? ''));
+                $cat = $personnel->category;
+                $catName = is_object($cat) && method_exists($cat, 'label') ? $cat->label() : (is_string($cat) ? ucfirst($cat) : 'General');
                 return [
                     'id' => $personnel->id,
                     'name' => $fullName ?: 'Unnamed Personnel',
-                    'category' => $personnel->category?->label() ?? 'Category not set',
+                    'category' => $catName,
                 ];
             });
 
-        // Pluck already assigned personnel IDs if a mission already exists for this concern
         $assignedPersonnelIds = $record->mission?->personnel?->pluck('id')->values()->toArray() ?? [];
 
         $masterCandidates = Concern::where('barangay_id', $barangayId)
@@ -143,6 +166,9 @@ class ReportController extends Controller
             ->select('id', 'title')
             ->get()
             ->map(fn($c) => ['id' => $c->id, 'label' => $c->title]);
+
+        $record->refresh();
+        $aiAnalysis = $record->currentAiAnalysis;
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
@@ -155,8 +181,12 @@ class ReportController extends Controller
                 'lat' => $locationData ? (float) $locationData->lat : 14.6507,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9793,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
-                'prescriptive_steps' => $record->currentAiAnalysis?->prescriptive_steps ?? [],
-                'assigned_personnel_ids' => $assignedPersonnelIds, // Passed to frontend
+                'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
+                'assigned_personnel_ids' => !empty($assignedPersonnelIds) ? $assignedPersonnelIds : ($aiAnalysis?->suggested_personnel_ids ?? []),
+                'ai_recommended_action' => $aiAnalysis?->recommended_action ?? 'escalate',
+                'ai_action_reason' => $aiAnalysis?->action_reason ?? 'AI suggests standard operational triage and deployment.',
+                'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
+                'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason,
             ],
             'personnel' => $personnelList,
             'masterCandidates' => $masterCandidates,
@@ -210,13 +240,141 @@ class ReportController extends Controller
         return back()->with('success', 'AI verified.');
     }
 
+    public function confirmAiVerdict(Request $request, string $id): RedirectResponse
+    {
+        $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
+
+        $validated = $request->validate([
+            'confirmed_action' => ['required', 'string', 'in:escalate,merge,dismiss'],
+            'personnel_ids' => ['present', 'array'],
+            'personnel_ids.*' => ['exists:personnel,id'],
+            'master_concern_id' => ['nullable', 'string', 'exists:concerns,id'],
+            'rejection_reason' => ['nullable', 'string'],
+        ]);
+
+        $action = $validated['confirmed_action'];
+
+        if ($action === 'escalate') {
+            DB::transaction(function () use ($concern, $validated, $barangayId, $request) {
+                $mission = Mission::updateOrCreate(
+                    ['concern_id' => $concern->id],
+                    [
+                        'barangay_id' => $barangayId,
+                        'status' => 'assigned',
+                        'due_date' => now()->addDays(2),
+                        'created_by' => $request->user()->id,
+                    ]
+                );
+
+                $syncData = [];
+                foreach ($validated['personnel_ids'] as $personnelId) {
+                    $existingPivot = DB::table('mission_personnel')
+                        ->where('mission_id', $mission->id)
+                        ->where('personnel_id', $personnelId)
+                        ->first();
+
+                    $syncData[$personnelId] = [
+                        'id' => $existingPivot ? $existingPivot->id : (string) Str::uuid(),
+                        'assigned_by' => $request->user()->id,
+                        'status' => 'assigned',
+                        'created_at' => $existingPivot ? $existingPivot->created_at : now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                $mission->personnel()->sync($syncData);
+                $concern->update(['status' => 'active', 'staff_reviewed_by' => Auth::id(), 'staff_reviewed_at' => now()]);
+
+                DB::table('audit_logs')->insert([
+                    'barangay_id' => $barangayId,
+                    'actor_id' => Auth::id(),
+                    'action' => 'CONFIRM_AI_ESCALATE',
+                    'entity_type' => 'Mission',
+                    'entity_id' => $mission->id,
+                    'metadata' => json_encode(['details' => 'Confirmed AI verdict: Escalated report into field mission']),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                ]);
+            });
+
+            Notification::create([
+                'user_id' => $concern->reporter_id,
+                'channel' => 'in_app',
+                'event_type' => 'concern_active',
+                'title' => 'Concern Active',
+                'body' => 'A mission has been deployed to address your report based on AI triage confirmation.',
+                'payload' => ['concern_id' => $concern->id],
+            ]);
+
+            return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Mission deployed.');
+        } 
+        
+        if ($action === 'merge') {
+            $concern->update([
+                'status' => 'resolved', // FIXED DB CONSTRAINT ISSUE: Duplicates transition to resolved instead of directly to closed
+                'duplicate_of_id' => $validated['master_concern_id'],
+                'closed_summary' => 'Merged as a duplicate concern via AI confirmation.',
+                'staff_reviewed_by' => Auth::id(),
+                'staff_reviewed_at' => now(),
+            ]);
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'CONFIRM_AI_MERGE',
+                'entity_type' => 'Concern',
+                'entity_id' => $id,
+                'metadata' => json_encode(['details' => 'Confirmed AI verdict: Merged duplicate report']),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Report merged.');
+        }
+
+        if ($action === 'dismiss') {
+            $reason = $validated['rejection_reason'] ?? 'Dismissed by admin review.';
+            $concern->update([
+                'status' => 'rejected',
+                'closed_summary' => $reason,
+                'staff_reviewed_by' => Auth::id(),
+                'staff_reviewed_at' => now(),
+            ]);
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'CONFIRM_AI_DISMISS',
+                'entity_type' => 'Concern',
+                'entity_id' => $id,
+                'metadata' => json_encode(['details' => 'Confirmed AI verdict: Dismissed report due to: ' . $reason]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            Notification::create([
+                'user_id' => $concern->reporter_id,
+                'channel' => 'in_app',
+                'event_type' => 'concern_rejected',
+                'title' => 'Concern Rejected',
+                'body' => 'Your report was dismissed: ' . $reason,
+                'payload' => ['concern_id' => $concern->id],
+            ]);
+
+            return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Report dismissed.');
+        }
+
+        return back()->with('error', 'Invalid action specified.');
+    }
+
     public function mergeDuplicate(Request $request, string $id): RedirectResponse
     {
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
         $concern->update([
-            'status' => 'closed', 
+            'status' => 'resolved', // FIXED DB CONSTRAINT ISSUE
             'duplicate_of_id' => $request->master_concern_id,
             'closed_summary' => 'Merged as a duplicate concern.'
         ]);

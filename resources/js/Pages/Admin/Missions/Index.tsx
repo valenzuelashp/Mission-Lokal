@@ -1,35 +1,35 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Filter, Search, UserCheck, X } from 'lucide-react';
+import { Filter, Search, UserPlus, ChevronRight, X } from 'lucide-react';
 import { useMemo, useState, FormEvent } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { demoMissions, missionCounts } from '@/Lib/adminDemo';
+import { demoMissions } from '@/Lib/adminDemo';
 import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import { cn } from '@/Lib/utils';
-import type { AdminMission as BaseAdminMission, AdminMissionQueuePageProps, MissionStatus } from '@/Types';
+import type { AdminMission as BaseAdminMission, AdminMissionQueuePageProps } from '@/Types';
 import { Badge } from '@/Components/ui/badge';
 
 type AdminMission = BaseAdminMission & {
     display_id?: string;
     personnel_ids?: string[];
+    is_overdue?: boolean;
+    is_escalated?: boolean;
 };
 
-type FilterKey = 'all' | MissionStatus | 'overdue';
+type FilterKey = 'all' | 'assigned_ack' | 'in_progress' | 'completed' | 'verified' | 'overdue';
 
 const tabs: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'assigned', label: 'Assigned' },
-    { key: 'acknowledged', label: 'Acknowledged' },
-    { key: 'in_progress', label: 'In progress' },
+    { key: 'all', label: 'All Missions' },
+    { key: 'assigned_ack', label: 'Assigned / Acknowledged' },
+    { key: 'in_progress', label: 'Active & Ongoing' },
     { key: 'completed', label: 'Completed' },
-    { key: 'verified', label: 'Verified' },
-    { key: 'overdue', label: 'Overdue' },
+    { key: 'verified', label: 'Completion Verified/Done' },
+    { key: 'overdue', label: 'Overdue / Alerts' },
 ];
 
 export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, category: string }[] }>) {
     const missions = (props.missions ?? demoMissions) as AdminMission[];
-    const counts = props.counts ?? missionCounts(missions);
     const personnel = props.personnel ?? [];
     const categories = ['Tanod', 'Lupon', 'Public works', 'Sanitation', 'VAW Desk'];
 
@@ -52,9 +52,20 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
 
     const filtered = useMemo(() => {
         return missions.filter((row: AdminMission) => {
-            const matchesFilter =
-                filter === 'all' ||
-                (filter === 'overdue' ? row.is_overdue || row.is_escalated : row.status === filter);
+            let matchesFilter = true;
+            const isOverdueAlert = Boolean(row.is_overdue || row.is_escalated);
+
+            if (filter === 'assigned_ack') {
+                matchesFilter = row.status === 'assigned' || row.status === 'acknowledged';
+            } else if (filter === 'in_progress') {
+                matchesFilter = row.status === 'in_progress';
+            } else if (filter === 'completed') {
+                matchesFilter = row.status === 'completed';
+            } else if (filter === 'verified') {
+                matchesFilter = row.status === 'verified';
+            } else if (filter === 'overdue') {
+                matchesFilter = isOverdueAlert && row.status !== 'verified';
+            }
 
             const q = search.toLowerCase();
             const matchesSearch =
@@ -68,6 +79,18 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
             return matchesFilter && matchesSearch;
         });
     }, [missions, filter, search]);
+
+    // Computed counts matching the updated tabs
+    const streamlinedCounts = useMemo(() => {
+        return {
+            all: missions.length,
+            assigned_ack: missions.filter(m => m.status === 'assigned' || m.status === 'acknowledged').length,
+            in_progress: missions.filter(m => m.status === 'in_progress').length,
+            completed: missions.filter(m => m.status === 'completed').length,
+            verified: missions.filter(m => m.status === 'verified').length,
+            overdue: missions.filter(m => Boolean(m.is_overdue || m.is_escalated) && m.status !== 'verified').length,
+        };
+    }, [missions]);
 
     const openAssignModal = (mission: AdminMission) => {
         reset();
@@ -109,7 +132,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
             <div className="mb-4 sm:mb-6">
                 <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Mission queue</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Manage approved missions, assign multiple personnel, track progress, and verify completed work.
+                    Monitor active field operations, manage multi-personnel assignments, and review completed work proofs.
                 </p>
             </div>
 
@@ -122,15 +145,15 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                             type="button"
                             onClick={() => setFilter(tab.key)}
                             className={cn(
-                                'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                                'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer',
                                 filter === tab.key
-                                    ? 'bg-red-600 text-white'
+                                    ? 'bg-red-600 text-white shadow-sm'
                                     : 'bg-white text-muted-foreground ring-1 ring-border hover:bg-muted',
                             )}
                         >
                             {tab.label}
                             <span className="ml-1.5 text-xs opacity-80">
-                                ({counts[tab.key as keyof typeof counts] ?? 0})
+                                ({streamlinedCounts[tab.key] ?? 0})
                             </span>
                         </button>
                     ))}
@@ -146,7 +169,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <Button variant="outline" size="icon" className="shrink-0">
+                    <Button variant="outline" size="icon" className="shrink-0 cursor-pointer">
                         <Filter className="h-4 w-4" />
                     </Button>
                 </div>
@@ -167,15 +190,17 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 <th className="px-4 py-3">Title</th>
                                 <th className="px-4 py-3">Location</th>
                                 <th className="px-4 py-3">Personnel(s)</th>
+                                <th className="px-4 py-3">Priority</th>
                                 <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Due Date</th>
                                 <th className="px-4 py-3 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                                        No missions found in this queue. Escalate reports from the Report Queue to populate missions.
+                                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                                        No missions found in this filter category.
                                     </td>
                                 </tr>
                             ) : (
@@ -186,35 +211,73 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                         {...rowNavProps(`/admin/missions/${m.id}`)}
                                     >
                                         <td className="px-4 py-3 font-medium text-slate-900">{m.display_id ?? `MS-${m.id.substring(0, 4).toUpperCase()}`}</td>
-                                        <td className="px-4 py-3 font-medium text-blue-900">
-                                            <Link href={`/admin/missions/${m.id}`} onClick={stopRowNav} className="hover:underline">
+                                        <td className="px-4 py-3 font-medium text-blue-900 max-w-[200px]">
+                                            <Link href={`/admin/missions/${m.id}`} onClick={stopRowNav} className="hover:underline truncate block" title={m.concern_title}>
                                                 {m.concern_title}
                                             </Link>
                                         </td>
-                                        <td className="px-4 py-3 text-slate-600">{m.location}</td>
+                                        <td className="px-4 py-3 text-slate-600 max-w-[150px] truncate" title={m.location}>{m.location}</td>
+                                        
                                         <td className="px-4 py-3">
                                             {m.assignee ? (
-                                                <span className="font-medium text-slate-800">{m.assignee}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        stopRowNav(e);
+                                                        openAssignModal(m);
+                                                    }}
+                                                    className="font-medium text-blue-700 underline underline-offset-2 hover:text-blue-900 truncate max-w-[160px] block text-left transition-colors cursor-pointer"
+                                                    title="Click to edit assignees"
+                                                >
+                                                    {m.assignee}
+                                                </button>
                                             ) : (
-                                                <span className="text-amber-600 text-xs font-semibold bg-amber-50 px-2 py-1 rounded">Unassigned</span>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-7 text-xs bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200 cursor-pointer"
+                                                    onClick={(e) => {
+                                                        stopRowNav(e);
+                                                        openAssignModal(m);
+                                                    }}
+                                                >
+                                                    <UserPlus className="mr-1 h-3 w-3" />
+                                                    Assign
+                                                </Button>
                                             )}
                                         </td>
+
                                         <td className="px-4 py-3">
-                                            <Badge variant="outline" className="capitalize">{m.status}</Badge>
+                                            <Badge
+                                                variant="outline"
+                                                className={
+                                                    m.priority === 'high'
+                                                        ? 'border-red-200 bg-red-50 text-red-700'
+                                                        : m.priority === 'med'
+                                                          ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                                          : 'border-slate-200 bg-slate-50'
+                                                }
+                                            >
+                                                {m.priority === 'med' ? 'Med' : m.priority.charAt(0).toUpperCase() + m.priority.slice(1)}
+                                            </Badge>
                                         </td>
+                                        <td className="px-4 py-3">
+                                            <Badge variant="outline" className={cn("capitalize", m.status === 'completed' && "bg-amber-100 text-amber-800 border-amber-300 font-semibold")}>{m.status}</Badge>
+                                        </td>
+                                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{m.due_date}</td>
+                                        
                                         <td className="px-4 py-3 text-right">
                                             <Button
-                                                type="button"
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-8 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                                                onClick={(e) => {
-                                                    stopRowNav(e);
-                                                    openAssignModal(m);
-                                                }}
+                                                className="h-8 text-xs bg-white text-slate-700 hover:bg-slate-50 border-slate-200 cursor-pointer"
+                                                asChild
                                             >
-                                                <UserCheck className="mr-1 h-3.5 w-3.5" />
-                                                {m.assignee ? 'Manage Assignees' : 'Assign Personnel'}
+                                                <Link href={`/admin/missions/${m.id}`} onClick={stopRowNav}>
+                                                    Open Mission
+                                                    <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                                                </Link>
                                             </Button>
                                         </td>
                                     </tr>
@@ -233,7 +296,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 <h3 className="text-xl font-bold text-blue-900">Manage Assignees</h3>
                                 <p className="text-xs text-muted-foreground mt-0.5">{selectedMission.concern_title}</p>
                             </div>
-                            <button onClick={closeModal} className="rounded-full p-1 hover:bg-slate-100">
+                            <button onClick={closeModal} className="rounded-full p-1 hover:bg-slate-100 cursor-pointer">
                                 <X className="h-5 w-5 text-slate-500" />
                             </button>
                         </div>
@@ -272,7 +335,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                                                     type="checkbox"
                                                                     checked={data.personnel_ids.includes(p.id)}
                                                                     onChange={() => togglePersonnelSelection(p.id)}
-                                                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                                 />
                                                                 <span>{p.name}</span>
                                                             </label>
@@ -296,10 +359,10 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                             </div>
 
                             <div className="mt-6 flex justify-end gap-3 pt-4">
-                                <Button type="button" variant="outline" onClick={closeModal}>
+                                <Button type="button" variant="outline" onClick={closeModal} className="cursor-pointer">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing} className="bg-blue-700 text-white hover:bg-blue-800">
+                                <Button type="submit" disabled={processing} className="bg-blue-700 text-white hover:bg-blue-800 cursor-pointer">
                                     {processing ? 'Saving...' : 'Confirm Assignment'}
                                 </Button>
                             </div>

@@ -1,10 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, Clock } from 'lucide-react';
-import MissionQueueCard from '@/Components/admin/MissionQueueCard';
+import { UserCheck } from 'lucide-react';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
-import { cn } from '@/Lib/utils';
 import type { AdminMission, MissionStatus } from '@/Types';
 
 const statusLabel: Record<MissionStatus, string> = {
@@ -27,58 +25,50 @@ const statusStyle: Record<MissionStatus, string> = {
 
 type Props = {
     missions: AdminMission[];
+    onOpenAssign?: (mission: AdminMission) => void;
 };
 
-export default function MissionQueueTable({ missions }: Props) {
+export default function MissionQueueTable({ missions, onOpenAssign }: Props) {
     if (missions.length === 0) {
         return <p className="py-10 text-center text-sm text-muted-foreground">No missions in this queue.</p>;
     }
 
     return (
-        <>
-            <div className="space-y-3 md:hidden">
-                {missions.map((mission) => (
-                    <MissionQueueCard key={mission.id} mission={mission} />
-                ))}
-            </div>
-
-            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <table className="w-full min-w-[900px] text-sm">
-                    <thead>
-                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            <th className="px-4 py-3">Mission ID</th>
-                            <th className="px-4 py-3">Concern</th>
-                            <th className="px-4 py-3">Location</th>
-                            <th className="px-4 py-3">Assigned to</th>
-                            <th className="px-4 py-3">Priority</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Due</th>
-                            <th className="px-4 py-3">Flags</th>
-                            <th className="px-4 py-3">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {missions.map((row) => {
-                            const href = row.id ? `/admin/missions/${row.id}` : null;
-                            return (
+        <div className="overflow-x-auto rounded-lg border bg-card">
+            <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
+                    <tr>
+                        <th className="px-4 py-3">Mission ID</th>
+                        <th className="px-4 py-3">Title & Location</th>
+                        <th className="px-4 py-3">Personnel(s) Assigned</th>
+                        <th className="px-4 py-3">Priority</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {missions.map((row: any) => {
+                        const href = row.id ? `/admin/missions/${row.id}` : null;
+                        return (
                             <tr
                                 key={row.id}
-                                className={cn('border-b last:border-0 hover:bg-muted/20', href && 'cursor-pointer')}
+                                className="cursor-pointer hover:bg-slate-50/50"
                                 {...rowNavProps(href)}
                             >
-                                <td className="px-4 py-3 font-medium text-blue-700">{row.id}</td>
-                                <td className="max-w-[180px] px-4 py-3">
-                                    <p className="font-medium leading-snug">{row.concern_title}</p>
-                                    <p className="text-xs text-muted-foreground">{row.concern_id}</p>
+                                <td className="px-4 py-3 font-medium text-blue-900">
+                                    {row.display_id ?? `MS-${row.id.substring(0, 4).toUpperCase()}`}
                                 </td>
-                                <td className="max-w-[140px] truncate px-4 py-3 text-muted-foreground" title={row.location}>
-                                    {row.location}
+                                <td className="px-4 py-3">
+                                    <Link href={`/admin/missions/${row.id}`} onClick={stopRowNav} className="font-medium text-blue-900 hover:underline">
+                                        {row.concern_title}
+                                    </Link>
+                                    <p className="text-xs text-muted-foreground">{row.location}</p>
                                 </td>
                                 <td className="px-4 py-3">
                                     {row.assignee ? (
-                                        <span className="font-medium">{row.assignee}</span>
+                                        <span className="font-medium text-slate-800">{row.assignee}</span>
                                     ) : (
-                                        <span className="text-amber-600">Unassigned</span>
+                                        <span className="text-amber-600 text-xs font-semibold bg-amber-50 px-2 py-1 rounded">Unassigned</span>
                                     )}
                                 </td>
                                 <td className="px-4 py-3">
@@ -87,54 +77,41 @@ export default function MissionQueueTable({ missions }: Props) {
                                         className={
                                             row.priority === 'high'
                                                 ? 'border-red-200 bg-red-50 text-red-700'
-                                                : row.priority === 'med'
-                                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                  : 'border-slate-200 bg-slate-50'
+                                                : 'border-amber-200 bg-amber-50 text-amber-700'
                                         }
                                     >
-                                        {row.priority === 'med' ? 'Med' : row.priority.charAt(0).toUpperCase() + row.priority.slice(1)}
+                                        {row.priority === 'med' ? 'Med' : row.priority.toUpperCase()}
                                     </Badge>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <Badge className={statusStyle[row.status]}>{statusLabel[row.status]}</Badge>
+                                    <Badge className={statusStyle[row.status as MissionStatus]}>{statusLabel[row.status as MissionStatus] ?? row.status}</Badge>
                                 </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
-                                    {row.due_date}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="flex flex-wrap gap-1">
-                                        {row.is_overdue && (
-                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
-                                                <Clock className="mr-1 h-3 w-3" />
-                                                Overdue
-                                            </Badge>
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex justify-end gap-2" onClick={stopRowNav}>
+                                        {onOpenAssign && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                onClick={() => onOpenAssign(row)}
+                                            >
+                                                <UserCheck className="mr-1 h-3.5 w-3.5" />
+                                                Assign
+                                            </Button>
                                         )}
-                                        {row.is_escalated && (
-                                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
-                                                <AlertTriangle className="mr-1 h-3 w-3" />
-                                                Escalated
-                                            </Badge>
-                                        )}
-                                        {!row.is_overdue && !row.is_escalated && (
-                                            <span className="text-xs text-muted-foreground">—</span>
-                                        )}
+                                        <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
+                                            <Link href={`/admin/missions/${row.id}`}>
+                                                Manage
+                                            </Link>
+                                        </Button>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3">
-                                    {row.id ? (
-                                        <Button variant="ghost" className="h-auto p-0 text-blue-700 hover:bg-transparent" asChild>
-                                            <Link href={`/admin/missions/${row.id}`} onClick={stopRowNav}>Manage</Link>
-                                        </Button>
-                                    ) : (
-                                        <span className="text-sm italic text-muted-foreground">Not assigned</span>
-                                    )}
-                                </td>
                             </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        </>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
     );
 }

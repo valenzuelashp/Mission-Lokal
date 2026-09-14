@@ -261,7 +261,7 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
                                 required 
                             />
                             <p className="text-xs text-muted-foreground mt-2">
-                                CSV columns expected format: First Name, Middle Name, Last Name, Name Extension, Sex, House/Street, Barangay Name, City, Province, Birthday.
+                                CSV columns expected format: First Name, Middle Name, Last Name, Name Extension, Sex, Civil Status, House/Street, Barangay Name, City, Province, Birthday, Mobile.
                             </p>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">

@@ -37,6 +37,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Core Operational Report Actions Pipeline (Task A4/A5 workflows)
     Route::post('/reports/{id}/confirm-ai', [ReportController::class, 'confirmAI'])->name('reports.confirm-ai');
+    Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict'); // <-- ADDED ROUTE TO FIX 404
     Route::post('/reports/{id}/merge', [ReportController::class, 'mergeDuplicate'])->name('reports.merge');
     Route::post('/reports/{id}/reject', [ReportController::class, 'rejectConcern'])->name('reports.reject');
     Route::post('/reports/{id}/escalate', [ReportController::class, 'createMission'])->name('reports.escalate');
@@ -93,7 +94,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library', [LibraryController::class, 'store'])->name('library.store');
-    // ADDED: Library Edit and Update routes
     Route::get('/library/{id}/edit', [LibraryController::class, 'edit'])->name('library.edit');
     Route::put('/library/{id}', [LibraryController::class, 'update'])->name('library.update');
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');

@@ -36,13 +36,31 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const [mobileOpen, setMobileOpen] = useState(false);
     
     // Safely cast props to resolve TypeScript inference conflicts
-    const { unread_count, pending_registrations_count } = usePage<PageProps & { 
+    const { 
+        unread_count, 
+        pending_registrations_count,
+        pending_reports_count,
+        pending_missions_count,
+        pending_blotters_count,
+        pending_profile_edits_count,
+        pending_map_alerts_count
+    } = usePage<PageProps & { 
         unread_count?: number; 
-        pending_registrations_count?: number; 
+        pending_registrations_count?: number;
+        pending_reports_count?: number;
+        pending_missions_count?: number;
+        pending_blotters_count?: number;
+        pending_profile_edits_count?: number;
+        pending_map_alerts_count?: number;
     }>().props;
     
     const unread = Number(unread_count ?? 0);
     const pendingRegistrations = Number(pending_registrations_count ?? 0);
+    const pendingReports = Number(pending_reports_count ?? 0);
+    const pendingMissions = Number(pending_missions_count ?? 0);
+    const pendingBlotters = Number(pending_blotters_count ?? 0);
+    const pendingProfileEdits = Number(pending_profile_edits_count ?? 0);
+    const pendingMapAlerts = Number(pending_map_alerts_count ?? 0);
 
     const active = (href: string, exact?: boolean) => {
         if (exact) return isActive('/admin') && href === '/admin';
@@ -83,9 +101,34 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         <item.icon className="h-4 w-4 shrink-0" />
                         {item.label}
                         
+                        {item.href.includes('reports') && pendingReports > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingReports > 99 ? '99+' : pendingReports}
+                            </Badge>
+                        )}
+                        {item.href.includes('missions') && pendingMissions > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingMissions > 99 ? '99+' : pendingMissions}
+                            </Badge>
+                        )}
                         {item.href.includes('verifications') && pendingRegistrations > 0 && (
                             <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
                                 {pendingRegistrations > 99 ? '99+' : pendingRegistrations}
+                            </Badge>
+                        )}
+                        {item.href.includes('blotters') && pendingBlotters > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingBlotters > 99 ? '99+' : pendingBlotters}
+                            </Badge>
+                        )}
+                        {item.href.includes('map') && pendingMapAlerts > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingMapAlerts > 99 ? '99+' : pendingMapAlerts}
+                            </Badge>
+                        )}
+                        {item.href.includes('profile-edits') && pendingProfileEdits > 0 && (
+                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
+                                {pendingProfileEdits > 99 ? '99+' : pendingProfileEdits}
                             </Badge>
                         )}
                         {item.href.includes('notifications') && unread > 0 && (
@@ -99,7 +142,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
             <button
                 type="button"
                 onClick={() => router.post('/logout')}
-                className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white"
+                className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white cursor-pointer"
             >
                 <LogOut className="h-4 w-4" />
                 Logout

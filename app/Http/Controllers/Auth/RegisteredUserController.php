@@ -119,7 +119,7 @@ class RegisteredUserController extends Controller
 
         if (! $preloaded) {
             return back()->withErrors([
-                'general' => 'No matching record was found in the barangay list. Please go to the barangay hall with a valid ID so your identity can be confirmed.',
+                'general' => 'No matching record was found in the barangay list. Please visit the barangay hall in person to present your physical valid ID and provide your barangay personal record details.',
             ])->withInput();
         }
 

@@ -429,6 +429,9 @@ export interface AdminResidentEmergencyContact {
 }
 
 export interface AdminResidentDetail extends AdminResident {
+    government_id_label: string;
+    government_id_url: any;
+    government_id_is_pdf: any;
     civil_status: string;
     sex: string;
     first_name: string;

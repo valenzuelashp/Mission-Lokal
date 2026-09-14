@@ -43,6 +43,7 @@ class MissionController extends Controller
             })->filter()->implode(', ') ?: null;
 
             $personnelIds = $mission?->personnel?->pluck('id')->values()->toArray() ?? [];
+            $statusStr = $mission ? ($mission->status->value ?? $mission->status) : 'assigned';
 
             return [
                 'id' => $rawId, 
@@ -53,13 +54,14 @@ class MissionController extends Controller
                 'assignee' => $assigneeNames,
                 'personnel_ids' => $personnelIds,
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
-                'status' => $mission ? ($mission->status->value ?? $mission->status) : 'assigned',
+                'status' => $statusStr,
                 'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
                 'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
             ];
         });
 
+        // Accurate counts calculation for mini tabs
         $counts = [
             'all' => $missions->count(),
             'assigned' => $missions->where('status', 'assigned')->count(),
@@ -67,7 +69,7 @@ class MissionController extends Controller
             'in_progress' => $missions->where('status', 'in_progress')->count(),
             'completed' => $missions->where('status', 'completed')->count(),
             'verified' => $missions->where('status', 'verified')->count(),
-            'overdue' => $missions->where('is_overdue', true)->count(),
+            'overdue' => $missions->where('is_overdue', true)->where('status', '!=', 'verified')->count(),
         ];
 
         User::where('barangay_id', $barangayId)
@@ -139,7 +141,6 @@ class MissionController extends Controller
                     'updated_at' => now(),
                 ];
 
-                // Automatically trigger an in-app notification for the assigned personnel user
                 $personnelRecord = Personnel::with('user')->find($personnelId);
                 if ($personnelRecord && $personnelRecord->user_id) {
                     Notification::create([
