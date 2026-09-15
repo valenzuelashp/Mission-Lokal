@@ -1,6 +1,7 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
+import { MapBasemapTiles, MapBasemapToggle, useMapBasemap } from '@/Components/maps/MapBasemap';
 import { createPinIcon, severityColors } from '@/Lib/mapUtils';
 import type { MapPin, Severity } from '@/Types';
 
@@ -35,15 +36,13 @@ export default function MapView({
     className = 'h-64',
     showLegend = false,
 }: Props) {
+    const { basemap, setBasemap } = useMapBasemap();
     return (
         <div className={className}>
             <div className="relative h-full min-h-[12rem] overflow-hidden rounded-lg">
                 <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full">
                     <MapInvalidateSize />
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                    <MapBasemapTiles basemap={basemap} />
                     {pins.map((pin) => {
                         const severity = (pin.severity ?? 'medium') as Severity;
                         return (
@@ -62,6 +61,7 @@ export default function MapView({
                         );
                     })}
                 </MapContainer>
+                <MapBasemapToggle value={basemap} onChange={setBasemap} />
                 {showLegend && (
                     <div className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-1.5 text-[10px] shadow-sm">
                         <p className="mb-1 font-semibold uppercase tracking-wide text-slate-600">Severity</p>

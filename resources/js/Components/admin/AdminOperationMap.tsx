@@ -1,8 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import { MapContainer, Marker, Polygon, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import MapInvalidateSize from '@/Components/maps/MapInvalidateSize';
-import { createPinIcon, severityColors } from '@/Lib/mapUtils';
+import { MapBasemapTiles, MapBasemapToggle, useMapBasemap } from '@/Components/maps/MapBasemap';
+import { createPinIcon, severityColors, TAMBO_CENTER, TAMBO_MASK_STYLE, tamboMaskPositions } from '@/Lib/mapUtils';
 import { cn } from '@/Lib/utils';
 import type { MapPin, Severity } from '@/Types';
 
@@ -27,7 +28,8 @@ type Props = {
 
 const legendLevels: Severity[] = ['critical', 'high', 'medium', 'low'];
 
-export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], className = 'h-80' }: Props) {
+export default function AdminOperationMap({ pins, center = TAMBO_CENTER, className = 'h-80' }: Props) {
+    const { basemap, setBasemap } = useMapBasemap();
     return (
         <div className={cn('flex flex-col', className)}>
             <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -45,9 +47,11 @@ export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], 
             <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border">
                 <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full">
                     <MapInvalidateSize />
-                    <TileLayer
-                        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    <MapBasemapTiles basemap={basemap} />
+                    <Polygon
+                        positions={tamboMaskPositions()}
+                        pathOptions={TAMBO_MASK_STYLE}
+                        interactive={false}
                     />
                     {pins.map((pin) => {
                         const severity = (pin.severity ?? 'medium') as Severity;
@@ -67,7 +71,8 @@ export default function AdminOperationMap({ pins, center = [14.5995, 120.9842], 
                         );
                     })}
                 </MapContainer>
-                <div className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-1.5 text-[10px] text-white">
+                <MapBasemapToggle value={basemap} onChange={setBasemap} />
+                <div className="pointer-events-none absolute bottom-2 left-2 rounded-md border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] text-slate-700 shadow-sm">
                     <div className="flex flex-wrap gap-x-2 gap-y-1">
                         {legendLevels.map((level) => (
                             <span key={level} className="flex items-center gap-1 capitalize">

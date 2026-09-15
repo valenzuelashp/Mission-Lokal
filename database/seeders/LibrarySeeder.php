@@ -56,7 +56,7 @@ class LibrarySeeder extends Seeder
                 'facilities' => ['Restrooms', 'Community Kitchen', 'Clinic'],
             ],
             // Maps require a special MySQL function to save the point correctly
-            'location' => DB::raw("ST_GeomFromText('POINT(14.5995 120.9842)', 4326)"),
+            'location' => DB::raw("ST_GeomFromText('POINT(14.5173079 120.9933811)', 4326)"),
             'sort_order' => 3,
             'is_active' => true,
         ]);

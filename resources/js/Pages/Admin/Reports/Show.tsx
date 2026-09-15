@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import MapView from '@/Components/maps/MapView';
 import { Badge } from '@/Components/ui/badge';
+import { TAMBO_CENTER } from '@/Lib/mapUtils';
 
 function formatStep(step: unknown): string {
     if (typeof step === 'string') return step;
@@ -35,8 +36,8 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
     });
 
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
-    const safeLat = report?.lat ? Number(report.lat) : 14.6507;
-    const safeLng = report?.lng ? Number(report.lng) : 120.9793;
+    const safeLat = report?.lat ? Number(report.lat) : TAMBO_CENTER[0];
+    const safeLng = report?.lng ? Number(report.lng) : TAMBO_CENTER[1];
 
     const togglePersonnelSelection = (id: string) => {
         const currentIds = [...data.personnel_ids];

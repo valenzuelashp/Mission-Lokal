@@ -91,12 +91,12 @@ class ConcernController extends Controller
                 ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
             
-            'mapCenter' => [14.5151, 120.9939],
+            'mapCenter' => [14.5173079, 120.9933811],
             
             'barangayBounds' => [
-                [14.50820, 120.97668], 
-                [14.52547, 121.00114]  
-            ]
+                [14.5059, 120.9766288],
+                [14.5235931, 121.0011399],
+            ],
         ]);
     }
 
@@ -241,8 +241,8 @@ class ConcernController extends Controller
                 'status' => $concern->status->value ?? $concern->status,
                 'description' => $concern->description,
                 'location_label' => $concern->address_text ?? 'Pinpointed Location',
-                'lat' => $locationData ? $locationData->lat : 14.6507,
-                'lng' => $locationData ? $locationData->lng : 120.9793,
+                'lat' => $locationData ? $locationData->lat : 14.5173079,
+                'lng' => $locationData ? $locationData->lng : 120.9933811,
                 'upvotes' => $upvotes,
                 'downvotes' => $downvotes,
                 'user_vote' => $userVote,

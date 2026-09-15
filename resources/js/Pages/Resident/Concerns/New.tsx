@@ -9,6 +9,7 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import ResidentLayout from '@/Layouts/ResidentLayout';
+import { TAMBO_BOUNDS, TAMBO_CENTER } from '@/Lib/mapUtils';
 import type { NewConcernPageProps } from '@/Types';
 
 // Extend the props to include the boundary array sent from the controller
@@ -16,13 +17,13 @@ interface Props extends NewConcernPageProps {
     barangayBounds?: [[number, number], [number, number]];
 }
 
-export default function New({ categories = [], mapCenter = [14.6507, 120.9793], barangayBounds }: Props) {
+export default function New({ categories = [], mapCenter = TAMBO_CENTER, barangayBounds }: Props) {
     // Extract auth user to check if they are a minor
     const { auth } = usePage().props as any;
     const isMinor = auth?.user?.is_minor ?? false;
 
-    const defaultLat = mapCenter && mapCenter[0] ? mapCenter[0] : 14.6507;
-    const defaultLng = mapCenter && mapCenter[1] ? mapCenter[1] : 120.9793;
+    const defaultLat = mapCenter && mapCenter[0] ? mapCenter[0] : TAMBO_CENTER[0];
+    const defaultLng = mapCenter && mapCenter[1] ? mapCenter[1] : TAMBO_CENTER[1];
 
     const { data, setData, post, processing, errors } = useForm({
         title: '',
@@ -164,7 +165,7 @@ export default function New({ categories = [], mapCenter = [14.6507, 120.9793], 
                                 center={[defaultLat, defaultLng]}
                                 position={[data.lat, data.lng]}
                                 // Pass the bounds data into the map component
-                                bounds={barangayBounds}
+                                bounds={barangayBounds ?? TAMBO_BOUNDS}
                                 onPositionChange={(lat, lng) => {
                                     setData('lat', lat);
                                     setData('lng', lng);

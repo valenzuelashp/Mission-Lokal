@@ -328,8 +328,8 @@ class ResidentController extends Controller
             'age_years' => $ageYears,
             'civic_xp' => (int)($profile?->civic_xp ?? 0),
             'badge_count' => (int)($user->badge_count ?? 0),
-            'map_lat' => $coords->lat ?? 14.65,
-            'map_lng' => $coords->lng ?? 120.98,
+            'map_lat' => $coords->lat ?? 14.5173079,
+            'map_lng' => $coords->lng ?? 120.9933811,
             'emergency_contact' => $user->emergency_contact ? json_decode($user->emergency_contact, true) : null,
             'activities' => $user->concerns->map(function ($concern) {
                 return [
