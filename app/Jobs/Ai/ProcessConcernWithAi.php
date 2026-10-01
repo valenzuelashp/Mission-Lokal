@@ -6,6 +6,7 @@ use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
 use App\Models\ConcernCategory;
 use App\Models\ConcernSubcategory;
+use App\Services\Concerns\ConcernDuplicateMatcher;
 use App\Enums\ConcernStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -185,9 +186,9 @@ class ProcessConcernWithAi implements ShouldQueue
     private function persistAnalysis(array $analysisData): void
     {
         [$categoryId, $subcategoryId] = $this->resolveCategoryIds($analysisData);
-        $severity = $analysisData['suggested_severity'] ?? 'medium';
-        $severity = in_array($severity, ['low', 'medium', 'high', 'critical'], true)
-            ? $severity
+        $aiSeverity = $analysisData['suggested_severity'] ?? 'medium';
+        $aiSeverity = in_array($aiSeverity, ['low', 'medium', 'high', 'critical'], true)
+            ? $aiSeverity
             : 'medium';
 
         $visibility = $analysisData['suggested_visibility'] ?? $this->concern->visibility ?? 'public';
@@ -195,12 +196,25 @@ class ProcessConcernWithAi implements ShouldQueue
             $visibility = 'private';
         }
 
+        $duplicateMatcher = app(ConcernDuplicateMatcher::class);
+        $duplicateMatch = $visibility === 'public' && $categoryId
+            ? $duplicateMatcher->findMatch($this->concern, $categoryId, $subcategoryId)
+            : null;
+        $crowdSeverity = $duplicateMatch
+            ? $duplicateMatcher->severityForReporterCount($duplicateMatch['reporter_count'])
+            : null;
+        $severity = $duplicateMatcher->higherSeverity($aiSeverity, $crowdSeverity);
+
         $analysis = DB::transaction(function () use (
             $analysisData,
             $categoryId,
             $subcategoryId,
             $visibility,
-            $severity
+            $aiSeverity,
+            $severity,
+            $duplicateMatch,
+            $crowdSeverity,
+            $duplicateMatcher,
         ) {
             ConcernAiAnalysis::where('concern_id', $this->concern->id)
                 ->where('is_current', true)
@@ -213,10 +227,12 @@ class ProcessConcernWithAi implements ShouldQueue
                 'suggested_category_id' => $categoryId,
                 'suggested_subcategory_id' => $subcategoryId,
                 'suggested_visibility' => $visibility,
-                'suggested_severity' => $severity,
+                'suggested_severity' => $aiSeverity,
                 'severity_confidence' => $this->boundedConfidence($analysisData['severity_confidence'] ?? 0.55),
                 'prescriptive_steps' => $analysisData['prescriptive_steps'] ?? [],
                 'suggested_duration_hours' => $analysisData['suggested_duration_hours'] ?? 24,
+                'duplicate_candidate_id' => $duplicateMatch['candidate']->id ?? null,
+                'duplicate_similarity' => $duplicateMatch['similarity'] ?? null,
                 'raw_model_output' => $analysisData,
                 'processed_at' => now(),
             ]);
@@ -227,6 +243,13 @@ class ProcessConcernWithAi implements ShouldQueue
                 'status' => ConcernStatus::AiProcessed,
                 'ai_processed_at' => now(),
             ]);
+
+            if ($duplicateMatch && $crowdSeverity) {
+                $duplicateMatcher->raiseMatchedIncidentSeverity(
+                    $duplicateMatch['candidate'],
+                    $crowdSeverity,
+                );
+            }
 
             return $analysis;
         });

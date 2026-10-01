@@ -162,13 +162,29 @@ class ReportController extends Controller
 
         $masterCandidates = Concern::where('barangay_id', $barangayId)
             ->where('id', '!=', $id)
-            ->whereIn('status', ['active', 'resolved', 'closed', 'under_review'])
+            ->whereIn('status', ['submitted', 'ai_processed', 'active', 'under_review'])
             ->select('id', 'title')
             ->get()
             ->map(fn($c) => ['id' => $c->id, 'label' => $c->title]);
 
         $record->refresh();
-        $aiAnalysis = $record->currentAiAnalysis;
+        $aiAnalysis = $record->currentAiAnalysis()->with('duplicateCandidate')->first();
+        $duplicateCandidate = $aiAnalysis?->duplicateCandidate;
+        $duplicateReporterCount = $duplicateCandidate
+            ? DB::table('concerns')
+                ->leftJoin('concern_ai_analysis', function ($join) {
+                    $join->on('concern_ai_analysis.concern_id', '=', 'concerns.id')
+                        ->where('concern_ai_analysis.is_current', true);
+                })
+                ->where(function ($query) use ($duplicateCandidate) {
+                    $query->where('concerns.id', $duplicateCandidate->id)
+                        ->orWhere('concern_ai_analysis.duplicate_candidate_id', $duplicateCandidate->id);
+                })
+                ->where('concerns.visibility', 'public')
+                ->whereIn('concerns.status', ['ai_processed', 'under_review', 'active'])
+                ->distinct()
+                ->count('concerns.reporter_id')
+            : null;
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
@@ -186,6 +202,9 @@ class ReportController extends Controller
                 'ai_recommended_action' => $aiAnalysis?->recommended_action ?? 'escalate',
                 'ai_action_reason' => $aiAnalysis?->action_reason ?? 'AI suggests standard operational triage and deployment.',
                 'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
+                'ai_duplicate_title' => $duplicateCandidate?->title,
+                'ai_duplicate_similarity' => $aiAnalysis?->duplicate_similarity,
+                'ai_duplicate_reporter_count' => $duplicateReporterCount,
                 'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason,
             ],
             'personnel' => $personnelList,

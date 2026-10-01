@@ -124,6 +124,19 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                             </p>
                         </div>
 
+                        {report?.ai_duplicate_id && (
+                            <div className="mb-5 space-y-1 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+                                <h4 className="font-semibold text-amber-950">Possible repeat report</h4>
+                                <p className="text-amber-900">
+                                    Nearby location and report details match <strong>{report.ai_duplicate_title ?? 'another report'}</strong>
+                                    {report.ai_duplicate_similarity != null && ` (${Math.round(report.ai_duplicate_similarity * 100)}% text similarity)`}.
+                                </p>
+                                <p className="text-amber-900">
+                                    Reported by {report.ai_duplicate_reporter_count ?? 1} distinct resident(s). Review before merging; this recommendation does not merge reports automatically.
+                                </p>
+                            </div>
+                        )}
+
                         {!isTerminal ? (
                             <form onSubmit={handleConfirmAiVerdict} className="space-y-4">
                                 {/* If AI recommended Escalation, show AI-suggested personnel highlighted */}

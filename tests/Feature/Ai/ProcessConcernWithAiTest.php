@@ -67,6 +67,8 @@ class ProcessConcernWithAiTest extends TestCase
             $table->decimal('severity_confidence', 3, 2)->nullable();
             $table->json('prescriptive_steps')->nullable();
             $table->unsignedInteger('suggested_duration_hours')->nullable();
+            $table->uuid('duplicate_candidate_id')->nullable();
+            $table->decimal('duplicate_similarity', 5, 4)->nullable();
             $table->json('raw_model_output')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();

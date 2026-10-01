@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f766e">
+    <title>Offline Library | Mission-Lokal</title>
+    <style>
+        :root { color-scheme: light; font-family: system-ui, sans-serif; color: #17211f; background: #f0f2f5; }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        main { width: min(100% - 2rem, 46rem); margin: 0 auto; padding: 1.5rem 0 3rem; }
+        header { padding: 1rem 0 1.25rem; border-bottom: 1px solid #cbd5d1; }
+        h1 { margin: 0; font-size: 1.5rem; }
+        header p, .status, .empty { color: #53615d; }
+        header p { margin: .35rem 0 0; }
+        .status { margin: 1rem 0; font-size: .9rem; }
+        section { margin-top: 1.5rem; }
+        h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+        details, .contact { margin: .6rem 0; padding: .9rem 1rem; border: 1px solid #d5ddda; border-radius: .5rem; background: #fff; }
+        summary { cursor: pointer; font-weight: 650; }
+        .subtitle, .role { margin: .3rem 0 0; color: #53615d; font-size: .9rem; }
+        .body { margin: .8rem 0 0; line-height: 1.55; white-space: pre-wrap; }
+        .contact { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .contact p { margin: 0; }
+        .contact a { color: #08786e; font-weight: 650; white-space: nowrap; }
+        .empty { padding: 1rem; border: 1px dashed #aab8b3; border-radius: .5rem; }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <h1>Mission-Lokal Library</h1>
+        <p>Emergency guides and barangay contacts</p>
+    </header>
+    <p class="status" id="saved-status" role="status" aria-live="polite">Loading saved library...</p>
+    <section aria-labelledby="manuals-heading">
+        <h2 id="manuals-heading">Preparedness manuals</h2>
+        <div id="manuals"></div>
+    </section>
+    <section aria-labelledby="contacts-heading">
+        <h2 id="contacts-heading">Emergency contacts</h2>
+        <div id="contacts"></div>
+    </section>
+</main>
+<script>
+    const savedStatus = document.getElementById('saved-status');
+    const manualsContainer = document.getElementById('manuals');
+    const contactsContainer = document.getElementById('contacts');
+
+    function addEmptyMessage(container, message) {
+        const paragraph = document.createElement('p');
+        paragraph.className = 'empty';
+        paragraph.textContent = message;
+        container.append(paragraph);
+    }
+
+    function addManual(manual) {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        const subtitle = document.createElement('p');
+        const body = document.createElement('p');
+        summary.textContent = manual.title || 'Emergency guide';
+        subtitle.className = 'subtitle';
+        subtitle.textContent = manual.subtitle || '';
+        body.className = 'body';
+        body.textContent = manual.body || '';
+        details.append(summary, subtitle, body);
+        manualsContainer.append(details);
+    }
+
+    function addContact(contact) {
+        const card = document.createElement('article');
+        const information = document.createElement('div');
+        const name = document.createElement('p');
+        const role = document.createElement('p');
+        name.textContent = contact.name || 'Emergency contact';
+        role.className = 'role';
+        role.textContent = contact.role || '';
+        information.append(name, role);
+        card.className = 'contact';
+        card.append(information);
+
+        if (contact.phone && contact.phone !== 'N/A') {
+            const phone = document.createElement('a');
+            phone.href = `tel:${contact.phone}`;
+            phone.textContent = contact.phone;
+            phone.setAttribute('aria-label', `Call ${contact.name || 'emergency contact'}`);
+            card.append(phone);
+        }
+
+        contactsContainer.append(card);
+    }
+
+    try {
+        const saved = JSON.parse(localStorage.getItem('mission-lokal-library-v1') || 'null');
+        if (!saved) {
+            savedStatus.textContent = 'No offline copy yet. Open the Library while connected to save its guides and contacts on this device.';
+            addEmptyMessage(manualsContainer, 'No saved manuals.');
+            addEmptyMessage(contactsContainer, 'No saved contacts.');
+        } else {
+            const savedDate = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : 'an unknown time';
+            savedStatus.textContent = `Offline copy saved on this device on ${savedDate}. Information may have changed since it was saved.`;
+            (saved.manuals || []).forEach(addManual);
+            (saved.contacts || []).forEach(addContact);
+            if (!saved.manuals?.length) addEmptyMessage(manualsContainer, 'No manuals were included in the saved library.');
+            if (!saved.contacts?.length) addEmptyMessage(contactsContainer, 'No contacts were included in the saved library.');
+        }
+    } catch {
+        savedStatus.textContent = 'The saved library could not be read on this device.';
+        addEmptyMessage(manualsContainer, 'Saved manuals are unavailable.');
+        addEmptyMessage(contactsContainer, 'Saved contacts are unavailable.');
+    }
+</script>
+</body>
+</html>

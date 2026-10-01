@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { BookOpen, FolderOpen } from 'lucide-react';
 import LibraryHero from '@/Components/resident/library/LibraryHero';
 import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
@@ -9,6 +10,15 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import type { LibraryPageProps } from '@/Types';
 
 export default function Library({ manuals = [], contacts = [] }: LibraryPageProps) {
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(
+                'mission-lokal-library-v1',
+                JSON.stringify({ manuals, contacts, savedAt: new Date().toISOString() }),
+            );
+        } catch {}
+    }, [manuals, contacts]);
+
     const rightAside = (
         <>
             <Card className="shadow-sm">
@@ -17,8 +27,7 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
                     <p>
-                        Install Mission-Lokal as a PWA to access emergency guides and contacts even without
-                        internet.
+                        This library is saved on this device when opened online. It stays available here during an outage.
                     </p>
                 </CardContent>
             </Card>

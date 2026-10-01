@@ -44,13 +44,6 @@ export default defineConfig({
                     'assets/': '/build/assets/',
                 },
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-                runtimeCaching: [
-                    {
-                        urlPattern: /^\/library/,
-                        handler: 'StaleWhileRevalidate',
-                        options: { cacheName: 'library-cache' },
-                    },
-                ],
             },
         }),
     ],
