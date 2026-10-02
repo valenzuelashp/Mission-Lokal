@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\PreloadedResident;
 use App\Models\ResidentRegistration;
 use App\Services\GovernmentIdStorage;
 use App\Models\Notification;
@@ -41,16 +40,6 @@ class AccountStatusController extends Controller
                     ->where('last_name', 'like', $lastName)
                     ->with('residentProfile')
                     ->first();
-
-                if (!$user) {
-                    $preloaded = PreloadedResident::where('first_name', 'like', $firstName)
-                        ->where('last_name', 'like', $lastName)
-                        ->first();
-
-                    if ($preloaded) {
-                        $user = User::where('account_id', $preloaded->account_id)->with('residentProfile')->first();
-                    }
-                }
             }
 
             if ($user) {
@@ -150,8 +139,6 @@ class AccountStatusController extends Controller
                 'name_extension' => $user->name_extension,
                 'email' => $user->email,
                 'mobile' => $user->mobile,
-                'sex' => $user->sex ?? 'Male',
-                'civil_status' => $user->civil_status ?? 'Single',
                 'house_street' => $user->house_street ?? '',
                 'barangay_name' => $user->barangay_name ?? '',
                 'city' => $user->city ?? '',
@@ -198,8 +185,6 @@ class AccountStatusController extends Controller
             'name_extension' => $request->name_extension,
             'email' => $user->email,
             'mobile' => $request->mobile,
-            'sex' => $request->sex ?? 'Male',
-            'civil_status' => $request->civil_status ?? 'Single',
             'house_street' => $request->house_street ?? 'Provided',
             'barangay_name' => $request->barangay_name ?? 'Barangay',
             'city' => $request->city ?? 'City',

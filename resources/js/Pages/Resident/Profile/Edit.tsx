@@ -11,8 +11,6 @@ export default function ProfileEdit({ profile }: { profile: any }) {
         last_name: profile?.last_name || '',
         name_extension: profile?.name_extension || '',
         birthday: profile?.birthday || '',
-        sex: profile?.sex || 'Male',
-        civil_status: profile?.civil_status || 'Single',
         house_street: profile?.house_street || '',
         barangay_name: profile?.barangay_name || '',
         city: profile?.city || '',
@@ -74,39 +72,10 @@ export default function ProfileEdit({ profile }: { profile: any }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <div>
-                                <label className="mb-1 block text-xs font-semibold uppercase text-gray-700">Birthday *</label>
-                                <Input type="date" value={data.birthday} onChange={(e) => setData('birthday', e.target.value)} required />
-                                {errors.birthday && <span className="mt-1 block text-xs text-red-600">{errors.birthday}</span>}
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-semibold uppercase text-gray-700">Sex *</label>
-                                <select 
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                                    value={data.sex}
-                                    onChange={(e) => setData('sex', e.target.value)}
-                                >
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                {errors.sex && <span className="mt-1 block text-xs text-red-600">{errors.sex}</span>}
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-semibold uppercase text-gray-700">Civil Status *</label>
-                                <select 
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                                    value={data.civil_status}
-                                    onChange={(e) => setData('civil_status', e.target.value)}
-                                >
-                                    <option value="Single">Single</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Widowed">Widowed</option>
-                                    <option value="Separated">Separated</option>
-                                </select>
-                                {errors.civil_status && <span className="mt-1 block text-xs text-red-600">{errors.civil_status}</span>}
-                            </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-semibold uppercase text-gray-700">Birthday *</label>
+                            <Input type="date" value={data.birthday} onChange={(e) => setData('birthday', e.target.value)} required />
+                            {errors.birthday && <span className="mt-1 block text-xs text-red-600">{errors.birthday}</span>}
                         </div>
                     </div>
 

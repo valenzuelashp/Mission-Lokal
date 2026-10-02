@@ -15,6 +15,9 @@ class Barangay extends Model
     protected $fillable = [
         'code',
         'name',
+        'house_street',
+        'city',
+        'province',
         'boundary',
         'contact_phone',
         'contact_email',
@@ -34,6 +37,11 @@ class Barangay extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function concerns(): HasMany
+    {
+        return $this->hasMany(Concern::class);
     }
 
     public function settings(): HasOne

@@ -31,28 +31,28 @@ export default function ResidentCard({ resident }: Props) {
 
     return (
         <Link href={`/admin/residents/${resident.id}`}>
-            <Card className="shadow-sm transition-shadow active:shadow-md">
+            <Card className="shadow-sm transition-shadow active:shadow-md hover:border-blue-300">
                 <CardContent className="space-y-3 p-4">
                     <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800 shadow-sm">
                             {initials}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="font-semibold leading-snug">{resident.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{resident.account_id}</p>
+                            <p className="font-bold leading-snug text-gray-900">{resident.full_name}</p>
+                            <p className="text-xs font-mono font-semibold text-blue-800">{resident.account_id}</p>
                         </div>
                         <Badge variant={statusStyle[resident.verification_status]} className="shrink-0">
                             {statusLabel[resident.verification_status]}
                         </Badge>
                     </div>
                     <p className="line-clamp-2 text-xs text-muted-foreground">{resident.address}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <span className="inline-flex items-center gap-1 font-semibold text-blue-800">
-                            <Award className="h-3.5 w-3.5" />
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1 border-t">
+                        <span className="inline-flex items-center gap-1 font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded">
+                            <Award className="h-3.5 w-3.5 text-blue-600" />
                             {resident.civic_xp} XP
                         </span>
-                        <span className="text-muted-foreground">{resident.report_count} reports</span>
-                        <span className="ml-auto font-medium text-blue-700">
+                        <span className="text-gray-700 font-medium">{resident.reports_count ?? 0} reports</span>
+                        <span className="ml-auto font-bold text-blue-700 inline-flex items-center">
                             View
                             <ChevronRight className="ml-0.5 inline h-3.5 w-3.5" />
                         </span>

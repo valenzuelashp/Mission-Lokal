@@ -17,8 +17,6 @@ interface User {
     last_name: string;
     name_extension?: string;
     birthday: string;
-    sex: string;
-    civil_status: string;
     house_street: string;
     barangay_name: string;
     city: string;
@@ -30,37 +28,17 @@ interface User {
     resident_profile: ResidentProfile | null;
 }
 
-interface CensusData {
-    id: number;
-    account_id: string;
-    first_name: string;
-    middle_name?: string;
-    last_name: string;
-    name_extension?: string;
-    birthday: string;
-    sex: string;
-    civil_status: string;
-    house_street: string;
-    barangay_name: string;
-    city: string;
-    province: string;
-    mobile?: string;
-    email?: string;
-}
-
-export default function Show({ resident, censusData }: { resident: User, censusData: CensusData | null }) {
+export default function Show({ resident }: { resident: User }) {
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [physicalRecordChecked, setPhysicalRecordChecked] = useState(false);
 
     // Form for approval with complete editable override fields
     const approveForm = useForm({
-        census_id: censusData?.id || null,
         first_name: resident.first_name,
         middle_name: resident.middle_name || '',
         last_name: resident.last_name,
         name_extension: resident.name_extension || '',
         birthday: resident.birthday,
-        sex: resident.sex || 'Male',
-        civil_status: resident.civil_status || 'Single',
         house_street: resident.house_street,
         barangay_name: resident.barangay_name,
         city: resident.city,
@@ -74,7 +52,11 @@ export default function Show({ resident, censusData }: { resident: User, censusD
 
     const handleApprove = (e: React.FormEvent) => {
         e.preventDefault();
-        if (confirm('Approve this resident and email their login credentials?')) {
+        if (!physicalRecordChecked) {
+            alert('Please confirm that you have checked the physical barangay records before approving.');
+            return;
+        }
+        if (confirm('Approve this resident, generate their credentials, and email their login details?')) {
             approveForm.post(route('admin.verifications.approve', resident.id));
         }
     };
@@ -99,15 +81,6 @@ export default function Show({ resident, censusData }: { resident: User, censusD
         .map((part) => (part || '').trim().charAt(0).toUpperCase())
         .join('')} ID`;
 
-    const mismatch = (left?: string, right?: string) => {
-        if (!censusData) return false;
-        return (left || '').trim().toLowerCase() !== (right || '').trim().toLowerCase();
-    };
-
-    const unknown = (value?: string | null) => (value && value.trim() ? value : 'Unknown');
-
-    const rowClass = (left?: string, right?: string) =>
-        `grid grid-cols-2 gap-3 border-b pb-3 ${mismatch(left, right) ? 'rounded bg-amber-50/80 p-2 ring-1 ring-amber-200' : ''}`;
 
     return (
         <AdminLayout title={`Reviewing Registration: ${resident.first_name} ${resident.last_name}`}>
@@ -116,9 +89,9 @@ export default function Show({ resident, censusData }: { resident: User, censusD
             <div className="p-8 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Thorough Comparison & Record Override</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Physical Record Verification</h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            {censusData ? `Census Match ID: ${censusData.account_id}` : 'Unknown — no matching barangay record'}
+                            Verify submitted registration details against physical barangay logbooks and papers.
                         </p>
                     </div>
                     <Link 
@@ -132,21 +105,19 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                 <form onSubmit={handleApprove} className="space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         
-                        {/* LEFT COLUMN: Thorough Comparison & Override Form */}
+                        {/* LEFT COLUMN: Submitted Details & Editable Overrides */}
                         <div className="space-y-6">
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                                    <h3 className="text-lg font-semibold text-gray-800">Field Comparison & Data Overwrite</h3>
-                                    <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide ${
-                                        censusData ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                                    }`}>
-                                        {censusData ? 'Census Roster Matched' : 'Unknown'}
+                                    <h3 className="text-lg font-semibold text-gray-800">Submitted Resident Details</h3>
+                                    <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide bg-blue-100 text-blue-800">
+                                        Pending Physical Check
                                     </span>
                                 </div>
                                 
                                 <div className="p-6 space-y-4 text-sm">
                                     <p className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
-                                        Compare the resident submission with the barangay census. Highlighted rows do not match. Approve writes these fields into the barangay record and emails login credentials.
+                                        Review the fields below and verify them against the physical records in your barangay office. You may adjust any minor typos before approving.
                                     </p>
                                     {(approveForm.errors as Record<string, string>).general && (
                                         <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
@@ -154,184 +125,100 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                         </p>
                                     )}
 
-                                    {/* Name Fields (First & Middle) */}
-                                    <div className={rowClass(approveForm.data.first_name, censusData?.first_name)}>
+                                    {/* Name Fields */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b pb-3">
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident First Name</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">First Name</label>
                                             <Input value={approveForm.data.first_name} onChange={e => approveForm.setData('first_name', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census First Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.first_name)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.middle_name, censusData?.middle_name)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Middle Name</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Middle Name</label>
                                             <Input value={approveForm.data.middle_name} onChange={e => approveForm.setData('middle_name', e.target.value)} />
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Middle Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.middle_name)}</div>
-                                        </div>
                                     </div>
 
-                                    <div className={rowClass(approveForm.data.last_name, censusData?.last_name)}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b pb-3">
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Last Name</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Last Name</label>
                                             <Input value={approveForm.data.last_name} onChange={e => approveForm.setData('last_name', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Last Name</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.last_name)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.name_extension, censusData?.name_extension)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Name Extension</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Name Extension</label>
                                             <Input placeholder="e.g. Jr., III" value={approveForm.data.name_extension} onChange={e => approveForm.setData('name_extension', e.target.value)} />
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Name Extension</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.name_extension)}</div>
-                                        </div>
                                     </div>
 
-                                    <div className={rowClass(approveForm.data.birthday, censusData?.birthday)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Birthday</label>
-                                            <Input type="date" value={approveForm.data.birthday} onChange={e => approveForm.setData('birthday', e.target.value)} required />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Birthday</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.birthday)}</div>
-                                        </div>
+                                    <div className="border-b pb-3">
+                                        <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Birthday</label>
+                                        <Input type="date" value={approveForm.data.birthday} onChange={e => approveForm.setData('birthday', e.target.value)} required />
                                     </div>
 
-                                    <div className={rowClass(approveForm.data.sex, censusData?.sex)}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b pb-3">
                                         <div>
-                                            <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Sex (Editable)</label>
-                                            <select 
-                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                                                value={approveForm.data.sex}
-                                                onChange={e => approveForm.setData('sex', e.target.value)}
-                                            >
-                                                <option value="Male">Male</option>
-                                                <option value="Female">Female</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Sex</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.sex)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.civil_status, censusData?.civil_status)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-amber-700 uppercase block mb-1">Civil Status (Editable)</label>
-                                            <select 
-                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                                                value={approveForm.data.civil_status}
-                                                onChange={e => approveForm.setData('civil_status', e.target.value)}
-                                            >
-                                                <option value="Single">Single</option>
-                                                <option value="Married">Married</option>
-                                                <option value="Widowed">Widowed</option>
-                                                <option value="Separated">Separated</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Civil Status</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.civil_status)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.house_street, censusData?.house_street)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident House / Street</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">House / Street</label>
                                             <Input value={approveForm.data.house_street} onChange={e => approveForm.setData('house_street', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census House / Street</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.house_street)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.barangay_name, censusData?.barangay_name)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Barangay</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Barangay Name</label>
                                             <Input value={approveForm.data.barangay_name} onChange={e => approveForm.setData('barangay_name', e.target.value)} required />
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Barangay</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.barangay_name)}</div>
-                                        </div>
                                     </div>
 
-                                    <div className={rowClass(approveForm.data.city, censusData?.city)}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b pb-3">
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident City</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">City / Municipality</label>
                                             <Input value={approveForm.data.city} onChange={e => approveForm.setData('city', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census City</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.city)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className={rowClass(approveForm.data.province, censusData?.province)}>
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Province</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Province</label>
                                             <Input value={approveForm.data.province} onChange={e => approveForm.setData('province', e.target.value)} required />
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Province</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.province)}</div>
-                                        </div>
                                     </div>
 
-                                    <div className={rowClass(approveForm.data.mobile, censusData?.mobile)}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b pb-3">
                                         <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Mobile</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Mobile Number</label>
                                             <Input value={approveForm.data.mobile} onChange={e => approveForm.setData('mobile', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Mobile</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.mobile)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="text-xs font-bold text-blue-600 uppercase block mb-1">Resident Email</label>
+                                            <label className="text-xs font-bold text-gray-700 uppercase block mb-1">Email Address</label>
                                             <div className="p-2 bg-gray-50 rounded border text-gray-800 text-xs truncate">{resident.email}</div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-green-600 uppercase block mb-1">Census Email</label>
-                                            <div className="p-2 bg-green-50 rounded border text-gray-800 text-sm font-medium">{unknown(censusData?.email)}</div>
                                         </div>
                                     </div>
 
                                     {(resident.parent_name || resident.parent_contact) && (
                                         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-                                            <p className="text-xs font-bold uppercase text-amber-800">Parent / Guardian</p>
+                                            <p className="text-xs font-bold uppercase text-amber-800">Parent / Guardian (Minor Applicant)</p>
                                             <p className="mt-1">{resident.parent_name || '—'}</p>
                                             <p className="text-xs text-muted-foreground">{resident.parent_contact || '—'}</p>
                                         </div>
                                     )}
+
+                                    {/* Physical Record Confirmation Checkbox */}
+                                    <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={physicalRecordChecked}
+                                                onChange={e => setPhysicalRecordChecked(e.target.checked)}
+                                                className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                                                required
+                                            />
+                                            <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                                                I confirm that I have cross-referenced this resident's name, birthday, and details against our official physical barangay logbook or records, and verified the authenticity of their submitted government ID.
+                                            </span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row">
                                 <button 
                                     type="submit"
-                                    disabled={approveForm.processing || rejecting}
+                                    disabled={approveForm.processing || rejecting || !physicalRecordChecked}
                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-sm transition-colors focus:ring-4 focus:ring-green-200 disabled:opacity-50"
                                 >
-                                    {approveForm.processing ? 'Sending credentials...' : 'Approve & send login credentials'}
+                                    {approveForm.processing ? 'Creating Account...' : 'Approve & send login credentials'}
                                 </button>
                                 <button 
                                     type="button"
@@ -398,7 +285,7 @@ export default function Show({ resident, censusData }: { resident: User, censusD
                                 <textarea
                                     className="w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm p-3"
                                     rows={4}
-                                    placeholder="e.g. Please visit the barangay hall in person to present your physical valid ID and provide/verify your barangay personal record details."
+                                    placeholder="e.g. Your name was not found in our physical barangay records. Please visit the barangay hall in person to update your information."
                                     value={rejectData.rejection_reason}
                                     onChange={e => setRejectData('rejection_reason', e.target.value)}
                                     required

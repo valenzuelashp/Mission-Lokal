@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\PreloadedResident;
+use App\Models\ResidentProfile;
 use App\Models\Notification;
 use App\Models\ResidentDocument;
 use App\Services\LocalIdentifier;
+use App\Enums\VerificationStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,6 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 
 class ResidentController extends Controller
 {
@@ -27,7 +29,8 @@ class ResidentController extends Controller
 
         $query = User::where('barangay_id', $barangayId)
             ->where('role', 'resident')
-            ->with('residentProfile');
+            ->with('residentProfile')
+            ->withCount('concerns');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -45,7 +48,15 @@ class ResidentController extends Controller
                 $status = 'approved';
             }
 
-            $fullName = trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ($user->name_extension ? ' ' . $user->name_extension : ''));
+            $middleName = trim($user->middle_name ?? '');
+            $hasMiddle = !empty($middleName) && strtoupper($middleName) !== 'N/A';
+            
+            $fullName = trim(
+                $user->first_name . ' ' . 
+                ($hasMiddle ? $middleName . ' ' : '') . 
+                $user->last_name . 
+                ($user->name_extension ? ' ' . $user->name_extension : '')
+            );
 
             return [
                 'id' => $user->id,
@@ -57,6 +68,7 @@ class ResidentController extends Controller
                 'verification_status' => $status,
                 'civic_xp' => (int)($user->residentProfile?->civic_xp ?? 0),
                 'badge_count' => (int)($user->badge_count ?? 0),
+                'reports_count' => (int)($user->concerns_count ?? 0),
                 'joined_at' => $user->created_at ? $user->created_at->format('M d, Y') : 'Unknown',
             ];
         });
@@ -76,100 +88,123 @@ class ResidentController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'name_extension' => 'nullable|string|max:20',
-            'sex' => 'required|in:Male,Female,Other',
-            'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
             'house_street' => 'required|string|max:255',
             'barangay_name' => 'required|string|max:255',
             'city' => 'required|string|max:255',
             'province' => 'required|string|max:255',
             'birthday' => 'required|date',
             'mobile' => 'nullable|string|max:20',
-            // --- OPTIONAL FOR ADMINS WHEN PRELOADING/MANUALLY ADDING ---
+            'email' => 'nullable|email|max:255|unique:users,email',
+            'government_id' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'parent_name' => 'nullable|string|max:255',
             'parent_contact' => 'nullable|string|max:20',
         ]);
 
-        $barangayId = $request->user()->barangay_id;
-        $accountId = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
+        $barangay = $request->user()->barangay;
+        $barangayId = $barangay?->id;
+        $accountId = LocalIdentifier::next($barangay, LocalIdentifier::RES);
         $formattedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
         $isMinor = Carbon::parse($formattedBirthday)->age < 18;
 
+        $email = $request->email ? strtolower(trim($request->email)) : null;
+
+        $idPath = null;
+        if ($request->hasFile('government_id')) {
+            $file = $request->file('government_id');
+            $extension = $file->getClientOriginalExtension();
+            $cleanName = time() . '_' . Str::random(10) . '.' . $extension . '.enc';
+            $idPath = 'government_ids/' . $cleanName;
+
+            $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath()));
+            Storage::disk('local')->put($idPath, $encryptedContent);
+        }
+
+        $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $request->last_name);
+        $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Resident'));
+        $rawPassword = $accountId.'!'.$readableLastName;
+
+        $rawMiddle = trim($request->middle_name ?? '');
+        $cleanMiddle = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? mb_strtoupper($rawMiddle, 'UTF-8') : null;
+
         DB::beginTransaction();
         try {
-            PreloadedResident::create([
-                'barangay_id' => $barangayId,
-                'account_id' => $accountId,
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name,
-                'name_extension' => $request->name_extension,
-                'sex' => $request->sex,
-                'civil_status' => $request->civil_status,
-                'house_street' => $request->house_street,
-                'barangay_name' => $request->barangay_name,
-                'city' => $request->city,
-                'province' => $request->province,
-                'birthday' => $formattedBirthday,
-                'email' => null,
-                'mobile' => $request->mobile ?: null,
-                'is_claimed' => false,
-            ]);
-
-            $newUser = User::create([
+            $user = User::create([
                 'barangay_id' => $barangayId,
                 'account_id' => $accountId,
                 'role' => 'resident',
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name,
-                'name_extension' => $request->name_extension,
-                'email' => null,
+                'first_name' => mb_strtoupper(trim($request->first_name), 'UTF-8'),
+                'middle_name' => $cleanMiddle,
+                'last_name' => mb_strtoupper(trim($request->last_name), 'UTF-8'),
+                'name_extension' => $request->name_extension ? mb_strtoupper(trim($request->name_extension), 'UTF-8') : null,
+                'email' => $email,
                 'mobile' => $request->mobile ?: null,
-                'password' => null,
-                'parent_name' => $isMinor ? $request->parent_name : null,        
+                'password' => $rawPassword,
+                'is_active' => true,
+                'parent_name' => $isMinor ? mb_strtoupper(trim($request->parent_name), 'UTF-8') : null,        
                 'parent_contact' => $isMinor ? $request->parent_contact : null,   
             ]);
 
-            $newUser->residentProfile()->create([
-                'verification_status' => 'unverified',
+            $user->residentProfile()->create([
+                'verification_status' => VerificationStatus::Approved,
                 'birthday' => $formattedBirthday,
-                'sex' => $request->sex,
-                'civil_status' => $request->civil_status,
-                'house_street' => $request->house_street,
-                'barangay_name' => $request->barangay_name,
-                'city' => $request->city,
-                'province' => $request->province,
+                'house_street' => mb_strtoupper(trim($request->house_street), 'UTF-8'),
+                'barangay_name' => mb_strtoupper(trim($request->barangay_name), 'UTF-8'),
+                'city' => mb_strtoupper(trim($request->city), 'UTF-8'),
+                'province' => mb_strtoupper(trim($request->province), 'UTF-8'),
                 'address' => trim("{$request->house_street}, {$request->barangay_name}, {$request->city}, {$request->province}"),
+                'government_id_storage_key' => $idPath,
+                'digital_id_code' => $accountId,
             ]);
 
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
                 'actor_id' => Auth::id(),
-                'action' => 'CREATE',
+                'action' => 'CREATE_IN_PERSON',
                 'entity_type' => 'Resident',
-                'entity_id' => $newUser->id,
-                'metadata' => json_encode(['details' => 'Manually preloaded and registered resident: ' . $request->first_name . ' ' . $request->last_name]),
+                'entity_id' => $user->id,
+                'metadata' => json_encode(['details' => 'Admin registered walk-in resident in-person: ' . $request->first_name . ' ' . $request->last_name]),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
 
             DB::commit();
-            return redirect()->back()->with('success', 'Resident successfully added to preloaded registry and initialized as unverified.');
+
+            $hasMiddleClean = !empty($cleanMiddle);
+            $formattedFullName = trim($user->first_name . ' ' . ($hasMiddleClean ? $cleanMiddle . ' ' : '') . $user->last_name . ($user->name_extension ? ' ' . $user->name_extension : ''));
+
+            return redirect()->back()->with([
+                'success' => 'Resident successfully registered and approved!',
+                'new_credentials' => [
+                    'account_id' => $accountId,
+                    'name' => $formattedFullName,
+                    'username' => $email ?: 'None (Use Account ID to login)',
+                    'has_email' => !empty($email),
+                    'password' => $rawPassword,
+                ]
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->withErrors(['error' => 'Failed to add resident: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to register resident in-person: ' . $e->getMessage()]);
         }
     }
 
     public function importCsv(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $request->validate([
             'file' => 'required|file|mimes:csv,txt|max:2048',
         ]);
@@ -178,7 +213,7 @@ class ResidentController extends Controller
         $file = $request->file('file');
         $path = $file->getRealPath();
         $data = array_map('str_getcsv', file($path));
-        array_shift($data); // Remove header row
+        array_shift($data);
 
         DB::beginTransaction();
         try {
@@ -189,36 +224,16 @@ class ResidentController extends Controller
                 $accountId = LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
                 
                 $firstName = trim($row[0]);
-                $middleName = trim($row[1] ?? '');
+                $rawMiddle = trim($row[1] ?? '');
+                $middleName = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? $rawMiddle : null;
                 $lastName = trim($row[2]);
                 $nameExt = trim($row[3] ?? '');
-                $sex = trim($row[4] ?? 'Male');
-                $civilStatus = trim($row[5] ?? 'Single');
                 $houseStreet = trim($row[6]);
                 $barangayName = trim($row[7]);
                 $city = trim($row[8]);
                 $province = trim($row[9]);
                 $bday = Carbon::parse(trim($row[10]))->format('Y-m-d');
                 $mobile = !empty(trim($row[11] ?? '')) ? trim($row[11]) : null;
-
-                PreloadedResident::create([
-                    'barangay_id' => $barangayId,
-                    'account_id' => $accountId,
-                    'first_name' => $firstName,
-                    'middle_name' => $middleName,
-                    'last_name' => $lastName,
-                    'name_extension' => $nameExt,
-                    'sex' => $sex,
-                    'civil_status' => $civilStatus,
-                    'house_street' => $houseStreet,
-                    'barangay_name' => $barangayName,
-                    'city' => $city,
-                    'province' => $province,
-                    'birthday' => $bday,
-                    'email' => null,
-                    'mobile' => $mobile,
-                    'is_claimed' => false,
-                ]);
 
                 $newUser = User::create([
                     'barangay_id' => $barangayId,
@@ -230,19 +245,19 @@ class ResidentController extends Controller
                     'name_extension' => $nameExt,
                     'email' => null,
                     'mobile' => $mobile,
-                    'password' => null,
+                    'password' => $accountId . '!' . ucfirst(strtolower($lastName)),
+                    'is_active' => true,
                 ]);
 
                 $newUser->residentProfile()->create([
-                    'verification_status' => 'unverified',
+                    'verification_status' => VerificationStatus::Approved,
                     'birthday' => $bday,
-                    'sex' => $sex,
-                    'civil_status' => $civilStatus,
                     'house_street' => $houseStreet,
                     'barangay_name' => $barangayName,
                     'city' => $city,
                     'province' => $province,
                     'address' => trim("{$houseStreet}, {$barangayName}, {$city}, {$province}"),
+                    'digital_id_code' => $accountId,
                 ]);
 
                 $importedCount++;
@@ -276,6 +291,7 @@ class ResidentController extends Controller
             ->with(['residentProfile', 'concerns' => function($q) {
                 $q->latest()->limit(5);
             }])
+            ->withCount('concerns')
             ->findOrFail($id);
 
         $coords = \App\Models\Concern::selectRaw('ST_X(location) as lat, ST_Y(location) as lng')
@@ -304,7 +320,15 @@ class ResidentController extends Controller
         $birthday = $profile?->birthday ? Carbon::parse($profile->birthday) : null;
         $ageYears = $birthday ? $birthday->age : null;
 
-        $fullName = trim($user->first_name . ' ' . ($user->middle_name ? $user->middle_name . ' ' : '') . $user->last_name . ($user->name_extension ? ' ' . $user->name_extension : ''));
+        $middleName = trim($user->middle_name ?? '');
+        $hasMiddle = !empty($middleName) && strtoupper($middleName) !== 'N/A';
+
+        $fullName = trim(
+            $user->first_name . ' ' . 
+            ($hasMiddle ? $middleName . ' ' : '') . 
+            $user->last_name . 
+            ($user->name_extension ? ' ' . $user->name_extension : '')
+        );
 
         $profileDetail = [
             'id' => $user->id,
@@ -312,7 +336,7 @@ class ResidentController extends Controller
             'full_name' => $fullName,
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
-            'middle_name' => $user->middle_name ?? '',
+            'middle_name' => $hasMiddle ? $middleName : '',
             'email' => $user->email ?? '—',
             'mobile' => $user->mobile ?? '—',
             'parent_name' => $user->parent_name ?? null,       
@@ -322,12 +346,11 @@ class ResidentController extends Controller
             'verification_status' => $profileStatus?->value ?? $profileStatus ?? 'unverified',
             'national_id_masked' => $user->id_number ? mask_string($user->id_number) : '—',
             'citizenship_status' => $user->citizenship_status ?? 'Filipino',
-            'sex' => $profile?->sex ?? '—',
-            'civil_status' => $profile?->civil_status ?? '—',
             'birthday' => $birthday ? $birthday->format('M d, Y') : '—',
             'age_years' => $ageYears,
             'civic_xp' => (int)($profile?->civic_xp ?? 0),
             'badge_count' => (int)($user->badge_count ?? 0),
+            'reports_count' => (int)($user->concerns_count ?? 0),
             'map_lat' => $coords->lat ?? 14.5173079,
             'map_lng' => $coords->lng ?? 120.9933811,
             'emergency_contact' => $user->emergency_contact ? json_decode($user->emergency_contact, true) : null,
@@ -354,6 +377,10 @@ class ResidentController extends Controller
 
     public function uploadDocument(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
 
@@ -396,6 +423,10 @@ class ResidentController extends Controller
 
     public function update(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
 
@@ -407,7 +438,16 @@ class ResidentController extends Controller
             'mobile' => 'nullable|string|max:20',
         ]);
 
-        $user->update($request->only(['first_name', 'middle_name', 'last_name', 'email', 'mobile']));
+        $rawMiddle = trim($request->middle_name ?? '');
+        $cleanMiddle = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? mb_strtoupper($rawMiddle, 'UTF-8') : null;
+
+        $user->update([
+            'first_name' => mb_strtoupper(trim($request->first_name), 'UTF-8'),
+            'middle_name' => $cleanMiddle,
+            'last_name' => mb_strtoupper(trim($request->last_name), 'UTF-8'),
+            'email' => $request->email ? strtolower(trim($request->email)) : null,
+            'mobile' => $request->mobile,
+        ]);
 
         DB::table('audit_logs')->insert([
             'barangay_id' => $barangayId,
@@ -425,6 +465,10 @@ class ResidentController extends Controller
 
     public function flag(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
 
@@ -450,6 +494,10 @@ class ResidentController extends Controller
 
     public function message(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $user = User::where('barangay_id', $barangayId)->where('role', 'resident')->findOrFail($id);
 

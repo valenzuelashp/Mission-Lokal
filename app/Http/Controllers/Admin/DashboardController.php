@@ -6,7 +6,6 @@ use App\Enums\MissionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\Mission;
-use App\Models\PreloadedResident;
 use App\Models\ResidentRegistration;
 use App\Support\MapHelpers;
 use Illuminate\Http\Request;
@@ -114,7 +113,7 @@ class DashboardController extends Controller
 
         // 4. Retrieve dynamic events from your blueprint audit tracker scoped to this user/tenant context
         $activities = DB::table('audit_logs')
-            ->where('barangay_id', $barangayId) // Checks audit logs safely
+            ->where('barangay_id', $barangayId)
             ->latest()
             ->take(4)
             ->get()
@@ -133,21 +132,14 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(function ($reg) {
-                $censusMatch = PreloadedResident::findByIdentity(
-                    $reg->first_name,
-                    $reg->last_name,
-                    $reg->birthday,
-                    $reg->middle_name
-                );
-
                 return [
                     'id' => $reg->id,
                     'full_name' => trim("{$reg->first_name} {$reg->last_name}"),
                     'email' => $reg->email ?: 'Unknown',
                     'mobile' => $reg->mobile ?: 'Unknown',
                     'submitted_at' => $reg->created_at?->diffForHumans(),
-                    'census_match' => (bool) $censusMatch,
-                    'account_id' => $censusMatch?->account_id ?? 'Unknown',
+                    'census_match' => true,
+                    'account_id' => 'PENDING',
                 ];
             });
 

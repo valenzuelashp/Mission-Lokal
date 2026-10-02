@@ -2,7 +2,6 @@
 
 use App\Models\Barangay;
 use App\Models\Blotter;
-use App\Models\PreloadedResident;
 use App\Models\ResidentProfile;
 use App\Models\User;
 use App\Services\LocalIdentifier;
@@ -27,13 +26,6 @@ return new class extends Migration
             }
 
             $user->update(['account_id' => $new]);
-        });
-
-        PreloadedResident::query()->each(function (PreloadedResident $row) use ($fallbackBarangay) {
-            $new = LocalIdentifier::normalize((string) $row->account_id, $fallbackBarangay);
-            if ($new !== '' && $new !== $row->account_id) {
-                $row->update(['account_id' => $new]);
-            }
         });
 
         Blotter::query()->whereNotNull('ticket_number')->each(function (Blotter $blotter) use ($fallbackBarangay) {

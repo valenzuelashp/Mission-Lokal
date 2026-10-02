@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\LocalIdentifier;
+use App\Enums\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,7 +49,7 @@ class AdminPersonnelLoginController extends Controller
         $user = Auth::user();
         $role = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
 
-        if ($role !== 'admin' && $role !== 'personnel') {
+        if ($role !== 'admin' && $role !== 'personnel' && $role !== 'super_admin') {
             Auth::logout();
             throw ValidationException::withMessages([
                 'account_id' => 'This portal is restricted to administrators and personnel only.',
@@ -57,6 +58,10 @@ class AdminPersonnelLoginController extends Controller
 
         $request->session()->regenerate();
         $user?->forceFill(['last_login_at' => now()])->save();
+
+        if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {
+            return redirect()->route('super_admin.barangays.index');
+        }
 
         if ($role === 'admin') {
             return redirect()->route('admin.dashboard');

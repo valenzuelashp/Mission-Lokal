@@ -123,6 +123,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'new_credentials' => fn () => $request->session()->get('new_credentials'),
+                'credentials' => fn () => $request->session()->get('credentials'),
             ],
             'unread_count' => $unreadCount,
             'pending_registrations_count' => $pendingRegistrations,

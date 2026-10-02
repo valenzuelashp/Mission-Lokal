@@ -12,7 +12,6 @@ interface QueueItem {
     email?: string;
     mobile?: string;
     verification_status: string;
-    census_match: boolean;
     created_at: string | null;
 }
 
@@ -32,7 +31,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Verification Queue</h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Review self-registered applications and match them against barangay records.
+                            Review self-registered applications and cross-reference them against physical barangay logbooks.
                         </p>
                     </div>
                 </div>
@@ -54,7 +53,6 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resident</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Census</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
@@ -67,7 +65,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                         {...rowNavProps(route('admin.verifications.show', person.id))}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                                            {person.census_match ? person.account_id : 'Unknown'}
+                                            {person.account_id}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {person.first_name} {person.last_name}
@@ -78,15 +76,6 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {person.created_at ? new Date(person.created_at).toLocaleString() : '—'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                person.census_match
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-slate-200 text-slate-700'
-                                            }`}>
-                                                {person.census_match ? 'Matched' : 'Unknown'}
-                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

@@ -11,7 +11,7 @@ type Props = {
 
 export default function PersonnelTopBar({ title, onMenuClick }: Props) {
     const shortTitle = title.includes(':') ? title.split(':').pop()?.trim() ?? title : title;
-    const unread = usePage<PageProps>().props.unread_count ?? 0;
+    const unread = Number(usePage<PageProps>().props.unread_count ?? 0);
 
     return (
         <header className="flex items-center gap-2 border-b bg-card px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3 lg:px-6">

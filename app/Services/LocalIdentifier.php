@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Barangay;
 use App\Models\Blotter;
-use App\Models\PreloadedResident;
 use App\Models\User;
 
 class LocalIdentifier
@@ -17,7 +16,8 @@ class LocalIdentifier
     public static function prefix(?Barangay $barangay = null): string
     {
         $barangay ??= Barangay::query()->first();
-        $code = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', (string) ($barangay?->code ?? '')));
+        // Allow letters, numbers, and hyphens (retaining formats like PRNQ-B36)
+        $code = strtoupper((string) preg_replace('/[^A-Za-z0-9\-]/', '', (string) ($barangay?->code ?? '')));
 
         if ($code === '' || $code === 'DEMOBARANGAY') {
             $name = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', (string) ($barangay?->name ?? '')));
@@ -28,7 +28,7 @@ class LocalIdentifier
             return substr($name, 0, 12);
         }
 
-        return substr($code, 0, 12);
+        return substr($code, 0, 15);
     }
 
     public static function format(?Barangay $barangay, string $type, int $number, int $width = 4): string
@@ -49,14 +49,15 @@ class LocalIdentifier
 
     public static function isFormatted(string $id): bool
     {
-        return (bool) preg_match('/^[A-Z0-9]+_(RES|PER|ADM|BLT)_\d+$/', strtoupper(trim($id)));
+        // Allow hyphen in the prefix section
+        return (bool) preg_match('/^[A-Z0-9\-]+_(RES|PER|ADM|BLT)_\d+$/', strtoupper(trim($id)));
     }
 
     public static function typeOf(string $id): ?string
     {
         $id = strtoupper(trim($id));
 
-        if (preg_match('/^[A-Z0-9]+_(RES|PER|ADM|BLT)_\d+$/', $id, $match)) {
+        if (preg_match('/^[A-Z0-9\-]+_(RES|PER|ADM|BLT)_\d+$/', $id, $match)) {
             return $match[1];
         }
 
@@ -141,10 +142,6 @@ class LocalIdentifier
                 $query->where('role', $role);
             }
             $scan($query->pluck('account_id'));
-
-            if ($type === self::RES) {
-                $scan(PreloadedResident::query()->pluck('account_id'));
-            }
         }
 
         return self::format($barangay, $type, $max + 1);

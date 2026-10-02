@@ -19,8 +19,6 @@ class ResidentProfile extends Model
         'verification_status',
         'rejection_reason',
         'birthday',
-        'sex',
-        'civil_status',
         'house_street',
         'barangay_name',
         'city',

@@ -22,9 +22,9 @@ type Props = {
     className?: string;
 };
 
-export default function ResidentMiniMap({ lat, lng, className = 'h-28' }: Props) {
+export default function ResidentMiniMap({ lat, lng, className = 'h-32' }: Props) {
     return (
-        <div className={`overflow-hidden rounded-lg border ${className}`}>
+        <div className={`overflow-hidden rounded-lg border shadow-sm ${className}`}>
             <MapContainer
                 center={[lat, lng]}
                 zoom={15}

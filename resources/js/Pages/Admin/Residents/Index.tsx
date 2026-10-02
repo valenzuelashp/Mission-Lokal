@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
-import { Search, Users, UserPlus, Upload, X, ShieldAlert } from 'lucide-react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { Search, Users, UserPlus, X, ShieldAlert, CheckCircle2, Copy, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import ResidentsTable from '@/Components/admin/ResidentsTable';
 import { Input } from '@/Components/ui/input';
@@ -22,29 +22,44 @@ const tabs: { key: FilterKey; label: string }[] = [
 export default function Index(props: Partial<AdminResidentsPageProps>) {
     const residents = props.residents ?? demoResidents;
     const counts = props.counts ?? residentCounts(residents);
+    const { flash } = usePage().props as any;
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
-    const [activePanel, setActivePanel] = useState<'none' | 'manual' | 'csv'>('none');
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [credentialsData, setCredentialsData] = useState<any>(null);
     const [isManualMinor, setIsManualMinor] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const manualForm = useForm({
         first_name: '',
         middle_name: '',
+        no_middle_name: false,
         last_name: '',
         name_extension: '',
-        sex: 'Male',
-        civil_status: 'Single',
         house_street: '',
         barangay_name: '',
         city: '',
         province: '',
         birthday: '',
+        email: '',
+        mobile: '',
+        government_id: null as File | null,
         parent_name: '',
         parent_contact: '',
     });
 
-    // Watch birthday inside manual form to dynamically calculate if registered user is a minor (< 18)
+    useEffect(() => {
+        // Listen to flash data from Laravel
+        if (flash?.new_credentials) {
+            setCredentialsData(flash.new_credentials);
+            setShowAddForm(false);
+        } else if (flash?.credentials) {
+            setCredentialsData(flash.credentials);
+            setShowAddForm(false);
+        }
+    }, [flash]);
+
     useEffect(() => {
         if (manualForm.data.birthday) {
             const birthDate = new Date(manualForm.data.birthday);
@@ -60,29 +75,26 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
         }
     }, [manualForm.data.birthday]);
 
-    const csvForm = useForm<{ file: File | null }>({
-        file: null,
-    });
-
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         manualForm.post('/admin/residents', {
-            onSuccess: () => {
-                setActivePanel('none');
+            onSuccess: (page: any) => {
                 manualForm.reset();
                 setIsManualMinor(false);
+                setShowAddForm(false);
+                const pageProps = page.props as any;
+                const creds = pageProps.flash?.new_credentials || pageProps.flash?.credentials;
+                if (creds) {
+                    setCredentialsData(creds);
+                }
             },
         });
     };
 
-    const handleCsvSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        csvForm.post('/admin/residents/import-csv', {
-            onSuccess: () => {
-                setActivePanel('none');
-                csvForm.reset();
-            },
-        });
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const filtered = useMemo(() => {
@@ -112,104 +124,172 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
         <AdminLayout title="Mission-Lokal Admin: Residents">
             <Head title="Residents" />
 
+            {/* MANDATORY PROMINENT POPUP MODAL FOR CREDENTIALS */}
+            {credentialsData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border-2 border-emerald-500 space-y-4">
+                        <div className="flex items-center gap-3 border-b pb-3">
+                            <CheckCircle2 className="h-9 w-9 text-emerald-600 shrink-0" />
+                            <div>
+                                <h3 className="text-lg font-bold text-emerald-900">Resident Successfully Registered!</h3>
+                                <p className="text-xs text-muted-foreground">Account created & approved for <strong>{credentialsData.name}</strong>.</p>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl bg-slate-50 p-4 border space-y-3">
+                            <div>
+                                <span className="text-xs text-muted-foreground uppercase font-semibold block">Account ID (Login Username if no email)</span>
+                                <span className="font-mono text-lg font-bold text-blue-900">{credentialsData.account_id}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-muted-foreground uppercase font-semibold block">Registered Email</span>
+                                <span className="font-mono text-sm font-semibold text-gray-800">{credentialsData.username}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-muted-foreground uppercase font-semibold block">Generated Temporary Password</span>
+                                <span className="font-mono text-2xl font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded border border-red-200 inline-block mt-1">{credentialsData.password}</span>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-amber-900 bg-amber-50 p-3 rounded-lg border border-amber-200 font-medium">
+                            ⚠️ Please copy or write down these login credentials and hand them to the resident before closing this window.
+                        </p>
+
+                        <div className="flex justify-end gap-2 pt-2 border-t">
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => copyToClipboard(`Account ID: ${credentialsData.account_id}\nUsername: ${credentialsData.username}\nPassword: ${credentialsData.password}`)}
+                            >
+                                <Copy className="h-4 w-4 mr-1.5" />
+                                {copied ? 'Copied!' : 'Copy Credentials'}
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                onClick={() => setCredentialsData(null)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                Done & Back to Directory
+                                <ArrowRight className="h-4 w-4 ml-1.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Residents</h2>
+                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Residents Directory</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Search verified residents, review IDs, and view civic participation history.
+                        View verified resident accounts, register walk-ins in-person, and track civic participation.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <Button 
-                        onClick={() => setActivePanel(activePanel === 'manual' ? 'none' : 'manual')} 
-                        className="bg-red-600 hover:bg-red-700"
+                        onClick={() => setShowAddForm(!showAddForm)} 
+                        className="bg-red-600 hover:bg-red-700 shadow-sm"
                     >
                         <UserPlus className="mr-2 h-4 w-4" /> 
-                        {activePanel === 'manual' ? 'Close Form' : 'Add Resident'}
-                    </Button>
-                    <Button 
-                        onClick={() => setActivePanel(activePanel === 'csv' ? 'none' : 'csv')} 
-                        variant="outline"
-                    >
-                        <Upload className="mr-2 h-4 w-4" /> 
-                        {activePanel === 'csv' ? 'Close Import' : 'Import CSV'}
+                        {showAddForm ? 'Hide Registration Form' : 'Register Walk-in Resident'}
+                        {showAddForm ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
                     </Button>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground ml-2">
                         <Users className="h-4 w-4" />
                         <span>
-                            <strong className="text-foreground">{residents.length}</strong> registered
+                            <strong className="text-foreground">{residents.length}</strong> total registered
                         </span>
                     </div>
                 </div>
             </div>
 
-            {activePanel === 'manual' && (
-                <div className="mb-6 rounded-lg border bg-card p-5 shadow-sm transition-all">
+            {/* Expanding / Collapsing Walk-in Registration Section */}
+            {showAddForm && (
+                <div className="mb-6 rounded-xl border bg-white p-6 shadow-md transition-all duration-300">
                     <div className="flex items-center justify-between border-b pb-3 mb-4">
-                        <h3 className="text-base font-semibold text-blue-900">Add Preloaded Resident Manually</h3>
-                        <Button variant="ghost" size="sm" onClick={() => setActivePanel('none')}>
+                        <div>
+                            <h3 className="text-base font-bold text-blue-900">In-Person Walk-in Resident Registration</h3>
+                            <p className="text-xs text-muted-foreground">For elders or residents registering directly at the barangay hall (Gmail & ID are optional).</p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
+
                     <form onSubmit={handleManualSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-medium">First Name</label>
-                                <Input value={manualForm.data.first_name} onChange={e => manualForm.setData('first_name', e.target.value)} required />
+                                <label className="text-xs font-medium">First Name *</label>
+                                <Input value={manualForm.data.first_name} onChange={e => manualForm.setData('first_name', e.target.value)} required placeholder="FIRST NAME" />
                             </div>
                             <div>
                                 <label className="text-xs font-medium">Middle Name</label>
-                                <Input value={manualForm.data.middle_name} onChange={e => manualForm.setData('middle_name', e.target.value)} />
+                                <Input value={manualForm.data.middle_name} onChange={e => manualForm.setData('middle_name', e.target.value)} disabled={manualForm.data.no_middle_name} placeholder="MIDDLE NAME" />
+                                <label className="mt-1 flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                                    <input
+                                        type="checkbox"
+                                        checked={manualForm.data.no_middle_name}
+                                        onChange={(e) => {
+                                            const noMiddle = e.target.checked;
+                                            manualForm.setData('no_middle_name', noMiddle);
+                                            manualForm.setData('middle_name', noMiddle ? 'N/A' : '');
+                                        }}
+                                        className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                                    />
+                                    No middle name
+                                </label>
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-medium">Last Name</label>
-                                <Input value={manualForm.data.last_name} onChange={e => manualForm.setData('last_name', e.target.value)} required />
+                                <label className="text-xs font-medium">Last Name *</label>
+                                <Input value={manualForm.data.last_name} onChange={e => manualForm.setData('last_name', e.target.value)} required placeholder="LAST NAME" />
                             </div>
                             <div>
                                 <label className="text-xs font-medium">Name Extension</label>
-                                <Input placeholder="Jr, III, etc." value={manualForm.data.name_extension} onChange={e => manualForm.setData('name_extension', e.target.value)} />
+                                <Input placeholder="JR, III, etc." value={manualForm.data.name_extension} onChange={e => manualForm.setData('name_extension', e.target.value)} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs font-medium">Sex</label>
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={manualForm.data.sex} onChange={e => manualForm.setData('sex', e.target.value)}>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium">Civil Status</label>
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={manualForm.data.civil_status} onChange={e => manualForm.setData('civil_status', e.target.value)}>
-                                    <option value="Single">Single</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Widowed">Widowed</option>
-                                    <option value="Separated">Separated</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium">Birthday</label>
+                                <label className="text-xs font-medium">Birthday *</label>
                                 <Input type="date" value={manualForm.data.birthday} onChange={e => manualForm.setData('birthday', e.target.value)} required />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium">Mobile Number</label>
+                                <Input placeholder="09123456789" value={manualForm.data.mobile} onChange={e => manualForm.setData('mobile', e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium">Email Address (Optional)</label>
+                                <Input type="email" placeholder="resident@email.com" value={manualForm.data.email} onChange={e => manualForm.setData('email', e.target.value)} />
                             </div>
                         </div>
 
-                        {/* --- OPTIONAL GUARDIAN FIELDS FOR ADMIN MANUAL ADDITION OF MINORS --- */}
+                        <div>
+                            <label className="text-xs font-medium mb-1 block">Government ID (Optional)</label>
+                            <input 
+                                type="file" 
+                                accept=".jpg, .jpeg, .png, .pdf"
+                                onChange={e => manualForm.setData('government_id', e.target.files ? e.target.files[0] : null)}
+                                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            />
+                        </div>
+
                         {isManualMinor && (
                             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
                                 <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider">
                                     <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                    Minor Account — Parent / Guardian Information (Optional)
+                                    Minor Account — Parent / Guardian Information
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-medium">Guardian Full Name</label>
-                                        <Input placeholder="Guardian Name (Optional)" value={manualForm.data.parent_name} onChange={e => manualForm.setData('parent_name', e.target.value)} />
+                                        <label className="text-xs font-medium">Guardian Full Name *</label>
+                                        <Input placeholder="Guardian Name" value={manualForm.data.parent_name} onChange={e => manualForm.setData('parent_name', e.target.value)} required={isManualMinor} />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium">Guardian Contact Number</label>
-                                        <Input placeholder="09123456789 (Optional)" value={manualForm.data.parent_contact} onChange={e => manualForm.setData('parent_contact', e.target.value)} />
+                                        <label className="text-xs font-medium">Guardian Contact *</label>
+                                        <Input placeholder="09123456789" value={manualForm.data.parent_contact} onChange={e => manualForm.setData('parent_contact', e.target.value)} required={isManualMinor} />
                                     </div>
                                 </div>
                             </div>
@@ -217,56 +297,28 @@ export default function Index(props: Partial<AdminResidentsPageProps>) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
                             <div>
-                                <label className="text-xs font-medium">House / Street</label>
-                                <Input placeholder="House #, Street name" value={manualForm.data.house_street} onChange={e => manualForm.setData('house_street', e.target.value)} required />
+                                <label className="text-xs font-medium">House / Street *</label>
+                                <Input placeholder="House #, Street" value={manualForm.data.house_street} onChange={e => manualForm.setData('house_street', e.target.value)} required />
                             </div>
                             <div>
-                                <label className="text-xs font-medium">Barangay Name</label>
+                                <label className="text-xs font-medium">Barangay Name *</label>
                                 <Input placeholder="Barangay" value={manualForm.data.barangay_name} onChange={e => manualForm.setData('barangay_name', e.target.value)} required />
                             </div>
                             <div>
-                                <label className="text-xs font-medium">City / Municipality</label>
+                                <label className="text-xs font-medium">City / Municipality *</label>
                                 <Input placeholder="City" value={manualForm.data.city} onChange={e => manualForm.setData('city', e.target.value)} required />
                             </div>
                             <div>
-                                <label className="text-xs font-medium">Province</label>
+                                <label className="text-xs font-medium">Province *</label>
                                 <Input placeholder="Province" value={manualForm.data.province} onChange={e => manualForm.setData('province', e.target.value)} required />
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" onClick={() => setActivePanel('none')}>Cancel</Button>
-                            <Button type="submit" disabled={manualForm.processing} className="bg-red-600 hover:bg-red-700">Save Resident</Button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {activePanel === 'csv' && (
-                <div className="mb-6 rounded-lg border bg-card p-5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between border-b pb-3 mb-4">
-                        <h3 className="text-base font-semibold text-blue-900">Batch Import Residents (CSV)</h3>
-                        <Button variant="ghost" size="sm" onClick={() => setActivePanel('none')}>
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <form onSubmit={handleCsvSubmit} className="space-y-4">
-                        <div>
-                            <label className="text-xs font-medium mb-1 block">Select CSV File</label>
-                            <input 
-                                type="file" 
-                                accept=".csv, text/plain" 
-                                onChange={e => csvForm.setData('file', e.target.files ? e.target.files[0] : null)}
-                                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                                required 
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">
-                                CSV columns expected format: First Name, Middle Name, Last Name, Name Extension, Sex, Civil Status, House/Street, Barangay Name, City, Province, Birthday, Mobile.
-                            </p>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" onClick={() => setActivePanel('none')}>Cancel</Button>
-                            <Button type="submit" disabled={csvForm.processing} className="bg-red-600 hover:bg-red-700">Upload & Import</Button>
+                        <div className="flex justify-end gap-2 pt-4 border-t">
+                            <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                            <Button type="submit" disabled={manualForm.processing} className="bg-red-600 hover:bg-red-700 text-white">
+                                {manualForm.processing ? 'Registering...' : 'Register & Generate Credentials'}
+                            </Button>
                         </div>
                     </form>
                 </div>

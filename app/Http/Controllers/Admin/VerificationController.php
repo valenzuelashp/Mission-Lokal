@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\PreloadedResident;
 use App\Models\ResidentRegistration;
 use App\Models\ResidentProfile;
 use App\Enums\VerificationStatus;
@@ -45,22 +44,14 @@ class VerificationController extends Controller
             $status = $user?->residentProfile?->verification_status;
             $statusValue = $status instanceof VerificationStatus ? $status->value : ($status ?? 'pending');
 
-            $censusMatch = PreloadedResident::findByIdentity(
-                $reg->first_name,
-                $reg->last_name,
-                $reg->birthday,
-                $reg->middle_name
-            );
-
             return [
                 'id' => $reg->id,
-                'account_id' => $censusMatch?->account_id ?? 'Unknown',
+                'account_id' => $user?->account_id ?? 'PENDING',
                 'first_name' => $reg->first_name,
                 'last_name' => $reg->last_name,
                 'email' => $reg->email,
                 'mobile' => $reg->mobile,
                 'verification_status' => $statusValue,
-                'census_match' => (bool) $censusMatch,
                 'created_at' => $reg->created_at ? $reg->created_at->toISOString() : null,
             ];
         });
@@ -86,18 +77,15 @@ class VerificationController extends Controller
         }
 
         $parsedBirthday = Carbon::parse($registration->birthday)->format('Y-m-d');
-        $censusData = $this->findCensusMatch($registration, $userAccount, $parsedBirthday);
 
         $residentData = [
             'id' => $registration->id,
-            'account_id' => $censusData ? $censusData->account_id : ($userAccount->account_id ?? 'UNASSIGNED'),
+            'account_id' => $userAccount->account_id ?? 'PENDING',
             'first_name' => $registration->first_name,
             'middle_name' => $registration->middle_name ?? '',
             'last_name' => $registration->last_name,
             'name_extension' => $registration->name_extension ?? '',
             'birthday' => $parsedBirthday,
-            'sex' => $registration->sex,
-            'civil_status' => $registration->civil_status,
             'house_street' => $registration->house_street,
             'barangay_name' => $registration->barangay_name,
             'city' => $registration->city,
@@ -111,32 +99,18 @@ class VerificationController extends Controller
             ],
         ];
 
-        $censusFormatted = $censusData ? [
-            'id' => $censusData->id,
-            'account_id' => $censusData->account_id,
-            'first_name' => $censusData->first_name,
-            'middle_name' => $censusData->middle_name ?? '',
-            'last_name' => $censusData->last_name,
-            'name_extension' => $censusData->name_extension ?? '',
-            'birthday' => Carbon::parse($censusData->birthday)->format('Y-m-d'),
-            'sex' => $censusData->sex ?? '',
-            'civil_status' => $censusData->civil_status ?? '',
-            'house_street' => $censusData->house_street ?? '',
-            'barangay_name' => $censusData->barangay_name ?? '',
-            'city' => $censusData->city ?? '',
-            'province' => $censusData->province ?? '',
-            'mobile' => $censusData->mobile ?? '',
-            'email' => $censusData->email ?? '',
-        ] : null;
-
         return Inertia::render('Admin/Verifications/Show', [
             'resident' => $residentData,
-            'censusData' => $censusFormatted,
+            'censusData' => null,
         ]);
     }
 
     public function approve(Request $request, string $id)
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $validated = $this->validatedResidentFields($request);
         $barangayId = $request->user()->barangay_id;
         $registration = $this->registrationForAdmin($request, $id);
@@ -144,18 +118,9 @@ class VerificationController extends Controller
 
         DB::beginTransaction();
         try {
-            $preloadedMatch = $this->resolveCensusRecord($request, $validated);
-
-            if ($preloadedMatch) {
-                $preloadedMatch->update(array_merge($this->censusWritableFields($validated), [
-                    'email' => $verificationEmail,
-                    'mobile' => $validated['mobile'] ?? $preloadedMatch->mobile,
-                    'is_claimed' => true,
-                    'claimed_at' => now(),
-                ]));
-            }
-
-            $accountId = $preloadedMatch?->account_id ?? LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
+            $userAccount = User::where('email', $registration->email)->first();
+            $accountId = $userAccount?->account_id ?? LocalIdentifier::next($request->user()->barangay, LocalIdentifier::RES);
+            
             $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['last_name']);
             $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Resident'));
             $rawPassword = $accountId.'!'.$readableLastName;
@@ -185,7 +150,7 @@ class VerificationController extends Controller
                     'name_extension' => $validated['name_extension'],
                     'mobile' => $validated['mobile'],
                     'password' => $rawPassword,
-                    'is_active' => false,
+                    'is_active' => true,
                     'password_prompt_snoozed_on' => null,
                     'parent_name' => $registration->parent_name,
                     'parent_contact' => $registration->parent_contact,
@@ -199,8 +164,6 @@ class VerificationController extends Controller
                     'verification_status' => VerificationStatus::Approved,
                     'rejection_reason' => null,
                     'birthday' => Carbon::parse($validated['birthday'])->format('Y-m-d'),
-                    'sex' => $validated['sex'],
-                    'civil_status' => $validated['civil_status'],
                     'house_street' => $validated['house_street'],
                     'barangay_name' => $validated['barangay_name'],
                     'city' => $validated['city'],
@@ -209,10 +172,6 @@ class VerificationController extends Controller
                     'digital_id_code' => $accountId,
                 ]
             );
-
-            if ($preloadedMatch) {
-                $preloadedMatch->update(['user_id' => $user->id]);
-            }
 
             $registration->delete();
 
@@ -257,6 +216,10 @@ class VerificationController extends Controller
 
     public function reject(Request $request, string $id)
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $registration = $this->registrationForAdmin($request, $id);
 
         $request->validate([
@@ -346,69 +309,17 @@ class VerificationController extends Controller
     private function validatedResidentFields(Request $request): array
     {
         return $request->validate([
-            'census_id' => 'nullable|exists:preloaded_residents,id',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'name_extension' => 'nullable|string|max:20',
             'birthday' => 'required|date',
-            'sex' => 'required|string',
-            'civil_status' => 'required|string',
             'house_street' => 'required|string',
             'barangay_name' => 'required|string',
             'city' => 'required|string',
             'province' => 'required|string',
             'mobile' => 'nullable|string',
         ]);
-    }
-
-    private function censusWritableFields(array $validated): array
-    {
-        return [
-            'first_name' => $validated['first_name'],
-            'middle_name' => $validated['middle_name'] ?? null,
-            'last_name' => $validated['last_name'],
-            'name_extension' => $validated['name_extension'] ?? null,
-            'birthday' => Carbon::parse($validated['birthday'])->format('Y-m-d'),
-            'sex' => $validated['sex'],
-            'civil_status' => $validated['civil_status'],
-            'house_street' => $validated['house_street'],
-            'barangay_name' => $validated['barangay_name'],
-            'city' => $validated['city'],
-            'province' => $validated['province'],
-            'mobile' => $validated['mobile'] ?? null,
-        ];
-    }
-
-    private function resolveCensusRecord(Request $request, array $validated): ?PreloadedResident
-    {
-        if (! empty($validated['census_id'])) {
-            return PreloadedResident::find($validated['census_id']);
-        }
-
-        return PreloadedResident::findByIdentity(
-            $validated['first_name'],
-            $validated['last_name'],
-            $validated['birthday'],
-            $validated['middle_name'] ?? null
-        );
-    }
-
-    private function findCensusMatch(ResidentRegistration $registration, ?User $userAccount, string $parsedBirthday): ?PreloadedResident
-    {
-        if ($userAccount && $userAccount->account_id && LocalIdentifier::isResidentAccount($userAccount->account_id)) {
-            $match = PreloadedResident::where('account_id', $userAccount->account_id)->first();
-            if ($match) {
-                return $match;
-            }
-        }
-
-        return PreloadedResident::findByIdentity(
-            $registration->first_name,
-            $registration->last_name,
-            $parsedBirthday,
-            $registration->middle_name
-        );
     }
 
     private function userAccountForRegistration(ResidentRegistration $registration): ?User
@@ -418,14 +329,6 @@ class VerificationController extends Controller
             $byEmail = User::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
             if ($byEmail) {
                 return $byEmail;
-            }
-        }
-
-        $census = $this->findCensusMatch($registration, null, Carbon::parse($registration->birthday)->format('Y-m-d'));
-        if ($census?->account_id) {
-            $byCensus = User::where('account_id', $census->account_id)->first();
-            if ($byCensus) {
-                return $byCensus;
             }
         }
 

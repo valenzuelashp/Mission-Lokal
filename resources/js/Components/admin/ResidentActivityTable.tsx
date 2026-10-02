@@ -4,25 +4,25 @@ import { cn } from '@/Lib/utils';
 import type { AdminResidentActivity } from '@/Types';
 
 const statusStyle: Record<AdminResidentActivity['status'], string> = {
-    resolved: 'text-emerald-600',
-    complete: 'text-emerald-600',
-    acknowledged: 'text-blue-600',
-    active: 'text-amber-600',
-    pending: 'text-muted-foreground',
+    resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    complete: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    acknowledged: 'bg-blue-50 text-blue-700 border-blue-200',
+    active: 'bg-amber-50 text-amber-700 border-amber-200',
+    pending: 'bg-slate-100 text-slate-700 border-slate-200',
 };
 
 const statusLabel: Record<AdminResidentActivity['status'], string> = {
     resolved: 'Resolved',
     complete: 'Complete',
-    acknowledged: 'Acknow.',
+    acknowledged: 'Acknowledged',
     active: 'Active',
     pending: 'Pending',
 };
 
 const typeLabel: Record<AdminResidentActivity['type'], string> = {
-    mission: 'Mission',
+    mission: 'Mission Task',
     broadcast: 'Broadcast',
-    blotter: 'Blotter',
+    blotter: 'Blotter Case',
 };
 
 type Props = {
@@ -34,13 +34,13 @@ export default function ResidentActivityTable({ activities, onViewAllClick }: Pr
     return (
         <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
                     <History className="h-4 w-4 text-muted-foreground" />
-                    Activity history
+                    Activity history & concerns
                 </CardTitle>
                 {activities.length > 0 && (
-                    <button type="button" onClick={onViewAllClick} className="text-xs font-medium text-blue-700 hover:underline">
-                        View all
+                    <button type="button" onClick={onViewAllClick} className="text-xs font-semibold text-blue-700 hover:underline">
+                        View all history →
                     </button>
                 )}
             </CardHeader>
@@ -51,16 +51,16 @@ export default function ResidentActivityTable({ activities, onViewAllClick }: Pr
                     <>
                         <div className="space-y-0 divide-y md:hidden">
                             {activities.map((row) => (
-                                <div key={row.id} className="space-y-1 px-4 py-3">
+                                <tr key={row.id} className="space-y-1 px-4 py-3 block">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs text-muted-foreground">{row.date}</span>
-                                        <span className={cn('text-xs font-semibold', statusStyle[row.status])}>
+                                        <span className="text-xs text-muted-foreground font-medium">{row.date}</span>
+                                        <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', statusStyle[row.status])}>
                                             {statusLabel[row.status]}
                                         </span>
                                     </div>
-                                    <p className="text-sm">{row.description}</p>
-                                    <span className="text-xs text-muted-foreground">{typeLabel[row.type]}</span>
-                                </div>
+                                    <p className="text-sm font-medium text-gray-800 mt-1">{row.description}</p>
+                                    <span className="text-xs text-blue-600 font-semibold">{typeLabel[row.type]}</span>
+                                </tr>
                             ))}
                         </div>
 
@@ -76,12 +76,14 @@ export default function ResidentActivityTable({ activities, onViewAllClick }: Pr
                                 </thead>
                                 <tbody>
                                     {activities.map((row) => (
-                                        <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                            <td className="px-4 py-3 text-muted-foreground">{row.date}</td>
-                                            <td className="px-4 py-3">{typeLabel[row.type]}</td>
-                                            <td className="px-4 py-3">{row.description}</td>
-                                            <td className={cn('px-4 py-3 font-semibold', statusStyle[row.status])}>
-                                                {statusLabel[row.status]}
+                                        <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                                            <td className="px-4 py-3 text-muted-foreground text-xs">{row.date}</td>
+                                            <td className="px-4 py-3 font-medium text-slate-700 text-xs">{typeLabel[row.type]}</td>
+                                            <td className="px-4 py-3 text-gray-900 font-medium">{row.description}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full border inline-block', statusStyle[row.status])}>
+                                                    {statusLabel[row.status]}
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}

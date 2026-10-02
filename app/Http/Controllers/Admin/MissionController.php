@@ -61,7 +61,6 @@ class MissionController extends Controller
             ];
         });
 
-        // Accurate counts calculation for mini tabs
         $counts = [
             'all' => $missions->count(),
             'assigned' => $missions->where('status', 'assigned')->count(),
@@ -102,6 +101,10 @@ class MissionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $validated = $request->validate([
             'concern_id' => ['required', 'exists:concerns,id'],
             'personnel_ids' => ['present', 'array'],
@@ -211,6 +214,10 @@ class MissionController extends Controller
 
     public function verifyMission(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
 
         DB::transaction(function () use ($id, $barangayId, $request) {

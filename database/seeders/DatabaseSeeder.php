@@ -57,7 +57,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@demo.local',
             'password' => 'password',
         ]);
-        // Admin extension/profile handling if applicable, or left as user identity hub
 
         $personnel = User::query()->create([
             'barangay_id' => $barangay->id,
@@ -76,7 +75,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        // Resident shell user creation (removed verification_status from here)
+        // Resident shell user creation
         $resident = User::query()->create([
             'barangay_id' => $barangay->id,
             'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 1),
@@ -90,9 +89,8 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
         ]);
 
-        // Anchor profile attributes, civic_xp, and verification_status strictly inside resident_profiles
         $resident->residentProfile()->create([
-            'civic_xp' => 50, // Updated default resident civic xp to 50
+            'civic_xp' => 50,
             'verification_status' => VerificationStatus::Approved,
             'birthday' => '1985-05-15',
             'address' => 'Barangay Hall, Demo Barangay',
@@ -103,8 +101,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BlueprintCategorySeeder::class,
             LibrarySeeder::class,
-            PreloadedResidentSeeder::class,
-            DemoDataSeeder::class,         
+            DemoDataSeeder::class,        
         ]);
     }
 }

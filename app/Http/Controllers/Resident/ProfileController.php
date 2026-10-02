@@ -63,8 +63,6 @@ class ProfileController extends Controller
             'full_name'           => $fullName,
             'email'               => $user->email,
             'mobile'              => $user->mobile ?? '—',
-            'sex'                 => $profile->sex ?? 'Not Specified',
-            'civil_status'        => $profile->civil_status ?? 'Not Specified',
             'address'             => $addressStr,
             'birthday'            => $birthdayStr,
             'verification_status' => $profileStatusValue,
@@ -109,8 +107,6 @@ class ProfileController extends Controller
             'name_extension'=> $user->name_extension ?? '',
             'email'         => $user->email ?? '',
             'mobile'        => $user->mobile ?? '',
-            'sex'           => $profile?->sex ?? 'Male',
-            'civil_status'  => $profile?->civil_status ?? 'Single',
             'birthday'      => $birthdayStr,
             'house_street'  => $profile?->house_street ?? '',
             'barangay_name' => $profile?->barangay_name ?? '',
@@ -142,8 +138,6 @@ class ProfileController extends Controller
             'last_name'     => 'required|string|max:255',
             'name_extension'=> 'nullable|string|max:20',
             'birthday'      => 'required|date',
-            'sex'           => 'required|string|in:Male,Female,Other',
-            'civil_status'  => 'required|string|in:Single,Married,Widowed,Separated',
             'house_street'  => 'required|string|max:150',
             'barangay_name' => 'required|string|max:100',
             'city'          => 'required|string|max:100',
@@ -162,7 +156,6 @@ class ProfileController extends Controller
         $profile = $user->residentProfile;
         $changes = [];
 
-        // Compare and track modifications across all fields
         if (trim($validated['first_name']) !== trim($user->first_name ?? '')) $changes['first_name'] = $validated['first_name'];
         if (trim($validated['middle_name'] ?? '') !== trim($user->middle_name ?? '')) $changes['middle_name'] = $validated['middle_name'];
         if (trim($validated['last_name']) !== trim($user->last_name ?? '')) $changes['last_name'] = $validated['last_name'];
@@ -171,8 +164,6 @@ class ProfileController extends Controller
         if (trim($validated['mobile']) !== trim($user->mobile ?? '')) $changes['mobile'] = $validated['mobile'];
 
         if (trim($validated['birthday']) !== ($profile?->birthday ? $profile->birthday->format('Y-m-d') : '')) $changes['birthday'] = $validated['birthday'];
-        if (trim($validated['sex']) !== trim($profile?->sex ?? '')) $changes['sex'] = $validated['sex'];
-        if (trim($validated['civil_status']) !== trim($profile?->civil_status ?? '')) $changes['civil_status'] = $validated['civil_status'];
         if (trim($validated['house_street']) !== trim($profile?->house_street ?? '')) $changes['house_street'] = $validated['house_street'];
         if (trim($validated['barangay_name']) !== trim($profile?->barangay_name ?? '')) $changes['barangay_name'] = $validated['barangay_name'];
         if (trim($validated['city']) !== trim($profile?->city ?? '')) $changes['city'] = $validated['city'];

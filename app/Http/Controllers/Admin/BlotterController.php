@@ -59,10 +59,13 @@ class BlotterController extends Controller
 
     public function approve(Request $request, string $id): \Illuminate\Http\RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
 
         DB::transaction(function () use ($barangayId, $id, $request) {
-            // Lock the row to prevent race conditions during ticket generation
             $blotter = Blotter::where('barangay_id', $barangayId)
                 ->where('id', $id)
                 ->where('status', 'pending_approval')
@@ -78,7 +81,6 @@ class BlotterController extends Controller
                 'approved_at' => now(),
             ]);
 
-            // Audit the mutation natively using direct table insert
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
                 'actor_id' => Auth::id(),

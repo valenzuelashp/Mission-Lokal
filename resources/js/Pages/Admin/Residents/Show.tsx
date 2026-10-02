@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, BookOpen, IdCard, ShieldAlert, User, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, IdCard, ShieldAlert, User, X, FileText, Award, Hash } from 'lucide-react';
 import { useState } from 'react';
 import ResidentActivityTable from '@/Components/admin/ResidentActivityTable';
 import ResidentDocumentsList from '@/Components/admin/ResidentDocumentsList';
@@ -242,6 +242,37 @@ export default function Show({ resident, residentId }: Props) {
                 isFlagging={flagForm.processing}
             />
 
+            {/* Quick Metrics Summary Bar */}
+            <div className="my-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
+                    <div className="p-3 bg-blue-50 text-blue-700 rounded-lg">
+                        <Hash className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold">Account Reference ID</p>
+                        <p className="text-sm font-mono font-bold text-gray-900">{data.account_id}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
+                    <div className="p-3 bg-emerald-50 text-emerald-700 rounded-lg">
+                        <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold">Total Reports Filed</p>
+                        <p className="text-sm font-bold text-gray-900">{data.reports_count ?? 0} Concern{data.reports_count === 1 ? '' : 's'}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
+                    <div className="p-3 bg-amber-50 text-amber-700 rounded-lg">
+                        <Award className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold">Civic Engagement Score</p>
+                        <p className="text-sm font-bold text-gray-900">{data.civic_xp} Points · {data.badge_count} Badges</p>
+                    </div>
+                </div>
+            </div>
+
             <div className="mb-6 grid gap-6 lg:grid-cols-2">
                 <Card className="shadow-sm">
                     <CardHeader className="pb-3">
@@ -252,11 +283,7 @@ export default function Show({ resident, residentId }: Props) {
                     </CardHeader>
                     <CardContent className="pt-0">
                         <DetailRow label="Date of birth" value={birthdayDisplay} />
-                        <DetailRow label="Sex" value={data.sex ?? '—'} />
-                        <DetailRow label="Civil Status" value={data.civil_status ?? '—'} />
-                        <DetailRow label="National ID number" value={data.national_id_masked ?? '—'} />
                         <DetailRow label="Citizenship status" value={data.citizenship_status} />
-                        <DetailRow label="Civic XP" value={`${data.civic_xp} points · ${data.badge_count} badges`} />
                         
                         {isMinor && (
                             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">

@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\User;
+use App\Enums\VerificationStatus;
 
 class ImportResidents extends Command
 {
@@ -22,7 +24,7 @@ class ImportResidents extends Command
      *
      * @var string
      */
-    protected $description = 'Import preloaded residents from a municipal CSV file into the database';
+    protected $description = 'Import residents from a municipal CSV file directly into the active users and resident profiles database';
 
     /**
      * Execute the console command.
@@ -116,19 +118,45 @@ class ImportResidents extends Command
                     continue;
                 }
 
-                // Upsert into preloaded_residents table
-                DB::table('preloaded_residents')->updateOrInsert(
-                    ['account_id' => $row['account_id']],
+                $accountId = $row['account_id'];
+                $firstName = mb_strtoupper(trim($row['first_name']), 'UTF-8');
+                $middleName = isset($row['middle_name']) ? mb_strtoupper(trim($row['middle_name']), 'UTF-8') : null;
+                $lastName = mb_strtoupper(trim($row['last_name']), 'UTF-8');
+                $nameExtension = isset($row['name_extension']) ? mb_strtoupper(trim($row['name_extension']), 'UTF-8') : null;
+                $birthday = Carbon::parse($row['birthday'])->format('Y-m-d');
+                $address = $row['address'] ?? 'No address listed';
+                $mobile = $row['mobile'] ?? null;
+                $email = strtolower($accountId) . '@system.local';
+                $rawPassword = $accountId . '!' . ucfirst(strtolower($lastName));
+
+                // Find default barangay id from existing users or system
+                $defaultBarangayId = DB::table('barangays')->value('id') ?? DB::table('users')->value('barangay_id');
+
+                // Upsert/Create user directly into active users and profile tables
+                $user = User::updateOrCreate(
+                    ['account_id' => $accountId],
                     [
-                        'first_name' => $row['first_name'],
-                        'middle_name' => $row['middle_name'] ?? null,
-                        'last_name' => $row['last_name'],
-                        'name_extension' => $row['name_extension'] ?? null,
-                        'birthday' => Carbon::parse($row['birthday'])->format('YYYY-MM-DD') ?? $row['birthday'],
-                        'address' => $row['address'] ?? null,
-                        'mobile' => $row['mobile'] ?? null,
-                        'updated_at' => now(),
-                        'created_at' => DB::raw('COALESCE(created_at, NOW())'),
+                        'barangay_id' => $defaultBarangayId,
+                        'role' => 'resident',
+                        'first_name' => $firstName,
+                        'middle_name' => $middleName,
+                        'last_name' => $lastName,
+                        'name_extension' => $nameExtension,
+                        'email' => $email,
+                        'mobile' => $mobile,
+                        'password' => $rawPassword,
+                        'is_active' => true,
+                    ]
+                );
+
+                $user->residentProfile()->updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'verification_status' => VerificationStatus::Approved,
+                        'birthday' => $birthday,
+                        'address' => $address,
+                        'digital_id_code' => $accountId,
+                        'civic_xp' => 0,
                     ]
                 );
 

@@ -16,8 +16,6 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('name_extension', 20)->nullable();
             $table->date('birthday');
-            $table->string('sex', 20);
-            $table->string('civil_status', 30);
             $table->string('house_street');
             $table->string('barangay_name');
             $table->string('city');

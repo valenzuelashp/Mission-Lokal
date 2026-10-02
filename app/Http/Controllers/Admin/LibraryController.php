@@ -44,6 +44,10 @@ class LibraryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center,faq'],
@@ -94,8 +98,12 @@ class LibraryController extends Controller
         return back()->with('success', 'Resource item added.');
     }
 
-    public function edit(Request $request, string $id): Response
+    public function edit(Request $request, string $id): Response|RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return redirect()->route('admin.library.index')->with('error', 'View-only officials cannot edit library assets.');
+        }
+
         $item = LibraryItem::where('barangay_id', $request->user()->barangay_id)->findOrFail($id);
         $meta = is_array($item->metadata) ? $item->metadata : json_decode($item->metadata ?? '{}', true);
 
@@ -116,6 +124,10 @@ class LibraryController extends Controller
 
     public function update(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'in:manual,contact,emergency,evacuation_center,faq'],
@@ -167,6 +179,10 @@ class LibraryController extends Controller
 
     public function destroy(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $item = LibraryItem::where('barangay_id', $barangayId)->findOrFail($id);
         

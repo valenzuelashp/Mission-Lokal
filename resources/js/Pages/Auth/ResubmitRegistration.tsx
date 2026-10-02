@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ShieldAlert, Upload } from 'lucide-react';
@@ -9,8 +9,6 @@ export default function ResubmitRegistration({ resident }: { resident: any }) {
         middle_name: resident.middle_name || '',
         last_name: resident.last_name || '',
         name_extension: resident.name_extension || '',
-        sex: resident.sex || 'Male',
-        civil_status: resident.civil_status || 'Single',
         birthday: resident.birthday || '',
         house_street: resident.house_street || '',
         barangay_name: resident.barangay_name || '',
@@ -81,42 +79,11 @@ export default function ResubmitRegistration({ resident }: { resident: any }) {
                             </div>
                         </div>
 
-                        {/* Sex, Civil Status, Birthday */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Sex *</label>
-                                <select 
-                                    value={data.sex} 
-                                    onChange={e => setData('sex', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    required
-                                >
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                {errors.sex && <span className="text-xs text-red-600 mt-1 block">{errors.sex}</span>}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Civil Status *</label>
-                                <select 
-                                    value={data.civil_status} 
-                                    onChange={e => setData('civil_status', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    required
-                                >
-                                    <option value="Single">Single</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Widowed">Widowed</option>
-                                    <option value="Separated">Separated</option>
-                                </select>
-                                {errors.civil_status && <span className="text-xs text-red-600 mt-1 block">{errors.civil_status}</span>}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Birthday *</label>
-                                <Input type="date" value={data.birthday} onChange={e => setData('birthday', e.target.value)} required />
-                                {errors.birthday && <span className="text-xs text-red-600 mt-1 block">{errors.birthday}</span>}
-                            </div>
+                        {/* Birthday */}
+                        <div>
+                            <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Birthday *</label>
+                            <Input type="date" value={data.birthday} onChange={e => setData('birthday', e.target.value)} required />
+                            {errors.birthday && <span className="text-xs text-red-600 mt-1 block">{errors.birthday}</span>}
                         </div>
 
                         {/* Address Fields */}
@@ -168,7 +135,7 @@ export default function ResubmitRegistration({ resident }: { resident: any }) {
                                     accept="image/*,application/pdf"
                                     onChange={e => setData('government_id', e.target.files ? e.target.files[0] : null)}
                                     className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                                    required
+                                    required 
                                 />
                             </div>
                             {errors.government_id && <span className="text-xs text-red-600 mt-1 block">{errors.government_id}</span>}

@@ -32,6 +32,8 @@ export interface PageProps {
     flash: {
         success?: string;
         error?: string;
+        new_credentials?: any;
+        credentials?: any;
     };
     [key: string]: unknown;
 }
@@ -368,6 +370,7 @@ export interface AdminAnnouncementFormPageProps extends PageProps {
 }
 
 export interface AdminResident {
+    reports_count: number;
     id: string;
     account_id: string;
     full_name: string;
@@ -429,11 +432,10 @@ export interface AdminResidentEmergencyContact {
 }
 
 export interface AdminResidentDetail extends AdminResident {
+    reports_count: number;
     government_id_label: string;
     government_id_url: any;
     government_id_is_pdf: any;
-    civil_status: string;
-    sex: string;
     first_name: string;
     middle_name: string;
     last_name: string;
@@ -441,7 +443,6 @@ export interface AdminResidentDetail extends AdminResident {
     age_years: number | null;
     national_id_masked: string | null;
     citizenship_status: string;
-    gender: string;
     zip_code: string | null;
     map_lat: number;
     map_lng: number;

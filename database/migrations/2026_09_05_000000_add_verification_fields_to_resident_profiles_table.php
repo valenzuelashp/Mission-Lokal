@@ -9,9 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('resident_profiles', function (Blueprint $table) {
-            $table->string('sex')->nullable()->after('birthday');
-            $table->string('civil_status')->nullable()->after('sex');
-            $table->string('house_street')->nullable()->after('address');
+            $table->string('house_street')->nullable()->after('birthday');
             $table->string('barangay_name')->nullable()->after('house_street');
             $table->string('city')->nullable()->after('barangay_name');
             $table->string('province')->nullable()->after('city');
@@ -22,8 +20,6 @@ return new class extends Migration
     {
         Schema::table('resident_profiles', function (Blueprint $table) {
             $table->dropColumn([
-                'sex',
-                'civil_status',
                 'house_street',
                 'barangay_name',
                 'city',

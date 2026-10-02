@@ -26,8 +26,6 @@ export default function ProfileIndex({ profile }: { profile: any }) {
         full_name: user.account_id ?? 'Verified Resident',
         address: 'No address registered',
         birthday: '—',
-        sex: '—',
-        civil_status: '—',
         verification_status: 'unverified',
         digital_id_code: 'ML-PENDING',
         member_since: 'July 2026',
@@ -127,18 +125,6 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                                     Birthday
                                 </dt>
                                 <dd className="mt-1 font-medium">{activeProfile.birthday}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Sex
-                                </dt>
-                                <dd className="mt-1 font-medium">{activeProfile.sex}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Civil Status
-                                </dt>
-                                <dd className="mt-1 font-medium">{activeProfile.civil_status}</dd>
                             </div>
                             <div className="sm:col-span-2">
                                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

@@ -47,10 +47,8 @@ export default function Register() {
         birthday: '',
         email: '',
         mobile: '',
-        sex: 'Male',
-        civil_status: 'Single',
         government_id: null as File | null,
-        consent: false, // PHASE 9: Track the consent checkbox state
+        consent: false,
         parent_name: '',
         parent_contact: '',
     });
@@ -58,7 +56,6 @@ export default function Register() {
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
 
-    // Watch birthday changes to dynamically calculate if user is a minor (< 18)
     useEffect(() => {
         if (data.birthday) {
             const birthDate = new Date(data.birthday);
@@ -86,7 +83,7 @@ export default function Register() {
             <div className="w-full max-w-2xl rounded-xl border bg-white p-8 shadow-sm">
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-blue-900">Mission-Lokal Resident Portal</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Submit your details to compare with barangay records and request verification.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Register your details for physical record verification at the barangay hall.</p>
                 </div>
 
                 {formErrors.general && (
@@ -137,32 +134,12 @@ export default function Register() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                            <label className="text-xs font-medium">Sex *</label>
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={data.sex} onChange={e => setData('sex', e.target.value)}>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Civil Status *</label>
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" value={data.civil_status} onChange={e => setData('civil_status', e.target.value)}>
-                                <option value="Single">Single</option>
-                                <option value="Married">Married</option>
-                                <option value="Widowed">Widowed</option>
-                                <option value="Separated">Separated</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Birthday *</label>
-                            <Input type="date" value={data.birthday} onChange={e => setData('birthday', e.target.value)} required />
-                            {errors.birthday && <p className="text-xs text-red-600 mt-1">{errors.birthday}</p>}
-                        </div>
+                    <div>
+                        <label className="text-xs font-medium">Birthday *</label>
+                        <Input type="date" value={data.birthday} onChange={e => setData('birthday', e.target.value)} required />
+                        {errors.birthday && <p className="text-xs text-red-600 mt-1">{errors.birthday}</p>}
                     </div>
 
-                    {/* --- CONDITIONAL GUARDIAN SECTION FOR MINORS --- */}
                     {isMinor && (
                         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
                             <div className="flex items-start gap-2">
@@ -230,7 +207,6 @@ export default function Register() {
                         {errors.government_id && <p className="text-xs text-red-600 mt-1">{errors.government_id}</p>}
                     </div>
 
-                    {/* PHASE 9: Data Privacy Consent Checkbox */}
                     <div className="pt-2">
                         <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                             <input

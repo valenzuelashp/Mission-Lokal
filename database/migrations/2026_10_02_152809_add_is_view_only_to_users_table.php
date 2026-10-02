@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('preloaded_residents', function (Blueprint $table) {
-            $table->string('sex', 20)->nullable()->after('name_extension');
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('is_view_only')->default(false)->after('role');
         });
     }
 
     public function down(): void
     {
-        Schema::table('preloaded_residents', function (Blueprint $table) {
-            $table->dropColumn('sex');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('is_view_only');
         });
     }
 };

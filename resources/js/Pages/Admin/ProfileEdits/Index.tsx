@@ -39,8 +39,6 @@ export default function Index({ pendingEdits = [] }: Props) {
             last_name: 'Last Name',
             name_extension: 'Name Extension',
             birthday: 'Birthday',
-            sex: 'Sex',
-            civil_status: 'Civil Status',
             house_street: 'House / Street',
             barangay_name: 'Barangay',
             city: 'City / Municipality',

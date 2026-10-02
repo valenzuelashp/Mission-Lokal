@@ -66,8 +66,11 @@ class AnnouncementController extends Controller
     /**
      * Show the form for generating a new broadcast alert.
      */
-    public function create(): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return redirect()->route('admin.announcements.index')->with('error', 'View-only officials cannot create announcements.');
+        }
         return Inertia::render('Admin/Announcements/Create');
     }
 
@@ -76,6 +79,10 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
@@ -125,8 +132,12 @@ class AnnouncementController extends Controller
     /**
      * Show the form for editing an existing alert entry.
      */
-    public function edit(Request $request, string $id): Response
+    public function edit(Request $request, string $id): Response|RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return redirect()->route('admin.announcements.index')->with('error', 'View-only officials cannot edit announcements.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $announcement = Announcement::where('barangay_id', $barangayId)
             ->with(['volunteers.user'])
@@ -163,6 +174,10 @@ class AnnouncementController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $announcement = Announcement::where('barangay_id', $barangayId)->findOrFail($id);
 
@@ -221,6 +236,10 @@ class AnnouncementController extends Controller
      */
     public function destroy(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $announcement = Announcement::where('barangay_id', $barangayId)->findOrFail($id);
         

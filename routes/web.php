@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AccountStatusController;
 use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\SuperAdmin\BarangayManagementController;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,6 +31,10 @@ Route::get('/', function () {
     $user = auth()->user();
     
     $role = $user->role instanceof UserRole ? $user->role->value : $user->role;
+
+    if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {
+        return redirect()->route('super_admin.barangays.index');
+    }
 
     if ($role === 'admin' || $role === UserRole::Admin) {
         return redirect()->route('admin.dashboard');
@@ -49,6 +55,19 @@ Route::get('/', function () {
     return redirect()->route('feed');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Super Administrator Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', EnsureSuperAdmin::class])->group(function () {
+    Route::get('/super-admin/dashboard', [BarangayManagementController::class, 'dashboard'])->name('super_admin.dashboard');
+    Route::get('/super-admin/barangays', [BarangayManagementController::class, 'index'])->name('super_admin.barangays.index');
+    Route::post('/super-admin/barangays', [BarangayManagementController::class, 'store'])->name('super_admin.barangays.store');
+    Route::put('/super-admin/barangays/{barangay}', [BarangayManagementController::class, 'update'])->name('super_admin.barangays.update');
+});
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 /*
 |--------------------------------------------------------------------------
 | Resident Portal Routes (Protected by Verification Middleware)

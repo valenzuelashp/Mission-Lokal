@@ -18,8 +18,6 @@ class ResidentRegistration extends Model
         'last_name',
         'name_extension',
         'birthday',
-        'sex',
-        'civil_status',
         'house_street',
         'barangay_name',
         'city',

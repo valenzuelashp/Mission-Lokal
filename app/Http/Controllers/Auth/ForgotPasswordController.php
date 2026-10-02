@@ -36,7 +36,7 @@ class ForgotPasswordController extends Controller
         DB::table('password_reset_tokens')->where('user_id', $user->id)->delete();
         
         DB::table('password_reset_tokens')->insert([
-            'id'         => Str::uuid(),
+            'id'       => Str::uuid(),
             'user_id'    => $user->id,
             'otp_hash'   => Hash::make($otp),
             'expires_at' => Carbon::now()->addMinutes(15),

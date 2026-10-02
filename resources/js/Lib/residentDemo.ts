@@ -9,8 +9,8 @@ export const publishedAnnouncements: ResidentAnnouncement[] = demoAnnouncements
         body: a.body,
         image_url: a.image_url,
         published_at: a.published_at!,
-        author_name: a.author_name,
-    }));
+        author_name: a.author_name ?? 'Barangay Official',
+    })) as ResidentAnnouncement[];
 
 export function findPublishedAnnouncement(id: string): ResidentAnnouncement | undefined {
     return publishedAnnouncements.find((a) => a.id === id);

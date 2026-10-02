@@ -2,6 +2,17 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import axios from 'axios';
+
+// --- CRITICAL FIX: Allow cookies and XSRF tokens to be sent with requests ---
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
+const token = document.head.querySelector('meta[name="csrf-token"]');
+if (token) {
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = (token as HTMLMetaElement).content;
+}
+
 // PHASE 9: Import the Service Worker registration
 // @ts-expect-error: virtual:pwa-register is provided by vite-plugin-pwa at build time.
 import { registerSW } from 'virtual:pwa-register';

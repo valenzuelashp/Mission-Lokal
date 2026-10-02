@@ -79,6 +79,10 @@ class PersonnelController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $validated = $request->validate([
             'account_id' => ['required', 'string', 'max:64', 'unique:users,account_id'],
             'first_name' => ['required', 'string', 'max:255'],
@@ -106,7 +110,6 @@ class PersonnelController extends Controller
                 'email' => $validated['email'] ?? null,
                 'mobile' => $validated['mobile'] ?? null,
                 'password' => Hash::make($validated['password']),
-                // Removed verification_status since it no longer exists on users table
                 'is_active' => 1,
             ]);
 
@@ -137,6 +140,10 @@ class PersonnelController extends Controller
 
     public function updateCategory(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $validated = $request->validate([
             'category' => ['required', 'string', 'in:' . implode(',', array_column(PersonnelCategory::cases(), 'value'))],
         ]);
@@ -154,6 +161,10 @@ class PersonnelController extends Controller
 
     public function updateInformation(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $validated = $request->validate([
             'category' => ['required', 'string', 'in:' . implode(',', array_column(PersonnelCategory::cases(), 'value'))],
             'birthday' => ['nullable', 'date'],
@@ -187,6 +198,10 @@ class PersonnelController extends Controller
 
     public function destroy(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $personnel = Personnel::with('user')->findOrFail($id);
 

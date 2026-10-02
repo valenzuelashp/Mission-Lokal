@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\LocalIdentifier;
 use App\Models\ResidentRegistration;
-use App\Models\PreloadedResident;
 use App\Models\User;
 use App\Models\Notification;
+use App\Models\Barangay;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 
 class RegisteredUserController extends Controller
 {
@@ -38,6 +42,7 @@ class RegisteredUserController extends Controller
             'parent_name' => $this->upperCase($request->parent_name),
             'email' => strtolower(trim((string) $request->email)),
         ]);
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -49,10 +54,8 @@ class RegisteredUserController extends Controller
             'city' => 'required|string|max:100',
             'province' => 'required|string|max:100',
             'birthday' => 'required|date',
-            'email' => 'required|string|email|max:255|unique:resident_registrations',
+            'email' => 'required|string|email|max:255|unique:resident_registrations,email|unique:users,email',
             'mobile' => 'required|string|max:20',
-            'sex' => 'required|string|in:Male,Female,Other',
-            'civil_status' => 'required|string|in:Single,Married,Widowed,Separated',
             'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'parent_name' => [
                 'nullable',
@@ -110,41 +113,16 @@ class RegisteredUserController extends Controller
             ])->withInput();
         }
 
-        $preloaded = PreloadedResident::findByIdentity(
-            $request->first_name,
-            $request->last_name,
-            $parsedBirthday,
-            $request->middle_name
-        );
-
-        if (! $preloaded) {
-            return back()->withErrors([
-                'general' => 'No matching record was found in the barangay list. Please visit the barangay hall in person to present your physical valid ID and provide your barangay personal record details.',
-            ])->withInput();
-        }
-
-        $user = User::where('account_id', $preloaded->account_id)->first();
-
-        $emailTaken = User::query()
-            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($request->email))])
-            ->when($user, fn ($query) => $query->where('id', '!=', $user->id))
-            ->exists();
-
-        if ($emailTaken) {
-            return back()->withErrors([
-                'email' => 'The email has already been taken.',
-            ])->withInput();
-        }
-
-        $barangayId = $preloaded->barangay_id ?? \App\Models\Barangay::first()?->id;
+        $barangay = Barangay::first();
+        $barangayId = $barangay?->id;
 
         $file = $request->file('government_id');
         $extension = $file->getClientOriginalExtension();
-        $cleanName = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension . '.enc';
+        $cleanName = time() . '_' . Str::random(10) . '.' . $extension . '.enc';
         $idPath = 'government_ids/' . $cleanName;
 
-        $encryptedContent = \Illuminate\Support\Facades\Crypt::encrypt(file_get_contents($file->getRealPath()));
-        \Illuminate\Support\Facades\Storage::disk('local')->put($idPath, $encryptedContent);
+        $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath()));
+        Storage::disk('local')->put($idPath, $encryptedContent);
         
         $registration = ResidentRegistration::create([
             'barangay_id' => $barangayId,
@@ -153,8 +131,6 @@ class RegisteredUserController extends Controller
             'last_name' => $request->last_name,
             'name_extension' => $request->name_extension,
             'birthday' => $parsedBirthday,
-            'sex' => $request->sex,
-            'civil_status' => $request->civil_status,
             'house_street' => $request->house_street,
             'barangay_name' => $request->barangay_name,
             'city' => $request->city,
@@ -166,51 +142,39 @@ class RegisteredUserController extends Controller
             'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
-        if ($user) {
-            $user->update([
-                'email' => $request->email,
-                'mobile' => $request->mobile,
-                'parent_name' => $isMinor ? $request->parent_name : null,
-                'parent_contact' => $isMinor ? $request->parent_contact : null,
-            ]);
-            $user->residentProfile()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'verification_status' => 'pending',
-                    'rejection_reason' => null,
-                ]
-            );
-        } else {
-            $user = User::create([
-                'barangay_id' => $barangayId,
-                'account_id' => $preloaded->account_id,
-                'role' => 'resident',
-                'first_name' => $preloaded->first_name,
-                'middle_name' => $preloaded->middle_name,
-                'last_name' => $preloaded->last_name,
-                'name_extension' => $preloaded->name_extension,
-                'email' => $request->email,
-                'mobile' => $request->mobile,
-                'parent_name' => $isMinor ? $request->parent_name : null,
-                'parent_contact' => $isMinor ? $request->parent_contact : null,
-            ]);
-            $user->residentProfile()->create([
-                'verification_status' => 'pending',
-            ]);
-        }
+        // Generates clean sequential account IDs like TAMBO_RES_0001
+        $accountId = LocalIdentifier::next($barangay, LocalIdentifier::RES);
+
+        $user = User::create([
+            'barangay_id' => $barangayId,
+            'account_id' => $accountId,
+            'role' => 'resident',
+            'first_name' => $request->first_name,
+            'middle_name' => $request->middle_name,
+            'last_name' => $request->last_name,
+            'name_extension' => $request->name_extension,
+            'email' => $request->email,
+            'mobile' => $request->mobile,
+            'parent_name' => $isMinor ? $request->parent_name : null,
+            'parent_contact' => $isMinor ? $request->parent_contact : null,
+        ]);
+
+        $user->residentProfile()->create([
+            'verification_status' => 'pending',
+            'birthday' => $parsedBirthday,
+            'address' => "{$request->house_street}, {$request->barangay_name}, {$request->city}, {$request->province}",
+        ]);
 
         $fullName = trim($request->first_name.' '.$request->last_name);
         Notification::notifyBarangayAdmins(
             $barangayId,
             'resident_registration',
             'New resident registration',
-            $fullName.' submitted a registration for review.',
+            $fullName.' submitted a registration for physical record verification.',
             ['registration_id' => $registration->id]
         );
 
-        return redirect()->route('account.status', [
-            'query' => trim($request->first_name.' '.$request->last_name),
-        ])->with('success', 'Registration submitted successfully! You can now track your verification status.');
+        return redirect()->route('login')->with('success', 'Registration submitted successfully! Admin will verify your details against physical barangay records.');
     }
 
     private function upperCase(?string $value): ?string

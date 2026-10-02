@@ -40,6 +40,10 @@ class SettingsController extends Controller
      */
     public function updateProfile(Request $request): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $user = $request->user();
 
         $request->validate([
@@ -55,7 +59,6 @@ class SettingsController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Audit Logging Integration (Task A12)
         DB::table('audit_logs')->insert([
             'barangay_id' => $user->barangay_id,
             'actor_id' => $user->id,
@@ -82,7 +85,6 @@ class SettingsController extends Controller
             'password' => [
                 'required', 
                 'confirmed', 
-                // ENFORCE MANDATE: 8+ characters, 1 number, 1 symbol
                 Password::min(8)->numbers()->symbols()
             ],
         ]);
@@ -92,7 +94,6 @@ class SettingsController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Audit Logging Integration (Task A12)
         DB::table('audit_logs')->insert([
             'barangay_id' => $user->barangay_id,
             'actor_id' => $user->id,

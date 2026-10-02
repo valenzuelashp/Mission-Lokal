@@ -117,7 +117,6 @@ class ReportController extends Controller
             ->with(['media', 'currentAiAnalysis', 'mission.personnel'])
             ->findOrFail($id);
         
-        // Automatically transition fresh reports to 'under_review'
         $currentStatus = $record->status->value ?? $record->status;
         if (in_array($currentStatus, ['submitted', 'ai_processed'])) {
             $record->update([
@@ -214,6 +213,10 @@ class ReportController extends Controller
 
     public function update(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $validated = $request->validate(['status' => 'required|string']);
@@ -240,6 +243,10 @@ class ReportController extends Controller
 
     public function confirmAI(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
@@ -261,6 +268,10 @@ class ReportController extends Controller
 
     public function confirmAiVerdict(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
 
@@ -331,7 +342,7 @@ class ReportController extends Controller
         
         if ($action === 'merge') {
             $concern->update([
-                'status' => 'resolved', // FIXED DB CONSTRAINT ISSUE: Duplicates transition to resolved instead of directly to closed
+                'status' => 'resolved',
                 'duplicate_of_id' => $validated['master_concern_id'],
                 'closed_summary' => 'Merged as a duplicate concern via AI confirmation.',
                 'staff_reviewed_by' => Auth::id(),
@@ -389,11 +400,15 @@ class ReportController extends Controller
 
     public function mergeDuplicate(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
         $concern->update([
-            'status' => 'resolved', // FIXED DB CONSTRAINT ISSUE
+            'status' => 'resolved',
             'duplicate_of_id' => $request->master_concern_id,
             'closed_summary' => 'Merged as a duplicate concern.'
         ]);
@@ -414,6 +429,10 @@ class ReportController extends Controller
 
     public function rejectConcern(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $concern->update(['status' => 'rejected', 'closed_summary' => $request->rejection_reason]);
@@ -443,6 +462,10 @@ class ReportController extends Controller
 
     public function createMission(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         

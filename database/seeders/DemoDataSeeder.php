@@ -8,7 +8,6 @@ use App\Models\Barangay;
 use App\Models\BarangaySetting;
 use App\Models\ResidentProfile;
 use App\Models\ProfileEditRequest;
-use App\Models\PreloadedResident;
 use App\Models\ConcernCategory;
 use App\Models\ConcernSubcategory;
 use App\Models\CategoryPlaybook;
@@ -139,24 +138,6 @@ class DemoDataSeeder extends Seeder
             'requested_changes' => json_encode(['mobile' => '09198888888']),
             'status' => 'pending',
         ]);
-
-        PreloadedResident::updateOrCreate(
-            ['account_id' => 'RES999'],
-            [
-                'first_name' => 'Juan',
-                'middle_name' => null,
-                'last_name' => 'Resident',
-                'name_extension' => null,
-                'birthday' => '1992-04-12',
-                'house_street' => 'Phase 1 Zone 15',
-                'barangay_name' => 'Barangay 176',
-                'email' => 'resident@missionlokal.test',
-                'mobile' => '09198888888',
-                'is_claimed' => true,
-                'claimed_at' => now(),
-                'user_id' => $resident->id,
-            ]
-        );
 
         $concern = Concern::create([
             'id' => Str::uuid(),
@@ -299,35 +280,6 @@ class DemoDataSeeder extends Seeder
             'created_at' => now(),
         ]);
 
-        $this->publishAnnouncement(
-            $barangay->id,
-            $admin->id,
-            'Community Road Repair Advisory',
-            'Phase 1 road repairs will commence this week. Expect slower traffic near the curve of Zone 15.',
-            now(),
-            'advisory',
-        );
-
-        $this->publishAnnouncement(
-            $barangay->id,
-            $admin->id,
-            'Barangay Fiesta 2026',
-            'Join the barangay fiesta at the covered court. There will be a morning mass, parlor games, and a community lunch. Residents are invited to wear traditional attire.',
-            now(),
-            'event',
-            now('Asia/Manila')->setDate(2026, 9, 19)->setTime(8, 0),
-        );
-
-        $this->publishAnnouncement(
-            $barangay->id,
-            $admin->id,
-            'Relief Goods Distribution',
-            'The barangay hall will distribute relief goods to registered households. Volunteers are needed to pack and hand out goods. Bring a valid ID and your digital barangay ID. Queuing starts at 9:00 AM at the covered court.',
-            now(),
-            'volunteer',
-            now('Asia/Manila')->setDate(2026, 9, 15)->setTime(9, 0),
-        );
-
         LibraryItem::create([
             'id' => Str::uuid(),
             'barangay_id' => $barangay->id,
@@ -350,30 +302,5 @@ class DemoDataSeeder extends Seeder
         ]);
 
         $this->command->info('All database tables successfully seeded!');
-    }
-
-    private function publishAnnouncement(
-        string $barangayId,
-        string $createdBy,
-        string $title,
-        string $body,
-        mixed $publishedAt,
-        string $kind = 'advisory',
-        mixed $eventAt = null,
-    ): void {
-        Announcement::updateOrCreate(
-            [
-                'barangay_id' => $barangayId,
-                'title' => $title,
-            ],
-            [
-                'body' => $body,
-                'kind' => $kind,
-                'is_published' => true,
-                'published_at' => $publishedAt,
-                'event_at' => $eventAt,
-                'created_by' => $createdBy,
-            ],
-        );
     }
 }

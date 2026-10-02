@@ -21,6 +21,7 @@ class User extends Authenticatable
         'barangay_id',
         'account_id',
         'role',
+        'is_view_only',
         'first_name', 
         'middle_name',
         'last_name',  
@@ -49,6 +50,7 @@ class User extends Authenticatable
     {
         return [
             'role' => UserRole::class,
+            'is_view_only' => 'boolean',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'password_prompt_snoozed_on' => 'date',
@@ -118,17 +120,38 @@ class User extends Authenticatable
         return $this->needsPasswordSetup();
     }
 
+    public function canModifySystem(): bool
+    {
+        // If assigned as a view-only official (e.g. Captain, Secretary), block write actions
+        if (($this->role === UserRole::Admin || $this->role === 'admin' || $this->role === UserRole::SuperAdmin || $this->role === 'super_admin') && $this->is_view_only) {
+            return false;
+        }
+        
+        if ($this->role === UserRole::Admin || $this->role === 'admin' || $this->role === UserRole::SuperAdmin || $this->role === 'super_admin') {
+            return true;
+        }
+
+        return $this->role === UserRole::Personnel || $this->role === 'personnel';
+    }
+
     public function governmentIdFileLabel(): string
     {
         $last = mb_strtoupper(trim((string) preg_replace('/\s+/u', ' ', (string) $this->last_name)));
-        $initials = mb_strtoupper(mb_substr(trim((string) $this->first_name), 0, 1));
+        $firstName = trim((string) $this->first_name);
         $middle = trim((string) $this->middle_name);
-        if ($middle !== '') {
-            $initials .= mb_strtoupper(mb_substr($middle, 0, 1));
+
+        $initials = '';
+        if ($firstName !== '') {
+            $initials .= mb_strtoupper(mb_substr($firstName, 0, 1)) . '.';
+        }
+
+        // Cleanly check and ignore empty, blank, or 'N/A' middle names
+        if ($middle !== '' && strtoupper($middle) !== 'N/A') {
+            $initials .= ' ' . mb_strtoupper(mb_substr($middle, 0, 1)) . '.';
         }
 
         $last = $last !== '' ? $last : 'UNKNOWN';
-        $initials = $initials !== '' ? $initials : 'X';
+        $initials = trim($initials) !== '' ? trim($initials) : 'X';
 
         return "{$last}, {$initials} ID";
     }

@@ -13,9 +13,6 @@ use Inertia\Response;
 
 class ProfileEditController extends Controller
 {
-    /**
-     * View all pending account information changes, sorted by most recent first.
-     */
     public function index(Request $request): Response
     {
         $barangayId = $request->user()->barangay_id;
@@ -25,7 +22,7 @@ class ProfileEditController extends Controller
             ->leftJoin('resident_profiles', 'users.id', '=', 'resident_profiles.user_id')
             ->where('users.barangay_id', $barangayId)
             ->where('profile_edit_requests.status', 'pending')
-            ->orderBy('profile_edit_requests.created_at', 'desc') // <--- Displays the recent one at the top
+            ->orderBy('profile_edit_requests.created_at', 'desc')
             ->select(
                 'profile_edit_requests.id',
                 'profile_edit_requests.user_id',
@@ -42,8 +39,6 @@ class ProfileEditController extends Controller
                 'resident_profiles.barangay_name',
                 'resident_profiles.city',
                 'resident_profiles.province',
-                'resident_profiles.sex',
-                'resident_profiles.civil_status',
                 'resident_profiles.birthday',
                 'profile_edit_requests.requested_changes', 
                 'profile_edit_requests.created_at'
@@ -75,8 +70,6 @@ class ProfileEditController extends Controller
                         'mobile' => $edit->current_mobile ?? '—',
                         'parent_name' => $edit->current_parent_name ?? '—',
                         'parent_contact' => $edit->current_parent_contact ?? '—',
-                        'sex' => $edit->sex ?? '—',
-                        'civil_status' => $edit->civil_status ?? '—',
                         'birthday' => $edit->birthday ? \Carbon\Carbon::parse($edit->birthday)->format('Y-m-d') : '—',
                         'house_street' => $edit->house_street ?? '—',
                         'barangay_name' => $edit->barangay_name ?? '—',
@@ -93,11 +86,12 @@ class ProfileEditController extends Controller
         ]);
     }
 
-    /**
-     * Approve change sets and write directly into the registry across users and resident_profiles.
-     */
     public function approve(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
 
         $editRequest = DB::table('profile_edit_requests')
@@ -119,7 +113,7 @@ class ProfileEditController extends Controller
         DB::transaction(function () use ($editRequest, $changes) {
             if (is_array($changes)) {
                 $userAllowed = ['first_name', 'middle_name', 'last_name', 'name_extension', 'email', 'mobile', 'parent_name', 'parent_contact'];
-                $profileAllowed = ['birthday', 'sex', 'civil_status', 'house_street', 'barangay_name', 'city', 'province'];
+                $profileAllowed = ['birthday', 'house_street', 'barangay_name', 'city', 'province'];
 
                 $userUpdates = ['profile_edit_status' => 'none'];
                 $profileUpdates = [];
@@ -155,11 +149,12 @@ class ProfileEditController extends Controller
         return back()->with('success', 'Profile modifications successfully written to registry.');
     }
 
-    /**
-     * Dismiss modification demands.
-     */
     public function reject(Request $request, string $id): RedirectResponse
     {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify system records.');
+        }
+
         $barangayId = $request->user()->barangay_id;
 
         $editRequest = DB::table('profile_edit_requests')
