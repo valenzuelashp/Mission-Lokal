@@ -10,6 +10,7 @@ use App\Models\Personnel;
 use App\Models\User;
 use App\Enums\MissionStatus;
 use App\Enums\ConcernStatus;
+use App\Jobs\SendMissionAssignmentSms;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -118,7 +119,10 @@ class MissionController extends Controller
             abort(403, 'Unauthorized context registration.');
         }
 
-        DB::transaction(function () use ($validated, $concern, $request, $barangayId) {
+        $newlyAssignedPersonnelIds = [];
+        $missionId = null;
+
+        DB::transaction(function () use ($validated, $concern, $request, $barangayId, &$newlyAssignedPersonnelIds, &$missionId) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
@@ -128,6 +132,7 @@ class MissionController extends Controller
                     'created_by' => $request->user()->id,
                 ]
             );
+            $missionId = $mission->id;
 
             $syncData = [];
             foreach ($validated['personnel_ids'] as $personnelId) {
@@ -135,6 +140,10 @@ class MissionController extends Controller
                     ->where('mission_id', $mission->id)
                     ->where('personnel_id', $personnelId)
                     ->first();
+
+                if (!$existingPivot) {
+                    $newlyAssignedPersonnelIds[] = (string) $personnelId;
+                }
 
                 $syncData[$personnelId] = [
                     'id' => $existingPivot ? $existingPivot->id : (string) \Illuminate\Support\Str::uuid(),
@@ -172,6 +181,10 @@ class MissionController extends Controller
                 'created_at' => now(),
             ]);
         });
+
+        foreach ($newlyAssignedPersonnelIds as $personnelId) {
+            SendMissionAssignmentSms::dispatch($missionId, $personnelId);
+        }
 
         return back()->with('success', 'Personnel assignments successfully updated!');
     }

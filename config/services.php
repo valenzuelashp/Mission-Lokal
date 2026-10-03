@@ -8,4 +8,12 @@ return [
         'chat_model' => env('GEMINI_CHAT_MODEL', env('GEMINI_MODEL', 'gemini-3.1-pro-preview')),
     ],
 
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        'semaphore' => [
+            'api_key' => env('SEMAPHORE_API_KEY'),
+            'sender_name' => env('SEMAPHORE_SENDER_NAME'),
+        ],
+    ],
+
 ];

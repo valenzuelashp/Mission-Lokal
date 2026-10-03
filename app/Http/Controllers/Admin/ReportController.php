@@ -8,6 +8,7 @@ use App\Models\Concern;
 use App\Models\Mission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Jobs\SendMissionAssignmentSms;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -286,7 +287,10 @@ class ReportController extends Controller
         $action = $validated['confirmed_action'];
 
         if ($action === 'escalate') {
-            DB::transaction(function () use ($concern, $validated, $barangayId, $request) {
+            $newlyAssignedPersonnelIds = [];
+            $missionId = null;
+
+            DB::transaction(function () use ($concern, $validated, $barangayId, $request, &$newlyAssignedPersonnelIds, &$missionId) {
                 $mission = Mission::updateOrCreate(
                     ['concern_id' => $concern->id],
                     [
@@ -296,6 +300,7 @@ class ReportController extends Controller
                         'created_by' => $request->user()->id,
                     ]
                 );
+                $missionId = $mission->id;
 
                 $syncData = [];
                 foreach ($validated['personnel_ids'] as $personnelId) {
@@ -303,6 +308,10 @@ class ReportController extends Controller
                         ->where('mission_id', $mission->id)
                         ->where('personnel_id', $personnelId)
                         ->first();
+
+                    if (!$existingPivot) {
+                        $newlyAssignedPersonnelIds[] = (string) $personnelId;
+                    }
 
                     $syncData[$personnelId] = [
                         'id' => $existingPivot ? $existingPivot->id : (string) Str::uuid(),
@@ -327,6 +336,10 @@ class ReportController extends Controller
                     'created_at' => now(),
                 ]);
             });
+
+            foreach ($newlyAssignedPersonnelIds as $personnelId) {
+                SendMissionAssignmentSms::dispatch($missionId, $personnelId);
+            }
 
             Notification::create([
                 'user_id' => $concern->reporter_id,
@@ -475,7 +488,10 @@ class ReportController extends Controller
             'mission_notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($concern, $validated, $barangayId, $request) {
+        $newlyAssignedPersonnelIds = [];
+        $missionId = null;
+
+        DB::transaction(function () use ($concern, $validated, $barangayId, $request, &$newlyAssignedPersonnelIds, &$missionId) {
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
@@ -485,6 +501,7 @@ class ReportController extends Controller
                     'created_by' => $request->user()->id,
                 ]
             );
+            $missionId = $mission->id;
 
             $syncData = [];
             foreach ($validated['personnel_ids'] as $personnelId) {
@@ -492,6 +509,10 @@ class ReportController extends Controller
                     ->where('mission_id', $mission->id)
                     ->where('personnel_id', $personnelId)
                     ->first();
+
+                if (!$existingPivot) {
+                    $newlyAssignedPersonnelIds[] = (string) $personnelId;
+                }
 
                 $syncData[$personnelId] = [
                     'id' => $existingPivot ? $existingPivot->id : (string) Str::uuid(),
@@ -517,6 +538,10 @@ class ReportController extends Controller
                 'created_at' => now(),
             ]);
         });
+
+        foreach ($newlyAssignedPersonnelIds as $personnelId) {
+            SendMissionAssignmentSms::dispatch($missionId, $personnelId);
+        }
 
         Notification::create([
             'user_id' => $concern->reporter_id,
