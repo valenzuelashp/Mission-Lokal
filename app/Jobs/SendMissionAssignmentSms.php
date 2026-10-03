@@ -10,38 +10,49 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class SendMissionAssignmentSms implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $missionId;
-
-    public function __construct(string $missionId)
-    {
-        $this->missionId = $missionId;
+    public function __construct(
+        public string $missionId,
+        public string $personnelId,
+    ) {
     }
 
-    // Laravel automatically injects whatever SMS Gateway we bound in the AppServiceProvider
     public function handle(SmsGatewayInterface $smsGateway): void
     {
-        $mission = Mission::with(['concern', 'assignee', 'barangay'])->find($this->missionId);
+        $mission = Mission::with(['concern', 'barangay', 'personnel.user'])->find($this->missionId);
+        $personnel = $mission?->personnel->firstWhere('id', $this->personnelId);
 
-        if (!$mission || !$mission->assignee || !$mission->assignee->mobile) {
-            Log::warning("Could not send SMS for Mission {$this->missionId}: Missing assignee or mobile number.");
+        if (!$mission || !$personnel) {
+            Log::warning("Could not send SMS for Mission {$this->missionId}: Personnel {$this->personnelId} is no longer assigned.");
             return;
         }
 
-        $mobile = $mission->assignee->mobile;
-        $location = $mission->concern->address_text ?? $mission->barangay->name ?? 'the barangay';
-        $title = $mission->concern->title;
+        if (!$personnel->sms_enabled) {
+            Log::info("Skipping mission SMS for Personnel {$this->personnelId}: SMS is disabled.");
+            return;
+        }
+
+        $mobile = $personnel->user?->mobile;
+        if (!$mobile) {
+            Log::warning("Could not send SMS for Mission {$this->missionId}: Personnel {$this->personnelId} has no mobile number.");
+            return;
+        }
+
+        $location = $mission->concern?->address_text ?? $mission->barangay?->name ?? 'the barangay';
+        $title = $mission->concern?->title ?? 'a reported issue';
         $dueDate = $mission->due_date ? $mission->due_date->format('M d, Y') : 'ASAP';
-        
+
         $appUrl = config('app.url') . '/personnel/missions/' . $mission->id;
 
-        // The exact template from Blueprint Section 9
         $message = "Mission-Lokal: New assignment near {$location}. Issue: {$title}. Due: {$dueDate}. Open app: {$appUrl}";
 
-        $smsGateway->send($mobile, $message);
+        if (!$smsGateway->send($mobile, $message)) {
+            throw new RuntimeException("SMS gateway rejected Mission {$this->missionId} notification for Personnel {$this->personnelId}.");
+        }
     }
 }

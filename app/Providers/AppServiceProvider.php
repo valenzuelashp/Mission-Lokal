@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Sms\LogSmsGateway;
+use App\Services\Sms\SemaphoreSmsGateway;
 use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -13,8 +14,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind the interface to our local logging driver
-        $this->app->bind(SmsGatewayInterface::class, LogSmsGateway::class);
+        $gateway = config('services.sms.driver') === 'semaphore'
+            ? SemaphoreSmsGateway::class
+            : LogSmsGateway::class;
+
+        $this->app->bind(SmsGatewayInterface::class, $gateway);
     }
 
     public function boot(): void
