@@ -26,7 +26,7 @@ class MissionController extends Controller
 
         $concerns = Concern::where('barangay_id', $barangayId)
             ->whereIn('status', ['active', 'resolved', 'in_progress'])
-            ->latest()
+            ->with(['votes'])
             ->get();
 
         $realMissions = Mission::with('personnel.user')
@@ -34,7 +34,7 @@ class MissionController extends Controller
             ->get()
             ->keyBy('concern_id');
 
-        $missions = $concerns->map(function ($concern) use ($realMissions) {
+        $mappedMissions = $concerns->map(function ($concern) use ($realMissions) {
             $mission = $realMissions->get($concern->id);
 
             $rawId = $mission ? $mission->id : $concern->id; 
@@ -46,6 +46,17 @@ class MissionController extends Controller
             $personnelIds = $mission?->personnel?->pluck('id')->values()->toArray() ?? [];
             $statusStr = $mission ? ($mission->status->value ?? $mission->status) : 'assigned';
 
+            // Calculate priority score for ranking
+            $severityScore = match ($concern->severity) {
+                'critical' => 400,
+                'high' => 300,
+                'medium' => 200,
+                'low' => 100,
+                default => 150,
+            };
+            $upvotes = $concern->relationLoaded('votes') ? $concern->votes->where('vote', 1)->count() : 0;
+            $priorityScore = $severityScore + ($upvotes * 10);
+
             return [
                 'id' => $rawId, 
                 'display_id' => 'MS-' . strtoupper(substr($rawId, 0, 4)),
@@ -55,11 +66,18 @@ class MissionController extends Controller
                 'assignee' => $assigneeNames,
                 'personnel_ids' => $personnelIds,
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
+                'priority_score' => $priorityScore,
                 'status' => $statusStr,
                 'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
                 'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
             ];
+        })->sortByDesc('priority_score')->values();
+
+        // Assign numerical Rank (1, 2, 3...)
+        $missions = $mappedMissions->map(function ($m, $index) {
+            $m['rank'] = $index + 1;
+            return $m;
         });
 
         $counts = [
@@ -81,8 +99,8 @@ class MissionController extends Controller
         $personnelList = Personnel::with('user')
             ->whereHas('user', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId)
-                  ->where('role', 'personnel')
-                  ->where('is_active', 1);
+                    ->where('role', 'personnel')
+                    ->where('is_active', 1);
             })
             ->get()
             ->map(function ($personnel) {

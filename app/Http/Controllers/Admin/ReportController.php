@@ -37,7 +37,7 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $concerns = Concern::where('barangay_id', $barangayId)
-            ->with(['media', 'category', 'currentAiAnalysis.suggestedCategory'])
+            ->with(['media', 'category', 'currentAiAnalysis.suggestedCategory', 'votes'])
             ->get();
 
         $reports = $concerns->map(function ($c) {
@@ -52,7 +52,7 @@ class ReportController extends Controller
                 'location' => $c->address_text ?? 'Unknown location',
                 'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name
                     ?? $c->category?->name
-                    ?? 'Uncategorized',
+                     ?? 'Uncategorized',
                 'ai_severity' => MapHelpers::scoreFromSeverity($c->severity),
                 'severity' => $c->severity ?? 'medium',
                 'priority' => MapHelpers::priorityFromSeverity($c->severity),
@@ -95,15 +95,24 @@ class ReportController extends Controller
         $text = strtolower($concern->title . ' ' . $concern->description);
         $safetyTerms = ['fire', 'flood', 'live wire', 'electrical', 'collapse', 'injury', 'danger', 'gas leak', 'outbreak'];
         $safetyMatches = collect($safetyTerms)->filter(fn ($term) => str_contains($text, $term))->count();
+        
+        $upvotesCount = $concern->relationLoaded('votes') 
+            ? $concern->votes->where('vote', 1)->count() 
+            : $concern->votes()->where('vote', 1)->count();
+        $voteBoost = $upvotesCount * 10;
+
         $ageHours = $concern->created_at ? max(0, now()->diffInHours($concern->created_at)) : 0;
         $ageScore = min(48, $ageHours * 2);
-        $score = $severityScore + ($safetyMatches * 25) + $ageScore;
+        $score = $severityScore + ($safetyMatches * 25) + $voteBoost + $ageScore;
 
         $reason = $concern->severity
             ? ucfirst($concern->severity) . ' AI severity'
             : 'Awaiting AI severity';
         if ($safetyMatches > 0) {
             $reason .= ' + safety keyword';
+        } 
+        if ($voteBoost > 0) {
+            $reason .= ' + community upvotes';
         } elseif ($ageScore > 0) {
             $reason .= ' + waiting time';
         }
@@ -143,8 +152,8 @@ class ReportController extends Controller
         $personnelList = Personnel::with('user')
             ->whereHas('user', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId)
-                  ->where('role', 'personnel')
-                  ->where('is_active', 1);
+                    ->where('role', 'personnel')
+                    ->where('is_active', 1);
             })
             ->get()
             ->map(function ($personnel) {
