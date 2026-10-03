@@ -42,13 +42,12 @@ export default function AuditLog({ logs }: Props) {
         );
     }, [logItems, search]);
 
-    // Color mapper pill badges based on severity/actions executed
     const getActionBadgeColor = (action: string) => {
         const act = action.toUpperCase();
-        if (act.includes('DELETE') || act.includes('REJECT')) return 'bg-red-50 text-red-700 ring-red-600/20';
-        if (act.includes('CREATE') || act.includes('APPROVE') || act.includes('VERIFY')) return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
-        if (act.includes('UPDATE')) return 'bg-amber-50 text-amber-700 ring-amber-600/20';
-        return 'bg-blue-50 text-blue-700 ring-blue-600/20';
+        if (act.includes('DELETE') || act.includes('REJECT')) return 'bg-rose-50 text-rose-700 border-rose-200';
+        if (act.includes('CREATE') || act.includes('APPROVE') || act.includes('VERIFY')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        if (act.includes('UPDATE')) return 'bg-amber-50 text-amber-800 border-amber-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
     };
 
     return (
@@ -56,68 +55,66 @@ export default function AuditLog({ logs }: Props) {
             <Head title="Security Audit Log" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold tracking-tight text-blue-900 flex items-center gap-2">
-                    <ShieldCheck className="h-6 w-6 text-blue-700" /> Security Audit Log
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <ShieldCheck className="h-6 w-6 text-blue-600" /> Immutable Security Audit Trail
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Immutable activity log monitoring modifications, resident verifications, and directory updates within this barangay's container scope.
+                <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+                    Real-time immutable activity log monitoring admin modifications, security overrides, and database transactions.
                 </p>
             </div>
 
-            {/* Filter tools */}
-            <div className="mb-4 relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="mb-5 relative max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
-                    className="pl-9"
-                    placeholder="Search logs by action, admin, or records..."
+                    className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
+                    placeholder="Search logs by action, admin, or entity..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
 
-            {/* Main Log Record Table */}
-            <Card className="shadow-sm overflow-hidden">
+            <Card className="shadow-xs border-slate-200/80 bg-white rounded-2xl overflow-hidden">
                 <CardContent className="p-0">
                     {filteredLogs.length === 0 ? (
-                        <div className="py-12 text-center text-muted-foreground text-sm flex flex-col items-center justify-center">
+                        <div className="py-16 text-center text-muted-foreground text-xs font-medium flex flex-col items-center justify-center">
                             <Activity className="h-8 w-8 text-slate-300 animate-pulse mb-2" />
-                            <p className="font-medium">No system modifications indexed in the active lookback window.</p>
+                            <p>No system modifications indexed in the active lookback window.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="border-b bg-slate-50 text-xs font-semibold uppercase text-slate-600">
+                                <thead className="border-b bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
                                     <tr>
-                                        <th className="p-4">Timestamp</th>
-                                        <th className="p-4">Action Event</th>
-                                        <th className="p-4">Administrative Actor</th>
-                                        <th className="p-4">Operation Description</th>
+                                        <th className="px-5 py-3.5 w-40">Timestamp</th>
+                                        <th className="px-4 py-3.5 w-48">Action Event</th>
+                                        <th className="px-4 py-3.5 w-56">Administrative Actor</th>
+                                        <th className="px-4 py-3.5">Operation Description</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-border font-medium">
+                                <tbody className="divide-y divide-slate-100 font-medium text-xs">
                                     {filteredLogs.map((log) => (
                                         <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="p-4 text-xs text-slate-500 font-mono">
+                                            <td className="px-5 py-3.5 text-slate-500 font-mono">
                                                 {log.timestamp}
                                             </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold font-mono ring-1 ring-inset ${getActionBadgeColor(log.action)}`}>
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-extrabold font-mono border ${getActionBadgeColor(log.action)}`}>
                                                         {log.action}
                                                     </span>
-                                                    <span className="text-xs text-slate-500">
+                                                    <span className="text-[11px] text-slate-400">
                                                         ({log.entity})
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="text-slate-900 flex items-center gap-1">
-                                                    {log.actor.includes('System') && <Cpu className="h-3.5 w-3.5 text-blue-500" />}
+                                            <td className="px-4 py-3.5">
+                                                <div className="text-slate-900 font-bold flex items-center gap-1.5">
+                                                    {log.actor.includes('System') && <Cpu className="h-3.5 w-3.5 text-blue-600" />}
                                                     {log.actor}
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground font-mono">{log.actor_email}</div>
+                                                <div className="text-[10px] text-muted-foreground font-mono">{log.actor_email}</div>
                                             </td>
-                                            <td className="p-4 text-xs text-slate-600 max-w-xs md:max-w-md truncate">
+                                            <td className="px-4 py-3.5 text-slate-600 max-w-xs md:max-w-md truncate">
                                                 {log.details}
                                             </td>
                                         </tr>
@@ -129,9 +126,8 @@ export default function AuditLog({ logs }: Props) {
                 </CardContent>
             </Card>
 
-            {/* Optimized Single Page Application Pagination Links */}
             {logs?.links && logs.links.length > 3 && (
-                <div className="flex items-center justify-center gap-1 mt-4">
+                <div className="flex items-center justify-center gap-1.5 mt-6">
                     {logs.links.map((link, i) => (
                         <Link
                             key={i}
@@ -141,10 +137,10 @@ export default function AuditLog({ logs }: Props) {
                             only={['logs']}
                             disabled={!link.url}
                             dangerouslySetInnerHTML={{ __html: link.label }}
-                            className={`px-3 py-1 text-xs font-medium rounded-md border transition-colors ${
+                            className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-colors ${
                                 link.active 
-                                    ? 'bg-blue-700 text-white border-blue-700' 
-                                    : 'bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none'
+                                    ? 'bg-blue-700 text-white border-blue-700 shadow-xs' 
+                                    : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 disabled:opacity-40 disabled:pointer-events-none'
                             }`}
                         />
                     ))}

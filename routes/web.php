@@ -14,6 +14,8 @@ use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\SuperAdmin\BarangayManagementController;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Models\Barangay;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -64,10 +66,10 @@ Route::middleware(['auth', EnsureSuperAdmin::class])->group(function () {
     Route::get('/super-admin/dashboard', [BarangayManagementController::class, 'dashboard'])->name('super_admin.dashboard');
     Route::get('/super-admin/barangays', [BarangayManagementController::class, 'index'])->name('super_admin.barangays.index');
     Route::post('/super-admin/barangays', [BarangayManagementController::class, 'store'])->name('super_admin.barangays.store');
+    Route::post('/super-admin/barangays/view-only-admin', [BarangayManagementController::class, 'storeViewOnlyAdmin'])->name('super_admin.barangays.view_only');
     Route::put('/super-admin/barangays/{barangay}', [BarangayManagementController::class, 'update'])->name('super_admin.barangays.update');
 });
 
-Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 /*
 |--------------------------------------------------------------------------
 | Resident Portal Routes (Protected by Verification Middleware)
@@ -124,10 +126,23 @@ Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::clas
 
 /*
 |--------------------------------------------------------------------------
-| Guest Authentication Routes
+| Guest Authentication Routes & Public API Lookups
 |--------------------------------------------------------------------------
 */
 Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
+
+Route::get('/api/check-barangay', function (Request $request) {
+    $brgyName = $request->query('name', '');
+    if (trim($brgyName) === '') {
+        return response()->json(['exists' => false]);
+    }
+
+    $exists = Barangay::where('name', 'like', "%{$brgyName}%")
+        ->orWhere('code', 'like', "%{$brgyName}%")
+        ->exists();
+
+    return response()->json(['exists' => $exists]);
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');

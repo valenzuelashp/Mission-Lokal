@@ -5,11 +5,14 @@ import LibraryHero from '@/Components/resident/library/LibraryHero';
 import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
 import RespondersDirectory from '@/Components/resident/library/RespondersDirectory';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Card, CardContent } from '@/Components/ui/card';
 import ResidentLayout from '@/Layouts/ResidentLayout';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { LibraryPageProps } from '@/Types';
 
 export default function Library({ manuals = [], contacts = [] }: LibraryPageProps) {
+    const theme = useResidentTheme();
+
     useEffect(() => {
         try {
             window.localStorage.setItem(
@@ -21,27 +24,23 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
 
     const rightAside = (
         <>
-            <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Offline access</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                    <p>
-                        This library is saved on this device when opened online. It stays available here during an outage.
+            <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
+                <CardContent className="p-5 space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider">Offline PWA Caching</h3>
+                    <p className={`text-xs ${theme.textMuted} font-medium leading-relaxed`}>
+                        This resource library is cached locally on your device when online. It remains accessible during power or network outages.
                     </p>
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Need help now?</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                    <p className="text-muted-foreground">
-                        For urgent incidents, file a blotter or report a concern on the public feed.
+            <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
+                <CardContent className="p-5 space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-wider">Need Immediate Assistance?</h3>
+                    <p className={`text-xs ${theme.textMuted} font-medium leading-relaxed`}>
+                        For urgent disputes or hazards, file a formal blotter or submit a public concern report.
                     </p>
-                    <Link href="/blotter/new" className="font-medium text-primary hover:underline">
-                        File a blotter →
+                    <Link href="/blotter/new" className={`inline-block pt-1 text-xs font-bold ${theme.primaryText} hover:underline`}>
+                        File a formal blotter case →
                     </Link>
                 </CardContent>
             </Card>
@@ -52,39 +51,37 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
 
     return (
         <ResidentLayout wide>
-            <Head title="Library" />
+            <Head title="Resource Library" />
 
             <ResidentSocialShell right={rightAside}>
-                <Card className="shadow-sm">
-                    <CardContent className="flex items-center gap-3 p-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
+                    <CardContent className="flex items-center gap-4 p-5">
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.primaryBg} text-white shadow-md`}>
                             <BookOpen className="h-6 w-6" />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="text-xl font-bold">Library</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Manuals and contacts for emergencies in your barangay
+                            <h1 className="text-xl font-black tracking-tight">Resource & Safety Library</h1>
+                            <p className={`text-xs font-medium ${theme.textMuted} mt-0.5`}>
+                                Verified emergency manuals and municipal hotline directories
                             </p>
                         </div>
                     </CardContent>
                 </Card>
 
                 {hasData ? (
-                    <>
+                    <div className="space-y-5">
                         <LibraryHero />
                         {manuals.length > 0 && <PreparednessManuals manuals={manuals} />}
                         {contacts.length > 0 && <RespondersDirectory contacts={contacts} />}
-                    </>
+                    </div>
                 ) : (
-                    <Card className="border-dashed shadow-none">
-                        <CardContent className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                            <FolderOpen className="mb-4 h-12 w-12 stroke-1 text-muted-foreground/60" />
-                            <h3 className="font-medium text-foreground">Library is empty</h3>
-                            <p className="mt-1 text-sm max-w-xs">
-                                Your barangay administrators haven't uploaded emergency reference guidelines or resource direct lines yet.
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <div className={`rounded-2xl border border-dashed ${theme.cardBorder} ${theme.cardBg} p-16 text-center shadow-xs`}>
+                        <FolderOpen className="mx-auto mb-3 h-10 w-10 opacity-40" />
+                        <h3 className="text-base font-black">Library repository is currently empty</h3>
+                        <p className={`mt-1 text-xs font-medium ${theme.textMuted} max-w-xs mx-auto`}>
+                            Barangay administrators have not yet populated emergency guidelines or hotline directories.
+                        </p>
+                    </div>
                 )}
             </ResidentSocialShell>
         </ResidentLayout>

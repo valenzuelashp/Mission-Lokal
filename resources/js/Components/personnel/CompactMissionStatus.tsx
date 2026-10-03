@@ -14,31 +14,30 @@ type Props = {
 
 export default function CompactMissionStatus({ steps }: Props) {
     return (
-        <ol className="flex flex-wrap gap-2 sm:flex-col sm:gap-1.5">
+        <ol className="flex flex-wrap gap-2.5 sm:flex-col sm:gap-2">
             {steps.map((step) => (
                 <li
                     key={step.key}
                     className={cn(
-                        'flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:rounded-none sm:border-0 sm:px-0 sm:py-0',
-                        step.state === 'current' && 'border-blue-200 bg-blue-50 sm:bg-transparent',
-                        step.state === 'upcoming' && 'text-muted-foreground',
+                        'flex items-center gap-2.5 rounded-full border px-3 py-1.5 text-xs font-semibold sm:rounded-xl sm:border sm:px-3.5 sm:py-2.5 transition-all shadow-2xs',
+                        step.state === 'done' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
+                        step.state === 'current' && 'border-blue-300 bg-blue-50 text-blue-950 font-bold ring-2 ring-blue-600/20',
+                        step.state === 'upcoming' && 'border-slate-200 bg-white text-slate-400',
                     )}
                 >
                     {step.state === 'done' ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                     ) : (
                         <Circle
                             className={cn(
-                                'h-3.5 w-3.5 shrink-0',
-                                step.state === 'current' ? 'text-primary' : 'text-muted-foreground/40',
+                                'h-4 w-4 shrink-0',
+                                step.state === 'current' ? 'text-blue-600 fill-blue-600/20' : 'text-slate-300',
                             )}
                         />
                     )}
-                    <span className={cn(step.state === 'current' && 'font-semibold text-blue-900')}>
-                        {step.label}
-                    </span>
+                    <span className="truncate">{step.label}</span>
                     {step.at && (
-                        <span className="hidden text-[10px] text-muted-foreground sm:ml-auto sm:inline">
+                        <span className="ml-auto hidden text-[10px] font-mono font-medium text-slate-500 sm:inline">
                             {step.at}
                         </span>
                     )}

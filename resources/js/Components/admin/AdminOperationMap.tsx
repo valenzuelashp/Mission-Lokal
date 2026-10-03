@@ -32,20 +32,20 @@ export default function AdminOperationMap({ pins, center = TAMBO_CENTER, classNa
     const { basemap, setBasemap } = useMapBasemap();
     return (
         <div className={cn('flex flex-col', className)}>
-            <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Live operation area</h3>
+            <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Live Municipal Operations</h3>
                 <div className="flex items-center gap-3">
-                    <Link href="/admin/map" className="text-xs font-medium text-blue-700 hover:underline">
-                        Open full map
+                    <Link href="/admin/map" className="text-xs font-bold text-blue-700 hover:underline">
+                        Open Full Radar →
                     </Link>
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
                         <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                        Live pins
+                        Live Vector Feed
                     </span>
                 </div>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border">
-                <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full z-0">
                     <MapInvalidateSize />
                     <MapBasemapTiles basemap={basemap} />
                     <Polygon
@@ -62,9 +62,9 @@ export default function AdminOperationMap({ pins, center = TAMBO_CENTER, classNa
                                 icon={createPinIcon(severity)}
                             >
                                 <Popup>
-                                    <div className="text-sm">
-                                        <p className="font-semibold">{pin.title}</p>
-                                        <p className="mt-1 capitalize text-muted-foreground">{severity} severity</p>
+                                    <div className="text-sm p-1">
+                                        <p className="font-bold text-slate-900">{pin.title}</p>
+                                        <p className="mt-0.5 capitalize text-xs text-slate-500 font-semibold">{severity} severity</p>
                                     </div>
                                 </Popup>
                             </Marker>
@@ -72,12 +72,12 @@ export default function AdminOperationMap({ pins, center = TAMBO_CENTER, classNa
                     })}
                 </MapContainer>
                 <MapBasemapToggle value={basemap} onChange={setBasemap} />
-                <div className="pointer-events-none absolute bottom-2 left-2 rounded-md border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] text-slate-700 shadow-sm">
-                    <div className="flex flex-wrap gap-x-2 gap-y-1">
+                <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-[10px] text-slate-700 shadow-md backdrop-blur-xs">
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
                         {legendLevels.map((level) => (
-                            <span key={level} className="flex items-center gap-1 capitalize">
+                            <span key={level} className="flex items-center gap-1.5 capitalize font-semibold">
                                 <span
-                                    className="inline-block h-2 w-2 rounded-full"
+                                    className="inline-block h-2 w-2 rounded-full shadow-2xs"
                                     style={{ background: severityColors[level] }}
                                 />
                                 {level}

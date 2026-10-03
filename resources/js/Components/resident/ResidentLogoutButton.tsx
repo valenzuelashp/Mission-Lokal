@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { LogOut } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 import {
     AlertDialog,
@@ -20,12 +21,12 @@ type Props = {
 };
 
 export default function ResidentLogoutButton({ variant = 'menu', className }: Props) {
-    // The actual logout action that tells Laravel to end the session
+    const theme = useResidentTheme();
+
     const logout = () => {
         router.post('/logout');
     };
 
-    // 1. Determine which button style to show based on the variant prop
     let triggerButton;
 
     if (variant === 'icon') {
@@ -34,7 +35,7 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={cn('rounded-full text-muted-foreground', className)}
+                className={cn(`rounded-xl ${theme.textMuted} hover:text-red-600 hover:bg-red-50 cursor-pointer`, className)}
                 aria-label="Logout"
             >
                 <LogOut className="h-5 w-5" />
@@ -42,9 +43,9 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
         );
     } else if (variant === 'outline') {
         triggerButton = (
-            <Button type="button" variant="outline" className={cn('justify-start', className)}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
+            <Button type="button" variant="outline" className={cn('justify-start font-bold cursor-pointer', className)}>
+                <LogOut className="mr-2 h-4 w-4 text-rose-600" />
+                Logout Session
             </Button>
         );
     } else {
@@ -52,36 +53,33 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
             <button
                 type="button"
                 className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-[#f0f2f5]',
+                    `flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-bold ${theme.textMuted} transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer`,
                     className,
                 )}
             >
-                <LogOut className="h-5 w-5 shrink-0" />
-                Logout
+                <LogOut className="h-4 w-4 shrink-0" />
+                Logout Session
             </button>
         );
     }
 
-    // 2. Wrap the chosen button inside the AlertDialog
     return (
         <AlertDialog>
-            {/* asChild tells the Trigger to use our custom button instead of rendering its own default button */}
             <AlertDialogTrigger asChild>
                 {triggerButton}
             </AlertDialogTrigger>
             
-            <AlertDialogContent>
+            <AlertDialogContent className={`rounded-2xl border ${theme.cardBorder} ${theme.cardBg}`}>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        You will need to sign back in to access the barangay feed and your records.
+                    <AlertDialogTitle className={`font-extrabold ${theme.textMain}`}>Logout?</AlertDialogTitle>
+                    <AlertDialogDescription className={`text-xs ${theme.textMuted}`}>
+                        You will need to re-authenticate with your municipal account ID to access the resident portal.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    {/* The logout function is only fired if they click this action button */}
-                    <AlertDialogAction onClick={logout} className="bg-red-600 hover:bg-red-700 text-white">
-                        Log out
+                    <AlertDialogCancel className="rounded-xl font-semibold cursor-pointer">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={logout} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer">
+                        Confirm Logout
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

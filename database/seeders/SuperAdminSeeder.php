@@ -20,7 +20,7 @@ class SuperAdminSeeder extends Seeder
                 'is_view_only' => false,
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
-                'password' => Hash::make('SecurePassword123!'),
+                'password' => Hash::make('SuperAdm'),
                 'is_active' => true,
             ]
         );

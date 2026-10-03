@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck } from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, Command } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
@@ -16,7 +16,7 @@ const nav = [
     { href: '/admin/personnel', label: 'Personnel', icon: Users },
     { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
     { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
-    { href: '/admin/map', label: 'Map', icon: Map },
+    { href: '/admin/map', label: 'Map operations', icon: Map },
     { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
     { href: '/admin/library', label: 'Library', icon: BookOpen },
@@ -35,7 +35,6 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     
-    // Safely cast props to resolve TypeScript inference conflicts
     const { 
         unread_count, 
         pending_registrations_count,
@@ -68,108 +67,128 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     };
 
     const sidebar = (
-        <>
-            <div className="border-b px-5 py-5">
-                <p className="text-xl font-bold text-blue-800">Mission-Lokal</p>
+        <div className="flex h-full flex-col bg-slate-950 text-slate-300 border-r border-slate-800/80">
+            <div className="flex items-center gap-3 border-b border-slate-800/80 px-6 py-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/20">
+                    <Command className="h-5 w-5" />
+                </div>
+                <div>
+                    <p className="text-base font-black tracking-wider text-white">MISSION-LOKAL</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Command Core</p>
+                </div>
             </div>
-            <div className="border-b px-5 py-4">
+
+            <div className="border-b border-slate-800/60 bg-slate-900/40 px-5 py-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                        <UserCircle className="h-6 w-6" />
+                    <div className="relative">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 font-bold">
+                            {user?.first_name?.[0] ?? 'A'}
+                        </div>
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
                     </div>
-                    <div>
-                        <p className="text-sm font-semibold">Command Center</p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {user?.account_id ?? 'Admin'}
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-white">
+                            {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Administrator'}
+                        </p>
+                        <p className="font-mono text-[10px] tracking-wider text-slate-400 uppercase">
+                            {user?.account_id ?? 'CMD-001'}
                         </p>
                     </div>
                 </div>
             </div>
-            <nav className="flex flex-1 flex-col gap-1 p-3">
-                {nav.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={cn(
-                            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                            active(item.href, item.exact)
-                                ? 'bg-red-600 text-white shadow-sm'
-                                : 'text-slate-600 hover:bg-white hover:text-slate-900',
-                        )}
-                    >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {item.label}
-                        
-                        {item.href.includes('reports') && pendingReports > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingReports > 99 ? '99+' : pendingReports}
-                            </Badge>
-                        )}
-                        {item.href.includes('missions') && pendingMissions > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingMissions > 99 ? '99+' : pendingMissions}
-                            </Badge>
-                        )}
-                        {item.href.includes('verifications') && pendingRegistrations > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingRegistrations > 99 ? '99+' : pendingRegistrations}
-                            </Badge>
-                        )}
-                        {item.href.includes('blotters') && pendingBlotters > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingBlotters > 99 ? '99+' : pendingBlotters}
-                            </Badge>
-                        )}
-                        {item.href.includes('map') && pendingMapAlerts > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingMapAlerts > 99 ? '99+' : pendingMapAlerts}
-                            </Badge>
-                        )}
-                        {item.href.includes('profile-edits') && pendingProfileEdits > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {pendingProfileEdits > 99 ? '99+' : pendingProfileEdits}
-                            </Badge>
-                        )}
-                        {item.href.includes('notifications') && unread > 0 && (
-                            <Badge className="ml-auto h-5 min-w-5 justify-center bg-white text-red-600">
-                                {unread > 99 ? '99+' : unread}
-                            </Badge>
-                        )}
-                    </Link>
-                ))}
+
+            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+                <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Operations Navigation</div>
+                {nav.map((item) => {
+                    const isActiveLink = active(item.href, item.exact);
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                                'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-150',
+                                isActiveLink
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25 font-bold translate-x-1'
+                                    : 'text-slate-400 hover:bg-slate-900 hover:text-white',
+                            )}
+                        >
+                            <item.icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', isActiveLink ? 'text-white' : 'text-slate-500 group-hover:text-blue-400')} />
+                            <span className="truncate">{item.label}</span>
+                            
+                            {item.href.includes('reports') && pendingReports > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-red-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingReports > 99 ? '99+' : pendingReports}
+                                </Badge>
+                            )}
+                            {item.href.includes('missions') && pendingMissions > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-red-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingMissions > 99 ? '99+' : pendingMissions}
+                                </Badge>
+                            )}
+                            {item.href.includes('verifications') && pendingRegistrations > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-amber-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingRegistrations > 99 ? '99+' : pendingRegistrations}
+                                </Badge>
+                            )}
+                            {item.href.includes('blotters') && pendingBlotters > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-indigo-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingBlotters > 99 ? '99+' : pendingBlotters}
+                                </Badge>
+                            )}
+                            {item.href.includes('map') && pendingMapAlerts > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-rose-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingMapAlerts > 99 ? '99+' : pendingMapAlerts}
+                                </Badge>
+                            )}
+                            {item.href.includes('profile-edits') && pendingProfileEdits > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-blue-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {pendingProfileEdits > 99 ? '99+' : pendingProfileEdits}
+                                </Badge>
+                            )}
+                            {item.href.includes('notifications') && unread > 0 && (
+                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-blue-600 text-white text-[10px] font-extrabold px-1.5">
+                                    {unread > 99 ? '99+' : unread}
+                                </Badge>
+                            )}
+                        </Link>
+                    );
+                })}
             </nav>
-            <button
-                type="button"
-                onClick={() => router.post('/logout')}
-                className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white cursor-pointer"
-            >
-                <LogOut className="h-4 w-4" />
-                Logout
-            </button>
-        </>
+
+            <div className="border-t border-slate-800/80 p-3 bg-slate-950/60">
+                <button
+                    type="button"
+                    onClick={() => router.post('/logout')}
+                    className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
+                >
+                    <LogOut className="h-4 w-4 shrink-0 text-slate-500" />
+                    <span> Logout </span>
+                </button>
+            </div>
+        </div>
     );
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen bg-slate-900/5 text-slate-900">
             <FlashToasts />
-            <aside className="hidden w-60 shrink-0 flex-col border-r bg-slate-100/80 lg:flex">{sidebar}</aside>
+            <aside className="hidden w-64 shrink-0 flex-col lg:flex">{sidebar}</aside>
 
             {mobileOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
                     <button
                         type="button"
-                        className="absolute inset-0 bg-black/40"
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs transition-opacity"
                         aria-label="Close menu"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <aside className="relative flex h-full w-60 flex-col border-r bg-slate-100/95">{sidebar}</aside>
+                    <aside className="relative flex h-full w-64 flex-col z-10">{sidebar}</aside>
                 </div>
             )}
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col bg-[#f8fafc]">
                 <AdminTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">{children}</main>
+                <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8">{children}</main>
             </div>
         </div>
     );

@@ -136,6 +136,7 @@ export function reportCounts(reports: AdminReport[]) {
 
 export const demoMissions: AdminMission[] = [
     {
+        display_id: 'MS-8902',
         id: '#MS-8902',
         concern_id: 'c1',
         concern_title: 'Clogged drainage on Mabini St.',
@@ -147,6 +148,7 @@ export const demoMissions: AdminMission[] = [
         is_escalated: false,
     },
     {
+        display_id: 'MS-8905',
         id: '#MS-8905',
         concern_id: 'c2',
         concern_title: 'Street flooding — Riverside Ave.',
@@ -157,6 +159,7 @@ export const demoMissions: AdminMission[] = [
         due_date: 'Jun 18, 12:00 PM',
     },
     {
+        display_id: 'MS-8910',
         id: '#MS-8910',
         concern_id: 'c8',
         concern_title: 'Fallen electrical line',
@@ -169,6 +172,7 @@ export const demoMissions: AdminMission[] = [
         is_escalated: true,
     },
     {
+        display_id: 'MS-8890',
         id: '#MS-8890',
         concern_id: 'c5',
         concern_title: 'Street light repair',
@@ -179,6 +183,7 @@ export const demoMissions: AdminMission[] = [
         due_date: 'Jun 16, 5:00 PM',
     },
     {
+        display_id: 'MS-8888',
         id: '#MS-8888',
         concern_id: 'c4',
         concern_title: 'Illegal dumping cleanup',
@@ -189,6 +194,7 @@ export const demoMissions: AdminMission[] = [
         due_date: 'Jun 17, 3:00 PM',
     },
     {
+        display_id: 'MS-8885',
         id: '#MS-8885',
         concern_id: 'c3',
         concern_title: 'Noise complaint follow-up',
@@ -200,6 +206,7 @@ export const demoMissions: AdminMission[] = [
         is_overdue: true,
     },
     {
+        display_id: 'MS-8880',
         id: '#MS-8880',
         concern_id: 'c6',
         concern_title: 'VAWC case — welfare check',
@@ -210,6 +217,7 @@ export const demoMissions: AdminMission[] = [
         due_date: 'Jun 17, 11:59 PM',
     },
     {
+        display_id: 'MS-8875',
         id: '#MS-8875',
         concern_id: 'c7',
         concern_title: 'Cancelled — duplicate report',
@@ -445,53 +453,71 @@ export const demoAnnouncements: AdminAnnouncement[] = [
         id: 'ann-001',
         title: 'Typhoon season preparedness advisory',
         body: 'Barangay residents are advised to prepare emergency kits and monitor PAGASA updates. Evacuation centers will open at the barangay hall if Signal No. 2 is raised for our area.',
+        kind: 'advisory',
+        kind_label: 'Advisory',
         image_url: 'https://images.unsplash.com/photo-1527482791421-259302b81383?w=800&q=80',
         is_published: true,
         published_at: 'Jun 16, 8:00 AM',
         author_name: 'ADMIN001',
         created_at: 'Jun 16, 7:45 AM',
         updated_at: 'Jun 16, 8:00 AM',
+        volunteer_count: 0,
     },
     {
         id: 'ann-002',
         title: 'Scheduled water interruption — Zone 3 & 4',
         body: 'Maynilad will conduct pipeline maintenance on Jun 18 from 9:00 AM to 4:00 PM. Affected areas: Riverside Ave., Block 8–12, and surrounding streets. Please store water in advance.',
+        kind: 'advisory',
+        kind_label: 'Advisory',
         is_published: true,
         published_at: 'Jun 15, 2:30 PM',
         author_name: 'ADMIN001',
         created_at: 'Jun 15, 2:00 PM',
         updated_at: 'Jun 15, 2:30 PM',
+        volunteer_count: 0,
+        image_url: null
     },
     {
         id: 'ann-003',
         title: 'Barangay assembly — quarterly report',
         body: 'All purok leaders and interested residents are invited to the quarterly barangay assembly on Jun 22, 6:00 PM at the covered court. Agenda includes flood mitigation updates and SK project reports.',
+        kind: 'event',
+        kind_label: 'Event',
         is_published: false,
         published_at: null,
         author_name: 'ADMIN001',
         created_at: 'Jun 17, 10:00 AM',
         updated_at: 'Jun 17, 10:00 AM',
+        volunteer_count: 0,
+        image_url: null
     },
     {
         id: 'ann-004',
         title: 'Public appeal: missing senior citizen',
         body: 'The family of Lola Carmen Reyes, 78, requests information on her whereabouts last seen near the market on Jun 14. Contact barangay tanod hotline or visit the hall if you have leads.',
+        kind: 'advisory',
+        kind_label: 'Advisory',
         image_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80',
         is_published: true,
         published_at: 'Jun 14, 5:15 PM',
         author_name: 'ADMIN001',
         created_at: 'Jun 14, 4:50 PM',
         updated_at: 'Jun 14, 5:15 PM',
+        volunteer_count: 0,
     },
     {
         id: 'ann-005',
         title: 'Road closure — Mabini St. drainage works',
         body: 'Mabini St. will be partially closed Jun 19–21 for drainage repair linked to concern #RP-1042. Use alternate routes via Rizal Ave. Traffic enforcers will be on site.',
+        kind: 'advisory',
+        kind_label: 'Advisory',
         is_published: false,
         published_at: null,
         author_name: 'ADMIN001',
         created_at: 'Jun 17, 11:30 AM',
         updated_at: 'Jun 17, 11:30 AM',
+        volunteer_count: 0,
+        image_url: null
     },
 ];
 
@@ -521,6 +547,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 3,
         digital_id_code: 'BL-2024-00421',
         joined_at: 'Jan 12, 2024',
+        reports_count: 0
     },
     {
         id: 'u-res-002',
@@ -535,6 +562,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 2,
         digital_id_code: 'BL-2024-00455',
         joined_at: 'Feb 3, 2024',
+        reports_count: 0
     },
     {
         id: 'u-res-003',
@@ -549,6 +577,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 0,
         digital_id_code: null,
         joined_at: 'Jun 10, 2026',
+        reports_count: 0
     },
     {
         id: 'u-res-004',
@@ -563,6 +592,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 0,
         digital_id_code: null,
         joined_at: 'Jun 16, 2026',
+        reports_count: 0
     },
     {
         id: 'u-res-005',
@@ -577,6 +607,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 4,
         digital_id_code: 'BL-2023-01288',
         joined_at: 'Nov 8, 2023',
+        reports_count: 0
     },
     {
         id: 'u-res-006',
@@ -591,6 +622,7 @@ export const demoResidents: AdminResident[] = [
         badge_count: 0,
         digital_id_code: null,
         joined_at: 'May 20, 2026',
+        reports_count: 0
     },
     {
         id: 'u-res-007',
@@ -605,11 +637,13 @@ export const demoResidents: AdminResident[] = [
         badge_count: 1,
         digital_id_code: 'BL-2025-00012',
         joined_at: 'Mar 15, 2025',
+        reports_count: 0
     },
 ];
 
 const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResident>> = {
     'u-res-001': {
+        is_active: true,
         first_name: 'Juan',
         middle_name: '',
         last_name: 'Dela Cruz',
@@ -617,7 +651,6 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         age_years: 35,
         national_id_masked: 'XXXX-XXXX-4421',
         citizenship_status: 'Filipino',
-        gender: 'Male',
         zip_code: '1000',
         map_lat: 14.5154,
         map_lng: 120.9942,
@@ -652,8 +685,12 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
             { id: 'doc2', name: 'Proof_of_Residency.pdf', meta: 'Updated Mar 2024', size: '1.1 MB', status: 'updated' },
             { id: 'doc3', name: 'Barangay_Clearance.pdf', meta: 'Pending review', size: '0.8 MB', status: 'pending' },
         ],
+        government_id_label: 'Government ID File',
+        government_id_url: null,
+        government_id_is_pdf: false,
     },
     'u-res-002': {
+        is_active: true,
         first_name: 'Maria',
         middle_name: '',
         last_name: 'Santos',
@@ -661,7 +698,6 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         age_years: 37,
         national_id_masked: 'XXXX-XXXX-4455',
         citizenship_status: 'Filipino',
-        gender: 'Female',
         zip_code: '1000',
         map_lat: 14.5166,
         map_lng: 120.9932,
@@ -682,8 +718,12 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         documents: [
             { id: 'doc4', name: 'National_ID_Maria.pdf', meta: 'Verified Feb 2024', size: '2.2 MB', status: 'verified' },
         ],
+        government_id_label: 'Government ID File',
+        government_id_url: null,
+        government_id_is_pdf: false,
     },
     'u-res-005': {
+        is_active: true,
         first_name: 'Ricardo',
         middle_name: '',
         last_name: 'Tan',
@@ -691,7 +731,6 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
         age_years: 40,
         national_id_masked: 'XXXX-XXXX-1288',
         citizenship_status: 'Filipino',
-        gender: 'Male',
         zip_code: '1000',
         map_lat: 14.5168,
         map_lng: 120.9918,
@@ -723,10 +762,14 @@ const residentDetails: Record<string, Omit<AdminResidentDetail, keyof AdminResid
             { id: 'doc5', name: 'National_ID_Ricardo.pdf', meta: 'Verified Nov 2023', size: '2.5 MB', status: 'verified' },
             { id: 'doc6', name: 'Proof_of_Residency.pdf', meta: 'Updated Jan 2024', size: '1.0 MB', status: 'verified' },
         ],
+        government_id_label: 'Government ID File',
+        government_id_url: null,
+        government_id_is_pdf: false,
     },
 };
 
 const defaultDetail: Omit<AdminResidentDetail, keyof AdminResident> = {
+    is_active: true,
     first_name: '—',
     middle_name: '—',
     last_name: '—',
@@ -734,7 +777,6 @@ const defaultDetail: Omit<AdminResidentDetail, keyof AdminResident> = {
     age_years: null,
     national_id_masked: null,
     citizenship_status: 'Filipino',
-    gender: '—',
     zip_code: null,
     map_lat: 14.5173079,
     map_lng: 120.9933811,
@@ -744,6 +786,9 @@ const defaultDetail: Omit<AdminResidentDetail, keyof AdminResident> = {
     xp_events: [],
     activities: [],
     documents: [],
+    government_id_label: 'Government ID File',
+    government_id_url: null,
+    government_id_is_pdf: false,
 };
 
 export function residentCounts(residents: AdminResident[]) {

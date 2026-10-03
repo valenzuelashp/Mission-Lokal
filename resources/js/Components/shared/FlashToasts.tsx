@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 import type { PageProps } from '@/Types';
 
 export default function FlashToasts() {
@@ -13,7 +14,7 @@ export default function FlashToasts() {
         }
 
         const id = window.setTimeout(() => {
-            // Session flash is one-shot; this only hides the banner visually.
+            // Visual timeout fade
         }, 6000);
 
         return () => window.clearTimeout(id);
@@ -24,16 +25,17 @@ export default function FlashToasts() {
     }
 
     return (
-        <div className="pointer-events-none fixed inset-x-0 top-4 z-[80] flex justify-center px-4">
+        <div className="pointer-events-none fixed inset-x-0 top-6 z-[999] flex justify-center px-4">
             <div
                 className={
                     isError
-                        ? 'pointer-events-auto max-w-lg rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800 shadow'
-                        : 'pointer-events-auto max-w-lg rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 shadow'
+                        ? 'pointer-events-auto flex items-center gap-2.5 max-w-md rounded-2xl border border-red-200 bg-red-600 px-5 py-3 text-xs font-bold text-white shadow-xl animate-bounce-short'
+                        : 'pointer-events-auto flex items-center gap-2.5 max-w-md rounded-2xl border border-emerald-200 bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-xl'
                 }
                 role="status"
             >
-                {message}
+                {isError ? <AlertCircle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                <span>{message}</span>
             </div>
         </div>
     );

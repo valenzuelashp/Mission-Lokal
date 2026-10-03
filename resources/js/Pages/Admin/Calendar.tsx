@@ -6,12 +6,12 @@ import type { CalendarPageProps } from '@/Types';
 export default function Calendar(props: CalendarPageProps) {
     return (
         <AdminLayout title="Mission-Lokal Admin: Calendar">
-            <Head title="Operations calendar" />
+            <Head title="Operations Calendar" />
             <CalendarMonthView
                 {...props}
                 basePath="/admin/calendar"
-                heading="Operations calendar"
-                description="Events, volunteer calls, advisories, and mission due dates across the barangay."
+                heading="Municipal Operations Calendar"
+                description="Synchronized schedule tracking advisories, events, volunteer operations, and mission deadlines."
                 legend={['announcement', 'mission']}
                 split
             />

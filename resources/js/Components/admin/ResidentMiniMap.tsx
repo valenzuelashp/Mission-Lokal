@@ -22,16 +22,16 @@ type Props = {
     className?: string;
 };
 
-export default function ResidentMiniMap({ lat, lng, className = 'h-32' }: Props) {
+export default function ResidentMiniMap({ lat, lng, className = 'h-36' }: Props) {
     return (
-        <div className={`overflow-hidden rounded-lg border shadow-sm ${className}`}>
+        <div className={`overflow-hidden rounded-xl border border-slate-200 shadow-xs bg-white ${className}`}>
             <MapContainer
                 center={[lat, lng]}
                 zoom={15}
                 scrollWheelZoom={false}
                 dragging={false}
                 zoomControl={false}
-                className="h-full w-full"
+                className="h-full w-full z-0"
             >
                 <MapInvalidateSize />
                 <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />

@@ -29,22 +29,21 @@ export default function Notifications({ notifications }: Props) {
             <div className="mx-auto max-w-4xl">
                 <PageHeader 
                     title="Command Center Alerts" 
-                    description="System notifications, unacknowledged missions, and new proof uploads."
+                    description="System notifications, unacknowledged mission escalations, and new proof uploads."
                 />
 
                 {notifications.length === 0 ? (
-                    <div className="rounded-lg border bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
                         <EmptyState 
-                            title="No alerts" 
-                            description="The command center is all caught up."
+                            title="No Alerts" 
+                            description="The command center notification inbox is all caught up."
                         >
-                            <Bell className="mx-auto mt-4 h-10 w-10 text-slate-200" />
+                            <Bell className="mx-auto mt-4 h-10 w-10 text-slate-300 animate-pulse" />
                         </EmptyState>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {notifications.map((notif) => {
-                            // Determine where the admin should be redirected when clicking
                             let href = null;
                             let Icon = Bell;
 
@@ -62,32 +61,32 @@ export default function Notifications({ notifications }: Props) {
                             const content = (
                                 <Card 
                                     className={cn(
-                                        "transition-colors shadow-sm",
-                                        !notif.read ? "border-blue-200 bg-blue-50/40" : "bg-white hover:bg-slate-50"
+                                        "transition-all shadow-xs rounded-2xl border-slate-200/80 hover:border-blue-300",
+                                        !notif.read ? "border-blue-200 bg-blue-50/40 font-semibold" : "bg-white"
                                     )}
                                 >
                                     <CardContent className="flex items-start gap-4 p-4 sm:p-5">
                                         <div className={cn(
-                                            "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                                            !notif.read ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                                            "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold shadow-2xs border",
+                                            !notif.read ? "bg-blue-600 text-white border-blue-500" : "bg-slate-100 text-slate-600 border-slate-200"
                                         )}>
                                             <Icon className="h-5 w-5" />
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <div className="flex items-start justify-between gap-2">
                                                 <p className={cn(
-                                                    "text-sm font-semibold",
+                                                    "text-sm font-bold",
                                                     !notif.read ? "text-slate-900" : "text-slate-700"
                                                 )}>
                                                     {notif.title}
                                                 </p>
-                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                <span className="shrink-0 text-xs font-semibold text-muted-foreground">
                                                     {notif.sent_at}
                                                 </span>
                                             </div>
                                             <p className={cn(
-                                                "text-sm",
-                                                !notif.read ? "text-slate-800" : "text-muted-foreground"
+                                                "text-xs leading-relaxed",
+                                                !notif.read ? "text-slate-800 font-medium" : "text-muted-foreground"
                                             )}>
                                                 {notif.body}
                                             </p>
@@ -97,7 +96,7 @@ export default function Notifications({ notifications }: Props) {
                             );
 
                             return href ? (
-                                <Link key={notif.id} href={href} className="block">
+                                <Link key={notif.id} href={href} className="block group">
                                     {content}
                                 </Link>
                             ) : (

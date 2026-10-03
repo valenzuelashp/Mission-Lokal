@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Megaphone } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import AnnouncementsTable from '@/Components/admin/AnnouncementsTable';
 import { Button } from '@/Components/ui/button';
@@ -11,7 +11,7 @@ import type { AdminAnnouncementsPageProps, PageProps } from '@/Types';
 type FilterKey = 'all' | 'published' | 'draft';
 
 const tabs: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: 'All' },
+    { key: 'all', label: 'All Broadcasts' },
     { key: 'published', label: 'Published' },
     { key: 'draft', label: 'Drafts' },
 ];
@@ -19,7 +19,8 @@ const tabs: { key: FilterKey; label: string }[] = [
 export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
     const announcements = props.announcements ?? [];
     const counts = props.counts ?? { all: 0, published: 0, draft: 0 };
-    const { flash } = usePage<PageProps>().props;
+    const { flash, auth } = usePage<PageProps & { auth: { user: any } }>().props;
+    const canModify = auth.user?.can_modify_system ?? true;
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
@@ -49,35 +50,40 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
             <Head title="Announcements" />
 
             {flash.success && (
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-xs font-bold text-emerald-900 shadow-2xs">
                     {flash.success}
                 </div>
             )}
 
-            <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Announcements</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Create and publish barangay advisories visible to all residents.
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                        <Megaphone className="h-6 w-6 text-blue-600" />
+                        Announcements Command
+                    </h2>
+                    <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+                        {canModify ? 'Create and publish barangay advisories visible across all resident PWA feeds.' : 'View official municipal advisories and community broadcasts.'}
                     </p>
                 </div>
-                <Button 
-                    size="sm" 
-                    className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto cursor-pointer" 
-                    onClick={() => router.visit('/admin/announcements/create')}
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    New announcement
-                </Button>
+                {canModify && (
+                    <Button 
+                        size="sm" 
+                        className="bg-blue-700 hover:bg-blue-800 text-white font-bold shadow-sm cursor-pointer" 
+                        onClick={() => router.visit('/admin/announcements/create')}
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Announcement
+                    </Button>
+                )}
             </div>
 
             {drafts > 0 && (
-                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    <strong>{drafts}</strong> draft{drafts > 1 ? 's' : ''} waiting to be published.
+                <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-xs font-bold text-amber-900 shadow-2xs">
+                    ⚠️ <strong className="font-black">{drafts}</strong> draft{drafts > 1 ? 's' : ''} currently awaiting publication.
                 </div>
             )}
 
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
                     <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
                     {tabs.map((tab) => (
@@ -86,22 +92,22 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                             type="button"
                             onClick={() => setFilter(tab.key)}
                             className={cn(
-                                'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                                'rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer',
                                 filter === tab.key
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-white text-muted-foreground ring-1 ring-border hover:bg-muted',
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200',
                             )}
                         >
                             {tab.label}
-                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key] ?? 0})</span>
+                            <span className="ml-1.5 opacity-80 text-[10px]">({counts[tab.key] ?? 0})</span>
                         </button>
                     ))}
                     </div>
                 </div>
-                <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
-                        className="pl-9"
+                        className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
                         placeholder="Search announcements…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -109,10 +115,10 @@ export default function Index(props: Partial<AdminAnnouncementsPageProps>) {
                 </div>
             </div>
 
-            <section className="rounded-lg border bg-card p-3 shadow-sm sm:p-4 lg:p-5">
-                <p className="mb-4 text-sm text-muted-foreground">
-                    Showing {filtered.length} of {announcements.length} announcements
-                </p>
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+                <div className="mb-4 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span>Showing {filtered.length} of {announcements.length} broadcasts</span>
+                </div>
                 <AnnouncementsTable announcements={filtered} />
             </section>
         </AdminLayout>

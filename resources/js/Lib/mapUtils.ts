@@ -1,16 +1,13 @@
 import L from 'leaflet';
 import type { AdminMapHotspot, Severity } from '@/Types';
 
-/** Barangay Tambo, Parañaque — Google Maps administrative outline. */
 export const TAMBO_CENTER: [number, number] = [14.5173079, 120.9933811];
 
-/** Southwest and northeast of the Tambo outline. */
 export const TAMBO_BOUNDS: [[number, number], [number, number]] = [
     [14.5059, 120.9766288],
     [14.5235931, 121.0011399],
 ];
 
-/** Barangay outline aligned to Google Maps (Okada + PITX in, Solaire / Baclaran out). */
 export const TAMBO_POLYGON: [number, number][] = [
     [14.5127238, 120.9766288],
     [14.51217, 120.9776563],
@@ -134,14 +131,12 @@ export const TAMBO_POLYGON: [number, number][] = [
     [14.5127238, 120.9766288],
 ];
 
-/** Dark overlay for land outside Tambo. */
 export const TAMBO_MASK_STYLE = {
     color: 'transparent' as const,
     fillColor: '#0f172a',
-    fillOpacity: 0.72,
+    fillOpacity: 0.78,
 };
 
-/** Local mask ring with a Tambo-shaped hole. */
 export function tamboMaskPositions(pad = 0.12): [number, number][][] {
     const sw = TAMBO_BOUNDS[0];
     const ne = TAMBO_BOUNDS[1];
@@ -185,7 +180,7 @@ export const MAP_BASEMAPS: Record<
     },
     gray: {
         id: 'gray',
-        label: 'Light gray',
+        label: 'Light Gray',
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
         attribution: 'Tiles &copy; Esri',
         maxZoom: 16,
@@ -238,20 +233,20 @@ export const hotspotColors: Record<AdminMapHotspot['risk_level'], string> = {
     high: '#dc2626',
     medium: '#ea580c',
     low: '#eab308',
+    critical: ''
 };
 
 export function createPinIcon(severity: Severity, selected = false) {
-    // INCREASED SIZES: Changed default from 14px to 28px, selected from 18px to 36px so they are easily visible at any zoom level
-    const size = selected ? 36 : 28;
+    const size = selected ? 40 : 30;
     const color = severityColors[severity];
 
     const shadowStyle = selected 
-        ? '0 0 0 4px rgba(59, 130, 246, 0.7), 0 4px 12px rgba(0,0,0,0.6)' 
-        : '0 2px 6px rgba(0,0,0,0.5)';
+        ? '0 0 0 5px rgba(37, 99, 235, 0.7), 0 6px 16px rgba(0,0,0,0.6)' 
+        : '0 3px 8px rgba(0,0,0,0.4)';
 
     return L.divIcon({
         className: '',
-        html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3px solid white;box-shadow:${shadowStyle};display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;"></div>`,
+        html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:3.5px solid white;box-shadow:${shadowStyle};display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;"></div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
         popupAnchor: [0, -size / 2],

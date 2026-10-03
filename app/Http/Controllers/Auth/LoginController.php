@@ -26,21 +26,23 @@ class LoginController extends Controller
             'account_id' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
-        $credentials['account_id'] = LocalIdentifier::resolveAccountId($credentials['account_id']);
+
+        // Resolve Account ID strictly
+        $resolvedId = LocalIdentifier::resolveAccountId($credentials['account_id']);
 
         if (! Auth::attempt(
-            ['account_id' => $credentials['account_id'], 'password' => $credentials['password']],
+            ['account_id' => $resolvedId, 'password' => $credentials['password']],
             $request->boolean('remember')
         )) {
             throw ValidationException::withMessages([
-                'account_id' => 'Invalid account ID or password.',
+                'account_id' => 'Invalid Account ID or password.',
             ]);
         }
 
         $user = Auth::user();
         $role = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
 
-        // Block admins, personnel, and super_admins from using the resident login page
+        // Block staff from resident portal
         if ($role === 'admin' || $role === 'personnel' || $role === 'super_admin' || $role === UserRole::Admin || $role === UserRole::Personnel || $role === UserRole::SuperAdmin) {
             Auth::logout();
             throw ValidationException::withMessages([
@@ -48,12 +50,10 @@ class LoginController extends Controller
             ]);
         }
 
-        // --- CRITICAL FIX: Regenerate session AND refresh CSRF token on login ---
         $request->session()->regenerate();
-        $request->session()->regenerateToken(); // <-- This ensures the browser cookie gets a fresh CSRF token!
+        $request->session()->regenerateToken();
         
         $request->session()->forget('password_prompt_dismissed');
-
         $user?->forceFill(['last_login_at' => now()])->save();
 
         return redirect($this->homeFor($user));
@@ -61,17 +61,11 @@ class LoginController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        // Capture user and role before logging out
         $user = Auth::user();
-        
         $roleValue = null;
         if ($user) {
             $role = $user->role;
-            if ($role instanceof \UnitEnum) {
-                $roleValue = $role->value;
-            } else {
-                $roleValue = $role;
-            }
+            $roleValue = $role instanceof \UnitEnum ? $role->value : $role;
         }
 
         $normalizedRole = strtolower(is_string($roleValue) ? $roleValue : '');
@@ -81,12 +75,10 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Explicitly check for super_admin, admin, or personnel and redirect to staff portal login
         if (in_array($normalizedRole, ['admin', 'personnel', 'super_admin', 'superadmin'])) {
             return redirect()->route('admin-personnel.login');
         }
 
-        // Default fallback for residents
         return redirect()->route('login');
     }
     

@@ -7,10 +7,13 @@ use App\Models\Barangay;
 use App\Models\User;
 use App\Enums\UserRole;
 use App\Services\LocalIdentifier;
+use App\Mail\PrimaryAdminCredentials;
+use App\Mail\ViewOnlyAdminCredentials;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,6 +65,16 @@ class BarangayManagementController extends Controller
                     ->where('is_view_only', false)
                     ->first();
 
+                $viewOnlyAdmins = User::where('barangay_id', $b->id)
+                    ->where('role', UserRole::Admin)
+                    ->where('is_view_only', true)
+                    ->get()
+                    ->map(fn($va) => [
+                        'name' => trim($va->first_name . ' ' . $va->last_name),
+                        'email' => $va->email,
+                        'account_id' => $va->account_id,
+                    ]);
+
                 return [
                     'id' => $b->id,
                     'code' => $b->code,
@@ -79,6 +92,7 @@ class BarangayManagementController extends Controller
                         'email' => $primaryAdmin->email,
                         'account_id' => $primaryAdmin->account_id,
                     ] : null,
+                    'view_only_admins' => $viewOnlyAdmins,
                     'created_at' => $b->created_at?->format('M d, Y'),
                 ];
             });
@@ -100,27 +114,29 @@ class BarangayManagementController extends Controller
             'admin_first_name' => ['required', 'string', 'max:255'],
             'admin_last_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'admin_password' => ['required', 'string', 'min:8'],
         ]);
 
-        DB::transaction(function () use ($validated) {
-            // 1. Remove vowels from City name (e.g. Paranaque -> PRNQ)
-            $cityUpper = strtoupper(preg_replace('/[^a-zA-Z]/', '', $validated['city']));
+        $rawPassword = '';
+        $accountId = '';
+
+        DB::transaction(function () use ($validated, &$rawPassword, &$accountId) {
+            $cityClean = preg_replace('/(CITY|MUNICIPALITY|PROVINCE)/i', '', $validated['city']);
+            $cityNormalized = \Illuminate\Support\Str::ascii(trim($cityClean));
+            $cityUpper = strtoupper(preg_replace('/[^a-zA-Z]/', '', $cityNormalized));
             $cityNoVowels = preg_replace('/[AEIOU]/', '', $cityUpper);
             $cityCode = substr($cityNoVowels, 0, 4);
 
-            // 2. Format Barangay name/number (e.g. Barangay 36 -> B36)
             $brgyName = trim($validated['barangay_name']);
             if (preg_match('/(\d+)/', $brgyName, $matches)) {
                 $brgyCode = 'B' . $matches[1];
             } else {
-                $brgyClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $brgyName));
-                $brgyCode = substr($brgyClean, 0, 6);
+                $brgyNoPrefix = preg_replace('/^(barangay|brgy)\.?\s*/i', '', $brgyName);
+                $brgyClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $brgyNoPrefix));
+                $brgyCode = substr($brgyClean, 0, 6) ?: 'BRGY';
             }
 
             $code = "{$cityCode}-{$brgyCode}";
 
-            // Ensure absolute uniqueness
             if (Barangay::where('code', $code)->exists()) {
                 $code .= '-' . strtoupper(Str::random(3));
             }
@@ -139,6 +155,11 @@ class BarangayManagementController extends Controller
 
             $accountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
 
+            $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['admin_last_name']);
+            $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Admin'));
+            
+            $rawPassword = $code . '!' . $readableLastName;
+
             User::create([
                 'barangay_id' => $barangay->id,
                 'account_id' => $accountId,
@@ -147,12 +168,83 @@ class BarangayManagementController extends Controller
                 'first_name' => $validated['admin_first_name'],
                 'last_name' => $validated['admin_last_name'],
                 'email' => $validated['admin_email'],
-                'password' => Hash::make($validated['admin_password']),
+                'password' => Hash::make($rawPassword),
                 'is_active' => true,
             ]);
         });
 
-        return back()->with('success', 'Barangay node and primary admin successfully provisioned.');
+        $adminPayload = [
+            'account_id' => $accountId,
+            'name' => trim($validated['admin_first_name'] . ' ' . $validated['admin_last_name']),
+            'email' => $validated['admin_email'],
+            'password' => $rawPassword,
+            'title' => 'Primary Administrator Created & Emailed!',
+        ];
+
+        try {
+            Mail::to($validated['admin_email'])->send(new PrimaryAdminCredentials($adminPayload));
+        } catch (\Exception $e) {
+            // Suppress mail error
+        }
+
+        return back()->with([
+            'success' => 'Barangay node and primary admin successfully provisioned and emailed.',
+            'new_view_only_credentials' => $adminPayload
+        ]);
+    }
+
+    public function storeViewOnlyAdmin(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'barangay_id' => ['required', 'exists:barangays,id'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+        ]);
+
+        $rawPassword = '';
+        $accountId = '';
+
+        DB::transaction(function () use ($validated, &$rawPassword, &$accountId) {
+            $barangay = Barangay::findOrFail($validated['barangay_id']);
+            $accountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
+
+            $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['last_name']);
+            $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Official'));
+            
+            $rawPassword = $barangay->code . '!' . $readableLastName;
+
+            User::create([
+                'barangay_id' => $barangay->id,
+                'account_id' => $accountId,
+                'role' => UserRole::Admin,
+                'is_view_only' => true,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($rawPassword),
+                'is_active' => true,
+            ]);
+        });
+
+        $viewOnlyPayload = [
+            'account_id' => $accountId,
+            'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
+            'email' => $validated['email'],
+            'password' => $rawPassword,
+            'title' => 'View-Only Account Created & Emailed!',
+        ];
+
+        try {
+            Mail::to($validated['email'])->send(new ViewOnlyAdminCredentials($viewOnlyPayload));
+        } catch (\Exception $e) {
+            // Suppress mail error
+        }
+
+        return back()->with([
+            'success' => 'View-only monitoring account successfully created and emailed.',
+            'new_view_only_credentials' => $viewOnlyPayload
+        ]);
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -160,9 +252,7 @@ class BarangayManagementController extends Controller
         $barangay = Barangay::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'house_street' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:100'],
             'province' => ['required', 'string', 'max:100'],
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
@@ -171,6 +261,6 @@ class BarangayManagementController extends Controller
 
         $barangay->update($validated);
 
-        return back()->with('success', 'Barangay node properties updated successfully.');
+        return back()->with('success', 'Barangay node contact properties updated successfully.');
     }
 }

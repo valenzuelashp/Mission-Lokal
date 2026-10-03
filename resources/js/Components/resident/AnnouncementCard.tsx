@@ -3,6 +3,7 @@ import { Bell, CalendarDays, HandHelping, Megaphone, Share2, ThumbsUp } from 'lu
 import VolunteerJoinButton from '@/Components/resident/VolunteerJoinButton';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import { Button } from '@/Components/ui/button';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { AnnouncementKind, ResidentAnnouncement } from '@/Types';
 
 type Props = {
@@ -17,6 +18,7 @@ const kindIcons: Record<AnnouncementKind, typeof Megaphone> = {
 };
 
 export default function AnnouncementCard({ announcement, compact = false }: Props) {
+    const theme = useResidentTheme();
     const kind = announcement.kind ?? 'advisory';
     const Icon = kindIcons[kind] ?? Megaphone;
     const kindLabel = announcement.kind_label ?? 'Advisory';
@@ -27,23 +29,23 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
         : announcement.body;
 
     return (
-        <article className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs transition-shadow hover:shadow-md">
-            <div className="flex items-center gap-3 p-4 pb-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <article className={`overflow-hidden rounded-2xl border ${theme.cardBorder} ${theme.cardBg} shadow-xs transition-all hover:shadow-md`}>
+            <div className={`flex items-center gap-3 p-4 pb-3 border-b ${theme.dividerColor}`}>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.primaryBg} text-white font-bold shadow-2xs`}>
                     <Icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-900">{kindLabel}</p>
+                    <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</p>
                     {announcement.event_at ? (
-                        <p className="text-xs font-medium text-teal-800">Happening {announcement.event_at}</p>
+                        <p className="text-xs font-bold text-emerald-600">Happening {announcement.event_at}</p>
                     ) : (
-                        <p className="text-xs text-muted-foreground">{announcement.published_at}</p>
+                        <p className={`text-xs ${theme.textMuted} font-medium`}>{announcement.published_at}</p>
                     )}
                 </div>
             </div>
 
             {announcement.image_url && (
-                <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-50">
+                <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-100">
                     <BufferedImage
                         src={announcement.image_url}
                         alt={announcement.title}
@@ -53,26 +55,26 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 </Link>
             )}
 
-            <div className="space-y-2 px-4 py-3">
+            <div className="space-y-2 p-4">
                 <Link
                     href={`/announcements/${announcement.id}`}
-                    className="block break-words text-base font-semibold text-slate-900 hover:text-primary transition-colors"
+                    className={`block break-words text-base font-bold ${theme.textMain} hover:opacity-80 transition-colors`}
                 >
                     {announcement.title}
                 </Link>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{body}</p>
+                <p className={`whitespace-pre-wrap text-sm leading-relaxed ${theme.textMain} opacity-90`}>{body}</p>
                 {!compact && announcement.body.length > 200 && (
                     <Link
                         href={`/announcements/${announcement.id}`}
-                        className="inline-block pt-1 text-sm font-semibold text-primary hover:underline"
+                        className={`inline-block pt-1 text-xs font-extrabold ${theme.primaryText} hover:underline`}
                     >
-                        Read full announcement →
+                        Read full announcement details →
                     </Link>
                 )}
             </div>
 
             {!compact && kind === 'volunteer' && (
-                <div className="border-t border-slate-100 px-4 py-3">
+                <div className={`border-t ${theme.dividerColor} px-4 py-3 bg-slate-50/40`}>
                     <VolunteerJoinButton
                         announcementId={announcement.id}
                         hasJoined={announcement.has_joined}
@@ -84,18 +86,18 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             {!compact && (
                 <>
                     {announcement.author_name && (
-                        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 text-xs text-muted-foreground">
-                            Posted by <span className="font-medium text-slate-700">{announcement.author_name}</span>
+                        <div className={`border-t ${theme.dividerColor} bg-slate-50/40 px-4 py-2.5 text-xs ${theme.textMuted} font-medium`}>
+                            Issued by <span className={`font-bold ${theme.textMain}`}>{announcement.author_name}</span>
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-1 border-t border-slate-100 bg-slate-50/50 p-1.5">
-                        <Button variant="ghost" size="sm" className="gap-2 font-medium text-slate-600 hover:text-slate-900" disabled>
+                    <div className={`grid grid-cols-2 gap-1 border-t ${theme.dividerColor} bg-slate-50/40 p-1.5`}>
+                        <Button variant="ghost" size="sm" className={`gap-2 font-semibold ${theme.textMuted} hover:opacity-100 cursor-pointer`} disabled>
                             <ThumbsUp className="h-4 w-4" />
                             Acknowledge
                         </Button>
-                        <Button variant="ghost" size="sm" className="gap-2 font-medium text-slate-600 hover:text-slate-900" disabled>
+                        <Button variant="ghost" size="sm" className={`gap-2 font-semibold ${theme.textMuted} hover:opacity-100 cursor-pointer`} disabled>
                             <Share2 className="h-4 w-4" />
-                            Share
+                            Share Notice
                         </Button>
                     </div>
                 </>

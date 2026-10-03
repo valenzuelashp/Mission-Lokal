@@ -8,7 +8,6 @@ import { demoHotspots, demoMapPins, mapFilterCounts } from '@/Lib/adminDemo';
 import type { AdminMapPageProps, IncidentTypeIcon, MapPinStatus, Severity } from '@/Types';
 
 export default function MapPage(props: Partial<AdminMapPageProps>) {
-    // Map incoming database props cleanly, fallback to dummy constants only if undefined
     const allPins = props.pins ?? demoMapPins;
     const hotspots = props.hotspots ?? demoHotspots;
 
@@ -37,31 +36,30 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
     }, [allPins, severity, status, type, search]);
 
     const counts = useMemo(() => mapFilterCounts(allPins), [allPins]);
-
     const activeCount = allPins.filter((p) => p.status === 'active').length;
 
     return (
         <AdminLayout title="Mission-Lokal Admin: Map">
             <Head title="Operations Map" />
 
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-slate-200/80 pb-4">
                 <div>
-                    <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Operations map</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Live concern pins and predicted hotspot zones across the barangay.
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Geospatial Operations Radar</h2>
+                    <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+                        Live municipal incident pins and AI-predicted risk hotspot zones across the barangay sector.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Layers className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
+                    <Layers className="h-4 w-4 text-blue-600" />
                     <span>
-                        <strong className="text-foreground">{activeCount}</strong> active ·{' '}
-                        <strong className="text-foreground">{hotspots.length}</strong> hotspots
+                        <strong className="text-slate-900">{activeCount}</strong> active pins ·{' '}
+                        <strong className="text-rose-600">{hotspots.length}</strong> risk zones
                     </span>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-11rem)] lg:grid-cols-[320px_1fr]">
-                <div className="max-h-[45vh] overflow-hidden lg:max-h-none">
+            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-12rem)] lg:grid-cols-[340px_1fr]">
+                <div className="max-h-[45vh] overflow-hidden lg:max-h-none rounded-2xl shadow-sm">
                     <MapPinSidebar
                         pins={filtered}
                         selectedId={selectedId}
@@ -79,14 +77,16 @@ export default function MapPage(props: Partial<AdminMapPageProps>) {
                         counts={counts}
                     />
                 </div>
-                <AdminFullMap
-                    pins={filtered}
-                    hotspots={hotspots}
-                    showHotspots={showHotspots}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    className="h-[50vh] min-h-[280px] lg:h-full"
-                />
+                <div className="rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 bg-white">
+                    <AdminFullMap
+                        pins={filtered}
+                        hotspots={hotspots}
+                        showHotspots={showHotspots}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        className="h-[55vh] min-h-[360px] lg:h-full"
+                    />
+                </div>
             </div>
         </AdminLayout>
     );

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TileLayer } from 'react-leaflet';
 import { MAP_BASEMAPS, type MapBasemapId } from '@/Lib/mapUtils';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 
 const STORAGE_KEY = 'mission-lokal-map-basemap';
@@ -15,9 +16,7 @@ function readStoredBasemap(fallback: MapBasemapId): MapBasemapId {
         if (saved && saved in MAP_BASEMAPS) {
             return saved as MapBasemapId;
         }
-    } catch {
-        // Ignore private-mode storage errors.
-    }
+    } catch {}
 
     return fallback;
 }
@@ -29,9 +28,7 @@ export function useMapBasemap(defaultId: MapBasemapId = 'streets') {
         setBasemapState(id);
         try {
             window.localStorage.setItem(STORAGE_KEY, id);
-        } catch {
-            // Ignore private-mode storage errors.
-        }
+        } catch {}
     };
 
     return { basemap, setBasemap, layer: MAP_BASEMAPS[basemap] };
@@ -67,10 +64,12 @@ type ToggleProps = {
 };
 
 export function MapBasemapToggle({ value, onChange, className }: ToggleProps) {
+    const theme = useResidentTheme();
+
     return (
         <div
             className={cn(
-                'absolute left-16 top-3 z-[500] flex max-w-[calc(100%-5rem)] flex-wrap rounded-md border border-slate-200 bg-white/95 shadow-md backdrop-blur-sm',
+                `absolute left-16 top-3 z-[500] flex max-w-[calc(100%-5rem)] flex-wrap rounded-xl border ${theme.cardBorder} ${theme.cardBg}/95 shadow-md backdrop-blur-md p-1 gap-1`,
                 className,
             )}
             role="group"
@@ -82,10 +81,10 @@ export function MapBasemapToggle({ value, onChange, className }: ToggleProps) {
                     type="button"
                     onClick={() => onChange(layer.id)}
                     className={cn(
-                        'px-2.5 py-1.5 text-xs font-medium transition-colors',
+                        'rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs',
                         value === layer.id
-                            ? 'bg-slate-800 text-white'
-                            : 'text-slate-600 hover:bg-slate-100',
+                            ? `${theme.primaryBg} text-white shadow-xs`
+                            : `${theme.textMuted} hover:opacity-100`,
                     )}
                 >
                     {layer.label}

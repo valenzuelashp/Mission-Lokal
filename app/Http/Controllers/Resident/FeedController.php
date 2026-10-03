@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
+use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +22,6 @@ class FeedController extends Controller
                     $query->where('user_id', $user->id);
                 }
             ])
-            // FIX: Match the new 'up' and 'down' strings in the database
             ->withCount([
                 'votes as upvotes' => fn ($query) => $query->where('vote', 1),
                 'votes as downvotes' => fn ($query) => $query->where('vote', -1),
@@ -30,13 +30,10 @@ class FeedController extends Controller
             ->latest()
             ->get()
             ->map(function ($concern) {
-                
-                // FIX: Added ->values() to force a clean JSON array for React's .length check
                 $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
                     return asset('storage/' . $media->storage_key);
                 })->values()->toArray(); 
 
-                // FIX: Use the string value directly since the DB no longer uses integers
                 $userVoteRecord = $concern->votes->first();
                 $rawVote = $userVoteRecord?->vote;
                 $userVoteStatus = ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null);
@@ -47,7 +44,6 @@ class FeedController extends Controller
                     'description' => $concern->description,
                     'category' => $concern->category->name ?? 'Uncategorized', 
                     'status' => $concern->status->value ?? $concern->status, 
-                    // FIX: Renamed 'address' to 'location_label' to match ConcernCard.tsx
                     'location_label' => $concern->address_text ?? 'Unknown location', 
                     'created_at' => $concern->created_at->diffForHumans(), 
                     'upvotes' => (int) $concern->upvotes,
@@ -59,8 +55,23 @@ class FeedController extends Controller
                 ];
             });
 
+        // Query real database announcements for the sidebar
+        $announcements = Announcement::query()
+            ->where('barangay_id', $user->barangay_id)
+            ->where('is_published', true)
+            ->with('creator')
+            ->withCount('volunteers')
+            ->withExists([
+                'volunteers as joined' => fn ($query) => $query->where('user_id', $user->id),
+            ])
+            ->latest('published_at')
+            ->take(2)
+            ->get()
+            ->map(fn (Announcement $item) => $item->toResidentArray($user->id));
+
         return Inertia::render('Resident/Feed', [
             'concerns' => $concerns,
+            'announcements' => $announcements,
         ]);
     }
 }

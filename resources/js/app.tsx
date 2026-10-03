@@ -13,6 +13,18 @@ if (token) {
     axios.defaults.headers.common['X-CSRF-TOKEN'] = (token as HTMLMetaElement).content;
 }
 
+// --- AUTOMATIC 419 ERROR RECOVERY INTERCEPTOR ---
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 419) {
+            // Silently reload the window to obtain a fresh CSRF token and session
+            window.location.reload();
+        }
+        return Promise.reject(error);
+    }
+);
+
 // PHASE 9: Import the Service Worker registration
 // @ts-expect-error: virtual:pwa-register is provided by vite-plugin-pwa at build time.
 import { registerSW } from 'virtual:pwa-register';

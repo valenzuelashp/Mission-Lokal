@@ -16,7 +16,6 @@ class AdminPersonnelLoginController extends Controller
 {
     public function create(): Response
     {
-        // FIX: Pointing to the newly renamed AdminPersonnelLogin component file
         return Inertia::render('Auth/AdminPersonnelLogin');
     }
 
@@ -27,22 +26,15 @@ class AdminPersonnelLoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $loginInput = trim($credentials['account_id']);
-
-        $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'account_id';
-
-        if ($field === 'account_id') {
-            $loginInput = LocalIdentifier::resolveAccountId($loginInput);
-        } else {
-            $loginInput = strtolower($loginInput);
-        }
+        // Strictly resolve as an Account ID (Disallowing emails)
+        $resolvedId = LocalIdentifier::resolveAccountId(trim($credentials['account_id']));
 
         if (! Auth::attempt(
-            [$field => $loginInput, 'password' => $credentials['password']],
+            ['account_id' => $resolvedId, 'password' => $credentials['password']],
             $request->boolean('remember')
         )) {
             throw ValidationException::withMessages([
-                'account_id' => 'Invalid credentials or account identifier.',
+                'account_id' => 'Invalid Account ID or password.',
             ]);
         }
 
@@ -57,6 +49,7 @@ class AdminPersonnelLoginController extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->regenerateToken();
         $user?->forceFill(['last_login_at' => now()])->save();
 
         if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {

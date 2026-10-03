@@ -18,6 +18,8 @@ export interface User {
     mobile?: string;
     civic_xp?: number;
     verification_status?: VerificationStatus;
+    can_modify_system?: boolean;
+    is_minor?: boolean;
     resident_profile?: {
         civic_xp: number;
         verification_status: VerificationStatus;
@@ -35,6 +37,13 @@ export interface PageProps {
         new_credentials?: any;
         credentials?: any;
     };
+    unread_count?: number;
+    pending_reports_count?: number;
+    pending_missions_count?: number;
+    pending_registrations_count?: number;
+    pending_blotters_count?: number;
+    pending_profile_edits_count?: number;
+    pending_map_alerts_count?: number;
     [key: string]: unknown;
 }
 
@@ -69,7 +78,7 @@ export interface AdminMapHotspot {
     radius_m: number;
     label: string;
     report_count: number;
-    risk_level: 'high' | 'medium' | 'low';
+    risk_level: 'high' | 'medium' | 'low' | 'critical';
 }
 
 export interface AdminMapPageProps extends PageProps {
@@ -105,10 +114,15 @@ export interface PublicConcern {
     privacy_locked?: boolean;
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
+    reporter_name?: string;
 }
 
 export interface FeedPageProps extends PageProps {
     concerns: PublicConcern[];
+    userStats: {
+        total_reports: number;
+        active_reports: number;
+    };
 }
 
 export interface ResidentAnnouncement {
@@ -210,7 +224,7 @@ export interface AdminIncident {
     display_id?: string;
     concern_id: string;
     incident_type: string;
-    type_icon: 'fire' | 'flood' | 'waste' | 'noise' | 'drainage' | 'light';
+    type_icon: IncidentTypeIcon;
     location: string;
     ai_severity: number;
     priority: 'high' | 'med' | 'low';
@@ -218,6 +232,7 @@ export interface AdminIncident {
 }
 
 export interface AdminReport extends AdminIncident {
+    rank?: number;
     ai_category: string;
     priority_score?: number;
     priority_reason?: string;
@@ -241,6 +256,8 @@ export type MissionStatus =
     | 'cancelled';
 
 export interface AdminMission {
+    rank?: number;
+    display_id: string;
     id: string;
     concern_id: string;
     concern_title: string;
@@ -248,6 +265,7 @@ export interface AdminMission {
     brief?: string;
     images?: string[];
     assignee: string | null;
+    personnel_ids?: string[];
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
     proof_notes?: string | null;
@@ -255,6 +273,7 @@ export interface AdminMission {
     due_date: string;
     is_overdue?: boolean;
     is_escalated?: boolean;
+    assigned_at?: string;
 }
 
 export interface AdminMissionQueuePageProps extends PageProps {
@@ -432,6 +451,7 @@ export interface AdminResidentEmergencyContact {
 }
 
 export interface AdminResidentDetail extends AdminResident {
+    is_active: boolean;
     reports_count: number;
     government_id_label: string;
     government_id_url: any;
@@ -484,4 +504,40 @@ export interface CalendarPageProps extends PageProps {
     prev: { year: number; month: number };
     next: { year: number; month: number };
     events: CalendarEvent[];
+}
+
+/* ==========================================================================
+   PHASE 9: PWA, SECURITY, COMPLIANCE & OFFLINE SYNC EXTENSIONS
+   ========================================================================== */
+
+export interface OfflineSyncQueueItem {
+    id: string;
+    endpoint: string;
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    payload: Record<string, unknown>;
+    queued_at: string;
+    retry_count: number;
+}
+
+export interface PwaStatusState {
+    is_online: boolean;
+    is_installed: boolean;
+    pending_sync_count: number;
+    last_synced_at?: string;
+}
+
+export interface SecurityComplianceConfig {
+    dpa_consent_version: string;
+    rate_limit_remaining?: number;
+    vawc_safeguard_active: boolean;
+    encryption_standard: 'AES-256-GCM';
+}
+
+export interface DataBreachIncidentLog {
+    id: string;
+    incident_reference: string;
+    severity_level: 'low' | 'moderate' | 'critical';
+    affected_records_count: number;
+    reported_to_npc: boolean;
+    logged_at: string;
 }

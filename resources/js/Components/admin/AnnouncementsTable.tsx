@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Megaphone, Pencil, Trash2 } from 'lucide-react';
+import { Megaphone, Pencil, Trash2, Calendar } from 'lucide-react';
 import AnnouncementCard from '@/Components/admin/AnnouncementCard';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
@@ -18,7 +18,11 @@ export default function AnnouncementsTable({ announcements }: Props) {
     };
 
     if (announcements.length === 0) {
-        return <p className="py-10 text-center text-sm text-muted-foreground">No announcements match your filters.</p>;
+        return (
+            <div className="py-16 text-center rounded-xl border border-dashed border-slate-300 bg-slate-50/50">
+                <p className="text-sm font-semibold text-muted-foreground">No announcements found matching your criteria.</p>
+            </div>
+        );
     }
 
     return (
@@ -29,75 +33,80 @@ export default function AnnouncementsTable({ announcements }: Props) {
                 ))}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
-                <table className="w-full min-w-[920px] text-sm">
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-card shadow-xs md:block">
+                <table className="w-full min-w-[960px] text-sm text-left">
                     <thead>
-                        <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            <th className="px-4 py-3">Title</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Event</th>
-                            <th className="px-4 py-3">Published</th>
-                            <th className="px-4 py-3">Author</th>
-                            <th className="px-4 py-3">Updated</th>
-                            <th className="px-4 py-3">Actions</th>
+                        <tr className="border-b bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <th className="px-5 py-3.5">Announcement Title & Category</th>
+                            <th className="px-4 py-3.5 w-32">Status</th>
+                            <th className="px-4 py-3.5 w-44">Event Schedule</th>
+                            <th className="px-4 py-3.5 w-36">Published Date</th>
+                            <th className="px-4 py-3.5 w-36">Author</th>
+                            <th className="px-4 py-3.5 text-right w-36">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                         {announcements.map((row) => (
-                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                                <td className="px-4 py-3">
-                                    <div className="flex items-start gap-3">
+                            <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                                <td className="px-5 py-3.5">
+                                    <div className="flex items-center gap-3.5">
                                         {row.image_url ? (
                                             <BufferedImage
                                                 src={row.image_url}
                                                 alt=""
-                                                className="mt-0.5 h-12 w-12 shrink-0 rounded-lg"
+                                                className="h-11 w-11 shrink-0 rounded-lg object-cover border border-slate-200 shadow-2xs"
                                             />
                                         ) : (
-                                            <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                                                <Megaphone className="h-4 w-4" />
+                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs">
+                                                <Megaphone className="h-5 w-5" />
                                             </div>
                                         )}
                                         <div className="min-w-0">
-                                            <p className="font-medium text-foreground">{row.title}</p>
-                                            <p className="mt-0.5 text-xs font-medium text-teal-700">
+                                            <p className="font-bold text-slate-900 truncate">{row.title}</p>
+                                            <p className="text-[11px] font-extrabold text-blue-700">
                                                 {row.kind_label ?? 'Advisory'}
-                                                {row.kind === 'volunteer' ? ` · ${row.volunteer_count ?? 0} volunteer${(row.volunteer_count ?? 0) === 1 ? '' : 's'}` : ''}
+                                                {row.kind === 'volunteer' ? ` · ${row.volunteer_count ?? 0} volunteers` : ''}
                                             </p>
-                                            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{row.body}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3.5">
                                     <Badge
                                         className={
                                             row.is_published
-                                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
-                                                : 'bg-amber-100 text-amber-800 hover:bg-amber-100'
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold'
+                                                : 'bg-amber-50 text-amber-700 border-amber-200 font-bold'
                                         }
+                                        variant="outline"
                                     >
-                                        {row.is_published ? 'Published' : 'Draft'}
+                                        {row.is_published ? '● Published' : '○ Draft'}
                                     </Badge>
                                 </td>
-                                <td className="px-4 py-3 text-muted-foreground">{row.event_at ?? '—'}</td>
-                                <td className="px-4 py-3 text-muted-foreground">{row.published_at ?? '—'}</td>
-                                <td className="px-4 py-3 text-muted-foreground">{row.author_name}</td>
-                                <td className="px-4 py-3 text-muted-foreground">{row.updated_at}</td>
-                                <td className="px-4 py-3">
-                                    <div className="flex gap-1">
+                                <td className="px-4 py-3.5 text-xs font-medium text-slate-700">
+                                    {row.event_at ? (
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                            {row.event_at}
+                                        </span>
+                                    ) : '—'}
+                                </td>
+                                <td className="px-4 py-3.5 text-xs text-muted-foreground">{row.published_at ?? '—'}</td>
+                                <td className="px-4 py-3.5 text-xs text-muted-foreground font-medium">{row.author_name}</td>
+                                <td className="px-4 py-3.5 text-right">
+                                    <div className="flex justify-end gap-1.5">
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            className="h-8 cursor-pointer"
+                                            className="h-8 text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50 border-slate-200 shadow-2xs cursor-pointer"
                                             onClick={() => router.visit(`/admin/announcements/${row.id}/edit`)}
                                         >
-                                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                                            <Pencil className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
                                             Edit
                                         </Button>
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="h-8 text-destructive hover:text-destructive cursor-pointer"
+                                            className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
                                             onClick={() => remove(row.id, row.title)}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />

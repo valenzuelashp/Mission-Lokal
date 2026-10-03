@@ -113,8 +113,28 @@ class RegisteredUserController extends Controller
             ])->withInput();
         }
 
-        $barangay = Barangay::first();
-        $barangayId = $barangay?->id;
+        // Strict Barangay Validation: Must match an active registered node
+        $inputBrgy = trim($request->barangay_name);
+        $inputCity = trim($request->city);
+
+        $barangay = Barangay::where('is_active', true)
+            ->where(function($query) use ($inputBrgy) {
+                $query->where('name', 'like', "%{$inputBrgy}%")
+                      ->orWhere('code', 'like', "%{$inputBrgy}%");
+            })
+            ->where(function($query) use ($inputCity) {
+                $query->where('city', 'like', "%{$inputCity}%");
+            })
+            ->first();
+
+        if (! $barangay) {
+            return back()->withErrors([
+                'barangay_name' => 'The specified barangay is not registered or supported in the system yet.',
+                'general' => 'Registration failed: Only residents belonging to officially registered barangays are allowed to register.',
+            ])->withInput();
+        }
+
+        $barangayId = $barangay->id;
 
         $file = $request->file('government_id');
         $extension = $file->getClientOriginalExtension();
@@ -142,7 +162,6 @@ class RegisteredUserController extends Controller
             'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
-        // Generates clean sequential account IDs like TAMBO_RES_0001
         $accountId = LocalIdentifier::next($barangay, LocalIdentifier::RES);
 
         $user = User::create([

@@ -1,5 +1,6 @@
 import { ImgHTMLAttributes, useEffect, useState } from 'react';
 import { ImageOff } from 'lucide-react';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, 'onLoad' | 'onError'> & {
@@ -7,6 +8,7 @@ type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, 'onLoad' | 'onError'> & {
 };
 
 export default function BufferedImage({ className, imgClassName, alt = '', src, ...props }: Props) {
+    const theme = useResidentTheme();
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
     useEffect(() => {
@@ -14,12 +16,12 @@ export default function BufferedImage({ className, imgClassName, alt = '', src, 
     }, [src]);
 
     return (
-        <div className={cn('relative overflow-hidden bg-slate-100', className)}>
+        <div className={cn('relative overflow-hidden rounded-xl border', theme.cardBorder, theme.inputBg, className)}>
             {status !== 'ready' && (
-                <div className="pointer-events-none absolute inset-0 media-shimmer" aria-hidden />
+                <div className={cn('pointer-events-none absolute inset-0 animate-pulse opacity-40', theme.primaryBg)} aria-hidden />
             )}
             {status === 'error' ? (
-                <div className="absolute inset-0 flex items-center justify-center text-slate-300">
+                <div className={`absolute inset-0 flex items-center justify-center ${theme.textMuted}`}>
                     <ImageOff className="h-6 w-6" />
                 </div>
             ) : (

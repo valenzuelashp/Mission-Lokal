@@ -2,7 +2,7 @@ import { Head, useForm, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 
 function toUpperCase(value: string) {
     return value.toUpperCase();
@@ -55,6 +55,7 @@ export default function Register() {
 
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
+    const [brgyStatus, setBrgyStatus] = useState<'checking' | 'found' | 'unlisted' | null>(null);
 
     useEffect(() => {
         if (data.birthday) {
@@ -70,6 +71,28 @@ export default function Register() {
             setIsMinor(false);
         }
     }, [data.birthday]);
+
+    // Live validation for barangay existence
+    useEffect(() => {
+        const trimmed = data.barangay_name.trim();
+        if (trimmed.length < 2) {
+            setBrgyStatus(null);
+            return;
+        }
+
+        setBrgyStatus('checking');
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/check-barangay?name=${encodeURIComponent(trimmed)}`);
+                const json = await res.json();
+                setBrgyStatus(json.exists ? 'found' : 'unlisted');
+            } catch {
+                setBrgyStatus(null);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [data.barangay_name]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -171,6 +194,17 @@ export default function Register() {
                         <div>
                             <label className="text-xs font-medium">Barangay Name *</label>
                             <CapsInput placeholder="Barangay" value={data.barangay_name} onChange={(value) => setData('barangay_name', value)} required />
+                            {brgyStatus === 'found' && (
+                                <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Registered Barangay Node Found
+                                </p>
+                            )}
+                            {brgyStatus === 'unlisted' && (
+                                <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-600">
+                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Unlisted barangay (registration will be blocked)
+                                </p>
+                            )}
+                            {errors.barangay_name && <p className="text-xs text-red-600 mt-1">{errors.barangay_name}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">City / Municipality *</label>

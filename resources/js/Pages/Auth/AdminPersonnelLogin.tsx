@@ -35,7 +35,7 @@ export default function AdminPersonnelLogin() {
                     <CardContent>
                         <form onSubmit={submit} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="account_id">Account ID / Email</Label>
+                                <Label htmlFor="account_id">Account ID</Label>
                                 <Input
                                     id="account_id"
                                     value={data.account_id}

@@ -20,7 +20,7 @@ export default function MissionChecklist({ missionId, items, readonly = false }:
     };
 
     return (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
             {items.map((item) => (
                 <li key={item.id}>
                     <button
@@ -28,20 +28,24 @@ export default function MissionChecklist({ missionId, items, readonly = false }:
                         disabled={readonly}
                         onClick={() => toggle(item.id)}
                         className={cn(
-                            'flex w-full items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors',
-                            item.done ? 'border-blue-200 bg-blue-50' : 'bg-white hover:bg-slate-50',
-                            readonly && 'cursor-default',
+                            'flex w-full items-center gap-3.5 rounded-xl border p-3.5 text-left text-xs font-bold transition-all shadow-2xs cursor-pointer',
+                            item.done 
+                                ? 'border-emerald-200 bg-emerald-50/70 text-emerald-950 shadow-none' 
+                                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-slate-800',
+                            readonly && 'cursor-default opacity-80',
                         )}
                     >
                         <span
                             className={cn(
-                                'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border',
-                                item.done ? 'border-blue-600 bg-blue-600 text-white' : 'border-muted-foreground/30',
+                                'flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                                item.done ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs' : 'border-slate-300 bg-white',
                             )}
                         >
-                            {item.done && <Check className="h-3 w-3" />}
+                            {item.done && <Check className="h-3 w-3 stroke-[3]" />}
                         </span>
-                        <span className={cn(item.done && 'text-muted-foreground line-through')}>{item.label}</span>
+                        <span className={cn('flex-1 truncate', item.done && 'text-emerald-900/60 line-through font-medium')}>
+                            {item.label}
+                        </span>
                     </button>
                 </li>
             ))}

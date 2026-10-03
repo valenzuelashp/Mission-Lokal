@@ -12,16 +12,24 @@ import type { AdminReportQueuePageProps } from '@/Types';
 type FilterKey = 'all' | 'ai_processed' | 'under_review' | 'active' | 'rejected';
 
 const tabs: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'ai_processed', label: 'AI processed' },
-    { key: 'under_review', label: 'Under review' },
-    { key: 'active', label: 'Active' },
-    { key: 'rejected', label: 'Rejected / spam' },
+    { key: 'all', label: 'All Reports' },
+    { key: 'ai_processed', label: 'AI Processed' },
+    { key: 'under_review', label: 'Under Review' },
+    { key: 'active', label: 'Active Deployment' },
+    { key: 'rejected', label: 'Rejected / Spam' },
 ];
 
 export default function Index(props: Partial<AdminReportQueuePageProps>) {
-    // Rely strictly on backend query data props, using local demo constants only as absolute empty state safety fallback
-    const reports = props.reports ?? demoReports;
+    const rawReports = props.reports ?? demoReports;
+    
+    // Attach ranked ordering
+    const reports = useMemo(() => {
+        return rawReports.map((r, idx) => ({
+            ...r,
+            rank: r.rank ?? (idx + 1),
+        }));
+    }, [rawReports]);
+
     const counts = props.counts ?? reportCounts(reports);
 
     const [filter, setFilter] = useState<FilterKey>('all');
@@ -51,14 +59,14 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
         <AdminLayout title="Mission-Lokal Admin: Report Queue">
             <Head title="Report Queue" />
 
-            <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl font-semibold text-blue-900 sm:text-2xl">Report queue</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Review AI suggestions, confirm categories, and approve or reject incoming concerns.
+            <div className="mb-6">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Triage & Report Queue</h2>
+                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+                    Mathematically prioritized by AI severity, community upvotes, and time decay. Review and dispatch missions.
                 </p>
             </div>
 
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
                     <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
                     {tabs.map((tab) => (
@@ -67,49 +75,39 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
                             type="button"
                             onClick={() => setFilter(tab.key)}
                             className={cn(
-                                'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                                'rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer',
                                 filter === tab.key
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-white text-muted-foreground ring-1 ring-border hover:bg-muted',
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200',
                             )}
                         >
                             {tab.label}
-                            <span className="ml-1.5 text-xs opacity-80">({counts[tab.key] ?? 0})</span>
+                            <span className="ml-1.5 text-[10px] opacity-80">({counts[tab.key] ?? 0})</span>
                         </button>
                     ))}
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
-                            className="pl-9"
+                            className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
                             placeholder="Search reports…"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <Button variant="outline" size="icon" className="shrink-0">
-                        <Filter className="h-4 w-4" />
+                    <Button variant="outline" size="icon" className="shrink-0 border-slate-200 bg-white">
+                        <Filter className="h-4 w-4 text-slate-600" />
                     </Button>
                 </div>
             </div>
 
-            <section className="rounded-lg border bg-card p-3 shadow-sm sm:p-4 lg:p-5">
-                <div className="mb-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                        Showing {filtered.length} of {reports.length} reports
-                    </p>
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+                <div className="mb-4 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span>Showing {filtered.length} of {reports.length} incoming reports</span>
                 </div>
                 <ReportQueueTable reports={filtered} />
-                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Page 1 of 1</span>
-                    <div className="flex gap-1">
-                        <Button size="sm" variant="default" className="h-8 w-8 bg-blue-700 p-0">
-                            1
-                        </Button>
-                    </div>
-                </div>
             </section>
         </AdminLayout>
     );

@@ -26,9 +26,52 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function show(Request $request, Announcement $announcement): Response
+    public function show(Request $request, string $id)
     {
         $user = $request->user();
+
+        // 1. Handle demo announcements (e.g. IDs starting with 'ann-')
+        if (str_starts_with($id, 'ann-')) {
+            $demoAnnouncements = [
+                [
+                    'id' => 'ann-001',
+                    'title' => 'Typhoon season preparedness advisory',
+                    'body' => "Barangay residents are advised to prepare emergency kits and monitor PAGASA updates. Evacuation centers will open at the covered court 2 hours before signal hoisting.\n\nPlease secure outdoor loose items, clear drainage paths around your property line, and keep emergency contact numbers handy. Hotline: 8888-TAMBO.",
+                    'published_at' => 'Jun 16, 8:00 AM',
+                    'event_at' => null,
+                    'author_name' => 'Barangay Captain Mateo Dela Cruz',
+                    'volunteer_count' => 14,
+                    'has_joined' => false,
+                    'kind' => 'advisory',
+                    'kind_label' => 'Advisory',
+                    'image_url' => null,
+                ],
+                [
+                    'id' => 'ann-002',
+                    'title' => 'Scheduled water interruption — Zone 3 & 4',
+                    'body' => "Maynilad will conduct pipeline maintenance on Jun 18 from 9:00 AM to 4:00 PM.\n\nAffected areas: Riverside Ave., Block 8–12. Please store sufficient water ahead of time.",
+                    'published_at' => 'Jun 15, 2:30 PM',
+                    'event_at' => 'Jun 18, 9:00 AM',
+                    'author_name' => 'Bantay Tubig Task Force',
+                    'volunteer_count' => 5,
+                    'has_joined' => false,
+                    'kind' => 'advisory',
+                    'kind_label' => 'Advisory',
+                    'image_url' => null,
+                ],
+            ];
+
+            $found = collect($demoAnnouncements)->firstWhere('id', $id);
+            if ($found) {
+                return Inertia::render('Resident/Announcements/Show', [
+                    'announcement' => $found,
+                ]);
+            }
+            abort(404);
+        }
+
+        // 2. Handle actual Database records
+        $announcement = Announcement::findOrFail($id);
 
         if ($announcement->barangay_id !== $user->barangay_id || ! $announcement->is_published) {
             abort(404);
@@ -46,9 +89,16 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function volunteer(Request $request, Announcement $announcement): RedirectResponse
+    public function volunteer(Request $request, string $id): RedirectResponse
     {
         $user = $request->user();
+
+        // If it's a demo announcement, just simulate success redirect
+        if (str_starts_with($id, 'ann-')) {
+            return back()->with('success', 'Volunteer status updated successfully (Demo Mode).');
+        }
+
+        $announcement = Announcement::findOrFail($id);
 
         if ($announcement->barangay_id !== $user->barangay_id || ! $announcement->is_published) {
             abort(404);

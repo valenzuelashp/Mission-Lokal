@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { Bell, CalendarDays } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import CalendarMonthView from '@/Components/calendar/CalendarMonthView';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import { Card, CardContent } from '@/Components/ui/card';
 import ResidentLayout from '@/Layouts/ResidentLayout';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { CalendarEvent, CalendarPageProps } from '@/Types';
 import { useState } from 'react';
 
@@ -16,6 +17,7 @@ function formatSelectedDate(date: string): string {
 }
 
 export default function Calendar(props: CalendarPageProps) {
+    const theme = useResidentTheme();
     const initialDate = props.today.startsWith(`${props.year}-${String(props.month).padStart(2, '0')}-`)
         ? props.today
         : props.events[0]?.date?.slice(0, 10) ?? `${props.year}-${String(props.month).padStart(2, '0')}-01`;
@@ -24,45 +26,40 @@ export default function Calendar(props: CalendarPageProps) {
 
     const rightAside = (
         <div className="space-y-4">
-            <Card className="overflow-hidden border-slate-200/80 shadow-sm">
-                <div className="bg-gradient-to-br from-teal-700 to-emerald-600 px-4 py-3 text-white">
-                    <p className="text-sm font-semibold">On this calendar</p>
+            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-xs rounded-2xl ${theme.cardBg}`}>
+                <div className={`bg-gradient-to-br ${theme.primaryBg} px-5 py-4 text-white`}>
+                    <p className="text-xs font-black uppercase tracking-widest opacity-80">Schedule Overview</p>
+                    <h3 className="text-sm font-bold mt-0.5">Municipal Calendar Grid</h3>
                 </div>
-                <CardContent className="space-y-3 p-4 text-sm">
-                <div className="flex gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                        <Bell className="h-4 w-4" />
-                    </span>
-                    <p className="text-muted-foreground">
-                        <span className="font-medium text-slate-800">Advisories, events, and volunteer calls</span> from your barangay hall.
+                <CardContent className="space-y-3 p-4 text-xs font-medium">
+                    <div className="flex gap-3">
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border`}>
+                            <Bell className="h-4 w-4" />
+                        </span>
+                        <p className={`${theme.textMuted} leading-relaxed`}>
+                            <strong className="font-bold">Advisories, events, and volunteer calls</strong> published directly from the barangay hall.
+                        </p>
+                    </div>
+                    <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-emerald-900 border border-emerald-200">
+                        <span>✓ Volunteer calls you sign up for are automatically marked <strong className="font-extrabold">Going</strong>.</span>
                     </p>
-                </div>
-                <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                    Volunteer calls you tap <span className="font-semibold">I can help</span> on are marked{' '}
-                    <span className="font-semibold">Going</span> here.
-                </p>
-                <p className="flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
-                    <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-700" />
-                    Tap a day, then open an item to read the full announcement.
-                </p>
                 </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-slate-200/80 shadow-sm">
-                <CardContent className="p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700">Selected day</p>
-                    <h3 className="mt-1 text-base font-semibold text-slate-900">{formatSelectedDate(selectedDate)}</h3>
+            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-xs rounded-2xl ${theme.cardBg}`}>
+                <CardContent className="p-5">
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${theme.primaryText}`}>Selected Date Agenda</p>
+                    <h3 className="mt-1 text-sm font-extrabold">{formatSelectedDate(selectedDate)}</h3>
                     <div className="mt-3 space-y-2">
                         {selectedEvents.length === 0 ? (
-                            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm text-muted-foreground">
-                                Nothing important is happening this day.
+                            <p className={`rounded-xl border border-dashed ${theme.cardBorder} bg-slate-50/50 p-4 text-xs font-medium ${theme.textMuted} text-center`}>
+                                No scheduled events for this specific date.
                             </p>
                         ) : (
                             selectedEvents.map((event: CalendarEvent) => (
-                                <Link key={event.id} href={event.href} className="block rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 hover:border-teal-200 hover:bg-teal-50">
-                                    <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                                    {event.time && <p className="mt-1 text-xs text-muted-foreground">{event.time}</p>}
-                                    {event.subtitle && <p className="mt-1 text-xs text-muted-foreground">{event.subtitle}</p>}
+                                <Link key={event.id} href={event.href} className={`block rounded-xl border ${theme.cardBorder} ${theme.inputBg} p-3 hover:border-blue-300 transition-all shadow-2xs`}>
+                                    <p className="text-xs font-bold">{event.title}</p>
+                                    {event.time && <p className={`mt-1 text-[11px] ${theme.textMuted} font-semibold`}>{event.time}</p>}
                                 </Link>
                             ))
                         )}
@@ -79,8 +76,8 @@ export default function Calendar(props: CalendarPageProps) {
                 <CalendarMonthView
                     {...props}
                     basePath="/calendar"
-                    heading="Barangay calendar"
-                    description={`Events and advisories for ${props.month_label}.`}
+                    heading="Municipal Community Calendar"
+                    description={`Schedule of events, assemblies, and deadlines for ${props.month_label}.`}
                     legend={['announcement']}
                     onSelectedDayChange={setSelectedDate}
                 />

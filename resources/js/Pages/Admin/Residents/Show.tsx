@@ -18,9 +18,9 @@ type Props = Partial<AdminResidentShowPageProps> & {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
     return (
-        <div className="border-b py-3 last:border-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
+        <div className="border-b border-slate-100 py-3 last:border-0 flex justify-between items-center text-xs">
+            <span className="font-black uppercase tracking-wider text-slate-400">{label}</span>
+            <span className="font-bold text-slate-900">{value}</span>
         </div>
     );
 }
@@ -49,7 +49,7 @@ export default function Show({ resident, residentId }: Props) {
 
     const flagForm = useForm({});
     const handleFlag = () => {
-        if (confirm('Are you sure you want to flag or change the status of this resident account?')) {
+        if (confirm('Are you sure you want to toggle the operational status of this resident account?')) {
             flagForm.post(`/admin/residents/${data.id}/flag`);
         }
     };
@@ -83,63 +83,62 @@ export default function Show({ resident, residentId }: Props) {
 
     const birthdayDisplay =
         data.age_years != null && data.birthday !== '—'
-            ? `${data.birthday} (${data.age_years} years old)`
+            ? `${data.birthday} (${data.age_years} yrs)`
             : data.birthday;
 
     const fullAddress = data.zip_code ? `${data.address}, Zip: ${data.zip_code}` : data.address;
-
     const isMinor = (data.age_years != null && data.age_years < 18) || (data as any).parent_name;
 
     return (
         <AdminLayout title="Mission-Lokal Admin">
-            <Head title={data.full_name} />
+            <Head title={`Resident: ${data.full_name}`} />
 
-            <div className="mb-3 sm:mb-4">
-                <Button variant="ghost" className="-ml-2 h-auto px-2 text-sm" asChild>
+            <div className="mb-4">
+                <Button variant="ghost" className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer" asChild>
                     <Link href="/admin/residents">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to residents
+                        Back to Residents Directory
                     </Link>
                 </Button>
             </div>
 
             {modalMode !== 'none' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl border transition-all">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
                         {modalMode === 'edit' && (
                             <>
-                                <div className="flex items-center justify-between border-b pb-3 mb-4">
-                                    <h3 className="text-base font-semibold text-blue-900">Edit Resident Information</h3>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                    <h3 className="text-base font-black text-slate-900">Edit Resident Profile Details</h3>
                                     <Button variant="ghost" size="sm" onClick={() => setModalMode('none')}><X className="h-4 w-4" /></Button>
                                 </div>
                                 <form onSubmit={handleEditSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
-                                            <label className="text-xs font-medium">First Name</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1">First Name</label>
                                             <Input value={editForm.data.first_name} onChange={e => editForm.setData('first_name', e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-medium">Middle Name</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1">Middle Name</label>
                                             <Input value={editForm.data.middle_name} onChange={e => editForm.setData('middle_name', e.target.value)} />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-medium">Last Name</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1">Last Name</label>
                                             <Input value={editForm.data.last_name} onChange={e => editForm.setData('last_name', e.target.value)} required />
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-xs font-medium">Email Address</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1">Email Address</label>
                                             <Input type="email" value={editForm.data.email} onChange={e => editForm.setData('email', e.target.value)} />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-medium">Mobile Number</label>
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 block mb-1">Mobile Number</label>
                                             <Input value={editForm.data.mobile} onChange={e => editForm.setData('mobile', e.target.value)} />
                                         </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-2">
-                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')}>Cancel</Button>
-                                        <Button type="submit" disabled={editForm.processing} className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
+                                    <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')} className="cursor-pointer text-xs font-bold">Cancel</Button>
+                                        <Button type="submit" disabled={editForm.processing} className="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs cursor-pointer shadow-sm">Save Changes</Button>
                                     </div>
                                 </form>
                             </>
@@ -147,25 +146,25 @@ export default function Show({ resident, residentId }: Props) {
 
                         {modalMode === 'message' && (
                             <>
-                                <div className="flex items-center justify-between border-b pb-3 mb-4">
-                                    <h3 className="text-base font-semibold text-blue-900">Send In-App Message to Resident</h3>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                    <h3 className="text-base font-black text-slate-900">Send Direct Command Message</h3>
                                     <Button variant="ghost" size="sm" onClick={() => setModalMode('none')}><X className="h-4 w-4" /></Button>
                                 </div>
                                 <form onSubmit={handleMessageSubmit} className="space-y-4">
                                     <div>
-                                        <label className="text-xs font-medium mb-1 block">Message Content</label>
+                                        <label className="text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 block">Notice Content</label>
                                         <textarea
                                             rows={4}
-                                            className="w-full rounded-md border border-input bg-background p-3 text-sm shadow-sm"
-                                            placeholder="Type notice or message for this resident..."
+                                            className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs font-medium text-slate-900 shadow-2xs resize-none"
+                                            placeholder="Type direct municipal directive for this resident..."
                                             value={messageForm.data.message}
                                             onChange={e => messageForm.setData('message', e.target.value)}
                                             required
                                         />
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-2">
-                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')}>Cancel</Button>
-                                        <Button type="submit" disabled={messageForm.processing} className="bg-emerald-600 hover:bg-emerald-700">Send Message</Button>
+                                    <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')} className="cursor-pointer text-xs font-bold">Cancel</Button>
+                                        <Button type="submit" disabled={messageForm.processing} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-sm">Send Notification</Button>
                                     </div>
                                 </form>
                             </>
@@ -173,32 +172,32 @@ export default function Show({ resident, residentId }: Props) {
 
                         {modalMode === 'upload' && (
                             <>
-                                <div className="flex items-center justify-between border-b pb-3 mb-4">
-                                    <h3 className="text-base font-semibold text-blue-900">Upload Resident Document</h3>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                    <h3 className="text-base font-black text-slate-900">Upload Resident Record File</h3>
                                     <Button variant="ghost" size="sm" onClick={() => setModalMode('none')}><X className="h-4 w-4" /></Button>
                                 </div>
                                 <form onSubmit={handleUploadSubmit} className="space-y-4">
                                     <div>
-                                        <label className="text-xs font-medium mb-1 block">Document Title / Name</label>
+                                        <label className="text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 block">Document Designation</label>
                                         <Input 
-                                            placeholder="e.g., Barangay Clearance, ID Proof" 
+                                            placeholder="e.g., Verified Barangay Clearance, Indigency Certificate" 
                                             value={uploadForm.data.name} 
                                             onChange={e => uploadForm.setData('name', e.target.value)} 
                                             required 
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium mb-1 block">Select File (Max 5MB)</label>
+                                        <label className="text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 block">Select File (Max 5MB)</label>
                                         <input 
                                             type="file" 
                                             onChange={e => uploadForm.setData('file', e.target.files ? e.target.files[0] : null)}
-                                            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                            className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                                             required 
                                         />
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-2">
-                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')}>Cancel</Button>
-                                        <Button type="submit" disabled={uploadForm.processing} className="bg-blue-600 hover:bg-blue-700">Upload File</Button>
+                                    <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                        <Button type="button" variant="outline" onClick={() => setModalMode('none')} className="cursor-pointer text-xs font-bold">Cancel</Button>
+                                        <Button type="submit" disabled={uploadForm.processing} className="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs cursor-pointer shadow-sm">Upload File</Button>
                                     </div>
                                 </form>
                             </>
@@ -206,27 +205,27 @@ export default function Show({ resident, residentId }: Props) {
 
                         {modalMode === 'view_all_activities' && (
                             <>
-                                <div className="flex items-center justify-between border-b pb-3 mb-4">
-                                    <h3 className="text-base font-semibold text-blue-900">Full Activity History</h3>
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                    <h3 className="text-base font-black text-slate-900">Full Resident Activity Log</h3>
                                     <Button variant="ghost" size="sm" onClick={() => setModalMode('none')}><X className="h-4 w-4" /></Button>
                                 </div>
-                                <div className="max-h-96 overflow-y-auto space-y-2">
+                                <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
                                     {data.activities && data.activities.length > 0 ? (
                                         data.activities.map((act) => (
-                                            <div key={act.id} className="p-3 border rounded-md flex justify-between items-center text-sm">
+                                            <div key={act.id} className="p-3.5 border border-slate-200 rounded-xl flex justify-between items-center text-xs bg-slate-50/50">
                                                 <div>
-                                                    <p className="font-medium">{act.description}</p>
-                                                    <p className="text-xs text-muted-foreground">{act.date} · Type: {act.type}</p>
+                                                    <p className="font-bold text-slate-900">{act.description}</p>
+                                                    <p className="text-[11px] text-muted-foreground mt-0.5">{act.date} · Type: <span className="uppercase font-semibold">{act.type}</span></p>
                                                 </div>
-                                                <span className="text-xs font-semibold px-2 py-1 rounded bg-muted uppercase">{act.status}</span>
+                                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white border border-slate-200 uppercase tracking-wide text-slate-700">{act.status}</span>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">No activities recorded.</p>
+                                        <p className="text-xs text-muted-foreground text-center py-6">No historical activities logged.</p>
                                     )}
                                 </div>
-                                <div className="flex justify-end pt-4">
-                                    <Button type="button" variant="outline" onClick={() => setModalMode('none')}>Close</Button>
+                                <div className="flex justify-end pt-3 border-t border-slate-100">
+                                    <Button type="button" variant="outline" onClick={() => setModalMode('none')} className="cursor-pointer text-xs font-bold">Close Window</Button>
                                 </div>
                             </>
                         )}
@@ -244,61 +243,61 @@ export default function Show({ resident, residentId }: Props) {
 
             {/* Quick Metrics Summary Bar */}
             <div className="my-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
-                    <div className="p-3 bg-blue-50 text-blue-700 rounded-lg">
+                <div className="flex items-center gap-3.5 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="p-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-100">
                         <Hash className="h-5 w-5" />
                     </div>
                     <div>
-                        <p className="text-xs text-muted-foreground uppercase font-semibold">Account Reference ID</p>
-                        <p className="text-sm font-mono font-bold text-gray-900">{data.account_id}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Account ID</p>
+                        <p className="text-sm font-mono font-bold text-slate-900 mt-0.5">{data.account_id}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
-                    <div className="p-3 bg-emerald-50 text-emerald-700 rounded-lg">
+                <div className="flex items-center gap-3.5 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100">
                         <FileText className="h-5 w-5" />
                     </div>
                     <div>
-                        <p className="text-xs text-muted-foreground uppercase font-semibold">Total Reports Filed</p>
-                        <p className="text-sm font-bold text-gray-900">{data.reports_count ?? 0} Concern{data.reports_count === 1 ? '' : 's'}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Total Reports</p>
+                        <p className="text-sm font-bold text-slate-900 mt-0.5">{data.reports_count ?? 0} Concern{data.reports_count === 1 ? '' : 's'}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border shadow-sm">
-                    <div className="p-3 bg-amber-50 text-amber-700 rounded-lg">
+                <div className="flex items-center gap-3.5 p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="p-3 bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
                         <Award className="h-5 w-5" />
                     </div>
                     <div>
-                        <p className="text-xs text-muted-foreground uppercase font-semibold">Civic Engagement Score</p>
-                        <p className="text-sm font-bold text-gray-900">{data.civic_xp} Points · {data.badge_count} Badges</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Civic Score</p>
+                        <p className="text-sm font-bold text-slate-900 mt-0.5">{data.civic_xp} XP · {data.badge_count} Badges</p>
                     </div>
                 </div>
             </div>
 
             <div className="mb-6 grid gap-6 lg:grid-cols-2">
-                <Card className="shadow-sm">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            Personal details
+                <Card className="shadow-xs border-slate-200/80 bg-white rounded-2xl">
+                    <CardHeader className="pb-3 border-b border-slate-100">
+                        <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-700">
+                            <User className="h-4 w-4 text-blue-600" />
+                            Personal Identity Data
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className="pt-2">
                         <DetailRow label="Date of birth" value={birthdayDisplay} />
                         <DetailRow label="Citizenship status" value={data.citizenship_status} />
                         
                         {isMinor && (
-                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                                <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs uppercase tracking-wider mb-2">
+                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs uppercase tracking-wider mb-2">
                                     <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                    Minor Account Guardian Info
+                                    Minor Account Guardian Details
                                 </div>
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-1.5 text-xs">
                                     <div>
-                                        <span className="text-xs text-muted-foreground block">Guardian Name:</span>
-                                        <span className="font-medium text-foreground">{(data as any).parent_name ?? 'Not Provided'}</span>
+                                        <span className="text-slate-500 font-semibold">Guardian Name:</span>{' '}
+                                        <span className="font-bold text-slate-900">{(data as any).parent_name ?? 'Not Provided'}</span>
                                     </div>
                                     <div>
-                                        <span className="text-xs text-muted-foreground block">Guardian Contact:</span>
-                                        <span className="font-medium text-foreground">{(data as any).parent_contact ?? 'Not Provided'}</span>
+                                        <span className="text-slate-500 font-semibold">Guardian Contact:</span>{' '}
+                                        <span className="font-bold text-slate-900">{(data as any).parent_contact ?? 'Not Provided'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -306,23 +305,23 @@ export default function Show({ resident, residentId }: Props) {
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <BookOpen className="h-4 w-4 text-muted-foreground" />
-                            Contact info
+                <Card className="shadow-xs border-slate-200/80 bg-white rounded-2xl">
+                    <CardHeader className="pb-3 border-b border-slate-100">
+                        <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-700">
+                            <BookOpen className="h-4 w-4 text-blue-600" />
+                            Contact & Location Telemetry
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4 pt-0 text-sm">
+                    <CardContent className="space-y-4 pt-3 text-xs">
                         <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Primary address
+                            <p className="font-black uppercase tracking-wider text-slate-400 mb-1">
+                                Primary Residence Address
                             </p>
-                            <p className="mt-1 font-medium">{fullAddress}</p>
+                            <p className="font-bold text-slate-900">{fullAddress}</p>
                         </div>
                         <div>
-                            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Map location
+                            <p className="mb-1 font-black uppercase tracking-wider text-slate-400">
+                                Geographic Coordinates Pin
                             </p>
                             <ResidentMiniMap lat={data.map_lat} lng={data.map_lng} />
                         </div>
@@ -338,33 +337,33 @@ export default function Show({ resident, residentId }: Props) {
                 </Card>
             </div>
 
-            <Card className="mb-6 shadow-sm">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <IdCard className="h-4 w-4 text-muted-foreground" />
-                        Submitted government ID
+            <Card className="mb-6 shadow-xs border-slate-200/80 bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                    <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-slate-700">
+                        <IdCard className="h-4 w-4 text-blue-600" />
+                        Submitted Government Identification
                     </CardTitle>
-                    <p className="text-sm font-medium text-foreground">
-                        {data.government_id_label ?? 'UNKNOWN ID'}
+                    <p className="text-xs font-bold text-blue-800 mt-0.5">
+                        {data.government_id_label ?? 'OFFICIAL IDENTITY DOCUMENT'}
                     </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 bg-slate-50/50">
                     {data.government_id_url ? (
                         data.government_id_is_pdf ? (
                             <iframe
                                 src={data.government_id_url}
                                 title={data.government_id_label ?? 'Government ID'}
-                                className="h-[420px] w-full rounded-lg border bg-white"
+                                className="h-[420px] w-full rounded-xl border border-slate-200 bg-white shadow-2xs"
                             />
                         ) : (
                             <img
                                 src={data.government_id_url}
                                 alt={data.government_id_label ?? 'Government ID'}
-                                className="max-h-[420px] w-full rounded-lg border object-contain bg-slate-50"
+                                className="max-h-[420px] w-full rounded-xl border border-slate-200 object-contain bg-white shadow-2xs"
                             />
                         )
                     ) : (
-                        <p className="text-sm text-muted-foreground">No government ID on file for this account.</p>
+                        <p className="text-xs text-muted-foreground text-center py-8">No government ID document uploaded on file for this account.</p>
                     )}
                 </CardContent>
             </Card>

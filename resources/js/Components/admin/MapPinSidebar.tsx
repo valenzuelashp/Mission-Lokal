@@ -30,8 +30,8 @@ const statusTabs: { key: 'all' | MapPinStatus; label: string }[] = [
 ];
 
 const typeTabs: { key: 'all' | IncidentTypeIcon; label: string }[] = [
-    { key: 'all', label: 'All types' },
-    { key: 'fire', label: 'Fire / hazard' },
+    { key: 'all', label: 'All Types' },
+    { key: 'fire', label: 'Fire / Hazard' },
     { key: 'flood', label: 'Flood' },
     { key: 'drainage', label: 'Drainage' },
     { key: 'waste', label: 'Waste' },
@@ -73,19 +73,22 @@ export default function MapPinSidebar({
     counts,
 }: Props) {
     return (
-        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-card shadow-md overflow-hidden">
-            {/* Search and Filters Header Group */}
-            <div className="border-b bg-slate-50/70 p-4 space-y-3 shrink-0">
+        <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+            {/* Header & Search */}
+            <div className="border-b border-slate-100 bg-slate-50/80 p-5 space-y-4 shrink-0">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Map Filters</h3>
-                    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700">
+                    <div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Spatial Intelligence</h3>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Filter geographic operational vectors</p>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50">
                         <input
                             type="checkbox"
                             checked={showHotspots}
                             onChange={onToggleHotspots}
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
                         />
-                        Show hotspots
+                        Heatmap Hotspots
                     </label>
                 </div>
                 <div className="relative">
@@ -94,30 +97,30 @@ export default function MapPinSidebar({
                         value={search}
                         onChange={(e) => onSearch(e.target.value)}
                         placeholder="Search location or report ID…"
-                        className="pl-9 bg-white text-xs h-9"
+                        className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
                     />
                 </div>
             </div>
 
-            {/* Filter Rows Section */}
-            <div className="space-y-3.5 border-b p-4 bg-white shrink-0">
-                <FilterRow label="Severity" tabs={severityTabs} active={severity} onChange={onSeverity} counts={counts} prefix="sev" />
-                <FilterRow label="Status" tabs={statusTabs} active={status} onChange={onStatus} counts={counts} prefix="status" />
-                <FilterRow label="Incident Type" tabs={typeTabs} active={type} onChange={onType} counts={counts} prefix="type" />
+            {/* Filters */}
+            <div className="space-y-4 border-b border-slate-100 p-5 bg-white shrink-0">
+                <FilterRow label="Severity Tier" tabs={severityTabs} active={severity} onChange={onSeverity} counts={counts} prefix="sev" />
+                <FilterRow label="Operation Status" tabs={statusTabs} active={status} onChange={onStatus} counts={counts} prefix="status" />
+                <FilterRow label="Incident Vector" tabs={typeTabs} active={type} onChange={onType} counts={counts} prefix="type" />
             </div>
 
-            {/* Pins Header Tracker */}
-            <div className="flex items-center justify-between border-b bg-slate-100/80 px-4 py-2.5 shrink-0">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Visible Pins ({pins.length})
+            {/* List Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-100/70 px-5 py-3 shrink-0">
+                <p className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Filtered Pins ({pins.length})
                 </p>
             </div>
 
-            {/* Fully Scrollable Expanded Pins Container */}
+            {/* Scrollable Pins Feed */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100 bg-white min-h-0">
                 {pins.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <p className="text-sm font-medium text-slate-500">No pins match the current filter selection.</p>
+                    <div className="p-12 text-center">
+                        <p className="text-sm font-semibold text-slate-400">No spatial coordinates match your current filter parameters.</p>
                     </div>
                 ) : (
                     pins.map((pin) => {
@@ -130,11 +133,10 @@ export default function MapPinSidebar({
                                 type="button"
                                 onClick={() => onSelect(pin.id)}
                                 className={cn(
-                                    'flex w-full items-start gap-4 p-4 text-left transition-all hover:bg-slate-50/80',
+                                    'flex w-full items-start gap-4 p-4 text-left transition-all hover:bg-slate-50/80 cursor-pointer',
                                     isSelected ? 'bg-blue-50/90 border-l-4 border-blue-600 shadow-inner' : 'bg-white',
                                 )}
                             >
-                                {/* Enlarged Icon Box Container */}
                                 <div
                                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-xs mt-0.5"
                                     style={{ backgroundColor: `${severityColors[sev]}20` }}
@@ -148,14 +150,14 @@ export default function MapPinSidebar({
                                     <p className="text-xs text-slate-500 line-clamp-1 font-medium">{pin.location_label}</p>
                                     
                                     <div className="flex flex-wrap gap-1.5 pt-1">
-                                        <Badge variant="outline" className="text-[11px] font-semibold text-slate-700 bg-slate-50 px-2 py-0.5">
+                                        <Badge variant="outline" className="text-[10px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5">
                                             {pin.report_id}
                                         </Badge>
-                                        <Badge variant="outline" className="text-[11px] capitalize font-medium text-slate-600 px-2 py-0.5">
+                                        <Badge variant="outline" className="text-[10px] capitalize font-bold text-slate-600 px-2 py-0.5">
                                             {pin.severity}
                                         </Badge>
                                         {pin.has_mission && (
-                                            <Badge className="bg-blue-600 text-[11px] font-semibold text-white px-2 py-0.5">Active Mission</Badge>
+                                            <Badge className="bg-blue-600 text-[10px] font-bold text-white px-2 py-0.5">Mission Active</Badge>
                                         )}
                                     </div>
                                 </div>
@@ -180,7 +182,7 @@ type FilterRowProps<T extends string> = {
 function FilterRow<T extends string>({ label, tabs, active, onChange, counts, prefix }: FilterRowProps<T>) {
     return (
         <div>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-600">{label}</p>
+            <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
             <div className="flex flex-wrap gap-1.5">
                 {tabs.map((tab) => (
                     <button
@@ -188,14 +190,14 @@ function FilterRow<T extends string>({ label, tabs, active, onChange, counts, pr
                         type="button"
                         onClick={() => onChange(tab.key)}
                         className={cn(
-                            'rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors shadow-2xs',
+                            'rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-2xs cursor-pointer',
                             active === tab.key
-                                ? 'bg-blue-600 text-white shadow-xs'
+                                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
                         )}
                     >
                         {tab.label}
-                        <span className="ml-1.5 opacity-80 text-[11px]">({counts[`${prefix}_${tab.key}`] ?? 0})</span>
+                        <span className="ml-1.5 opacity-80 text-[10px]">({counts[`${prefix}_${tab.key}`] ?? 0})</span>
                     </button>
                 ))}
             </div>

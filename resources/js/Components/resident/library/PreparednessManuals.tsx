@@ -1,6 +1,7 @@
 import { Activity, ChevronDown, Flame, Waves, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 import type { LibraryManual } from '@/Types';
 
@@ -15,43 +16,45 @@ type Props = {
 };
 
 export default function PreparednessManuals({ manuals }: Props) {
+    const theme = useResidentTheme();
     const [openId, setOpenId] = useState<string | null>(null);
 
     const toggle = (id: string) => setOpenId((current) => (current === id ? null : id));
 
     return (
-        <Card className="border-slate-200/80 shadow-xs">
-            <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-base font-bold text-slate-900">Preparedness manuals</CardTitle>
+        <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
+            <CardHeader className={`pb-3 border-b ${theme.dividerColor}`}>
+                <CardTitle className="text-sm font-black uppercase tracking-wider">Disaster Preparedness Manuals</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2.5 p-3 pt-3">
+            <CardContent className="space-y-3 p-4">
                 {manuals.map((manual) => {
                     const Icon = iconMap[manual.icon] || ShieldAlert;
                     const isOpen = openId === manual.id;
 
                     return (
-                        <div key={manual.id} className="overflow-hidden rounded-xl border border-slate-200/80 bg-white transition-all shadow-2xs">
+                        <div key={manual.id} className={`overflow-hidden rounded-xl border ${theme.cardBorder} ${theme.cardBg} transition-all shadow-2xs`}>
                             <button
                                 type="button"
                                 onClick={() => toggle(manual.id)}
-                                className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-slate-50/80"
+                                className={`flex w-full items-center gap-3.5 p-3.5 text-left transition-colors ${theme.hoverBg} cursor-pointer`}
                             >
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                    <Icon className="h-4 w-4" />
+                                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border font-bold`}>
+                                    <Icon className="h-5 w-5" />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <span className="block text-sm font-semibold text-slate-900">{manual.title}</span>
-                                    <span className="block text-xs text-muted-foreground truncate">{manual.subtitle}</span>
+                                    <span className="block text-sm font-bold">{manual.title}</span>
+                                    <span className={`block text-xs ${theme.textMuted} truncate font-medium`}>{manual.subtitle}</span>
                                 </span>
                                 <ChevronDown
                                     className={cn(
-                                        'h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200',
-                                        isOpen && 'rotate-180 text-primary',
+                                        'h-4 w-4 shrink-0 transition-transform duration-200',
+                                        theme.textMuted,
+                                        isOpen && 'rotate-180 text-blue-600',
                                     )}
                                 />
                             </button>
                             {isOpen && (
-                                <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                <div className={`border-t ${theme.dividerColor} ${theme.inputBg} px-4 py-3.5 text-xs leading-relaxed whitespace-pre-wrap font-medium`}>
                                     {manual.body}
                                 </div>
                             )}
