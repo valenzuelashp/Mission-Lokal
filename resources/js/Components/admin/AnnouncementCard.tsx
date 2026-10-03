@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Megaphone, Pencil, Trash2, Calendar, Users2 } from 'lucide-react';
+import { Megaphone, Pencil, Trash2, Calendar } from 'lucide-react';
 import { MouseEvent } from 'react';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import { Badge } from '@/Components/ui/badge';
