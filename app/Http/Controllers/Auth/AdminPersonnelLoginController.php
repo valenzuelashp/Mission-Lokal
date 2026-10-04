@@ -49,7 +49,7 @@ class AdminPersonnelLoginController extends Controller
         }
 
         $request->session()->regenerate();
-        $request->session()->regenerateToken();
+       
         $user?->forceFill(['last_login_at' => now()])->save();
 
         if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {

@@ -14,11 +14,21 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $gateway = config('services.sms.driver') === 'semaphore'
-            ? SemaphoreSmsGateway::class
-            : LogSmsGateway::class;
+        $this->app->bind(SmsGatewayInterface::class, function () {
+            $driver = config('services.sms.driver', config('services.sms.gateway', env('SMS_DRIVER', 'log')));
+            $apiKey = config('services.sms.semaphore.api_key', env('SEMAPHORE_API_KEY'));
 
-        $this->app->bind(SmsGatewayInterface::class, $gateway);
+            $isSemaphoreUsable = ($driver === 'semaphore')
+                && !empty($apiKey)
+                && $apiKey !== 'your_semaphore_api_key'
+                && !str_contains($apiKey, 'your_');
+
+            if ($isSemaphoreUsable) {
+                return new SemaphoreSmsGateway();
+            }
+
+            return new LogSmsGateway();
+        });
     }
 
     public function boot(): void

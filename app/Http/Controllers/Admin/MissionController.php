@@ -26,7 +26,7 @@ class MissionController extends Controller
 
         $concerns = Concern::where('barangay_id', $barangayId)
             ->whereIn('status', ['active', 'resolved', 'in_progress'])
-            ->with(['votes'])
+            ->with(['votes', 'duplicates.reporter', 'duplicateOf'])
             ->get();
 
         $realMissions = Mission::with('personnel.user')
@@ -55,7 +55,9 @@ class MissionController extends Controller
                 default => 150,
             };
             $upvotes = $concern->relationLoaded('votes') ? $concern->votes->where('vote', 1)->count() : 0;
-            $priorityScore = $severityScore + ($upvotes * 10);
+            $mergedCount = $concern->duplicates->count();
+            $duplicateBoost = $mergedCount * 30; // Boost missions that consolidate multiple resident reports
+            $priorityScore = $severityScore + ($upvotes * 10) + $duplicateBoost;
 
             return [
                 'id' => $rawId, 
@@ -71,6 +73,8 @@ class MissionController extends Controller
                 'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
                 'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
+                'merged_duplicates_count' => $mergedCount,
+                'has_merged_duplicates' => $mergedCount > 0,
             ];
         })->sortByDesc('priority_score')->values();
 
@@ -88,6 +92,7 @@ class MissionController extends Controller
             'completed' => $missions->where('status', 'completed')->count(),
             'verified' => $missions->where('status', 'verified')->count(),
             'overdue' => $missions->where('is_overdue', true)->where('status', '!=', 'verified')->count(),
+            'merged' => $missions->where('has_merged_duplicates', true)->count(),
         ];
 
         User::where('barangay_id', $barangayId)
@@ -212,7 +217,13 @@ class MissionController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $mission = Mission::where('barangay_id', $barangayId)
-            ->with(['concern.media', 'proof.media', 'personnel.user'])
+            ->with([
+                'concern.media', 
+                'concern.duplicates.reporter', 
+                'concern.duplicates.media',
+                'proof.media', 
+                'personnel.user'
+            ])
             ->findOrFail($id);
 
         $concern = $mission->concern;
@@ -222,6 +233,18 @@ class MissionController extends Controller
         $assigneeNames = $mission->personnel->map(function($p) {
             return trim(($p->user?->first_name ?? '') . ' ' . ($p->user?->last_name ?? ''));
         })->filter()->implode(', ') ?: 'Unassigned';
+
+        $mergedDuplicates = $concern->duplicates->map(function ($dup) {
+            return [
+                'id' => $dup->id,
+                'title' => $dup->title,
+                'description' => $dup->description,
+                'reporter_name' => trim(($dup->reporter?->first_name ?? '') . ' ' . ($dup->reporter?->last_name ?? '')),
+                'reporter_mobile' => $dup->reporter?->mobile,
+                'submitted_at' => $dup->created_at->format('M d, Y g:i A'),
+                'images' => $dup->media->map(fn($m) => asset('storage/'.$m->storage_key))->values()->toArray(),
+            ];
+        });
 
         return Inertia::render('Admin/Missions/Show', [
             'mission' => [
@@ -239,6 +262,7 @@ class MissionController extends Controller
                 'proof_notes' => $mission->proof?->notes,
                 'proof_photos' => $proofPhotos,
                 'assigned_at' => $mission->created_at->format('M d, Y'),
+                'merged_duplicates' => $mergedDuplicates,
             ],
         ]);
     }
@@ -258,7 +282,7 @@ class MissionController extends Controller
                 'verified_at' => now(),
                 'verified_by' => Auth::id(),
             ]);
-            $concern = Concern::where('id', $mission->concern_id)->first();
+            $concern = Concern::where('id', $mission->concern_id)->with('duplicates')->first();
             
             if ($concern) {
                 $concern->update(['status' => 'resolved']);
@@ -273,6 +297,22 @@ class MissionController extends Controller
                     'payload' => ['concern_id' => $concern->id],
                     'is_read' => false,
                 ]);
+
+                // Also notify all residents whose reports were merged into this primary concern
+                foreach ($concern->duplicates as $duplicateConcern) {
+                    $duplicateConcern->update(['status' => 'resolved']);
+                    
+                    Notification::create([
+                        'user_id' => $duplicateConcern->reporter_id,
+                        'barangay_id' => $barangayId,
+                        'channel' => 'in_app',
+                        'event_type' => 'concern_resolved',
+                        'title' => 'Concern Resolved',
+                        'body' => 'The community issue you reported ("' . $duplicateConcern->title . '") has been officially resolved through field operation MS-' . strtoupper(substr($mission->id, 0, 4)) . '.',
+                        'payload' => ['concern_id' => $duplicateConcern->id],
+                        'is_read' => false,
+                    ]);
+                }
             }
 
             DB::table('audit_logs')->insert([
@@ -281,7 +321,7 @@ class MissionController extends Controller
                 'action' => 'VERIFY',
                 'entity_type' => 'Mission',
                 'entity_id' => $mission->id,
-                'metadata' => json_encode(['details' => 'Verified mission completion and resolved associated concern']),
+                'metadata' => json_encode(['details' => 'Verified mission completion and resolved associated concern along with merged duplicate reports']),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);

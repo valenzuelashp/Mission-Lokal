@@ -240,6 +240,15 @@ export interface AdminReport extends AdminIncident {
     queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;
     images?: string[];
+    is_duplicate?: boolean;
+    is_merged_master?: boolean;
+    merged_duplicates_count?: number;
+    duplicate_of_id?: string | null;
+    duplicate_of_title?: string | null;
+    has_duplicate_candidate?: boolean;
+    duplicate_candidate_id?: string | null;
+    duplicate_candidate_title?: string | null;
+    duplicate_similarity?: number | null;
 }
 
 export interface AdminReportQueuePageProps extends PageProps {
@@ -274,6 +283,8 @@ export interface AdminMission {
     is_overdue?: boolean;
     is_escalated?: boolean;
     assigned_at?: string;
+    merged_duplicates_count?: number;
+    has_merged_duplicates?: boolean;
 }
 
 export interface AdminMissionQueuePageProps extends PageProps {
@@ -505,10 +516,6 @@ export interface CalendarPageProps extends PageProps {
     next: { year: number; month: number };
     events: CalendarEvent[];
 }
-
-/* ==========================================================================
-   PHASE 9: PWA, SECURITY, COMPLIANCE & OFFLINE SYNC EXTENSIONS
-   ========================================================================== */
 
 export interface OfflineSyncQueueItem {
     id: string;

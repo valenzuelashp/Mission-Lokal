@@ -29,7 +29,7 @@ class SemaphoreSmsGatewayTest extends TestCase
         Http::assertSent(fn (Request $request): bool =>
             $request->url() === 'https://api.semaphore.co/api/v4/messages'
             && $request['apikey'] === 'test-api-key'
-            && $request['number'] === '+639171234567'
+            && $request['number'] === '09171234567'
             && $request['message'] === 'A mission was assigned.'
             && $request['sendername'] === 'MissionLokal'
         );
@@ -39,7 +39,7 @@ class SemaphoreSmsGatewayTest extends TestCase
     {
         config(['services.sms.semaphore.api_key' => 'test-api-key']);
         Http::fake([
-            'https://api.semaphore.co/api/v4/messages' => Http::response(['error' => 'invalid key']),
+            'https://api.semaphore.co/api/v4/messages' => Http::response(['error' => 'invalid key'], 400),
         ]);
 
         $this->expectException(RuntimeException::class);

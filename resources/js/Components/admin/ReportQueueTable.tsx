@@ -6,7 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminReport } from '@/Types';
 import { cn } from '@/Lib/utils';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, GitMerge, ShieldAlert } from 'lucide-react';
 
 const queueLabel: Record<AdminReport['queue_status'], string> = {
     ai_processed: 'AI Processed',
@@ -49,14 +49,13 @@ export default function ReportQueueTable({ reports }: Props) {
                 <table className="w-full min-w-[1020px] text-sm text-left">
                     <thead>
                         <tr className="border-b bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
-                            <th className="px-4 py-3.5 w-20">Rank</th>
-                            <th className="px-4 py-3.5 w-28">ID</th>
+                            <th className="px-4 py-3.5 w-16">Rank</th>
+                            <th className="px-4 py-3.5 w-24">ID</th>
                             <th className="px-4 py-3.5">Incident Concern</th>
                             <th className="px-4 py-3.5">Location</th>
                             <th className="px-4 py-3.5">AI Category</th>
                             <th className="px-4 py-3.5">Severity & Score</th>
-                            <th className="px-4 py-3.5">Visibility</th>
-                            <th className="px-4 py-3.5">Status</th>
+                            <th className="px-4 py-3.5">Duplicate / Status</th>
                             <th className="px-4 py-3.5 text-right">Action</th>
                         </tr>
                     </thead>
@@ -94,47 +93,67 @@ export default function ReportQueueTable({ reports }: Props) {
                                                     IMG
                                                 </div>
                                             )}
-                                            <div>
+                                            <div className="space-y-0.5">
                                                 <div className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                                                     {row.incident_type}
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground">{row.submitted_at}</div>
+                                                <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                                                    <span>{row.submitted_at}</span>
+                                                    {row.visibility === 'private' && (
+                                                        <span className="text-purple-700 font-bold bg-purple-50 px-1.5 py-0.2 rounded text-[10px]">
+                                                            Private
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="max-w-[160px] truncate px-4 py-3.5 text-slate-600 text-xs" title={row.location}>
+                                    <td className="max-w-[150px] truncate px-4 py-3.5 text-slate-600 text-xs" title={row.location}>
                                         {row.location}
                                     </td>
                                     <td className="px-4 py-3.5 text-slate-700 font-medium text-xs">
                                         {row.ai_category}
                                     </td>
-                                    <td className="min-w-[150px] px-4 py-3.5">
+                                    <td className="min-w-[140px] px-4 py-3.5">
                                         <div className="space-y-1">
                                             <SeverityBar score={row.ai_severity} />
                                             {row.priority_reason && (
-                                                <div className="text-[10px] font-medium text-blue-700 truncate max-w-[180px]" title={row.priority_reason}>
+                                                <div className="text-[10px] font-medium text-blue-700 truncate max-w-[160px]" title={row.priority_reason}>
                                                     {row.priority_reason}
                                                 </div>
                                             )}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3.5">
-                                        <Badge
-                                            variant="outline"
-                                            className={cn(
-                                                "text-xs font-medium",
-                                                row.visibility === 'private'
-                                                    ? 'border-purple-200 bg-purple-50 text-purple-700'
-                                                    : 'border-slate-200 bg-slate-50 text-slate-700'
+                                        <div className="flex flex-col gap-1 items-start">
+                                            <Badge variant="outline" className={cn("text-[10px] capitalize px-2 py-0.5", queueStyle[row.queue_status])}>
+                                                {queueLabel[row.queue_status]}
+                                            </Badge>
+
+                                            {/* AI DUPLICATE CANDIDATE INDICATOR */}
+                                            {row.has_duplicate_candidate && !row.is_duplicate && (
+                                                <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                                    <ShieldAlert className="h-3 w-3 text-amber-600" />
+                                                    Candidate: {row.duplicate_similarity ? `${Math.round(row.duplicate_similarity * 100)}%` : 'Match'}
+                                                </Badge>
                                             )}
-                                        >
-                                            {row.visibility === 'private' ? '🔒 Private' : '🌐 Public'}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3.5">
-                                        <Badge variant="outline" className={cn("text-xs capitalize px-2.5 py-0.5", queueStyle[row.queue_status])}>
-                                            {queueLabel[row.queue_status]}
-                                        </Badge>
+
+                                            {/* MERGED STATUS INDICATOR */}
+                                            {row.is_duplicate && (
+                                                <Badge className="bg-purple-100 text-purple-900 border-purple-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                                    <GitMerge className="h-3 w-3 text-purple-600" />
+                                                    Merged Child
+                                                </Badge>
+                                            )}
+
+                                            {/* MASTER CONCERN WITH MULTIPLE LINKED CITIZENS */}
+                                            {row.is_merged_master && (
+                                                <Badge className="bg-blue-100 text-blue-900 border-blue-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                                    <GitMerge className="h-3 w-3 text-blue-600" />
+                                                    Master ({row.merged_duplicates_count} linked)
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3.5 text-right">
                                         <Button size="sm" variant="outline" className="h-8 text-xs font-semibold bg-white text-blue-700 hover:bg-blue-50 border-blue-200 shadow-2xs" asChild>

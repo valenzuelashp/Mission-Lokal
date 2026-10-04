@@ -16,13 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // --- CRITICAL FIX: Bypass CSRF verification for login and logout routes ---
+        // --- CSRF Exemptions ---
         $middleware->validateCsrfTokens(except: [
             'login',
             'admin-personnel/login',
             'logout',
+            'password/dismiss',
+            'password/prompt/dismiss',
+            'password/custom/store',
+            'concerns',
+            'concerns/*',
         ]);
-
+        
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'verified.resident' => \App\Http\Middleware\EnsureResidentIsVerified::class,

@@ -51,7 +51,7 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
-        $request->session()->regenerateToken();
+  
         
         $request->session()->forget('password_prompt_dismissed');
         $user?->forceFill(['last_login_at' => now()])->save();

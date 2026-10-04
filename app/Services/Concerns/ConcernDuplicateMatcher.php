@@ -5,6 +5,7 @@ namespace App\Services\Concerns;
 use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class ConcernDuplicateMatcher
@@ -23,39 +24,88 @@ class ConcernDuplicateMatcher
 
     public function findMatch(Concern $concern, int $categoryId, ?int $subcategoryId): ?array
     {
-        if (DB::getDriverName() !== 'mysql' || !Schema::hasColumn('concerns', 'location')) {
+        if (!in_array(DB::getDriverName(), ['mysql', 'mariadb'], true) || !Schema::hasColumn('concerns', 'location')) {
             return null;
         }
 
         $location = DB::selectOne(
-            'SELECT ST_X(location) AS lat, ST_Y(location) AS lng FROM concerns WHERE id = ?',
+            'SELECT ST_X(location) AS x, ST_Y(location) AS y FROM concerns WHERE id = ?',
             [$concern->id],
         );
 
-        if (!$location || $location->lat === null || $location->lng === null) {
+        if (!$location || $location->x === null || $location->y === null) {
             return null;
         }
 
-        $point = sprintf('POINT(%F %F)', (float) $location->lat, (float) $location->lng);
-        $candidates = Concern::query()
-            ->where('barangay_id', $concern->barangay_id)
-            ->where('id', '!=', $concern->id)
-            ->whereNull('duplicate_of_id')
-            ->where('visibility', 'public')
-            ->whereIn('status', self::ACTIVE_STATUSES)
-            ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
-                $query->where('suggested_category_id', $categoryId);
-                $subcategoryId === null
-                    ? $query->whereNull('suggested_subcategory_id')
-                    : $query->where('suggested_subcategory_id', $subcategoryId);
-            })
-            ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
-            ->whereRaw(
-                'ST_Distance_Sphere(location, ST_GeomFromText(?, 4326)) <= ?',
-                [$point, self::MAX_DISTANCE_METERS],
-            )
-            ->with('currentAiAnalysis')
-            ->get();
+        $rawX = (float) $location->x;
+        $rawY = (float) $location->y;
+
+        // In the Philippines (Lat ~14, Lng ~120):
+        // Longitude is always > 90, Latitude is < 90.
+        if ($rawX > 90) {
+            $lng = $rawX;
+            $lat = $rawY;
+        } else {
+            $lat = $rawX;
+            $lng = $rawY;
+        }
+
+        // Try standard Point(longitude latitude) first, then fallback to Point(latitude longitude) if needed
+        $primaryPoint = sprintf('POINT(%F %F)', $lng, $lat);
+        $fallbackPoint = sprintf('POINT(%F %F)', $lat, $lng);
+
+        $candidates = null;
+
+        try {
+            $candidates = Concern::query()
+                ->where('barangay_id', $concern->barangay_id)
+                ->where('id', '!=', $concern->id)
+                ->whereNull('duplicate_of_id')
+                ->where('visibility', 'public')
+                ->whereIn('status', self::ACTIVE_STATUSES)
+                ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
+                    $query->where('suggested_category_id', $categoryId);
+                    $subcategoryId === null
+                        ? $query->whereNull('suggested_subcategory_id')
+                        : $query->where('suggested_subcategory_id', $subcategoryId);
+                })
+                ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
+                ->whereRaw(
+                    'ST_Distance_Sphere(location, ST_GeomFromText(?, 4326)) <= ?',
+                    [$primaryPoint, self::MAX_DISTANCE_METERS],
+                )
+                ->with('currentAiAnalysis')
+                ->get();
+        } catch (\Throwable $e) {
+            try {
+                $candidates = Concern::query()
+                    ->where('barangay_id', $concern->barangay_id)
+                    ->where('id', '!=', $concern->id)
+                    ->whereNull('duplicate_of_id')
+                    ->where('visibility', 'public')
+                    ->whereIn('status', self::ACTIVE_STATUSES)
+                    ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
+                        $query->where('suggested_category_id', $categoryId);
+                        $subcategoryId === null
+                            ? $query->whereNull('suggested_subcategory_id')
+                            : $query->where('suggested_subcategory_id', $subcategoryId);
+                    })
+                    ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
+                    ->whereRaw(
+                        'ST_Distance_Sphere(location, ST_GeomFromText(?, 4326)) <= ?',
+                        [$fallbackPoint, self::MAX_DISTANCE_METERS],
+                    )
+                    ->with('currentAiAnalysis')
+                    ->get();
+            } catch (\Throwable $fallbackException) {
+                Log::warning('Spatial duplicate check skipped due to environment-specific GIS variance: ' . $fallbackException->getMessage());
+                return null;
+            }
+        }
+
+        if (!$candidates || $candidates->isEmpty()) {
+            return null;
+        }
 
         $matches = $candidates
             ->map(fn (Concern $candidate) => [

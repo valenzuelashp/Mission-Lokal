@@ -6,59 +6,91 @@ use App\Models\Barangay;
 use App\Models\LibraryItem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class LibrarySeeder extends Seeder
 {
     public function run(): void
     {
-        // First, find the demo barangay we created in the main DatabaseSeeder
-        $barangay = Barangay::whereIn('code', ['TAMBO', 'demo-barangay'])->first()
-            ?? Barangay::query()->first();
+        $barangay = Barangay::where('code', 'TAMBO')->first() ?? Barangay::first();
 
         if (!$barangay) {
-            return; // If the barangay doesn't exist, stop the script safely
+            return;
         }
 
-        // 1. Create an Emergency Contact
-        LibraryItem::query()->create([
-            'barangay_id' => $barangay->id,
-            'type' => 'emergency',
-            'title' => 'Barangay Health Emergency Response Team (BHERT)',
-            'content' => 'Call immediately for severe medical emergencies or suspected COVID-19 cases.',
-            'metadata' => [
-                'phone' => '0912-345-6789',
-                'landline' => '(02) 8123-4567',
-                'available' => '24/7',
+        $items = [
+            [
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangay->id,
+                'type' => 'emergency',
+                'title' => 'Barangay Health Emergency Response Team (BHERT)',
+                'content' => 'Call immediately for severe medical emergencies, ambulance requests, or critical infectious triage.',
+                'metadata' => [
+                    'phone' => '0912-345-6789',
+                    'landline' => '(02) 8123-4567',
+                    'available' => '24/7',
+                ],
+                'location' => null,
+                'sort_order' => 1,
+                'is_active' => true,
             ],
-            'sort_order' => 1,
-            'is_active' => true,
-        ]);
-
-        // 2. Create a Disaster Manual
-        LibraryItem::query()->create([
-            'barangay_id' => $barangay->id,
-            'type' => 'manual',
-            'title' => 'Typhoon Preparedness Guide',
-            'content' => "1. Prepare your Go-Bag.\n2. Know your designated evacuation center.\n3. Secure loose items around your house.\n4. Stay tuned to local radio or the barangay public feed for updates.",
-            'metadata' => null, // Metadata is optional
-            'sort_order' => 2,
-            'is_active' => true,
-        ]);
-
-        // 3. Create an Evacuation Center with Map Coordinates
-        LibraryItem::query()->create([
-            'barangay_id' => $barangay->id,
-            'type' => 'evacuation_center',
-            'title' => 'Barangay Covered Court',
-            'content' => 'Primary evacuation center for flooding. Capacity: 150 families. Pet friendly.',
-            'metadata' => [
-                'capacity' => 150,
-                'facilities' => ['Restrooms', 'Community Kitchen', 'Clinic'],
+            [
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangay->id,
+                'type' => 'manual',
+                'title' => 'Typhoon & Heavy Inundation Preparedness Guide',
+                'content' => "1. Prepare your Go-Bag (water, canned food, flashlight, first aid, powerbank).\n2. Familiarize family members with designated evacuation center routes.\n3. Secure roofing sheets, window panels, and loose outdoor debris.\n4. Monitor local announcements via the Mission-Lokal Public Feed.",
+                'metadata' => null,
+                'location' => null,
+                'sort_order' => 2,
+                'is_active' => true,
             ],
-            // Maps require a special MySQL function to save the point correctly
-            'location' => DB::raw("ST_GeomFromText('POINT(14.5173079 120.9933811)', 4326)"),
-            'sort_order' => 3,
-            'is_active' => true,
-        ]);
+            [
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangay->id,
+                'type' => 'evacuation_center',
+                'title' => 'Barangay Tambo Central Covered Court',
+                'content' => 'Primary evacuation facility during storm surge and flash floods. Equipped with generator sets, clean water supply, and separated comfort rooms.',
+                'metadata' => [
+                    'capacity' => 180,
+                    'facilities' => ['Restrooms', 'Mobile Clinic', 'Community Kitchen', 'Pet Shelter'],
+                ],
+                'location' => DB::raw("PointFromText('POINT(120.993381 14.517308)', 4326)"),
+                'sort_order' => 3,
+                'is_active' => true,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangay->id,
+                'type' => 'contact',
+                'title' => 'Barangay Hall Administration Desk',
+                'content' => 'General public inquiries, barangay clearances, residency certificates, and Katarungang Pambarangay filing scheduling.',
+                'metadata' => [
+                    'phone' => '0917-888-9999',
+                    'office_hours' => 'Mon-Fri 8:00 AM - 5:00 PM',
+                ],
+                'location' => null,
+                'sort_order' => 4,
+                'is_active' => true,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'barangay_id' => $barangay->id,
+                'type' => 'manual',
+                'title' => 'Barangay Ordinance No. 04 - Road Safety & Obstruction Clearance',
+                'content' => 'Prohibiting illegal vehicle parking along public thoroughfares, commercial sidewalk encroachments, and uncoordinated open trench excavation.',
+                'metadata' => null,
+                'location' => null,
+                'sort_order' => 5,
+                'is_active' => true,
+            ],
+        ];
+
+        foreach ($items as $item) {
+            LibraryItem::updateOrCreate(
+                ['barangay_id' => $item['barangay_id'], 'title' => $item['title']],
+                $item
+            );
+        }
     }
 }

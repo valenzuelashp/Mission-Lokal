@@ -1,5 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Filter, Search, X } from 'lucide-react';
+import { Filter, Search, X, GitMerge } from 'lucide-react';
 import { useMemo, useState, FormEvent } from 'react';
 import MissionQueueTable from '@/Components/admin/MissionQueueTable';
 import { Button } from '@/Components/ui/button';
@@ -15,9 +15,11 @@ type AdminMission = BaseAdminMission & {
     is_overdue?: boolean;
     is_escalated?: boolean;
     rank?: number;
+    merged_duplicates_count?: number;
+    has_merged_duplicates?: boolean;
 };
 
-type FilterKey = 'all' | 'assigned' | 'in_progress' | 'completed' | 'verified' | 'overdue';
+type FilterKey = 'all' | 'assigned' | 'in_progress' | 'completed' | 'verified' | 'overdue' | 'merged';
 
 const tabs: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'All Missions' },
@@ -26,9 +28,10 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'completed', label: 'Completed' },
     { key: 'verified', label: 'Verified & Closed' },
     { key: 'overdue', label: 'Overdue / Alerts' },
+    { key: 'merged', label: 'Merged Concerns' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, category: string }[] }>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, category: string }[], counts?: Record<string, number> }>) {
     const rawMissions = (props.missions ?? demoMissions) as AdminMission[];
     const personnel = props.personnel ?? [];
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
@@ -41,7 +44,10 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
         }));
     }, [rawMissions]);
 
-    const counts = props.counts ?? missionCounts(missions);
+    const counts: Record<string, number> = props.counts ?? {
+        ...missionCounts(missions),
+        merged: missions.filter(m => Boolean(m.has_merged_duplicates || (m.merged_duplicates_count && m.merged_duplicates_count > 0))).length,
+    };
 
     const categories = ['Tanod', 'Lupon', 'Public works', 'Sanitation', 'VAW Desk'];
 
@@ -77,6 +83,8 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                 matchesFilter = row.status === 'verified';
             } else if (filter === 'overdue') {
                 matchesFilter = isOverdueAlert && row.status !== 'verified';
+            } else if (filter === 'merged') {
+                matchesFilter = Boolean(row.has_merged_duplicates || (row.merged_duplicates_count && row.merged_duplicates_count > 0));
             }
 
             const q = search.toLowerCase();
@@ -86,7 +94,8 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                 (row.display_id?.toLowerCase().includes(q) ?? false) ||
                 row.concern_title.toLowerCase().includes(q) ||
                 row.location.toLowerCase().includes(q) ||
-                (row.assignee?.toLowerCase().includes(q) ?? false);
+                (row.assignee?.toLowerCase().includes(q) ?? false) ||
+                (q === 'merged' && Boolean(row.has_merged_duplicates));
 
             return matchesFilter && matchesSearch;
         });
@@ -193,6 +202,11 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                             <div>
                                 <h3 className="text-base font-black text-slate-900">Manage Personnel Assignments</h3>
                                 <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[280px]">{selectedMission.concern_title}</p>
+                                {selectedMission.has_merged_duplicates && (
+                                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                        <GitMerge className="h-3 w-3" /> Includes {selectedMission.merged_duplicates_count} Merged Resident Reports
+                                    </span>
+                                )}
                             </div>
                             <button onClick={closeModal} className="rounded-full p-1.5 hover:bg-slate-100 cursor-pointer">
                                 <X className="h-4 w-4 text-slate-500" />

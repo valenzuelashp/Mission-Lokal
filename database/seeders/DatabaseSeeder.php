@@ -2,107 +2,19 @@
 
 namespace Database\Seeders;
 
-use App\Enums\UserRole;
-use App\Enums\VerificationStatus;
-use App\Models\Barangay;
-use App\Models\BarangaySetting;
-use App\Models\User;
-use App\Models\ConcernCategory;
-use App\Services\LocalIdentifier;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
-        // Seed default concern categories first to prevent foreign key constraint violations
-        $categories = [
-            ['id' => 1, 'code' => 'INFRA', 'name' => 'Infrastructure & Utilities', 'default_visibility' => 'public', 'sort_order' => 1, 'is_active' => true],
-            ['id' => 2, 'code' => 'SANI', 'name' => 'Sanitation & Environment', 'default_visibility' => 'public', 'sort_order' => 2, 'is_active' => true],
-            ['id' => 3, 'code' => 'SEC', 'name' => 'Peace & Order', 'default_visibility' => 'private', 'sort_order' => 3, 'is_active' => true],
-            ['id' => 4, 'code' => 'OTHER', 'name' => 'Other Concerns', 'default_visibility' => 'public', 'sort_order' => 4, 'is_active' => true],
-        ];
-
-        foreach ($categories as $category) {
-            ConcernCategory::query()->updateOrCreate(
-                ['id' => $category['id']],
-                $category
-            );
-        }
-
-        $barangay = Barangay::query()->create([
-            'code' => 'TAMBO',
-            'name' => 'Barangay Tambo',
-            'contact_phone' => '09171234567',
-            'contact_email' => 'barangay@demo.local',
-            'office_hours' => [
-                'weekdays' => '8:00 AM – 5:00 PM',
-            ],
-            'is_active' => true,
-        ]);
-
-        BarangaySetting::query()->create([
-            'barangay_id' => $barangay->id,
-            'updated_at' => now(),
-        ]);
-
-        $admin = User::query()->create([
-            'barangay_id' => $barangay->id,
-            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::ADM, 1),
-            'role' => UserRole::Admin,
-            'first_name' => 'System', 
-            'middle_name' => null,    
-            'last_name' => 'Admin',   
-            'name_extension' => null,    
-            'email' => 'admin@demo.local',
-            'password' => 'password',
-        ]);
-
-        $personnel = User::query()->create([
-            'barangay_id' => $barangay->id,
-            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::PER, 1),
-            'role' => UserRole::Personnel,
-            'first_name' => 'Barangay', 
-            'middle_name' => 'Talon',    
-            'last_name' => 'Personnel',   
-            'name_extension' => 'Jr.',  
-            'email' => 'personnel@demo.local',
-            'mobile' => '09181234567',
-            'password' => 'password',
-        ]);
-        
-        $personnel->personnelProfile()->create([
-            'is_active' => true,
-        ]);
-
-        // Resident shell user creation
-        $resident = User::query()->create([
-            'barangay_id' => $barangay->id,
-            'account_id' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 1),
-            'role' => UserRole::Resident,
-            'first_name' => 'Barangay', 
-            'middle_name' => null,    
-            'last_name' => 'Resident',   
-            'name_extension' => 'III',   
-            'email' => 'resident@demo.local',
-            'mobile' => '09191234567',
-            'password' => 'password',
-        ]);
-
-        $resident->residentProfile()->create([
-            'civic_xp' => 50,
-            'verification_status' => VerificationStatus::Approved,
-            'birthday' => '1985-05-15',
-            'address' => 'Barangay Hall, Demo Barangay',
-            'digital_id_code' => LocalIdentifier::format($barangay, LocalIdentifier::RES, 1),
-            'government_id_storage_key' => 'demo/ids/gov_id.jpg',
-        ]);
-        
         $this->call([
-            BlueprintCategorySeeder::class,
+            SuperAdminSeeder::class,
+            ComprehensiveSystemSeeder::class,
             LibrarySeeder::class,
-            DemoDataSeeder::class,  
-            SuperAdminSeeder::class,     
         ]);
     }
 }

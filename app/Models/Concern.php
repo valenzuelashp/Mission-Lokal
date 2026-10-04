@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Concern extends Model
@@ -75,12 +76,27 @@ class Concern extends Model
         return $this->belongsTo(Concern::class, 'duplicate_of_id');
     }
 
+    public function duplicates(): HasMany
+    {
+        return $this->hasMany(Concern::class, 'duplicate_of_id');
+    }
+
+    public function primaryDuplicateLinks(): HasMany
+    {
+        return $this->hasMany(ConcernDuplicateLink::class, 'primary_concern_id');
+    }
+
+    public function secondaryDuplicateLinks(): HasMany
+    {
+        return $this->hasMany(ConcernDuplicateLink::class, 'linked_concern_id');
+    }
+
     public function staffReviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'staff_reviewed_by');
     }
 
-    public function media(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function media(): HasMany
     {
         return $this->hasMany(ConcernMedia::class);
     }
@@ -90,14 +106,24 @@ class Concern extends Model
         return $this->hasOne(ConcernAiAnalysis::class)->where('is_current', true);
     }
 
-    public function mission()
+    public function aiAnalyses(): HasMany
+    {
+        return $this->hasMany(ConcernAiAnalysis::class);
+    }
+
+    public function mission(): HasOne
     {
         return $this->hasOne(Mission::class);
     }
 
-    public function votes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function votes(): HasMany
     {
         return $this->hasMany(ConcernVote::class);
+    }
+
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(ConcernStatusHistory::class);
     }
 
     public function denyUnlessVisibleToResident(User $user): void

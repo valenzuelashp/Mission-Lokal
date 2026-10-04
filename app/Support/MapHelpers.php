@@ -8,17 +8,29 @@ use Illuminate\Support\Facades\DB;
 class MapHelpers
 {
     /**
-     * MySQL SRID 4326 expects POINT(latitude longitude).
-     * ST_X() is latitude and ST_Y() is longitude.
+     * Standard MariaDB/MySQL GIS WKT: POINT(longitude latitude)
+     * ST_X() represents Longitude, ST_Y() represents Latitude.
      */
     public static function pointFromLatLng(float $lat, float $lng): Expression
     {
-        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326)", $lat, $lng));
+        // If swapped by accident, normalize them
+        if (abs($lat) > 90 && abs($lng) <= 90) {
+            $temp = $lat;
+            $lat = $lng;
+            $lng = $temp;
+        }
+
+        $safeLat = max(-90.0, min(90.0, $lat));
+        $safeLng = max(-180.0, min(180.0, $lng));
+
+        // Format as POINT(longitude latitude)
+        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326)", $safeLng, $safeLat));
     }
 
     public static function latLngSelect(string $column = 'location'): Expression
     {
-        return DB::raw("ST_X({$column}) as lat, ST_Y({$column}) as lng");
+        // ST_Y is latitude, ST_X is longitude
+        return DB::raw("ST_Y({$column}) as lat, ST_X({$column}) as lng");
     }
 
     public static function scoreFromSeverity(?string $severity): int

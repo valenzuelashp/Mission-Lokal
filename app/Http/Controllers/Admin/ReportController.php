@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
+use App\Models\ConcernDuplicateLink;
 use App\Models\Mission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,12 +38,25 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $concerns = Concern::where('barangay_id', $barangayId)
-            ->with(['media', 'category', 'currentAiAnalysis.suggestedCategory', 'votes'])
+            ->with([
+                'media', 
+                'category', 
+                'currentAiAnalysis.suggestedCategory', 
+                'currentAiAnalysis.duplicateCandidate',
+                'votes', 
+                'duplicates.reporter',
+                'duplicateOf',
+                'primaryDuplicateLinks'
+            ])
             ->get();
 
         $reports = $concerns->map(function ($c) {
             $status = $c->status->value ?? $c->status;
             $priority = $this->priorityFor($c);
+
+            $mergedDuplicatesCount = $c->duplicates->count();
+            $isDuplicate = !empty($c->duplicate_of_id);
+            $hasDuplicateCandidate = !empty($c->currentAiAnalysis?->duplicate_candidate_id);
 
             return [
                 'id' => substr($c->id, 0, 8),
@@ -52,7 +66,7 @@ class ReportController extends Controller
                 'location' => $c->address_text ?? 'Unknown location',
                 'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name
                     ?? $c->category?->name
-                     ?? 'Uncategorized',
+                    ?? 'Uncategorized',
                 'ai_severity' => MapHelpers::scoreFromSeverity($c->severity),
                 'severity' => $c->severity ?? 'medium',
                 'priority' => MapHelpers::priorityFromSeverity($c->severity),
@@ -67,6 +81,15 @@ class ReportController extends Controller
                     'rejected', 'spam' => 'rejected',
                     default => 'active',
                 },
+                'is_duplicate' => $isDuplicate,
+                'is_merged_master' => $mergedDuplicatesCount > 0,
+                'merged_duplicates_count' => $mergedDuplicatesCount,
+                'duplicate_of_id' => $c->duplicate_of_id,
+                'duplicate_of_title' => $c->duplicateOf?->title,
+                'has_duplicate_candidate' => $hasDuplicateCandidate,
+                'duplicate_candidate_id' => $c->currentAiAnalysis?->duplicate_candidate_id,
+                'duplicate_candidate_title' => $c->currentAiAnalysis?->duplicateCandidate?->title,
+                'duplicate_similarity' => $c->currentAiAnalysis?->duplicate_similarity,
                 'submitted_at' => $c->created_at?->format('M d, g:i A') ?? 'Just now',
             ];
         })->sortByDesc('priority_score')->values();
@@ -79,6 +102,9 @@ class ReportController extends Controller
                 'under_review' => $reports->where('queue_status', 'under_review')->count(),
                 'active' => $reports->where('queue_status', 'active')->count(),
                 'rejected' => $reports->where('queue_status', 'rejected')->count(),
+                'duplicates' => $reports->filter(fn ($r) => $r['is_duplicate'] || $r['is_merged_master'] || $r['has_duplicate_candidate'])->count(),
+                'candidates' => $reports->where('has_duplicate_candidate', true)->where('is_duplicate', false)->count(),
+                'merged' => $reports->where('is_duplicate', true)->count(),
             ],
         ]);
     }
@@ -124,7 +150,16 @@ class ReportController extends Controller
     {
         $barangayId = $request->user()->barangay_id;
         $record = Concern::where('barangay_id', $barangayId)
-            ->with(['media', 'currentAiAnalysis', 'mission.personnel'])
+            ->with([
+                'media', 
+                'currentAiAnalysis.duplicateCandidate.reporter', 
+                'mission.personnel.user',
+                'reporter',
+                'duplicateOf.reporter',
+                'duplicates.reporter',
+                'duplicates.media',
+                'primaryDuplicateLinks.linkedConcern.reporter'
+            ])
             ->findOrFail($id);
         
         $currentStatus = $record->status->value ?? $record->status;
@@ -171,13 +206,17 @@ class ReportController extends Controller
 
         $masterCandidates = Concern::where('barangay_id', $barangayId)
             ->where('id', '!=', $id)
+            ->whereNull('duplicate_of_id')
             ->whereIn('status', ['submitted', 'ai_processed', 'active', 'under_review'])
-            ->select('id', 'title')
+            ->select('id', 'title', 'created_at', 'address_text')
             ->get()
-            ->map(fn($c) => ['id' => $c->id, 'label' => $c->title]);
+            ->map(fn($c) => [
+                'id' => $c->id, 
+                'label' => $c->title . ' (' . ($c->address_text ?? 'No address') . ' - ' . $c->created_at->format('M d') . ')'
+            ]);
 
         $record->refresh();
-        $aiAnalysis = $record->currentAiAnalysis()->with('duplicateCandidate')->first();
+        $aiAnalysis = $record->currentAiAnalysis()->with('duplicateCandidate.reporter')->first();
         $duplicateCandidate = $aiAnalysis?->duplicateCandidate;
         $duplicateReporterCount = $duplicateCandidate
             ? DB::table('concerns')
@@ -187,13 +226,29 @@ class ReportController extends Controller
                 })
                 ->where(function ($query) use ($duplicateCandidate) {
                     $query->where('concerns.id', $duplicateCandidate->id)
-                        ->orWhere('concern_ai_analysis.duplicate_candidate_id', $duplicateCandidate->id);
+                        ->orWhere('concern_ai_analysis.duplicate_candidate_id', $duplicateCandidate->id)
+                        ->orWhere('concerns.duplicate_of_id', $duplicateCandidate->id);
                 })
                 ->where('concerns.visibility', 'public')
-                ->whereIn('concerns.status', ['ai_processed', 'under_review', 'active'])
+                ->whereIn('concerns.status', ['ai_processed', 'under_review', 'active', 'resolved'])
                 ->distinct()
                 ->count('concerns.reporter_id')
             : null;
+
+        $mergedDuplicates = $record->duplicates->map(function ($dup) {
+            return [
+                'id' => $dup->id,
+                'title' => $dup->title,
+                'description' => $dup->description,
+                'reporter_name' => trim(($dup->reporter?->first_name ?? '') . ' ' . ($dup->reporter?->last_name ?? '')),
+                'reporter_mobile' => $dup->reporter?->mobile,
+                'status' => $dup->status->value ?? $dup->status,
+                'submitted_at' => $dup->created_at->format('M d, Y g:i A'),
+                'images' => $dup->media->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+            ];
+        });
+
+        $recommendedAction = $aiAnalysis?->duplicate_candidate_id ? 'merge' : 'escalate';
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
@@ -208,13 +263,21 @@ class ReportController extends Controller
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
                 'assigned_personnel_ids' => !empty($assignedPersonnelIds) ? $assignedPersonnelIds : ($aiAnalysis?->suggested_personnel_ids ?? []),
-                'ai_recommended_action' => $aiAnalysis?->recommended_action ?? 'escalate',
-                'ai_action_reason' => $aiAnalysis?->action_reason ?? 'AI suggests standard operational triage and deployment.',
+                'ai_recommended_action' => $recommendedAction,
+                'ai_action_reason' => $aiAnalysis?->duplicate_candidate_id 
+                    ? 'AI detected a high-probability duplicate report nearby. Merging will consolidate resources.' 
+                    : 'AI suggests standard operational triage and deployment.',
                 'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
                 'ai_duplicate_title' => $duplicateCandidate?->title,
+                'ai_duplicate_description' => $duplicateCandidate?->description,
+                'ai_duplicate_reporter' => trim(($duplicateCandidate?->reporter?->first_name ?? '') . ' ' . ($duplicateCandidate?->reporter?->last_name ?? '')),
                 'ai_duplicate_similarity' => $aiAnalysis?->duplicate_similarity,
                 'ai_duplicate_reporter_count' => $duplicateReporterCount,
                 'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason,
+                'duplicate_of_id' => $record->duplicate_of_id,
+                'duplicate_of_title' => $record->duplicateOf?->title,
+                'duplicate_of_reporter' => trim(($record->duplicateOf?->reporter?->first_name ?? '') . ' ' . ($record->duplicateOf?->reporter?->last_name ?? '')),
+                'merged_duplicates' => $mergedDuplicates,
             ],
             'personnel' => $personnelList,
             'masterCandidates' => $masterCandidates,
@@ -231,11 +294,21 @@ class ReportController extends Controller
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $validated = $request->validate(['status' => 'required|string']);
 
-        if (!$this->validateTransition($concern->status, $validated['status'])) {
+        if (!$this->validateTransition($concern->status->value ?? $concern->status, $validated['status'])) {
             return back()->withErrors(['status' => 'Invalid status transition.']);
         }
 
+        $fromStatus = $concern->status->value ?? $concern->status;
         $concern->update(['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()]);
+
+        DB::table('concern_status_history')->insert([
+            'concern_id' => $concern->id,
+            'from_status' => $fromStatus,
+            'to_status' => $validated['status'],
+            'actor_id' => Auth::id(),
+            'note' => 'Admin status update: ' . $validated['status'],
+            'created_at' => now(),
+        ]);
 
         DB::table('audit_logs')->insert([
             'barangay_id' => $barangayId,
@@ -352,6 +425,7 @@ class ReportController extends Controller
 
             Notification::create([
                 'user_id' => $concern->reporter_id,
+                'barangay_id' => $barangayId,
                 'channel' => 'in_app',
                 'event_type' => 'concern_active',
                 'title' => 'Concern Active',
@@ -363,26 +437,73 @@ class ReportController extends Controller
         } 
         
         if ($action === 'merge') {
-            $concern->update([
-                'status' => 'resolved',
-                'duplicate_of_id' => $validated['master_concern_id'],
-                'closed_summary' => 'Merged as a duplicate concern via AI confirmation.',
-                'staff_reviewed_by' => Auth::id(),
-                'staff_reviewed_at' => now(),
-            ]);
+            $masterId = $validated['master_concern_id'] ?? $concern->currentAiAnalysis?->duplicate_candidate_id;
 
-            DB::table('audit_logs')->insert([
-                'barangay_id' => $barangayId,
-                'actor_id' => Auth::id(),
-                'action' => 'CONFIRM_AI_MERGE',
-                'entity_type' => 'Concern',
-                'entity_id' => $id,
-                'metadata' => json_encode(['details' => 'Confirmed AI verdict: Merged duplicate report']),
-                'ip_address' => $request->ip(),
-                'created_at' => now(),
-            ]);
+            if (!$masterId || $masterId === $concern->id) {
+                return back()->withErrors(['master_concern_id' => 'A valid parent master concern must be specified.']);
+            }
 
-            return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Report merged.');
+            $masterConcern = Concern::where('barangay_id', $barangayId)->findOrFail($masterId);
+
+            DB::transaction(function () use ($concern, $masterConcern, $barangayId, $request) {
+                $concern->update([
+                    'status' => 'resolved',
+                    'duplicate_of_id' => $masterConcern->id,
+                    'closed_summary' => 'Merged as duplicate into parent report: ' . $masterConcern->title,
+                    'staff_reviewed_by' => Auth::id(),
+                    'staff_reviewed_at' => now(),
+                ]);
+
+                ConcernDuplicateLink::updateOrCreate(
+                    [
+                        'primary_concern_id' => $masterConcern->id,
+                        'linked_concern_id' => $concern->id,
+                    ],
+                    [
+                        'link_type' => 'merge',
+                        'created_by' => Auth::id(),
+                        'created_at' => now(),
+                    ]
+                );
+
+                DB::table('concern_status_history')->insert([
+                    'concern_id' => $concern->id,
+                    'from_status' => $concern->getOriginal('status') ?? 'under_review',
+                    'to_status' => 'resolved',
+                    'actor_id' => Auth::id(),
+                    'note' => 'Merged duplicate into master concern ID: ' . $masterConcern->id,
+                    'created_at' => now(),
+                ]);
+
+                DB::table('audit_logs')->insert([
+                    'barangay_id' => $barangayId,
+                    'actor_id' => Auth::id(),
+                    'action' => 'CONFIRM_AI_MERGE',
+                    'entity_type' => 'Concern',
+                    'entity_id' => $concern->id,
+                    'metadata' => json_encode([
+                        'details' => 'Confirmed AI verdict: Merged duplicate report into master ID ' . $masterConcern->id,
+                        'master_concern_title' => $masterConcern->title,
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                ]);
+
+                Notification::create([
+                    'user_id' => $concern->reporter_id,
+                    'barangay_id' => $barangayId,
+                    'channel' => 'in_app',
+                    'event_type' => 'concern_merged',
+                    'title' => 'Report Grouped with Existing Concern',
+                    'body' => 'Your report has been verified and combined with an ongoing community ticket: "' . $masterConcern->title . '". You will receive updates as resolution proceeds.',
+                    'payload' => [
+                        'concern_id' => $concern->id,
+                        'master_concern_id' => $masterConcern->id,
+                    ],
+                ]);
+            });
+
+            return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Duplicate report successfully merged into master concern.');
         }
 
         if ($action === 'dismiss') {
@@ -392,6 +513,15 @@ class ReportController extends Controller
                 'closed_summary' => $reason,
                 'staff_reviewed_by' => Auth::id(),
                 'staff_reviewed_at' => now(),
+            ]);
+
+            DB::table('concern_status_history')->insert([
+                'concern_id' => $concern->id,
+                'from_status' => $concern->getOriginal('status') ?? 'under_review',
+                'to_status' => 'rejected',
+                'actor_id' => Auth::id(),
+                'note' => 'Dismissed/Rejected: ' . $reason,
+                'created_at' => now(),
             ]);
 
             DB::table('audit_logs')->insert([
@@ -407,6 +537,7 @@ class ReportController extends Controller
 
             Notification::create([
                 'user_id' => $concern->reporter_id,
+                'barangay_id' => $barangayId,
                 'channel' => 'in_app',
                 'event_type' => 'concern_rejected',
                 'title' => 'Concern Rejected',
@@ -429,24 +560,72 @@ class ReportController extends Controller
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         
-        $concern->update([
-            'status' => 'resolved',
-            'duplicate_of_id' => $request->master_concern_id,
-            'closed_summary' => 'Merged as a duplicate concern.'
-        ]);
-        
-        DB::table('audit_logs')->insert([
-            'barangay_id' => $barangayId,
-            'actor_id' => Auth::id(),
-            'action' => 'MERGE',
-            'entity_type' => 'Concern',
-            'entity_id' => $id,
-            'metadata' => json_encode(['details' => 'Merged duplicate report into master record ID: ' . $request->master_concern_id]),
-            'ip_address' => $request->ip(),
-            'created_at' => now(),
+        $request->validate([
+            'master_concern_id' => ['required', 'string', 'exists:concerns,id'],
         ]);
 
-        return redirect()->route('admin.reports.index')->with('success', 'Merged successfully.');
+        $masterConcern = Concern::where('barangay_id', $barangayId)->findOrFail($request->master_concern_id);
+
+        if ($masterConcern->id === $concern->id) {
+            return back()->withErrors(['master_concern_id' => 'Cannot merge a concern into itself.']);
+        }
+
+        DB::transaction(function () use ($concern, $masterConcern, $barangayId, $request) {
+            $concern->update([
+                'status' => 'resolved',
+                'duplicate_of_id' => $masterConcern->id,
+                'closed_summary' => 'Merged as a duplicate into: ' . $masterConcern->title,
+                'staff_reviewed_by' => Auth::id(),
+                'staff_reviewed_at' => now(),
+            ]);
+
+            ConcernDuplicateLink::updateOrCreate(
+                [
+                    'primary_concern_id' => $masterConcern->id,
+                    'linked_concern_id' => $concern->id,
+                ],
+                [
+                    'link_type' => 'merge',
+                    'created_by' => Auth::id(),
+                    'created_at' => now(),
+                ]
+            );
+
+            DB::table('concern_status_history')->insert([
+                'concern_id' => $concern->id,
+                'from_status' => $concern->getOriginal('status') ?? 'under_review',
+                'to_status' => 'resolved',
+                'actor_id' => Auth::id(),
+                'note' => 'Merged duplicate into master concern ID: ' . $masterConcern->id,
+                'created_at' => now(),
+            ]);
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $barangayId,
+                'actor_id' => Auth::id(),
+                'action' => 'MERGE',
+                'entity_type' => 'Concern',
+                'entity_id' => $concern->id,
+                'metadata' => json_encode(['details' => 'Merged duplicate report into master record ID: ' . $masterConcern->id]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            Notification::create([
+                'user_id' => $concern->reporter_id,
+                'barangay_id' => $barangayId,
+                'channel' => 'in_app',
+                'event_type' => 'concern_merged',
+                'title' => 'Report Grouped with Existing Concern',
+                'body' => 'Your report has been verified and combined with an ongoing ticket: "' . $masterConcern->title . '".',
+                'payload' => [
+                    'concern_id' => $concern->id,
+                    'master_concern_id' => $masterConcern->id,
+                ],
+            ]);
+        });
+
+        return redirect()->route('admin.reports.index')->with('success', 'Report merged successfully into master concern.');
     }
 
     public function rejectConcern(Request $request, string $id): RedirectResponse
@@ -457,25 +636,37 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        $concern->update(['status' => 'rejected', 'closed_summary' => $request->rejection_reason]);
+        $reason = $request->rejection_reason ?? 'Rejected by administrator';
+
+        $concern->update(['status' => 'rejected', 'closed_summary' => $reason]);
         
+        DB::table('concern_status_history')->insert([
+            'concern_id' => $concern->id,
+            'from_status' => $concern->getOriginal('status') ?? 'under_review',
+            'to_status' => 'rejected',
+            'actor_id' => Auth::id(),
+            'note' => 'Rejected: ' . $reason,
+            'created_at' => now(),
+        ]);
+
         DB::table('audit_logs')->insert([
             'barangay_id' => $barangayId,
             'actor_id' => Auth::id(),
             'action' => 'REJECT',
             'entity_type' => 'Concern',
             'entity_id' => $id,
-            'metadata' => json_encode(['details' => 'Rejected report due to: ' . $request->rejection_reason]),
+            'metadata' => json_encode(['details' => 'Rejected report due to: ' . $reason]),
             'ip_address' => $request->ip(),
             'created_at' => now(),
         ]);
         
         Notification::create([
             'user_id' => $concern->reporter_id,
+            'barangay_id' => $barangayId,
             'channel' => 'in_app',
             'event_type' => 'concern_rejected',
             'title' => 'Concern Rejected',
-            'body' => 'Your report was rejected: ' . $request->rejection_reason,
+            'body' => 'Your report was rejected: ' . $reason,
             'payload' => ['concern_id' => $concern->id],
         ]);
 
@@ -554,6 +745,7 @@ class ReportController extends Controller
 
         Notification::create([
             'user_id' => $concern->reporter_id,
+            'barangay_id' => $barangayId,
             'channel' => 'in_app',
             'event_type' => 'concern_active',
             'title' => 'Concern Active',

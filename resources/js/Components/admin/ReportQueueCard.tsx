@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Droplets, Flame, Lightbulb, MapPin, Trash2, Volume2, Waves, ArrowUpRight, AlertCircle } from 'lucide-react';
+import { Droplets, Flame, Lightbulb, MapPin, Trash2, Volume2, Waves, ArrowUpRight, AlertCircle, GitMerge, ShieldAlert } from 'lucide-react';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
@@ -51,9 +51,32 @@ export default function ReportQueueCard({ report }: Props) {
                             )}
                             <span className="text-xs font-mono font-bold text-slate-500">{report.id}</span>
                         </div>
-                        <Badge variant="outline" className={cn("text-[11px] capitalize px-2.5 py-0.5", queueStyle[report.queue_status])}>
-                            {queueLabel[report.queue_status]}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            <Badge variant="outline" className={cn("text-[11px] capitalize px-2.5 py-0.5", queueStyle[report.queue_status])}>
+                                {queueLabel[report.queue_status]}
+                            </Badge>
+
+                            {report.has_duplicate_candidate && !report.is_duplicate && (
+                                <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                    <ShieldAlert className="h-3 w-3 text-amber-600" />
+                                    {report.duplicate_similarity ? `${Math.round(report.duplicate_similarity * 100)}% Match` : 'Match'}
+                                </Badge>
+                            )}
+
+                            {report.is_duplicate && (
+                                <Badge className="bg-purple-100 text-purple-900 border-purple-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                    <GitMerge className="h-3 w-3 text-purple-600" />
+                                    Merged
+                                </Badge>
+                            )}
+
+                            {report.is_merged_master && (
+                                <Badge className="bg-blue-100 text-blue-900 border-blue-300 font-extrabold text-[10px] gap-1 px-1.5 py-0.5">
+                                    <GitMerge className="h-3 w-3 text-blue-600" />
+                                    Master ({report.merged_duplicates_count})
+                                </Badge>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-start gap-3 pt-1">

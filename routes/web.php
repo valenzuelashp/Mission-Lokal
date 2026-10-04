@@ -1,4 +1,5 @@
 <?php
+
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\ProfileController;
@@ -80,7 +81,7 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     
-    Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:reports');
+    Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:30,1');
     
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
     Route::patch('/concerns/{concern}/visibility', [ConcernController::class, 'updateVisibility'])->name('concerns.visibility.update');

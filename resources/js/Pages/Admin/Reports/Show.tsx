@@ -1,6 +1,6 @@
 import { useState, useTransition } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2, Zap, MapPin, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Zap, MapPin, ShieldAlert, GitMerge, User, Phone, Calendar } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -72,11 +72,43 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
 
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900">AI Triage & Review Console</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-2xl font-black tracking-tight text-slate-900">AI Triage & Review Console</h2>
+                        {report?.duplicate_of_id && (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-extrabold text-xs">
+                                <GitMerge className="h-3 w-3 mr-1" /> Merged Duplicate
+                            </Badge>
+                        )}
+                        {report?.merged_duplicates && report.merged_duplicates.length > 0 && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-extrabold text-xs">
+                                <GitMerge className="h-3 w-3 mr-1" /> Master Concern ({report.merged_duplicates.length} Linked)
+                            </Badge>
+                        )}
+                    </div>
                     <p className="text-xs font-medium text-slate-500 mt-0.5">Evaluating evidence, location telemetry, and automated AI prescriptive playbooks.</p>
                 </div>
                 <Badge variant="outline" className="text-xs capitalize font-extrabold px-3 py-1 bg-white">{report?.status}</Badge>
             </div>
+
+            {report?.duplicate_of_id && (
+                <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-4 shadow-2xs flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-600 text-white rounded-xl">
+                            <GitMerge className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-purple-950 uppercase tracking-wider">Merged Into Master Concern</p>
+                            <p className="text-xs font-medium text-purple-900">
+                                This report was consolidated into: <strong className="font-bold">{report.duplicate_of_title ?? report.duplicate_of_id}</strong>
+                                {report.duplicate_of_reporter && ` (Reported by ${report.duplicate_of_reporter})`}
+                            </p>
+                        </div>
+                    </div>
+                    <Button variant="outline" size="sm" asChild className="bg-white border-purple-200 text-purple-900 text-xs font-bold shadow-2xs">
+                        <Link href={`/admin/reports/${report.duplicate_of_id}`}>View Master Ticket</Link>
+                    </Button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -121,6 +153,68 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                             />
                         </div>
                     </div>
+
+                    {/* MERGED DUPLICATE REPORTS LIST */}
+                    {report?.merged_duplicates && report.merged_duplicates.length > 0 && (
+                        <div className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">
+                                        <GitMerge className="h-4 w-4" />
+                                    </div>
+                                    <h3 className="text-sm font-black text-slate-900">
+                                        Consolidated Duplicate Reports ({report.merged_duplicates.length})
+                                    </h3>
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-500">
+                                    Multiple residents reported this same incident
+                                </span>
+                            </div>
+
+                            <div className="space-y-3">
+                                {report.merged_duplicates.map((dup: any) => (
+                                    <div key={dup.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <h4 className="text-xs font-black text-slate-900">{dup.title}</h4>
+                                                <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
+                                                    <span className="flex items-center gap-1 font-semibold text-slate-700">
+                                                        <User className="h-3 w-3 text-slate-400" />
+                                                        {dup.reporter_name || 'Resident'}
+                                                    </span>
+                                                    {dup.reporter_mobile && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Phone className="h-3 w-3 text-slate-400" />
+                                                            {dup.reporter_mobile}
+                                                        </span>
+                                                    )}
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="h-3 w-3 text-slate-400" />
+                                                        {dup.submitted_at}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" asChild className="h-7 text-xs font-bold text-blue-600 hover:text-blue-800">
+                                                <Link href={`/admin/reports/${dup.id}`}>View Raw</Link>
+                                            </Button>
+                                        </div>
+
+                                        <p className="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200/80 leading-relaxed font-medium">
+                                            "{dup.description}"
+                                        </p>
+
+                                        {dup.images && dup.images.length > 0 && (
+                                            <div className="flex gap-2 overflow-x-auto pt-1">
+                                                {dup.images.map((img: string, i: number) => (
+                                                    <img key={i} src={img} alt="Resident photo" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-6">
@@ -137,7 +231,7 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                             <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
                                 <span className="text-slate-500 font-bold uppercase">Recommended Action:</span>
                                 <Badge className="uppercase font-black tracking-wide bg-blue-700 text-white px-2.5 py-0.5">
-                                    {report?.ai_recommended_action ?? 'Escalate'}
+                                    {overrideAction ?? report?.ai_recommended_action ?? 'Escalate'}
                                 </Badge>
                             </div>
                             <p className="text-slate-700 italic bg-white/90 p-3.5 rounded-xl border border-slate-200/80 font-medium">
@@ -146,14 +240,51 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
                         </div>
 
                         {report?.ai_duplicate_id && (
-                            <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs">
-                                <h4 className="font-bold text-amber-950 flex items-center gap-1.5">
-                                    <ShieldAlert className="h-4 w-4 text-amber-600" /> Potential Duplicate Report
-                                </h4>
+                            <div className="space-y-2.5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-black text-amber-950 flex items-center gap-1.5">
+                                        <ShieldAlert className="h-4 w-4 text-amber-600" /> Potential Duplicate Report
+                                    </h4>
+                                    {report.ai_duplicate_similarity != null && (
+                                        <Badge className="bg-amber-600 text-white font-extrabold text-[10px]">
+                                            {Math.round(report.ai_duplicate_similarity * 100)}% match
+                                        </Badge>
+                                    )}
+                                </div>
                                 <p className="text-amber-900 leading-relaxed font-medium">
                                     Matches <strong>{report.ai_duplicate_title ?? 'another report'}</strong>
-                                    {report.ai_duplicate_similarity != null && ` (${Math.round(report.ai_duplicate_similarity * 100)}% similarity)`}.
+                                    {report.ai_duplicate_reporter && ` by ${report.ai_duplicate_reporter}`}.
+                                    {report.ai_duplicate_reporter_count && ` (${report.ai_duplicate_reporter_count} residents reported similar incidents in this radius).`}
                                 </p>
+                                {report.ai_duplicate_description && (
+                                    <p className="text-[11px] text-amber-800 bg-white/80 p-2.5 rounded-lg border border-amber-200/70 italic line-clamp-3">
+                                        "{report.ai_duplicate_description}"
+                                    </p>
+                                )}
+                                <div className="pt-1 flex gap-2">
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => {
+                                            setOverrideAction('merge');
+                                            setData('confirmed_action', 'merge');
+                                            setData('master_concern_id', report.ai_duplicate_id);
+                                        }}
+                                        className="h-7 text-xs font-bold bg-white text-amber-900 border-amber-300 hover:bg-amber-100"
+                                    >
+                                        <GitMerge className="h-3.5 w-3.5 mr-1" /> Quick Select For Merge
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="ghost" 
+                                        asChild 
+                                        className="h-7 text-xs font-bold text-amber-900 hover:text-amber-950"
+                                    >
+                                        <Link href={`/admin/reports/${report.ai_duplicate_id}`}>Inspect Parent</Link>
+                                    </Button>
+                                </div>
                             </div>
                         )}
 

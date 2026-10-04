@@ -203,7 +203,23 @@ class ConcernController extends Controller
         $concern->load('reporter');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
 
-        $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$concern->id]);
+        // Determine lat/lng correctly regardless of whether location is stored (lng, lat) or (lat, lng)
+        $locationData = DB::selectOne("SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?", [$concern->id]);
+        $lat = 14.5173079;
+        $lng = 120.9933811;
+
+        if ($locationData) {
+            $x = (float) $locationData->x;
+            $y = (float) $locationData->y;
+            // In GIS, the coordinate with value > 90 is always Longitude
+            if ($x > 90) {
+                $lng = $x;
+                $lat = $y;
+            } else {
+                $lat = $x;
+                $lng = $y;
+            }
+        }
 
         $upvotes = $concern->votes()->where('vote', 1)->count();
         $downvotes = $concern->votes()->where('vote', -1)->count();
@@ -241,8 +257,8 @@ class ConcernController extends Controller
                 'status' => $concern->status->value ?? $concern->status,
                 'description' => $concern->description,
                 'location_label' => $concern->address_text ?? 'Pinpointed Location',
-                'lat' => $locationData ? $locationData->lat : 14.5173079,
-                'lng' => $locationData ? $locationData->lng : 120.9933811,
+                'lat' => $lat,
+                'lng' => $lng,
                 'upvotes' => $upvotes,
                 'downvotes' => $downvotes,
                 'user_vote' => $userVote,

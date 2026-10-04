@@ -9,17 +9,19 @@ import { demoReports, reportCounts } from '@/Lib/adminDemo';
 import { cn } from '@/Lib/utils';
 import type { AdminReportQueuePageProps } from '@/Types';
 
-type FilterKey = 'all' | 'ai_processed' | 'under_review' | 'active' | 'rejected';
+type FilterKey = 'all' | 'ai_processed' | 'under_review' | 'active' | 'candidates' | 'merged' | 'rejected';
 
 const tabs: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'All Reports' },
     { key: 'ai_processed', label: 'AI Processed' },
     { key: 'under_review', label: 'Under Review' },
     { key: 'active', label: 'Active Deployment' },
+    { key: 'candidates', label: 'AI Candidates (To Merge)' },
+    { key: 'merged', label: 'Merged (Duplicates)' },
     { key: 'rejected', label: 'Rejected / Spam' },
 ];
 
-export default function Index(props: Partial<AdminReportQueuePageProps>) {
+export default function Index(props: Partial<AdminReportQueuePageProps & { counts?: Record<string, number> }>) {
     const rawReports = props.reports ?? demoReports;
     
     // Attach ranked ordering
@@ -30,26 +32,40 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
         }));
     }, [rawReports]);
 
-    const counts = props.counts ?? reportCounts(reports);
+    const counts: Record<string, number> = props.counts ?? {
+        ...reportCounts(reports),
+        candidates: reports.filter((r: any) => Boolean(r.has_duplicate_candidate && !r.is_duplicate)).length,
+        merged: reports.filter((r: any) => Boolean(r.is_duplicate)).length,
+    };
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
 
     const filtered = useMemo(() => {
-        return reports.filter((row) => {
-            const matchesFilter =
-                filter === 'all' ||
-                (filter === 'rejected'
-                    ? row.queue_status === 'rejected' || row.queue_status === 'spam'
-                    : row.queue_status === filter);
+        return reports.filter((row: any) => {
+            let matchesFilter = true;
+
+            if (filter === 'all') {
+                matchesFilter = true;
+            } else if (filter === 'rejected') {
+                matchesFilter = row.queue_status === 'rejected' || row.queue_status === 'spam';
+            } else if (filter === 'candidates') {
+                matchesFilter = Boolean(row.has_duplicate_candidate && !row.is_duplicate);
+            } else if (filter === 'merged') {
+                matchesFilter = Boolean(row.is_duplicate);
+            } else {
+                matchesFilter = row.queue_status === filter;
+            }
 
             const q = search.toLowerCase();
             const matchesSearch =
                 !q ||
-                row.id.toLowerCase().includes(q) ||
-                row.incident_type.toLowerCase().includes(q) ||
-                row.location.toLowerCase().includes(q) ||
-                row.ai_category.toLowerCase().includes(q);
+                row.id?.toLowerCase().includes(q) ||
+                row.incident_type?.toLowerCase().includes(q) ||
+                row.location?.toLowerCase().includes(q) ||
+                row.ai_category?.toLowerCase().includes(q) ||
+                (row.duplicate_of_title && row.duplicate_of_title.toLowerCase().includes(q)) ||
+                (row.duplicate_candidate_title && row.duplicate_candidate_title.toLowerCase().includes(q));
 
             return matchesFilter && matchesSearch;
         });
@@ -62,7 +78,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
             <div className="mb-6">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Triage & Report Queue</h2>
                 <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
-                    Mathematically prioritized by AI severity, community upvotes, and time decay. Review and dispatch missions.
+                    Mathematically prioritized by AI severity, community upvotes, and duplicate detection. Review potential matches and merge reports seamlessly.
                 </p>
             </div>
 
@@ -92,7 +108,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps>) {
                         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
                             className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
-                            placeholder="Search reports…"
+                            placeholder="Search reports or duplicates…"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
