@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Personnel;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Mission;
+use App\Models\MissionAssignment;
 use App\Models\Personnel;
 use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
+use App\Services\Missions\MissionLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -125,6 +128,9 @@ class MissionController extends Controller
             })
             ->findOrFail($id);
 
+        app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
+        $mission->load('checklistItems');
+
         $concern = $mission->concern;
         $proof = $mission->proof;
 
@@ -151,6 +157,18 @@ class MissionController extends Controller
         })->values()->toArray();
 
         $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+        $assignmentAcknowledged = $mission->assignments()
+            ->where('personnel_id', $request->user()->id)
+            ->whereNull('unassigned_at')
+            ->whereNotNull('acknowledged_at')
+            ->exists();
+        if (!$assignmentAcknowledged) {
+            $assignmentAcknowledged = DB::table('mission_personnel')
+                ->where('mission_id', $mission->id)
+                ->where('personnel_id', $personnel->id)
+                ->whereIn('status', ['acknowledged', 'in_progress'])
+                ->exists();
+        }
 
         $formattedMission = [
             'id' => $mission->id,
@@ -161,6 +179,7 @@ class MissionController extends Controller
             'lng' => $mission->lng,
             'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
             'status' => $statusValue,
+            'assignment_acknowledged' => $assignmentAcknowledged,
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
             'is_overdue' => (bool) $mission->is_overdue,
             'visibility' => $concern?->visibility ?? 'public',
@@ -184,6 +203,10 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
+        if (!$personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
+
         $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
@@ -192,13 +215,66 @@ class MissionController extends Controller
             'status' => ['required', 'string', 'in:acknowledged,in_progress'],
         ]);
 
-        $updateData = ['status' => $validated['status']];
+        $currentStatus = $mission->status->value ?? $mission->status;
+        $assignment = MissionAssignment::where('mission_id', $mission->id)
+            ->where('personnel_id', $request->user()->id)
+            ->whereNull('unassigned_at')
+            ->latest('assigned_at')
+            ->first();
+        $pivotStatus = DB::table('mission_personnel')
+            ->where('mission_id', $mission->id)
+            ->where('personnel_id', $personnel->id)
+            ->value('status');
+
+        if ($validated['status'] === 'acknowledged' && !in_array($currentStatus, ['assigned', 'acknowledged', 'in_progress'], true)) {
+            return back()->withErrors(['status' => 'This mission is no longer awaiting personnel acknowledgment.']);
+        }
+
+        if ($validated['status'] === 'in_progress' && (
+            $currentStatus !== 'acknowledged'
+            || ($assignment && !$assignment->acknowledged_at)
+            || (!$assignment && !in_array($pivotStatus, ['acknowledged', 'in_progress'], true))
+        )) {
+            return back()->withErrors(['status' => 'Acknowledge the assignment before starting work, and follow the mission status sequence.']);
+        }
+
+        $missionStatus = $validated['status'] === 'acknowledged' && in_array($currentStatus, ['acknowledged', 'in_progress'], true)
+            ? $currentStatus
+            : $validated['status'];
+        $updateData = ['status' => $missionStatus];
 
         if ($validated['status'] === 'acknowledged' && !$mission->acknowledged_at) {
             $updateData['acknowledged_at'] = now();
         }
 
-        $mission->update($updateData);
+        DB::transaction(function () use ($mission, $personnel, $request, $validated, $updateData, $currentStatus, $missionStatus) {
+            $mission->update($updateData);
+
+            DB::table('mission_personnel')
+                ->where('mission_id', $mission->id)
+                ->where('personnel_id', $personnel->id)
+                ->update([
+                    'status' => $validated['status'],
+                    'acknowledged_at' => $validated['status'] === 'acknowledged' ? now() : DB::raw('acknowledged_at'),
+                    'updated_at' => now(),
+                ]);
+
+            if ($validated['status'] === 'acknowledged') {
+                DB::table('mission_assignments')
+                    ->where('mission_id', $mission->id)
+                    ->where('personnel_id', $request->user()->id)
+                    ->whereNull('unassigned_at')
+                    ->update(['acknowledged_at' => now()]);
+            }
+
+            app(MissionLifecycleService::class)->recordStatusChange(
+                $mission,
+                $currentStatus,
+                $missionStatus,
+                $request->user()->id,
+                $validated['status'] === 'acknowledged' ? 'Personnel acknowledged assignment.' : 'Personnel started field work.',
+            );
+        });
 
         return back()->with('success', 'Mission status successfully updated!');
     }
@@ -207,9 +283,17 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
+        if (!$personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
+
         $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
+
+        if (($mission->status->value ?? $mission->status) !== 'in_progress') {
+            return back()->withErrors(['checklist' => 'Start the mission before updating its checklist.']);
+        }
 
         $validated = $request->validate([
             'item_id' => ['required', 'string', 'exists:mission_checklist_items,id'],
@@ -224,7 +308,7 @@ class MissionController extends Controller
         $checklistItem->update([
             'is_completed' => $newState,
             'completed_at' => $newState ? now() : null,
-            'completed_by' => $newState ? $personnel->id : null,
+            'completed_by' => $newState ? $request->user()->id : null,
         ]);
 
         return back();
@@ -233,6 +317,10 @@ class MissionController extends Controller
     public function proofForm(Request $request, string $id): Response
     {
         $personnel = $this->getPersonnelRecord($request);
+
+        if (!$personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
 
         $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
@@ -257,23 +345,44 @@ class MissionController extends Controller
         $user = $request->user();
         $personnel = $this->getPersonnelRecord($request);
 
+        if (!$personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
+
         $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
 
+        app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
+        $checklistItems = $mission->checklistItems()->get();
+        if ($checklistItems->isEmpty() || $checklistItems->contains(fn ($item) => !$item->is_completed)) {
+            return back()->withErrors(['checklist' => 'Complete every prescribed checklist step before submitting proof.']);
+        }
+
+        if (($mission->status->value ?? $mission->status) !== 'in_progress') {
+            return back()->withErrors(['status' => 'Only an in-progress mission can be completed with proof.']);
+        }
+
         $validated = $request->validate([
-            'notes' => ['required', 'string', 'max:2000'],
-            'photos' => ['nullable', 'array', 'max:5'],
-            'photos.*' => ['image', 'mimes:jpeg,png,jpg', 'max:5120'],
+            'notes' => ['required', 'string', 'min:20', 'max:2000'],
+            'photos' => ['required', 'array', 'min:1', 'max:5'],
+            'photos.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'dimensions:min_width=720,min_height=480', 'max:5120'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'location_accuracy_m' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $proof = MissionProof::create([
-            'mission_id' => $mission->id,
-            'submitted_by' => $user->id,
-            'notes' => $validated['notes'],
-        ]);
+        $previousStatus = $mission->status->value ?? $mission->status;
+        DB::transaction(function () use ($request, $mission, $user, $validated, $previousStatus) {
+            $proof = MissionProof::create([
+                'mission_id' => $mission->id,
+                'submitted_by' => $user->id,
+                'notes' => $validated['notes'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'location_accuracy_m' => $validated['location_accuracy_m'],
+            ]);
 
-        if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
                 $filePath = $photo->store('proofs', 'public');
 
@@ -283,18 +392,19 @@ class MissionController extends Controller
                     'mime_type' => $photo->getMimeType(),
                 ]);
             }
-        }
 
-        $mission->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-        ]);
-
-        if ($mission->concern) {
-            $mission->concern->update([
-                'status' => 'resolved',
+            $mission->update([
+                'status' => 'completed',
+                'completed_at' => now(),
             ]);
-        }
+            app(MissionLifecycleService::class)->recordStatusChange(
+                $mission,
+                $previousStatus,
+                'completed',
+                $user->id,
+                'Personnel submitted geotagged photo proof and completed all checklist steps.',
+            );
+        });
 
         Notification::create([
             'user_id' => $mission->created_by,

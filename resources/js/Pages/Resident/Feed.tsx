@@ -3,6 +3,7 @@ import { AlertCircle, FileText, TrendingUp } from 'lucide-react';
 import AnnouncementCard from '@/Components/resident/AnnouncementCard';
 import ConcernCard from '@/Components/resident/ConcernCard';
 import FeedComposer from '@/Components/resident/FeedComposer';
+import MissionResolutionCard from '@/Components/resident/MissionResolutionCard';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -13,6 +14,7 @@ import type { PageProps } from '@/Types';
 
 type FeedPageProps = PageProps & {
     concerns: any[];
+    resolutionPosts?: any[];
     announcements: any[];
     userStats: {
         total_reports: number;
@@ -20,7 +22,7 @@ type FeedPageProps = PageProps & {
     };
 };
 
-export default function Feed({ concerns, announcements = [], userStats }: FeedPageProps) {
+export default function Feed({ concerns, resolutionPosts = [], announcements = [], userStats }: FeedPageProps) {
     const theme = useResidentTheme();
     const { user } = useAuth();
     const { flash } = usePage<PageProps>().props;
@@ -93,7 +95,14 @@ export default function Feed({ concerns, announcements = [], userStats }: FeedPa
             <ResidentSocialShell right={rightAside}>
                 <FeedComposer />
 
-                {concerns.length === 0 ? (
+                {resolutionPosts.length > 0 && (
+                    <section className="mb-6 space-y-3" aria-labelledby="community-resolutions-heading">
+                        <h2 id="community-resolutions-heading" className="text-xs font-black uppercase tracking-wider text-emerald-800">Verified Community Resolutions</h2>
+                        {resolutionPosts.map((update) => <MissionResolutionCard key={update.id} update={update} />)}
+                    </section>
+                )}
+
+                {concerns.length === 0 && resolutionPosts.length === 0 ? (
                     <div className={`rounded-2xl border border-dashed ${theme.cardBorder} ${theme.cardBg} p-16 text-center shadow-xs`}>
                         <h3 className="font-black text-base">No public concerns reported yet</h3>
                         <p className={`mt-1 text-xs font-medium ${theme.textMuted} max-w-xs mx-auto leading-relaxed`}>

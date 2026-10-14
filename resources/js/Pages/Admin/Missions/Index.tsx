@@ -17,6 +17,8 @@ type AdminMission = BaseAdminMission & {
     rank?: number;
     merged_duplicates_count?: number;
     has_merged_duplicates?: boolean;
+    max_due_date?: string;
+    due_date_iso?: string | null;
 };
 
 type FilterKey = 'all' | 'assigned' | 'in_progress' | 'completed' | 'verified' | 'overdue' | 'merged';
@@ -66,6 +68,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         concern_id: '',
         personnel_ids: [] as string[],
+        due_date: '',
     });
 
     const filtered = useMemo(() => {
@@ -110,6 +113,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
         setData({
             concern_id: mission.concern_id,
             personnel_ids: mission.personnel_ids ?? [],
+            due_date: mission.max_due_date ?? mission.due_date_iso ?? '',
         });
     };
 
@@ -214,6 +218,20 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                         </div>
 
                         <form onSubmit={submitAssignment} className="space-y-4">
+                            <div>
+                                <label htmlFor="mission-due-date" className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700">Statutory Due Date</label>
+                                <Input
+                                    id="mission-due-date"
+                                    type="date"
+                                    value={data.due_date}
+                                    max={selectedMission.max_due_date}
+                                    onChange={(e) => setData('due_date', e.target.value)}
+                                    required
+                                    className="bg-white"
+                                />
+                                <p className="mt-1 text-[11px] text-slate-500">RA 11032 limit: {selectedMission.max_due_date}</p>
+                                {errors.due_date && <p className="mt-1 text-xs font-medium text-red-600">{errors.due_date}</p>}
+                            </div>
                             <div>
                                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <label className="text-xs font-black uppercase tracking-wider text-slate-700">Select Units (Multiple allowed)</label>

@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Upload, ShieldAlert } from 'lucide-react';
-import { FormEvent } from 'react';
+import { ArrowLeft, MapPin, Upload, ShieldAlert } from 'lucide-react';
+import { FormEvent, useState } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
 import { Label } from '@/Components/ui/label';
@@ -11,11 +11,34 @@ import type { PersonnelMissionPageProps } from '@/Types';
 
 export default function Proof(props: Partial<PersonnelMissionPageProps>) {
     const mission = props.mission ?? demoPersonnelMissions[0];
+    const [locationStatus, setLocationStatus] = useState('Location not captured');
 
     const { data, setData, post, processing, errors } = useForm({
         notes: '',
         photos: [] as File[],
+        latitude: '',
+        longitude: '',
+        location_accuracy_m: '',
     });
+
+    const captureLocation = () => {
+        if (!navigator.geolocation) {
+            setLocationStatus('This device does not provide location services.');
+            return;
+        }
+
+        setLocationStatus('Capturing current location...');
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setData('latitude', String(position.coords.latitude));
+                setData('longitude', String(position.coords.longitude));
+                setData('location_accuracy_m', String(position.coords.accuracy));
+                setLocationStatus(`Location captured, accuracy ±${Math.round(position.coords.accuracy)} m`);
+            },
+            () => setLocationStatus('Location permission is required to submit proof.'),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+        );
+    };
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -70,17 +93,26 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                             <Upload className="mb-2 h-8 w-8 text-blue-600" />
                             <span className="text-xs font-bold text-slate-800">Tap to upload before/after photos</span>
                             <span className="mt-1 text-[11px] text-muted-foreground">
-                                Up to 5 image files (Max 5MB each)
+                                JPG or PNG, minimum 720 × 480 px, up to 5MB each
                             </span>
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png"
                                 multiple
                                 className="sr-only"
                                 onChange={(e) => setData('photos', Array.from(e.target.files ?? []))}
                             />
                         </label>
 
+                        <p className="text-xs text-slate-600">
+                            <MapPin className="mr-1 inline h-3.5 w-3.5" />{locationStatus}
+                        </p>
+                        <Button type="button" variant="outline" onClick={captureLocation} className="font-bold text-xs">
+                            <MapPin className="mr-2 h-4 w-4" />Capture Current Location
+                        </Button>
+                        {errors.latitude && <p className="text-xs font-medium text-red-600">{errors.latitude}</p>}
+                        {errors.longitude && <p className="text-xs font-medium text-red-600">{errors.longitude}</p>}
+                        {errors.location_accuracy_m && <p className="text-xs font-medium text-red-600">{errors.location_accuracy_m}</p>}
                         {data.photos.length > 0 && (
                             <div className="space-y-2">
                                 <p className="text-xs font-bold text-slate-700">
@@ -97,6 +129,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                             </div>
                         )}
                         {errors.photos && <p className="text-xs font-medium text-red-600">{errors.photos}</p>}
+                        {errors.checklist && <p className="text-xs font-medium text-red-600">{errors.checklist}</p>}
                     </CardContent>
                 </Card>
 
@@ -112,6 +145,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                             className="bg-white resize-none"
                         />
                         {errors.notes && <p className="text-xs font-medium text-red-600">{errors.notes}</p>}
+                        {errors.status && <p className="text-xs font-medium text-red-600">{errors.status}</p>}
                     </CardContent>
                 </Card>
 
@@ -119,7 +153,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                     <Button
                         type="submit"
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 sm:w-auto shadow-sm cursor-pointer"
-                        disabled={processing || !data.notes.trim()}
+                        disabled={processing || data.notes.trim().length < 20 || data.photos.length === 0 || !data.latitude}
                     >
                         Submit Proof & Complete Task
                     </Button>

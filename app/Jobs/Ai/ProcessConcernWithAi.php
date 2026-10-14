@@ -7,6 +7,7 @@ use App\Models\ConcernAiAnalysis;
 use App\Models\ConcernCategory;
 use App\Models\ConcernSubcategory;
 use App\Services\Concerns\ConcernDuplicateMatcher;
+use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Enums\ConcernStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -59,6 +60,7 @@ class ProcessConcernWithAi implements ShouldQueue
                 \"suggested_subcategory_code\": \"subcategory code from the catalog or null\",
                 \"prescriptive_steps\": [\"specific evidence-based step\"],
                 \"suggested_duration_hours\": integer or null,
+                \"suggested_due_date\": \"YYYY-MM-DD or null\",
                 \"evidence_summary\": [\"short fact supported by the report or image\"],
                 \"uncertainties\": [\"what cannot be determined from the evidence\"]
             }
@@ -72,6 +74,10 @@ class ProcessConcernWithAi implements ShouldQueue
             - Recommend inspection or verification when the report does not prove a condition.
             - Never claim that an image proves ownership, identity, intent, exact measurements, or causation.
             - Keep prescriptive steps actionable and limited to what barangay personnel can verify or do.
+                        - Set suggested_duration_hours to 72 for low/medium simple concerns, 168 for high/complex or
+                            blotter/mediation concerns, and 480 for critical technical or public safety/health hazards.
+                        - Suggest a due date no later than the matching 3/7/20 working-day limit. The server will
+                            calculate the authoritative due date from the report's official handling date.
 
             Routing Rules:
             - If the report contains sensitive info, PII, domestic disputes, or VAWC, set visibility to 'private'.
@@ -179,7 +185,8 @@ class ProcessConcernWithAi implements ShouldQueue
                 'Document current conditions with photos.',
                 'Apply the matching barangay playbook and update the resident.',
             ],
-            'suggested_duration_hours' => $severity === 'critical' ? 8 : 24,
+            'suggested_duration_hours' => app(ConcernResolutionDeadline::class)
+                ->durationHoursForConcern($this->concern, $severity),
         ]);
     }
 
@@ -204,6 +211,9 @@ class ProcessConcernWithAi implements ShouldQueue
             ? $duplicateMatcher->severityForReporterCount($duplicateMatch['reporter_count'])
             : null;
         $severity = $duplicateMatcher->higherSeverity($aiSeverity, $crowdSeverity);
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $analysisData['suggested_duration_hours'] = $deadlinePolicy->durationHoursForConcern($this->concern, $severity);
+        $analysisData['suggested_due_date'] = $deadlinePolicy->deadlineFor($this->concern, $severity)->toDateString();
 
         $analysis = DB::transaction(function () use (
             $analysisData,
@@ -215,6 +225,7 @@ class ProcessConcernWithAi implements ShouldQueue
             $duplicateMatch,
             $crowdSeverity,
             $duplicateMatcher,
+            $deadlinePolicy,
         ) {
             ConcernAiAnalysis::where('concern_id', $this->concern->id)
                 ->where('is_current', true)
@@ -230,7 +241,9 @@ class ProcessConcernWithAi implements ShouldQueue
                 'suggested_severity' => $aiSeverity,
                 'severity_confidence' => $this->boundedConfidence($analysisData['severity_confidence'] ?? 0.55),
                 'prescriptive_steps' => $analysisData['prescriptive_steps'] ?? [],
-                'suggested_duration_hours' => $analysisData['suggested_duration_hours'] ?? 24,
+                'suggested_due_date' => $analysisData['suggested_due_date'],
+                'suggested_duration_hours' => $analysisData['suggested_duration_hours']
+                    ?? app(ConcernResolutionDeadline::class)->durationHoursForConcern($this->concern, $severity),
                 'duplicate_candidate_id' => $duplicateMatch['candidate']->id ?? null,
                 'duplicate_similarity' => $duplicateMatch['similarity'] ?? null,
                 'raw_model_output' => $analysisData,
@@ -308,13 +321,14 @@ class ProcessConcernWithAi implements ShouldQueue
                 'suggested_subcategory_code' => ['type' => 'STRING', 'nullable' => true],
                 'prescriptive_steps' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
                 'suggested_duration_hours' => ['type' => 'INTEGER', 'nullable' => true],
+                'suggested_due_date' => ['type' => 'STRING', 'nullable' => true],
                 'evidence_summary' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
                 'uncertainties' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
             ],
             'required' => [
                 'detected_language', 'suggested_visibility', 'suggested_severity',
                 'severity_confidence', 'suggested_category_code', 'suggested_subcategory_code',
-                'prescriptive_steps', 'suggested_duration_hours', 'evidence_summary', 'uncertainties',
+                'prescriptive_steps', 'suggested_duration_hours', 'suggested_due_date', 'evidence_summary', 'uncertainties',
             ],
         ];
     }

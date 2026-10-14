@@ -28,12 +28,13 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
     const [overrideAction, setOverrideAction] = useState<string | null>(null);
     const [, startTransition] = useTransition();
 
-    const { data, setData, post, processing } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         concern_id: report?.id ?? '',
         personnel_ids: report?.assigned_personnel_ids ?? [] as string[],
         confirmed_action: report?.ai_recommended_action ?? 'escalate',
         rejection_reason: report?.ai_dismissal_reason ?? '',
         master_concern_id: report?.ai_duplicate_id ?? '',
+        due_date: report?.due_date ?? report?.max_due_date ?? '',
     });
 
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
@@ -290,6 +291,25 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
 
                         {!isTerminal ? (
                             <form onSubmit={handleConfirmAiVerdict} className="space-y-4 pt-2">
+                                {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
+                                    <div>
+                                        <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">Mission Due Date</label>
+                                        <Input
+                                            id="mission-due-date"
+                                            type="date"
+                                            value={data.due_date}
+                                            max={report?.max_due_date}
+                                            onChange={(e) => setData('due_date', e.target.value)}
+                                            required
+                                            className="bg-white"
+                                        />
+                                        <p className="mt-1 text-[11px] text-slate-500">
+                                            RA 11032 maximum: {report?.deadline_days ?? 3} working days, through {report?.max_due_date}.
+                                        </p>
+                                        {errors.due_date && <p className="mt-1 text-xs font-semibold text-red-700">{errors.due_date}</p>}
+                                    </div>
+                                )}
+
                                 {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
                                     <div>
                                         <div className="flex justify-between items-center mb-1.5">

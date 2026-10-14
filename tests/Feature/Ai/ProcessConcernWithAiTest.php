@@ -67,6 +67,7 @@ class ProcessConcernWithAiTest extends TestCase
             $table->decimal('severity_confidence', 3, 2)->nullable();
             $table->json('prescriptive_steps')->nullable();
             $table->unsignedInteger('suggested_duration_hours')->nullable();
+            $table->date('suggested_due_date')->nullable();
             $table->uuid('duplicate_candidate_id')->nullable();
             $table->decimal('duplicate_similarity', 5, 4)->nullable();
             $table->json('raw_model_output')->nullable();
@@ -133,9 +134,14 @@ class ProcessConcernWithAiTest extends TestCase
             'is_current' => 1,
             'suggested_category_id' => 1,
             'suggested_severity' => 'high',
+            'suggested_duration_hours' => 168,
         ]);
         $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
         $this->assertSame('high', $concern->fresh()->severity);
+        $this->assertSame(
+            app(\App\Services\Concerns\ConcernResolutionDeadline::class)->deadlineFor($concern, 'high')->toDateString(),
+            ConcernAiAnalysis::where('concern_id', $concern->id)->first()->suggested_due_date->toDateString(),
+        );
     }
 
     public function test_it_falls_back_to_heuristic_analysis_when_ai_output_is_malformed(): void

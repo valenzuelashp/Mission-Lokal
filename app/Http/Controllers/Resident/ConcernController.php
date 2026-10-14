@@ -8,6 +8,7 @@ use App\Models\Concern;
 use App\Models\ConcernStatusHistory;
 use App\Enums\ConcernStatus;
 use App\Models\ConcernVote;
+use App\Models\MissionResolutionPost;
 use App\Support\MapHelpers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,8 +68,39 @@ class ConcernController extends Controller
                 ];
             });
 
+        $resolutionPosts = MissionResolutionPost::query()
+            ->where('is_published', true)
+            ->whereHas('mission.concern', function ($query) use ($user) {
+                $query->where('barangay_id', $user->barangay_id)
+                    ->where('visibility', 'public')
+                    ->where('is_blotter_candidate', false);
+            })
+            ->with(['mission.concern', 'mission.personnel.user', 'mission.proof.media'])
+            ->latest('published_at')
+            ->take(20)
+            ->get()
+            ->map(function (MissionResolutionPost $post) {
+                $mission = $post->mission;
+                $proofMedia = $mission?->proof?->media ?? collect();
+                $photos = $proofMedia
+                    ->whereIn('id', $post->media_ids ?? [])
+                    ->map(fn ($media) => asset('storage/'.$media->storage_key))
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => (string) $post->id,
+                    'title' => $post->title,
+                    'body' => $post->body,
+                    'photos' => $photos,
+                    'published_at' => $post->published_at?->timezone('Asia/Manila')->format('M d, Y g:i A'),
+                    'mission_id' => $mission?->id,
+                ];
+            });
+
         return Inertia::render('Resident/Feed', [
             'concerns' => $concerns,
+            'resolutionPosts' => $resolutionPosts,
             'userStats' => [
                 'total_reports' => $userTotalReports,
                 'active_reports' => $userActiveReports,

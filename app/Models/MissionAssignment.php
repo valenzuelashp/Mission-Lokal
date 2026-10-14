@@ -25,6 +25,7 @@ class MissionAssignment extends Model
         // Note: assigned_at is handled automatically by Laravel because of the const above
         'unassigned_at',
         'sms_sent_at',
+        'acknowledged_at',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class MissionAssignment extends Model
             'assigned_at' => 'datetime',
             'unassigned_at' => 'datetime',
             'sms_sent_at' => 'datetime',
+            'acknowledged_at' => 'datetime',
         ];
     }
 

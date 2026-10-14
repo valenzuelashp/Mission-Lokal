@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
+    Route::post('/missions/{mission}/resolution-post', [MissionController::class, 'publishResolutionPost'])->name('missions.resolution-post.publish');
     
     // Personnel Management Routes
     Route::get('/personnel', [AdminPersonnelController::class, 'index'])->name('personnel.index');

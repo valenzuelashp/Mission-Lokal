@@ -157,7 +157,7 @@ class ComprehensiveSystemSeeder extends Seeder
                     ['step' => 3, 'task' => 'Sanitize collection point with lime/bleach spray.'],
                 ],
                 'default_duration_hours' => 12,
-                'default_due_days' => 1,
+                'default_due_days' => 3,
             ],
             [
                 'id' => 'a2e442ee-f0d1-452b-b23a-9772c9c6bff4',
@@ -169,7 +169,7 @@ class ComprehensiveSystemSeeder extends Seeder
                     ['step' => 3, 'task' => 'Issue official verbal warning and record violator details.'],
                 ],
                 'default_duration_hours' => 2,
-                'default_due_days' => 1,
+                'default_due_days' => 3,
             ],
             [
                 'id' => (string) Str::uuid(),
@@ -181,7 +181,7 @@ class ComprehensiveSystemSeeder extends Seeder
                     ['step' => 3, 'task' => 'Test drainage outflow and document cleared culvert.'],
                 ],
                 'default_duration_hours' => 18,
-                'default_due_days' => 2,
+                'default_due_days' => 7,
             ],
         ];
 

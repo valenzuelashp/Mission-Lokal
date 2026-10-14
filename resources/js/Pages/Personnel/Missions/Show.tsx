@@ -28,9 +28,13 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
     const mission = props.mission ?? demoPersonnelMissions[0];
     const { flash } = usePage<PageProps>().props;
 
-    const action = nextStatus[mission.status];
+    const action = ['assigned', 'acknowledged', 'in_progress'].includes(mission.status) && !mission.assignment_acknowledged
+        ? { label: 'Acknowledge Assignment', status: 'acknowledged' as MissionStatus }
+        : nextStatus[mission.status];
     const readonly = ['completed', 'verified', 'cancelled'].includes(mission.status);
     const needsProof = mission.status === 'in_progress' && !mission.proof_submitted;
+    const checklist = mission.checklist ?? [];
+    const checklistComplete = checklist.length > 0 && checklist.every((item) => item.done);
 
     const timeline = [
         { key: 'assigned', label: 'Assigned', at: mission.assigned_at, state: 'done' as TimelineState },
@@ -93,7 +97,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             {needsProof && (
                 <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
                     <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                    <span>Mandatory: Please upload photographic proof and execution notes to complete this mission.</span>
+                    <span>{checklistComplete ? 'Mandatory: submit photo proof, GPS location, and execution notes to complete this mission.' : 'Complete every prescribed checklist step before submitting photo proof and GPS location.'}</span>
                 </div>
             )}
 
@@ -200,7 +204,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         <CardContent className="p-4">
                             <MissionChecklist
                                 missionId={mission.id}
-                                items={mission.checklist}
+                                items={checklist}
                                 readonly={readonly}
                             />
                         </CardContent>
@@ -217,12 +221,17 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         {action.label}
                     </Button>
                 )}
-                {needsProof && (
+                {needsProof && checklistComplete && (
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 sm:w-auto shadow-sm cursor-pointer" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
                             <Camera className="mr-2 h-4 w-4" />
                             Submit Execution Proof to Complete
                         </Link>
+                    </Button>
+                )}
+                {needsProof && !checklistComplete && (
+                    <Button disabled className="w-full sm:w-auto font-bold text-xs py-3">
+                        Complete checklist to unlock proof submission
                     </Button>
                 )}
                 {!readonly && mission.status !== 'in_progress' && !mission.proof_submitted && (

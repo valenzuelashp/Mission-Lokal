@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use App\Jobs\CheckOverdueMissions;
 use App\Models\Mission;
 use App\Models\Notification;
 use App\Models\User;
@@ -12,7 +13,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('missions:check-unacknowledged')->everyFifteenMinutes();
+Schedule::command('missions:check-unacknowledged')->everyMinute();
+Schedule::job(new CheckOverdueMissions())->dailyAt('00:05')->name('missions:check-overdue');
 // --- ACK Timeout Escalation Task (Default 4 Hours) ---
 Schedule::call(function () {
     $cutoff = Carbon::now()->subHours(4);

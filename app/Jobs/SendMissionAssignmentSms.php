@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Mission;
+use App\Models\MissionAssignment;
 use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -51,7 +52,14 @@ class SendMissionAssignmentSms implements ShouldQueue
 
             $message = "Mission-Lokal: New assignment near {$location}. Issue: {$title}. Due: {$dueDate}. Open app: {$appUrl}";
 
-            $smsGateway->send($mobile, $message);
+            if ($smsGateway->send($mobile, $message)) {
+                MissionAssignment::where('mission_id', $mission->id)
+                    ->where('personnel_id', $personnel->user_id)
+                    ->whereNull('unassigned_at')
+                    ->latest('assigned_at')
+                    ->first()
+                    ?->update(['sms_sent_at' => now()]);
+            }
         } catch (\Throwable $e) {
             // Log the SMS error without crashing the dispatch request or admin workflow
             Log::error("SMS notification failed for Mission {$this->missionId} / Personnel {$this->personnelId}: " . $e->getMessage());

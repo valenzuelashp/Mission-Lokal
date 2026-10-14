@@ -74,6 +74,11 @@ class Mission extends Model
                     ->withTimestamps();
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(MissionAssignment::class);
+    }
+
     public function playbook(): BelongsTo
     {
         return $this->belongsTo(CategoryPlaybook::class, 'playbook_id');
@@ -92,6 +97,11 @@ class Mission extends Model
     public function proof(): HasOne
     {
         return $this->hasOne(MissionProof::class);
+    }
+
+    public function resolutionPost(): HasOne
+    {
+        return $this->hasOne(MissionResolutionPost::class);
     }
 
     public function checklistItems(): HasMany

@@ -6,11 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
+use App\Models\MissionProofMedia;
+use App\Models\MissionResolutionPost;
 use App\Models\Personnel;
 use App\Models\User;
 use App\Enums\MissionStatus;
 use App\Enums\ConcernStatus;
 use App\Jobs\SendMissionAssignmentSms;
+use App\Services\Concerns\ConcernResolutionDeadline;
+use App\Services\Missions\MissionLifecycleService;
+use App\Services\Missions\MissionResolutionPostBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +31,7 @@ class MissionController extends Controller
 
         $concerns = Concern::where('barangay_id', $barangayId)
             ->whereIn('status', ['active', 'resolved', 'in_progress'])
-            ->with(['votes', 'duplicates.reporter', 'duplicateOf'])
+            ->with(['votes', 'category', 'duplicates.reporter', 'duplicateOf'])
             ->get();
 
         $realMissions = Mission::with('personnel.user')
@@ -34,7 +39,8 @@ class MissionController extends Controller
             ->get()
             ->keyBy('concern_id');
 
-        $mappedMissions = $concerns->map(function ($concern) use ($realMissions) {
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $mappedMissions = $concerns->map(function ($concern) use ($realMissions, $deadlinePolicy) {
             $mission = $realMissions->get($concern->id);
 
             $rawId = $mission ? $mission->id : $concern->id; 
@@ -70,7 +76,9 @@ class MissionController extends Controller
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
                 'priority_score' => $priorityScore,
                 'status' => $statusStr,
-                'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : ($concern->created_at ? $concern->created_at->addDays(2)->format('M d, Y') : 'Not set'),
+                'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : $deadlinePolicy->deadlineFor($concern)->format('M d, Y'),
+                'due_date_iso' => $mission?->due_date?->toDateString(),
+                'max_due_date' => $deadlinePolicy->deadlineFor($concern)->toDateString(),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
                 'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
                 'merged_duplicates_count' => $mergedCount,
@@ -131,27 +139,47 @@ class MissionController extends Controller
 
         $validated = $request->validate([
             'concern_id' => ['required', 'exists:concerns,id'],
-            'personnel_ids' => ['present', 'array'],
+            'personnel_ids' => ['required', 'array', 'min:1'],
             'personnel_ids.*' => ['exists:personnel,id'], 
         ]);
 
-        $concern = Concern::findOrFail($validated['concern_id']);
         $barangayId = $request->user()->barangay_id;
+        $concern = Concern::where('barangay_id', $barangayId)->findOrFail($validated['concern_id']);
 
-        if ($concern->barangay_id !== $barangayId) {
-            abort(403, 'Unauthorized context registration.');
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $lifecycle = app(MissionLifecycleService::class);
+        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        }
+
+        $maxDueDate = $deadlinePolicy->deadlineFor($concern)->toDateString();
+        $validated['due_date'] = $request->validate([
+            'due_date' => ['nullable', 'date', 'before_or_equal:'.$maxDueDate],
+        ], [
+            'due_date.before_or_equal' => 'RA 11032 compliance: this due date exceeds the allowed resolution deadline.',
+        ])['due_date'] ?? null;
+
+        $existingMission = Mission::where('concern_id', $concern->id)->first();
+        $existingStatus = $existingMission?->status->value ?? $existingMission?->status;
+        if (in_array($existingStatus, ['completed', 'verified', 'cancelled'], true)) {
+            return back()->withErrors(['concern_id' => 'Closed missions cannot be reassigned.']);
         }
 
         $newlyAssignedPersonnelIds = [];
         $missionId = null;
 
-        DB::transaction(function () use ($validated, $concern, $request, $barangayId, &$newlyAssignedPersonnelIds, &$missionId) {
+        DB::transaction(function () use ($validated, $concern, $request, $barangayId, $deadlinePolicy, $lifecycle, $existingMission, &$newlyAssignedPersonnelIds, &$missionId) {
+            $previousStatus = $existingMission
+                ? ($existingMission->status->value ?? $existingMission->status)
+                : null;
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
                     'barangay_id' => $concern->barangay_id,
-                    'status' => 'assigned',
-                    'due_date' => now()->addDays(2),
+                    'status' => $previousStatus ?? 'assigned',
+                    'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
+                    'acknowledged_at' => $existingMission?->acknowledged_at,
+                    'is_escalated' => $existingMission?->is_escalated ?? false,
                     'created_by' => $request->user()->id,
                 ]
             );
@@ -191,7 +219,27 @@ class MissionController extends Controller
                 }
             }
 
-            $mission->personnel()->sync($syncData);
+            $assignmentChanges = $mission->personnel()->sync($syncData);
+            $hasNewAssignments = $assignmentChanges['attached'] !== [];
+
+            if ($hasNewAssignments) {
+                $mission->update([
+                    'status' => 'assigned',
+                    'acknowledged_at' => null,
+                    'is_escalated' => false,
+                ]);
+            }
+
+            $lifecycle->recordAssignmentChanges(
+                $mission,
+                $assignmentChanges['detached'],
+                $request->user()->id,
+            );
+            $lifecycle->ensureChecklist($mission, $concern);
+
+            if ($previousStatus !== 'assigned' && ($previousStatus === null || $hasNewAssignments)) {
+                $lifecycle->recordStatusChange($mission, $previousStatus, 'assigned', $request->user()->id, 'Admin assigned or reassigned personnel.');
+            }
 
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
@@ -222,7 +270,8 @@ class MissionController extends Controller
                 'concern.duplicates.reporter', 
                 'concern.duplicates.media',
                 'proof.media', 
-                'personnel.user'
+                'personnel.user',
+                'resolutionPost',
             ])
             ->findOrFail($id);
 
@@ -261,6 +310,23 @@ class MissionController extends Controller
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,
                 'proof_photos' => $proofPhotos,
+                'proof_latitude' => $mission->proof?->latitude,
+                'proof_longitude' => $mission->proof?->longitude,
+                'proof_location_accuracy_m' => $mission->proof?->location_accuracy_m,
+                'resolution_post' => $mission->resolutionPost && !$mission->resolutionPost->is_published ? [
+                    'id' => $mission->resolutionPost->id,
+                    'title' => $mission->resolutionPost->title,
+                    'body' => $mission->resolutionPost->body,
+                    'media_ids' => $mission->resolutionPost->media_ids ?? [],
+                    'images' => $mission->proof?->media
+                        ->whereIn('id', $mission->resolutionPost->media_ids ?? [])
+                        ->map(fn ($media) => [
+                            'id' => $media->id,
+                            'url' => asset('storage/'.$media->storage_key),
+                        ])
+                        ->values()
+                        ->all() ?? [],
+                ] : null,
                 'assigned_at' => $mission->created_at->format('M d, Y'),
                 'merged_duplicates' => $mergedDuplicates,
             ],
@@ -276,16 +342,40 @@ class MissionController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         DB::transaction(function () use ($id, $barangayId, $request) {
-            $mission = Mission::where('barangay_id', $barangayId)->findOrFail($id);
+            $mission = Mission::where('barangay_id', $barangayId)
+                ->with(['concern.duplicates', 'personnel.user', 'assignments', 'proof.media', 'checklistItems', 'resolutionPost'])
+                ->findOrFail($id);
+            $previousStatus = $mission->status->value ?? $mission->status;
+            if ($previousStatus !== 'completed' || !$mission->proof()->exists()) {
+                abort(422, 'Only completed missions with submitted proof can be verified.');
+            }
+
             $mission->update([
                 'status' => 'verified',
                 'verified_at' => now(),
                 'verified_by' => Auth::id(),
             ]);
+            app(\App\Services\Missions\MissionLifecycleService::class)->recordStatusChange(
+                $mission,
+                $previousStatus,
+                'verified',
+                $request->user()->id,
+                'Admin verified mission completion and proof.',
+            );
             $concern = Concern::where('id', $mission->concern_id)->with('duplicates')->first();
             
             if ($concern) {
                 $concern->update(['status' => 'resolved']);
+
+                if ($concern->visibility === 'public' && !$concern->is_blotter_candidate && $mission->proof) {
+                    $existingPost = $mission->resolutionPost;
+                    if (!$existingPost?->is_published) {
+                        $existingPost ??= new MissionResolutionPost(['mission_id' => $mission->id]);
+                        $existingPost->fill(app(MissionResolutionPostBuilder::class)->build($mission, $concern));
+                        $existingPost->created_by = $request->user()->id;
+                        $existingPost->save();
+                    }
+                }
                 
                 Notification::create([
                     'user_id' => $concern->reporter_id,
@@ -329,4 +419,69 @@ class MissionController extends Controller
 
         return back()->with('success', 'Mission verified and concern resolved.');
     }
+
+    public function publishResolutionPost(Request $request, string $id): RedirectResponse
+    {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot publish community updates.');
+        }
+
+        $mission = Mission::where('barangay_id', $request->user()->barangay_id)
+            ->with(['concern', 'proof.media', 'resolutionPost'])
+            ->findOrFail($id);
+
+        if (
+            ($mission->status->value ?? $mission->status) !== 'verified'
+            || $mission->concern?->visibility !== 'public'
+            || $mission->concern?->is_blotter_candidate
+        ) {
+            return back()->withErrors(['resolution_post' => 'Only verified missions for public reports can be posted to the community feed.']);
+        }
+
+        $post = $mission->resolutionPost;
+        if (!$post || $post->is_published) {
+            return back()->with('error', 'This mission has no unpublished community update.');
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string', 'min:20', 'max:5000'],
+            'media_ids' => ['required', 'array', 'min:1', 'max:5'],
+            'media_ids.*' => ['required', 'uuid', 'exists:mission_proof_media,id'],
+        ]);
+
+        $selectedMediaIds = $mission->proof->media()
+            ->whereIn('id', $validated['media_ids'])
+            ->pluck('id')
+            ->all();
+
+        if (count($selectedMediaIds) !== count(array_unique($validated['media_ids']))) {
+            return back()->withErrors(['media_ids' => 'Choose only photos submitted as proof for this mission.']);
+        }
+
+        DB::transaction(function () use ($post, $mission, $validated, $selectedMediaIds, $request) {
+            $post->update([
+                'title' => $validated['title'],
+                'body' => $validated['body'],
+                'media_ids' => $selectedMediaIds,
+                'is_published' => true,
+                'published_at' => now(),
+                'created_by' => $request->user()->id,
+            ]);
+
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $mission->barangay_id,
+                'actor_id' => $request->user()->id,
+                'action' => 'PUBLISH_MISSION_RESOLUTION',
+                'entity_type' => 'MissionResolutionPost',
+                'entity_id' => $post->id,
+                'metadata' => json_encode(['mission_id' => $mission->id, 'title' => $validated['title']]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        });
+
+        return back()->with('success', 'Verified resolution published to the public community feed.');
+    }
+
 }

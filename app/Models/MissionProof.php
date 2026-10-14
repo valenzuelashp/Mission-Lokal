@@ -22,6 +22,9 @@ class MissionProof extends Model
         'mission_id',
         'submitted_by',
         'notes',
+        'latitude',
+        'longitude',
+        'location_accuracy_m',
         // 'submitted_at' is handled automatically by Laravel because of the const above
     ];
 
@@ -29,6 +32,9 @@ class MissionProof extends Model
     {
         return [
             'submitted_at' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'location_accuracy_m' => 'float',
         ];
     }
 

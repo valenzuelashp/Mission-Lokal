@@ -444,6 +444,7 @@ Reassignment history.
 | `assigned_at` | `DATETIME(3)` | NOT NULL |
 | `unassigned_at` | `DATETIME(3)` | |
 | `sms_sent_at` | `DATETIME(3)` | |
+| `acknowledged_at` | `DATETIME(3)` | Per-personnel assignment acknowledgment |
 
 **Indexes:** `INDEX idx_mission_assign_active (mission_id, unassigned_at)`, `INDEX idx_mission_assign_personnel (personnel_id, assigned_at DESC)`
 
@@ -491,6 +492,9 @@ Normalized from `prescriptive_steps` JSON.
 | `mission_id` | `CHAR(36)` | FK → `missions.id` |
 | `submitted_by` | `CHAR(36)` | FK → `users.id` |
 | `notes` | `TEXT` | |
+| `latitude` | `DECIMAL(10,7)` | GPS location captured with proof |
+| `longitude` | `DECIMAL(10,7)` | GPS location captured with proof |
+| `location_accuracy_m` | `DECIMAL(8,2)` | Device-reported accuracy in meters |
 | `submitted_at` | `DATETIME(3)` | NOT NULL |
 
 **Indexes:** `INDEX idx_proof_mission (mission_id, submitted_at DESC)`
@@ -509,6 +513,27 @@ Normalized from `prescriptive_steps` JSON.
 | `created_at` | `DATETIME(3)` | NOT NULL |
 
 **Indexes:** `INDEX idx_proof_media (proof_id)`
+
+---
+
+### `mission_resolution_posts`
+
+Admin-reviewed public accomplishment reports generated after mission verification. Posts reference selected completion-proof photos and remain drafts until explicitly published.
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | `CHAR(36)` | PK |
+| `mission_id` | `CHAR(36)` | UNIQUE FK → `missions.id` |
+| `created_by` | `CHAR(36)` | FK → `users.id` |
+| `title` | `VARCHAR(255)` | NOT NULL |
+| `body` | `TEXT` | NOT NULL |
+| `media_ids` | `JSON` | Selected `mission_proof_media.id` values |
+| `is_published` | `TINYINT(1)` | NOT NULL DEFAULT 0 |
+| `published_at` | `DATETIME(3)` | |
+| `created_at` | `DATETIME(3)` | NOT NULL |
+| `updated_at` | `DATETIME(3)` | NOT NULL |
+
+**Indexes:** `INDEX idx_mission_resolution_feed (is_published, published_at)`
 
 ---
 
@@ -825,7 +850,7 @@ PWA web push endpoints.
 1. **3NF:** Category names and playbook steps are not duplicated across concerns except intentional snapshots in `concern_ai_analysis`.
 2. **Votes:** Composite PK `(concern_id, user_id)` avoids surrogate key collisions.
 3. **Mission checklist:** Split from JSON for personnel tick-off and progress queries.
-4. **Assignment history:** `missions.assigned_to` = current; `mission_assignments` = full history + SMS timestamps.
+4. **Assignment history:** `mission_assignments` stores assignment, acknowledgment, unassignment, and successful SMS timestamps at millisecond precision.
 5. **Embeddings:** For production duplicate detection at scale, consider `concern_embeddings (concern_id, embedding, model_version)` or an external vector store.
 6. **Multi-tenant:** Every operational row carries `barangay_id (directly or via users/concerns)` for row-level security in the application layer.
 
@@ -939,7 +964,7 @@ CREATE TABLE missions (
 2. `users`, `resident_profiles`, `personnel_profiles`, `preloaded_residents`
 3. `concern_categories`, `concern_subcategories`, `category_playbooks`
 4. `concerns`, `concern_ai_analysis`, `concern_media`, `concern_votes`, `concern_duplicate_links`, `concern_status_history`
-5. `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`
+5. `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`, `mission_resolution_posts`
 6. `blotters`, `blotter_media`
 7. `announcements`, `library_items`, `hotspots`
 8. `badges`, `user_badges`, `civic_xp_events`
@@ -949,9 +974,9 @@ CREATE TABLE missions (
 
 ---
 
-## 17. Table inventory (36 tables)
+## 17. Table inventory (37 tables)
 
-`barangays`, `barangay_settings`, `preloaded_residents`, `users`, `resident_profiles`, `personnel_profiles`, `profile_edit_requests`, `refresh_tokens`, `password_reset_tokens`, `concern_categories`, `concern_subcategories`, `category_playbooks`, `concerns`, `concern_ai_analysis`, `concern_duplicate_links`, `concern_media`, `concern_votes`, `concern_status_history`, `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`, `blotters`, `blotter_media`, `announcements`, `library_items`, `badges`, `user_badges`, `civic_xp_events`, `hotspots`, `notifications`, `notification_outbox`, `push_subscriptions`, `audit_logs`, `background_jobs`
+`barangays`, `barangay_settings`, `preloaded_residents`, `users`, `resident_profiles`, `personnel_profiles`, `profile_edit_requests`, `refresh_tokens`, `password_reset_tokens`, `concern_categories`, `concern_subcategories`, `category_playbooks`, `concerns`, `concern_ai_analysis`, `concern_duplicate_links`, `concern_media`, `concern_votes`, `concern_status_history`, `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`, `mission_resolution_posts`, `blotters`, `blotter_media`, `announcements`, `library_items`, `badges`, `user_badges`, `civic_xp_events`, `hotspots`, `notifications`, `notification_outbox`, `push_subscriptions`, `audit_logs`, `background_jobs`
 
 ---
 
@@ -968,4 +993,4 @@ CREATE TABLE missions (
 
 ---
 
-*Schema version 1.0 — aligned with Mission-Lokal Blueprint v1.0*
+*Schema version 1.2 — aligned with Mission-Lokal Blueprint v1.0, mission compliance, and public resolution updates*

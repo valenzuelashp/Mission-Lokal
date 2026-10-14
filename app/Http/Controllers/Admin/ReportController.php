@@ -17,6 +17,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Personnel;
 use App\Support\MapHelpers;
+use App\Services\Concerns\ConcernResolutionDeadline;
+use App\Services\Missions\MissionLifecycleService;
 
 class ReportController extends Controller
 {
@@ -249,6 +251,12 @@ class ReportController extends Controller
         });
 
         $recommendedAction = $aiAnalysis?->duplicate_candidate_id ? 'merge' : 'escalate';
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $maxDueDate = $deadlinePolicy->deadlineFor($record)->toDateString();
+        $suggestedDueDate = $record->mission?->due_date?->toDateString();
+        if (!$suggestedDueDate || $suggestedDueDate > $maxDueDate) {
+            $suggestedDueDate = $maxDueDate;
+        }
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
@@ -258,6 +266,9 @@ class ReportController extends Controller
                 'status' => $record->status->value ?? $record->status,
                 'location_label' => $record->address_text ?? 'Unknown Location',
                 'severity' => $record->severity ?? 'medium',
+                'deadline_days' => $deadlinePolicy->workingDaysFor($record),
+                'max_due_date' => $maxDueDate,
+                'due_date' => $suggestedDueDate,
                 'lat' => $locationData ? (float) $locationData->lat : 14.5173079,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
@@ -357,6 +368,8 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $maxDueDate = $deadlinePolicy->deadlineFor($concern)->toDateString();
 
         $validated = $request->validate([
             'confirmed_action' => ['required', 'string', 'in:escalate,merge,dismiss'],
@@ -364,21 +377,38 @@ class ReportController extends Controller
             'personnel_ids.*' => ['exists:personnel,id'],
             'master_concern_id' => ['nullable', 'string', 'exists:concerns,id'],
             'rejection_reason' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date', 'before_or_equal:'.$maxDueDate],
+        ], [
+            'due_date.before_or_equal' => 'RA 11032 compliance: this due date exceeds the allowed resolution deadline.',
         ]);
 
         $action = $validated['confirmed_action'];
 
         if ($action === 'escalate') {
+            if ($validated['personnel_ids'] === []) {
+                return back()->withErrors(['personnel_ids' => 'Assign at least one personnel member before deploying a mission.']);
+            }
+
             $newlyAssignedPersonnelIds = [];
             $missionId = null;
+            $lifecycle = app(MissionLifecycleService::class);
+            if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+                return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+            }
 
-            DB::transaction(function () use ($concern, $validated, $barangayId, $request, &$newlyAssignedPersonnelIds, &$missionId) {
+            DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+                $existingMission = Mission::where('concern_id', $concern->id)->first();
+                $previousStatus = $existingMission
+                    ? ($existingMission->status->value ?? $existingMission->status)
+                    : null;
                 $mission = Mission::updateOrCreate(
                     ['concern_id' => $concern->id],
                     [
                         'barangay_id' => $barangayId,
-                        'status' => 'assigned',
-                        'due_date' => now()->addDays(2),
+                        'status' => $previousStatus ?? 'assigned',
+                        'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
+                        'acknowledged_at' => $existingMission?->acknowledged_at,
+                        'is_escalated' => $existingMission?->is_escalated ?? false,
                         'created_by' => $request->user()->id,
                     ]
                 );
@@ -404,7 +434,27 @@ class ReportController extends Controller
                     ];
                 }
 
-                $mission->personnel()->sync($syncData);
+                $assignmentChanges = $mission->personnel()->sync($syncData);
+                $hasNewAssignments = $assignmentChanges['attached'] !== [];
+
+                if ($hasNewAssignments) {
+                    $mission->update([
+                        'status' => 'assigned',
+                        'acknowledged_at' => null,
+                        'is_escalated' => false,
+                    ]);
+                }
+
+                $lifecycle->recordAssignmentChanges(
+                    $mission,
+                    $assignmentChanges['detached'],
+                    $request->user()->id,
+                );
+                $lifecycle->ensureChecklist($mission, $concern);
+
+                if ($previousStatus !== 'assigned' && ($previousStatus === null || $hasNewAssignments)) {
+                    $lifecycle->recordStatusChange($mission, $previousStatus, 'assigned', $request->user()->id, 'Admin assigned or reassigned personnel.');
+                }
                 $concern->update(['status' => 'active', 'staff_reviewed_by' => Auth::id(), 'staff_reviewed_at' => now()]);
 
                 DB::table('audit_logs')->insert([
@@ -681,23 +731,38 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
+        $deadlinePolicy = app(ConcernResolutionDeadline::class);
+        $maxDueDate = $deadlinePolicy->deadlineFor($concern)->toDateString();
         
         $validated = $request->validate([
-            'personnel_ids' => ['present', 'array'],
+            'personnel_ids' => ['required', 'array', 'min:1'],
             'personnel_ids.*' => ['exists:personnel,id'],
             'mission_notes' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date', 'before_or_equal:'.$maxDueDate],
+        ], [
+            'due_date.before_or_equal' => 'RA 11032 compliance: this due date exceeds the allowed resolution deadline.',
         ]);
 
         $newlyAssignedPersonnelIds = [];
         $missionId = null;
+        $lifecycle = app(MissionLifecycleService::class);
+        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        }
 
-        DB::transaction(function () use ($concern, $validated, $barangayId, $request, &$newlyAssignedPersonnelIds, &$missionId) {
+        DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+            $existingMission = Mission::where('concern_id', $concern->id)->first();
+            $previousStatus = $existingMission
+                ? ($existingMission->status->value ?? $existingMission->status)
+                : null;
             $mission = Mission::updateOrCreate(
                 ['concern_id' => $concern->id],
                 [
                     'barangay_id' => $barangayId,
-                    'status' => 'assigned',
-                    'due_date' => now()->addDays(2),
+                    'status' => $previousStatus ?? 'assigned',
+                    'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
+                    'acknowledged_at' => $existingMission?->acknowledged_at,
+                    'is_escalated' => $existingMission?->is_escalated ?? false,
                     'created_by' => $request->user()->id,
                 ]
             );
@@ -723,7 +788,27 @@ class ReportController extends Controller
                 ];
             }
 
-            $mission->personnel()->sync($syncData);
+            $assignmentChanges = $mission->personnel()->sync($syncData);
+            $hasNewAssignments = $assignmentChanges['attached'] !== [];
+
+            if ($hasNewAssignments) {
+                $mission->update([
+                    'status' => 'assigned',
+                    'acknowledged_at' => null,
+                    'is_escalated' => false,
+                ]);
+            }
+
+            $lifecycle->recordAssignmentChanges(
+                $mission,
+                $assignmentChanges['detached'],
+                $request->user()->id,
+            );
+            $lifecycle->ensureChecklist($mission, $concern);
+
+            if ($previousStatus !== 'assigned' && ($previousStatus === null || $hasNewAssignments)) {
+                $lifecycle->recordStatusChange($mission, $previousStatus, 'assigned', $request->user()->id, 'Admin assigned or reassigned personnel.');
+            }
             
             $concern->update(['status' => 'active']);
             
