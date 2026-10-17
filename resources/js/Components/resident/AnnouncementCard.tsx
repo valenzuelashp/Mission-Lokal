@@ -29,17 +29,17 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
         : announcement.body;
 
     return (
-        <article className={`overflow-hidden rounded-2xl border ${theme.cardBorder} ${theme.cardBg} shadow-xs transition-all hover:shadow-md`}>
-            <div className={`flex items-center gap-3 p-4 pb-3 border-b ${theme.dividerColor}`}>
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.primaryBg} text-white font-bold shadow-2xs`}>
-                    <Icon className="h-5 w-5" />
+        <article className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md w-full`}>
+            <div className={`flex items-center gap-3.5 p-5 pb-4 border-b ${theme.dividerColor}`}>
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border shadow-2xs`}>
+                    <Icon className={`h-6 w-6 ${theme.primaryText}`} />
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</p>
                     {announcement.event_at ? (
-                        <p className="text-xs font-bold text-emerald-600">Happening {announcement.event_at}</p>
+                        <p className={`text-xs font-black ${theme.badgeText} mt-0.5`}>Happening {announcement.event_at}</p>
                     ) : (
-                        <p className={`text-xs ${theme.textMuted} font-medium`}>{announcement.published_at}</p>
+                        <p className={`text-xs ${theme.textMuted} font-medium mt-0.5`}>{announcement.published_at}</p>
                     )}
                 </div>
             </div>
@@ -49,20 +49,20 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                     <BufferedImage
                         src={announcement.image_url}
                         alt={announcement.title}
-                        className={compact ? 'aspect-video max-h-40 min-h-28 w-full' : 'aspect-video max-h-96 min-h-48 w-full'}
-                        imgClassName="transition-transform duration-300 hover:scale-[1.01]"
+                        className={compact ? 'aspect-video max-h-44 min-h-32 w-full' : 'aspect-video max-h-[32rem] min-h-56 w-full'}
+                        imgClassName="transition-transform duration-500 hover:scale-105"
                     />
                 </Link>
             )}
 
-            <div className="space-y-2 p-4">
+            <div className="space-y-3 p-6 sm:p-7">
                 <Link
                     href={`/announcements/${announcement.id}`}
-                    className={`block break-words text-base font-bold ${theme.textMain} hover:opacity-80 transition-colors`}
+                    className={`block break-words text-lg font-black tracking-tight ${theme.textMain} hover:opacity-80 transition-colors sm:text-xl`}
                 >
                     {announcement.title}
                 </Link>
-                <p className={`whitespace-pre-wrap text-sm leading-relaxed ${theme.textMain} opacity-90`}>{body}</p>
+                <p className={`whitespace-pre-wrap text-sm leading-relaxed ${theme.textMuted} font-medium`}>{body}</p>
                 {!compact && announcement.body.length > 200 && (
                     <Link
                         href={`/announcements/${announcement.id}`}
@@ -74,7 +74,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             </div>
 
             {!compact && kind === 'volunteer' && (
-                <div className={`border-t ${theme.dividerColor} px-4 py-3 bg-slate-50/40`}>
+                <div className={`border-t ${theme.dividerColor} px-6 py-4 ${theme.badgeBg}/40`}>
                     <VolunteerJoinButton
                         announcementId={announcement.id}
                         hasJoined={announcement.has_joined}
@@ -86,16 +86,16 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             {!compact && (
                 <>
                     {announcement.author_name && (
-                        <div className={`border-t ${theme.dividerColor} bg-slate-50/40 px-4 py-2.5 text-xs ${theme.textMuted} font-medium`}>
-                            Issued by <span className={`font-bold ${theme.textMain}`}>{announcement.author_name}</span>
+                        <div className={`border-t ${theme.dividerColor} ${theme.badgeBg}/20 px-6 py-3 text-xs ${theme.textMuted} font-semibold`}>
+                            Posted by <span className={`font-black ${theme.textMain}`}>{announcement.author_name}</span>
                         </div>
                     )}
-                    <div className={`grid grid-cols-2 gap-1 border-t ${theme.dividerColor} bg-slate-50/40 p-1.5`}>
-                        <Button variant="ghost" size="sm" className={`gap-2 font-semibold ${theme.textMuted} hover:opacity-100 cursor-pointer`} disabled>
+                    <div className={`grid grid-cols-2 gap-2 border-t ${theme.dividerColor} ${theme.badgeBg}/20 p-2`}>
+                        <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
                             <ThumbsUp className="h-4 w-4" />
                             Acknowledge
                         </Button>
-                        <Button variant="ghost" size="sm" className={`gap-2 font-semibold ${theme.textMuted} hover:opacity-100 cursor-pointer`} disabled>
+                        <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
                             <Share2 className="h-4 w-4" />
                             Share Notice
                         </Button>

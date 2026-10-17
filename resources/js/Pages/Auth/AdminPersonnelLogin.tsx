@@ -25,9 +25,9 @@ export default function AdminPersonnelLogin() {
                 <Card className="w-full max-w-sm">
                     <CardHeader className="items-center text-center">
                         <img
-                            src="/images/barangay-tambo-logo.png"
+                            src="/images/mission-lokal-logo.png"
                             alt="Barangay Tambo, City of Parañaque"
-                            className="h-28 w-28 object-contain sm:h-32 sm:w-32"
+                            className="h-46 w-46 object-contain sm:h-48 sm:w-48"
                         />
                         <CardTitle>Command Portal</CardTitle>
                         <CardDescription>Admin &amp; personnel sign in</CardDescription>

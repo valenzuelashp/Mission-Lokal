@@ -17,8 +17,8 @@ export default function MobileBottomNav() {
     const { isActive } = useActivePath();
 
     return (
-        <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md lg:hidden shadow-lg`}>
-            <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:max-w-xl sm:px-3">
+        <nav className={`fixed bottom-0 left-0 right-0 z-50 border-t ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md lg:hidden shadow-xl`}>
+            <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:max-w-xl sm:px-4">
                 {items.map(({ href, label, icon: Icon }) => {
                     const active = isActive(href);
                     return (
@@ -26,9 +26,9 @@ export default function MobileBottomNav() {
                             key={href}
                             href={href}
                             className={cn(
-                                'flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 text-[10px] font-extrabold uppercase tracking-wide transition-colors sm:text-[11px]',
+                                'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-1 text-[10px] font-black uppercase tracking-wider transition-colors sm:text-[11px]',
                                 active
-                                    ? `${theme.primaryText} ${theme.badgeBg} font-black`
+                                    ? `${theme.primaryText} ${theme.badgeBg} font-black scale-105`
                                     : `${theme.textMuted} hover:opacity-100`,
                             )}
                         >

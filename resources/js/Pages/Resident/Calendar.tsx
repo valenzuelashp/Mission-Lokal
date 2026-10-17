@@ -25,40 +25,40 @@ export default function Calendar(props: CalendarPageProps) {
     const selectedEvents = props.events.filter((event) => event.date.slice(0, 10) === selectedDate);
 
     const rightAside = (
-        <div className="space-y-4">
-            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-xs rounded-2xl ${theme.cardBg}`}>
-                <div className={`bg-gradient-to-br ${theme.primaryBg} px-5 py-4 text-white`}>
-                    <p className="text-xs font-black uppercase tracking-widest opacity-80">Schedule Overview</p>
-                    <h3 className="text-sm font-bold mt-0.5">Municipal Calendar Grid</h3>
+        <div className="space-y-6">
+            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-2xs rounded-3xl ${theme.cardBg}`}>
+                <div className={`bg-gradient-to-br ${theme.primaryBg} px-6 py-5 text-white`}>
+                    <p className="text-xs font-black uppercase tracking-widest opacity-85">Schedule Overview</p>
+                    <h3 className="text-sm font-bold mt-1">Municipal Calendar Grid</h3>
                 </div>
-                <CardContent className="space-y-3 p-4 text-xs font-medium">
-                    <div className="flex gap-3">
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border`}>
-                            <Bell className="h-4 w-4" />
+                <CardContent className="space-y-4 p-6 text-xs font-medium">
+                    <div className="flex gap-3.5 items-center">
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border shadow-2xs`}>
+                            <Bell className="h-5 w-5" />
                         </span>
                         <p className={`${theme.textMuted} leading-relaxed`}>
                             <strong className="font-bold">Advisories, events, and volunteer calls</strong> published directly from the barangay hall.
                         </p>
                     </div>
-                    <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-emerald-900 border border-emerald-200">
-                        <span>✓ Volunteer calls you sign up for are automatically marked <strong className="font-extrabold">Going</strong>.</span>
+                    <p className={`flex items-start gap-2.5 rounded-2xl ${theme.badgeBg} px-4 py-3 ${theme.badgeText} border ${theme.badgeBorder} font-bold shadow-2xs`}>
+                        <span>✓ Volunteer calls you sign up for are automatically marked <strong className="font-black">Going</strong>.</span>
                     </p>
                 </CardContent>
             </Card>
 
-            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-xs rounded-2xl ${theme.cardBg}`}>
-                <CardContent className="p-5">
+            <Card className={`overflow-hidden border ${theme.cardBorder} shadow-2xs rounded-3xl ${theme.cardBg}`}>
+                <CardContent className="p-6 space-y-3.5">
                     <p className={`text-[10px] font-black uppercase tracking-widest ${theme.primaryText}`}>Selected Date Agenda</p>
-                    <h3 className="mt-1 text-sm font-extrabold">{formatSelectedDate(selectedDate)}</h3>
-                    <div className="mt-3 space-y-2">
+                    <h3 className={`text-sm font-black ${theme.textMain}`}>{formatSelectedDate(selectedDate)}</h3>
+                    <div className="space-y-2.5 pt-1">
                         {selectedEvents.length === 0 ? (
-                            <p className={`rounded-xl border border-dashed ${theme.cardBorder} bg-slate-50/50 p-4 text-xs font-medium ${theme.textMuted} text-center`}>
+                            <p className={`rounded-2xl border border-dashed ${theme.cardBorder} bg-slate-50/50 p-5 text-xs font-semibold ${theme.textMuted} text-center`}>
                                 No scheduled events for this specific date.
                             </p>
                         ) : (
                             selectedEvents.map((event: CalendarEvent) => (
-                                <Link key={event.id} href={event.href} className={`block rounded-xl border ${theme.cardBorder} ${theme.inputBg} p-3 hover:border-blue-300 transition-all shadow-2xs`}>
-                                    <p className="text-xs font-bold">{event.title}</p>
+                                <Link key={event.id} href={event.href} className={`block rounded-2xl border ${theme.cardBorder} ${theme.inputBg} p-3.5 hover:border-blue-300 transition-all shadow-2xs`}>
+                                    <p className={`text-xs font-bold ${theme.textMain}`}>{event.title}</p>
                                     {event.time && <p className={`mt-1 text-[11px] ${theme.textMuted} font-semibold`}>{event.time}</p>}
                                 </Link>
                             ))
@@ -73,14 +73,17 @@ export default function Calendar(props: CalendarPageProps) {
         <ResidentLayout wide>
             <Head title="Calendar" />
             <ResidentSocialShell right={rightAside}>
-                <CalendarMonthView
-                    {...props}
-                    basePath="/calendar"
-                    heading="Municipal Community Calendar"
-                    description={`Schedule of events, assemblies, and deadlines for ${props.month_label}.`}
-                    legend={['announcement']}
-                    onSelectedDayChange={setSelectedDate}
-                />
+                <div className="w-full">
+                    <CalendarMonthView
+                        {...props}
+                        basePath="/calendar"
+                        heading="Municipal Community Calendar"
+                        description={`Schedule of events, assemblies, and deadlines for ${props.month_label}.`}
+                        legend={['announcement']}
+                        onSelectedDayChange={setSelectedDate}
+                        split
+                    />
+                </div>
             </ResidentSocialShell>
         </ResidentLayout>
     );

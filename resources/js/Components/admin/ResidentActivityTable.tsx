@@ -32,34 +32,34 @@ type Props = {
 
 export default function ResidentActivityTable({ activities, onViewAllClick }: Props) {
     return (
-        <Card className="shadow-xs border-slate-200/80 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-100">
-                <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-700">
+        <Card className="shadow-2xs border-slate-200/80 bg-white rounded-3xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-700">
                     <History className="h-4 w-4 text-blue-600" />
                     Activity History & Concerns Log
                 </CardTitle>
                 {activities.length > 0 && (
-                    <button type="button" onClick={onViewAllClick} className="text-xs font-bold text-blue-700 hover:underline cursor-pointer">
+                    <button type="button" onClick={onViewAllClick} className="text-xs font-extrabold text-blue-700 hover:underline cursor-pointer">
                         View all history →
                     </button>
                 )}
             </CardHeader>
             <CardContent className="p-0">
                 {activities.length === 0 ? (
-                    <p className="p-6 text-center text-xs text-muted-foreground">No recent activity recorded for this resident.</p>
+                    <p className="p-8 text-center text-xs text-muted-foreground font-semibold">No recent activity recorded for this resident.</p>
                 ) : (
                     <>
                         <div className="space-y-0 divide-y divide-slate-100 md:hidden">
                             {activities.map((row) => (
-                                <div key={row.id} className="space-y-1.5 px-4 py-3.5 block">
+                                <div key={row.id} className="space-y-2 px-6 py-4 block bg-white">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs text-muted-foreground font-semibold">{row.date}</span>
-                                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', statusStyle[row.status])}>
+                                        <span className="text-xs text-slate-400 font-semibold">{row.date}</span>
+                                        <span className={cn('text-[10px] font-bold px-3 py-1 rounded-full border shadow-2xs', statusStyle[row.status])}>
                                             {statusLabel[row.status]}
                                         </span>
                                     </div>
-                                    <p className="text-xs font-bold text-slate-900 mt-1">{row.description}</p>
-                                    <span className="text-[11px] text-blue-700 font-extrabold">{typeLabel[row.type]}</span>
+                                    <p className="text-xs font-extrabold text-slate-900 mt-1">{row.description}</p>
+                                    <span className="text-[11px] text-blue-700 font-black inline-block">{typeLabel[row.type]}</span>
                                 </div>
                             ))}
                         </div>
@@ -67,21 +67,21 @@ export default function ResidentActivityTable({ activities, onViewAllClick }: Pr
                         <div className="hidden overflow-x-auto md:block">
                             <table className="w-full text-sm text-left">
                                 <thead>
-                                    <tr className="border-b bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
-                                        <th className="px-5 py-3 w-36">Timestamp</th>
-                                        <th className="px-4 py-3 w-36">Record Type</th>
-                                        <th className="px-4 py-3">Description</th>
-                                        <th className="px-4 py-3 w-36">Status</th>
+                                    <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-black uppercase tracking-wider text-slate-400">
+                                        <th className="px-6 py-4 w-40">Timestamp</th>
+                                        <th className="px-5 py-4 w-40">Record Type</th>
+                                        <th className="px-5 py-4">Description</th>
+                                        <th className="px-6 py-4 w-36">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-100 text-xs">
                                     {activities.map((row) => (
-                                        <tr key={row.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-5 py-3 text-muted-foreground text-xs font-medium">{row.date}</td>
-                                            <td className="px-4 py-3 font-bold text-slate-700 text-xs">{typeLabel[row.type]}</td>
-                                            <td className="px-4 py-3 text-slate-900 font-bold text-xs">{row.description}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={cn('text-[11px] font-bold px-2.5 py-0.5 rounded-full border inline-block', statusStyle[row.status])}>
+                                        <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors">
+                                            <td className="px-6 py-4 text-slate-400 font-semibold">{row.date}</td>
+                                            <td className="px-5 py-4 font-extrabold text-slate-700">{typeLabel[row.type]}</td>
+                                            <td className="px-5 py-4 text-slate-900 font-bold">{row.description}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={cn('text-[11px] font-extrabold px-3 py-1 rounded-full border inline-block shadow-2xs', statusStyle[row.status])}>
                                                     {statusLabel[row.status]}
                                                 </span>
                                             </td>

@@ -98,18 +98,18 @@ export default function AnnouncementForm({
     };
 
     return (
-        <form onSubmit={(e) => submit(e, false)} className="grid gap-6 lg:grid-cols-2">
-            <Card className="shadow-sm border-slate-200/80 bg-white">
-                <CardHeader className="border-b border-slate-100 pb-4">
-                    <CardTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+        <form onSubmit={(e) => submit(e, false)} className="grid gap-8 lg:grid-cols-2">
+            <Card className="shadow-2xs border-slate-200/80 bg-white rounded-3xl overflow-hidden">
+                <CardHeader className="border-b border-slate-100 px-6 py-5 bg-slate-50/50">
+                    <CardTitle className="text-base font-black text-slate-900 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-blue-600" />
                         Announcement Builder
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-5 pt-5">
+                <CardContent className="space-y-6 p-6 sm:p-8">
                     <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-slate-700">Broadcast Type</Label>
-                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                        <Label className="text-xs font-black uppercase tracking-wider text-slate-700">Broadcast Type</Label>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             {announcementKindOptions.map((option) => {
                                 const Icon =
                                     option.value === 'advisory'
@@ -125,54 +125,54 @@ export default function AnnouncementForm({
                                         type="button"
                                         onClick={() => setData('kind', option.value as AnnouncementKind)}
                                         className={cn(
-                                            'rounded-xl border p-3.5 text-left transition-all cursor-pointer',
+                                            'rounded-2xl border p-4 text-left transition-all cursor-pointer shadow-2xs',
                                             selected
                                                 ? 'border-blue-600 bg-blue-50/80 ring-2 ring-blue-600/20 shadow-xs'
                                                 : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50',
                                         )}
                                     >
-                                        <span className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                                        <span className="flex items-center gap-2 text-xs font-black text-slate-900">
                                             <Icon className={cn('h-4 w-4', selected ? 'text-blue-700' : 'text-slate-500')} />
                                             {option.label}
                                         </span>
-                                        <span className="mt-1.5 block text-[11px] leading-snug text-muted-foreground">
+                                        <span className="mt-1.5 block text-[11px] leading-snug text-slate-500 font-medium">
                                             {option.hint}
                                         </span>
                                     </button>
                                 );
                             })}
                         </div>
-                        {errors.kind && <p className="text-xs font-medium text-red-600">{errors.kind}</p>}
+                        {errors.kind && <p className="text-xs font-semibold text-red-600">{errors.kind}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="title" className="text-xs font-bold uppercase tracking-wider text-slate-700">Headline Title</Label>
+                        <Label htmlFor="title" className="text-xs font-black uppercase tracking-wider text-slate-700">Headline Title</Label>
                         <Input
                             id="title"
                             value={data.title}
                             onChange={(e) => setData('title', e.target.value)}
                             placeholder="e.g. Municipal Water Interruption Advisory"
-                            className="bg-white h-10"
+                            className="bg-white h-11 rounded-xl text-xs"
                         />
-                        {errors.title && <p className="text-xs font-medium text-red-600">{errors.title}</p>}
+                        {errors.title && <p className="text-xs font-semibold text-red-600">{errors.title}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="body" className="text-xs font-bold uppercase tracking-wider text-slate-700">Detailed Information</Label>
+                        <Label htmlFor="body" className="text-xs font-black uppercase tracking-wider text-slate-700">Detailed Information</Label>
                         <Textarea
                             id="body"
                             value={data.body}
                             onChange={(e) => setData('body', e.target.value)}
                             placeholder="Provide full description, instructions, or scope for the residents…"
                             rows={7}
-                            className="bg-white resize-none"
+                            className="bg-white resize-none rounded-2xl text-xs p-4"
                         />
-                        {errors.body && <p className="text-xs font-medium text-red-600">{errors.body}</p>}
+                        {errors.body && <p className="text-xs font-semibold text-red-600">{errors.body}</p>}
                     </div>
 
                     {needsSchedule && (
-                        <div className="space-y-2 rounded-xl border border-blue-100 bg-blue-50/30 p-4">
-                            <Label htmlFor="event_at" className="text-xs font-bold uppercase tracking-wider text-blue-900">
+                        <div className="space-y-2 rounded-2xl border border-blue-200 bg-blue-50/50 p-5">
+                            <Label htmlFor="event_at" className="text-xs font-black uppercase tracking-wider text-blue-950">
                                 {data.kind === 'volunteer' ? 'Volunteer Activity Schedule' : 'Event Schedule Date & Time'}
                             </Label>
                             <Input
@@ -181,23 +181,23 @@ export default function AnnouncementForm({
                                 value={data.event_at}
                                 onChange={(e) => setData('event_at', e.target.value)}
                                 required
-                                className="bg-white"
+                                className="bg-white rounded-xl h-11 text-xs"
                             />
-                            <p className="text-[11px] text-muted-foreground">Synchronized with official barangay calendar timeline.</p>
-                            {errors.event_at && <p className="text-xs font-medium text-red-600">{errors.event_at}</p>}
+                            <p className="text-[11px] text-slate-500 font-medium">Synchronized with official barangay calendar timeline.</p>
+                            {errors.event_at && <p className="text-xs font-semibold text-red-600">{errors.event_at}</p>}
                         </div>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="image" className="text-xs font-bold uppercase tracking-wider text-slate-700">Cover Media (Optional)</Label>
+                        <Label htmlFor="image" className="text-xs font-black uppercase tracking-wider text-slate-700">Cover Media (Optional)</Label>
                         {previewUrl ? (
-                            <div className="relative overflow-hidden rounded-xl border border-slate-200 shadow-2xs">
-                                <img src={previewUrl} alt="" className="h-44 w-full object-cover" />
+                            <div className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-2xs">
+                                <img src={previewUrl} alt="" className="h-48 w-full object-cover" />
                                 <Button
                                     type="button"
                                     size="icon"
                                     variant="secondary"
-                                    className="absolute right-3 top-3 h-8 w-8 rounded-full shadow-md bg-white/90 hover:bg-white"
+                                    className="absolute right-3 top-3 h-8 w-8 rounded-full shadow-md bg-white/90 hover:bg-white cursor-pointer"
                                     onClick={clearImage}
                                 >
                                     <X className="h-4 w-4 text-slate-700" />
@@ -206,11 +206,11 @@ export default function AnnouncementForm({
                         ) : (
                             <label
                                 htmlFor="image"
-                                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 px-4 py-6 text-center transition-all hover:bg-slate-50 hover:border-blue-300"
+                                className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center transition-all hover:bg-slate-50 hover:border-blue-300"
                             >
                                 <ImagePlus className="mb-2 h-8 w-8 text-blue-600" />
-                                <span className="text-xs font-bold text-slate-700">Click to upload cover graphic</span>
-                                <span className="mt-0.5 text-[11px] text-muted-foreground">High-res JPG, PNG, or WebP</span>
+                                <span className="text-xs font-extrabold text-slate-700">Click to upload cover graphic</span>
+                                <span className="mt-1 text-[11px] text-slate-400 font-medium">High-res JPG, PNG, or WebP</span>
                             </label>
                         )}
                         <Input
@@ -221,17 +221,17 @@ export default function AnnouncementForm({
                             onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
                         />
                         {previewUrl && (
-                            <Button type="button" variant="outline" size="sm" asChild className="mt-2">
-                                <label htmlFor="image" className="cursor-pointer text-xs">
+                            <Button type="button" variant="outline" size="sm" asChild className="mt-2 rounded-xl h-10 font-bold text-xs">
+                                <label htmlFor="image" className="cursor-pointer">
                                     Replace image
                                 </label>
                             </Button>
                         )}
-                        {errors.image && <p className="text-xs font-medium text-red-600">{errors.image}</p>}
+                        {errors.image && <p className="text-xs font-semibold text-red-600">{errors.image}</p>}
                     </div>
 
                     <div className="pt-2">
-                        <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 p-3 bg-slate-50/50 text-xs font-bold text-slate-800">
+                        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/80 p-4 bg-slate-50/50 text-xs font-bold text-slate-800 shadow-2xs">
                             <input
                                 type="checkbox"
                                 checked={data.is_published}
@@ -242,37 +242,37 @@ export default function AnnouncementForm({
                         </label>
                     </div>
 
-                    <div className="flex flex-col gap-2.5 pt-3 sm:flex-row sm:flex-wrap border-t border-slate-100">
-                        <Button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 sm:w-auto shadow-sm cursor-pointer" disabled={processing}>
+                    <div className="flex flex-col gap-3 pt-5 sm:flex-row sm:flex-wrap border-t border-slate-100">
+                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-11 px-6 sm:w-auto shadow-sm cursor-pointer rounded-2xl" disabled={processing}>
                             {submitLabel}
                         </Button>
                         {!data.is_published && (
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full sm:w-auto border-blue-600 text-blue-700 hover:bg-blue-50 cursor-pointer"
+                                className="w-full sm:w-auto border-blue-600 text-blue-700 hover:bg-blue-50 cursor-pointer rounded-2xl h-11 px-5 font-bold text-xs"
                                 disabled={processing}
                                 onClick={(e) => submit(e, true)}
                             >
                                 Save & Publish Instantly
                             </Button>
                         )}
-                        <Button type="button" variant="ghost" className="w-full sm:w-auto cursor-pointer" asChild>
+                        <Button type="button" variant="ghost" className="w-full sm:w-auto cursor-pointer rounded-2xl h-11 px-4 font-bold text-xs" asChild>
                             <Link href={cancelHref}>Cancel</Link>
                         </Button>
                     </div>
 
                     {data.kind === 'volunteer' && volunteers.length > 0 && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 mt-4">
-                            <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-900 mb-2">
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 mt-4 space-y-2.5">
+                            <p className="text-xs font-black uppercase tracking-wider text-emerald-950">
                                 Enrolled Volunteers ({volunteers.length})
                             </p>
-                            <ul className="space-y-1.5 text-xs text-slate-700">
+                            <ul className="space-y-2 text-xs text-slate-700">
                                 {volunteers.map((person) => (
-                                    <li key={person.id} className="flex items-center justify-between gap-2 bg-white/80 p-2 rounded border border-emerald-100">
+                                    <li key={person.id} className="flex items-center justify-between gap-2 bg-white p-3 rounded-xl border border-emerald-100 shadow-2xs">
                                         <span className="font-bold text-slate-900">{person.name}</span>
                                         {person.joined_at && (
-                                            <span className="text-[11px] text-muted-foreground">{person.joined_at}</span>
+                                            <span className="text-[11px] text-slate-400 font-semibold">{person.joined_at}</span>
                                         )}
                                     </li>
                                 ))}

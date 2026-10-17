@@ -22,56 +22,58 @@ export default function Index({ blotters }: { blotters: ResidentBlotter[] }) {
     const theme = useResidentTheme();
 
     return (
-        <ResidentLayout>
+        <ResidentLayout wide>
             <Head title="My Blotter Records" />
             
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                <PageHeader 
-                    title="My Blotter Records" 
-                    description="Track active mediation cases, ticket numbers, and formal incident logs." 
-                />
-                <Button asChild className="w-full sm:w-auto mt-2 sm:mt-0 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-sm cursor-pointer">
-                    <Link href={route('blotter.create')}>
-                        <Plus className="mr-2 h-4 w-4" /> File New Blotter
-                    </Link>
-                </Button>
-            </div>
+            <div className="w-full space-y-6 pb-16">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <PageHeader 
+                        title="My Blotter Records" 
+                        description="Track active mediation cases, ticket numbers, and formal incident logs." 
+                    />
+                    <Button asChild className={`w-full sm:w-auto ${theme.primaryBg} ${theme.primaryHover} text-white font-black text-xs shadow-sm cursor-pointer rounded-2xl h-11 px-5`}>
+                        <Link href={route('blotter.create')}>
+                            <Plus className="mr-2 h-4 w-4" /> File New Blotter
+                        </Link>
+                    </Button>
+                </div>
 
-            <div className="mt-4 space-y-3.5">
-                {blotters.length === 0 ? (
-                    <Card className={`border-dashed ${theme.cardBorder} shadow-none ${theme.cardBg} rounded-2xl`}>
-                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                            <ShieldCheck className="mb-4 h-12 w-12 opacity-40" />
-                            <p className="text-base font-bold">No blotter records found.</p>
-                            <p className={`text-xs ${theme.textMuted} mt-1`}>You have not filed any formal dispute records or incident complaints.</p>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    blotters.map((blotter) => (
-                        <Card key={blotter.id} className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl transition-all hover:shadow-md hover:border-blue-300`}>
-                            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2.5">
-                                        <FileText className="h-5 w-5 text-blue-600" />
-                                        <h3 className="text-base font-extrabold font-mono">{blotter.ticket_number ?? 'Pending Intake Review'}</h3>
-                                        <Badge 
-                                            variant={blotter.status === 'pending_approval' ? 'warning' : 'success'}
-                                            className="uppercase tracking-wider text-[10px] font-black"
-                                        >
-                                            {blotter.status.replace('_', ' ')}
-                                        </Badge>
-                                    </div>
-                                    <p className={`text-xs ${theme.textMuted} font-medium`}>Filed on: {blotter.created_at} · Type: <span className="capitalize font-bold">{blotter.type}</span></p>
-                                </div>
-                                <Button size="sm" variant="outline" className="text-xs font-bold text-blue-700 hover:bg-blue-50 border-blue-200 cursor-pointer shadow-2xs shrink-0" asChild>
-                                    <Link href={`/blotters/${blotter.id}`}>
-                                        View Case Details <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                                    </Link>
-                                </Button>
+                <div className="space-y-4">
+                    {blotters.length === 0 ? (
+                        <Card className={`border-dashed ${theme.cardBorder} shadow-none ${theme.cardBg} rounded-3xl`}>
+                            <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+                                <ShieldCheck className={`mb-4 h-14 w-14 ${theme.textMuted} opacity-40`} />
+                                <p className={`text-base font-black ${theme.textMain}`}>No blotter records found.</p>
+                                <p className={`text-xs ${theme.textMuted} mt-1 font-medium`}>You have not filed any formal dispute records or incident complaints.</p>
                             </CardContent>
                         </Card>
-                    ))
-                )}
+                    ) : (
+                        blotters.map((blotter) => (
+                            <Card key={blotter.id} className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl transition-all hover:shadow-md hover:border-blue-400`}>
+                                <CardContent className="p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center gap-3">
+                                            <FileText className={`h-5 w-5 ${theme.primaryText} shrink-0`} />
+                                            <h3 className={`text-base font-black font-mono ${theme.textMain}`}>{blotter.ticket_number ?? 'Pending Intake Review'}</h3>
+                                            <Badge 
+                                                variant={blotter.status === 'pending_approval' ? 'warning' : 'success'}
+                                                className="uppercase tracking-wider text-[10px] font-black px-3 py-1 rounded-xl"
+                                            >
+                                                {blotter.status.replace('_', ' ')}
+                                            </Badge>
+                                        </div>
+                                        <p className={`text-xs ${theme.textMuted} font-medium`}>Filed on: {blotter.created_at} · Type: <span className="capitalize font-bold">{blotter.type}</span></p>
+                                    </div>
+                                    <Button size="sm" variant="outline" className={`text-xs font-black ${theme.primaryText} hover:opacity-90 ${theme.cardBorder} cursor-pointer shadow-2xs shrink-0 rounded-xl h-10 px-4`} asChild>
+                                        <Link href={`/blotters/${blotter.id}`}>
+                                            View Case Details <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </div>
             </div>
         </ResidentLayout>
     );

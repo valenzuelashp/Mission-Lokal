@@ -35,7 +35,7 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={cn(`rounded-xl ${theme.textMuted} hover:text-red-600 hover:bg-red-50 cursor-pointer`, className)}
+                className={cn(`rounded-2xl h-11 w-11 ${theme.textMuted} hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors`, className)}
                 aria-label="Logout"
             >
                 <LogOut className="h-5 w-5" />
@@ -43,7 +43,7 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
         );
     } else if (variant === 'outline') {
         triggerButton = (
-            <Button type="button" variant="outline" className={cn('justify-start font-bold cursor-pointer', className)}>
+            <Button type="button" variant="outline" className={cn(`font-bold cursor-pointer rounded-2xl h-11 px-5 ${theme.cardBorder}`, className)}>
                 <LogOut className="mr-2 h-4 w-4 text-rose-600" />
                 Logout Session
             </Button>
@@ -53,7 +53,7 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
             <button
                 type="button"
                 className={cn(
-                    `flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-bold ${theme.textMuted} transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer`,
+                    `flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black ${theme.textMuted} transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer`,
                     className,
                 )}
             >
@@ -69,16 +69,16 @@ export default function ResidentLogoutButton({ variant = 'menu', className }: Pr
                 {triggerButton}
             </AlertDialogTrigger>
             
-            <AlertDialogContent className={`rounded-2xl border ${theme.cardBorder} ${theme.cardBg}`}>
-                <AlertDialogHeader>
-                    <AlertDialogTitle className={`font-extrabold ${theme.textMain}`}>Logout?</AlertDialogTitle>
-                    <AlertDialogDescription className={`text-xs ${theme.textMuted}`}>
+            <AlertDialogContent className={`rounded-3xl border ${theme.cardBorder} ${theme.cardBg} p-8`}>
+                <AlertDialogHeader className="space-y-3">
+                    <AlertDialogTitle className={`text-xl font-black tracking-tight ${theme.textMain}`}>Logout Session?</AlertDialogTitle>
+                    <AlertDialogDescription className={`text-xs ${theme.textMuted} font-medium leading-relaxed`}>
                         You will need to re-authenticate with your municipal account ID to access the resident portal.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-xl font-semibold cursor-pointer">Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={logout} className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer">
+                <AlertDialogFooter className="pt-4">
+                    <AlertDialogCancel className="rounded-2xl font-bold cursor-pointer h-11 px-6">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={logout} className="rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black cursor-pointer h-11 px-6">
                         Confirm Logout
                     </AlertDialogAction>
                 </AlertDialogFooter>

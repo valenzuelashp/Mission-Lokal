@@ -129,7 +129,7 @@ export default function MapPinPicker({
 
     return (
         <div className={className}>
-            <div className={`h-full min-h-[16rem] overflow-hidden rounded-xl border ${theme.cardBorder} relative bg-slate-100 shadow-sm`}>
+            <div className={`h-full min-h-[18rem] overflow-hidden rounded-2xl border ${theme.cardBorder} relative bg-slate-100 shadow-md`}>
                 <MapContainer 
                     bounds={leafletBounds}
                     scrollWheelZoom 
@@ -179,7 +179,7 @@ export default function MapPinPicker({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className={`absolute bottom-4 right-4 z-[1000] shadow-md border ${theme.cardBorder} ${theme.cardBg} font-bold text-xs`}
+                    className={`absolute bottom-4 right-4 z-[1000] shadow-lg border ${theme.cardBorder} ${theme.cardBg} font-black text-xs rounded-2xl h-10 px-4`}
                     onClick={handleGetLocation}
                     disabled={isLocating}
                 >
@@ -192,12 +192,12 @@ export default function MapPinPicker({
                 </Button>
             </div>
             {notice ? (
-                <p role="status" className="mt-2 flex items-start gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                <p role="status" className="mt-2.5 flex items-start gap-2 text-xs font-bold text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                     {notice}
                 </p>
             ) : (
-                <p className={`mt-2 text-xs font-medium ${theme.textMuted}`}>Tap the map or drag the pin to pinpoint the exact issue location.</p>
+                <p className={`mt-2.5 text-xs font-medium ${theme.textMuted}`}>Tap the map or drag the pin to pinpoint the exact issue location.</p>
             )}
         </div>
     );

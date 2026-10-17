@@ -1,32 +1,25 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import ResidentLayout from '@/Layouts/ResidentLayout';
-import { ShieldAlert, ArrowLeft, UserCog } from 'lucide-react';
+import { ArrowLeft, Clock } from 'lucide-react';
 import PageHeader from '@/Components/shared/PageHeader';
+import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Textarea } from '@/Components/ui/textarea';
+import { useAuth } from '@/Hooks/usePageProps';
+import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 export default function ProfileEdit({ profile }: { profile: any }) {
     const theme = useResidentTheme();
-    const { data, setData, post, processing, errors } = useForm({
-        first_name: profile?.first_name || '',
-        middle_name: profile?.middle_name || '',
-        last_name: profile?.last_name || '',
-        name_extension: profile?.name_extension || '',
-        birthday: profile?.birthday || '',
-        house_street: profile?.house_street || '',
-        barangay_name: profile?.barangay_name || '',
-        city: profile?.city || '',
-        province: profile?.province || '',
-        email: profile?.email || '',
-        mobile: profile?.mobile || '',
-        parent_name: profile?.parent_name || '',
-        parent_contact: profile?.parent_contact || '',
-    });
+    const { user } = useAuth();
 
-    const isMinor = profile?.is_minor || false;
+    const { data, setData, post, processing, errors } = useForm({
+        full_name: profile?.full_name ?? (user ? `${user.first_name} ${user.last_name}` : ''),
+        email: profile?.email ?? (user?.email ?? ''),
+        mobile: profile?.mobile ?? (user?.mobile ?? ''),
+        address: profile?.address ?? '',
+    });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,148 +27,88 @@ export default function ProfileEdit({ profile }: { profile: any }) {
     };
 
     return (
-        <ResidentLayout>
+        <ResidentLayout wide>
             <Head title="Edit Profile" />
 
-            <div className="mb-4">
+            <div className="w-full space-y-6 pb-16">
                 <Button variant="ghost" className={`text-xs font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer`} asChild>
                     <Link href="/profile">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Profile Dashboard
                     </Link>
                 </Button>
-            </div>
 
-            <div className="mx-auto max-w-2xl space-y-6">
                 <PageHeader
                     title="Update Profile Details"
-                    description="Modify your personal, contact, or address information. Changes will be submitted to barangay administration for review."
+                    description="Modifications to your legal name, contact information, or address are submitted to barangay administration for security verification."
                 />
 
-                <form onSubmit={submit} className="space-y-5">
-                    <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl overflow-hidden`}>
-                        <CardHeader className={`border-b ${theme.dividerColor} pb-4 bg-slate-50/40`}>
-                            <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
-                                <UserCog className="h-4 w-4 text-blue-600" /> Personal Identity Records
-                            </CardTitle>
+                <div className={`mb-6 flex items-start gap-3 rounded-2xl border ${theme.badgeBorder} ${theme.badgeBg} p-5 text-xs font-bold shadow-2xs`}>
+                    <Clock className={`mt-0.5 h-4 w-4 shrink-0 ${theme.primaryText}`} />
+                    <p className={`leading-relaxed ${theme.textMain}`}>
+                        Profile updates require manual staff review. You will continue operating under your current verified details until verification completes.
+                    </p>
+                </div>
+
+                <form onSubmit={submit} className="w-full max-w-3xl">
+                    <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                        <CardHeader className={`border-b ${theme.dividerColor} pb-5`}>
+                            <CardTitle className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Personal Information Form</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 pt-5">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>First Name *</Label>
-                                    <Input value={data.first_name} onChange={(e) => setData('first_name', e.target.value)} required className={theme.inputBg} />
-                                    {errors.first_name && <span className="text-xs font-medium text-destructive">{errors.first_name}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Middle Name</Label>
-                                    <Input value={data.middle_name} onChange={(e) => setData('middle_name', e.target.value)} className={theme.inputBg} />
-                                    {errors.middle_name && <span className="text-xs font-medium text-destructive">{errors.middle_name}</span>}
-                                </div>
+                        <CardContent className="space-y-5 p-6 sm:p-8">
+                            <div className="space-y-2">
+                                <Label htmlFor="full_name">Registered Full Name</Label>
+                                <Input
+                                    id="full_name"
+                                    value={data.full_name}
+                                    onChange={(e) => setData('full_name', e.target.value)}
+                                    required
+                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs`}
+                                />
+                                {errors.full_name && <p className="text-xs font-medium text-destructive">{errors.full_name}</p>}
                             </div>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>Last Name *</Label>
-                                    <Input value={data.last_name} onChange={(e) => setData('last_name', e.target.value)} required className={theme.inputBg} />
-                                    {errors.last_name && <span className="text-xs font-medium text-destructive">{errors.last_name}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Name Extension</Label>
-                                    <Input placeholder="e.g. Jr., III" value={data.name_extension} onChange={(e) => setData('name_extension', e.target.value)} className={theme.inputBg} />
-                                    {errors.name_extension && <span className="text-xs font-medium text-destructive">{errors.name_extension}</span>}
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email Address</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs`}
+                                />
+                                {errors.email && <p className="text-xs font-medium text-destructive">{errors.email}</p>}
                             </div>
-
-                            <div className="space-y-1.5">
-                                <Label>Birthday *</Label>
-                                <Input type="date" value={data.birthday} onChange={(e) => setData('birthday', e.target.value)} required className={theme.inputBg} />
-                                {errors.birthday && <span className="text-xs font-medium text-destructive">{errors.birthday}</span>}
+                            <div className="space-y-2">
+                                <Label htmlFor="mobile">Mobile Number</Label>
+                                <Input
+                                    id="mobile"
+                                    value={data.mobile}
+                                    onChange={(e) => setData('mobile', e.target.value)}
+                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs`}
+                                />
+                                {errors.mobile && <p className="text-xs font-medium text-destructive">{errors.mobile}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="address">Physical Residence Address</Label>
+                                <Textarea
+                                    id="address"
+                                    value={data.address}
+                                    onChange={(e) => setData('address', e.target.value)}
+                                    rows={3}
+                                    className={`resize-none ${theme.inputBg} rounded-2xl p-4 text-xs`}
+                                />
+                                {errors.address && <p className="text-xs font-medium text-destructive">{errors.address}</p>}
+                            </div>
+                            <div className={`flex flex-col gap-3 pt-4 border-t ${theme.dividerColor} sm:flex-row`}>
+                                <Button type="submit" className={`w-full ${theme.primaryBg} ${theme.primaryHover} text-white font-black text-xs py-3.5 sm:w-auto shadow-sm cursor-pointer rounded-2xl px-8 h-12`} disabled={processing}>
+                                    {processing ? 'Submitting...' : 'Submit Profile Updates for Review'}
+                                </Button>
+                                <Button type="button" variant="outline" className="w-full sm:w-auto font-black text-xs py-3.5 cursor-pointer rounded-2xl px-8 h-12" asChild>
+                                    <Link href="/profile">Cancel</Link>
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
-
-                    {/* Address Information */}
-                    <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl overflow-hidden`}>
-                        <CardHeader className={`border-b ${theme.dividerColor} pb-4 bg-slate-50/40`}>
-                            <CardTitle className="text-sm font-black uppercase tracking-wider">Residential Address Details</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-5">
-                            <div className="space-y-1.5">
-                                <Label>House / Street Address *</Label>
-                                <Input value={data.house_street} onChange={(e) => setData('house_street', e.target.value)} required className={theme.inputBg} />
-                                {errors.house_street && <span className="text-xs font-medium text-destructive">{errors.house_street}</span>}
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <div className="space-y-1.5">
-                                    <Label>Barangay *</Label>
-                                    <Input value={data.barangay_name} onChange={(e) => setData('barangay_name', e.target.value)} required className={theme.inputBg} />
-                                    {errors.barangay_name && <span className="text-xs font-medium text-destructive">{errors.barangay_name}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>City / Municipality *</Label>
-                                    <Input value={data.city} onChange={(e) => setData('city', e.target.value)} required className={theme.inputBg} />
-                                    {errors.city && <span className="text-xs font-medium text-destructive">{errors.city}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Province *</Label>
-                                    <Input value={data.province} onChange={(e) => setData('province', e.target.value)} required className={theme.inputBg} />
-                                    {errors.province && <span className="text-xs font-medium text-destructive">{errors.province}</span>}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Contact Information */}
-                    <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl overflow-hidden`}>
-                        <CardHeader className={`border-b ${theme.dividerColor} pb-4 bg-slate-50/40`}>
-                            <CardTitle className="text-sm font-black uppercase tracking-wider">Contact Channels</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-5">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>Email Address *</Label>
-                                    <Input type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} required className={theme.inputBg} />
-                                    {errors.email && <span className="text-xs font-medium text-destructive">{errors.email}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Mobile Number *</Label>
-                                    <Input value={data.mobile} onChange={(e) => setData('mobile', e.target.value)} required className={theme.inputBg} />
-                                    {errors.mobile && <span className="text-xs font-medium text-destructive">{errors.mobile}</span>}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {isMinor && (
-                        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-2xs">
-                            <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-amber-900">
-                                <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                Parent / Guardian Information
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>Guardian Name *</Label>
-                                    <Input value={data.parent_name} onChange={(e) => setData('parent_name', e.target.value)} required={isMinor} className={theme.inputBg} />
-                                    {errors.parent_name && <span className="text-xs font-medium text-destructive">{errors.parent_name}</span>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Guardian Contact *</Label>
-                                    <Input value={data.parent_contact} onChange={(e) => setData('parent_contact', e.target.value)} required={isMinor} className={theme.inputBg} />
-                                    {errors.parent_contact && <span className="text-xs font-medium text-destructive">{errors.parent_contact}</span>}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className={`flex justify-end gap-3 border-t ${theme.dividerColor} pt-5`}>
-                        <Button type="button" variant="outline" className="font-bold text-xs cursor-pointer" asChild>
-                            <Link href="/profile">Cancel</Link>
-                        </Button>
-                        <Button type="submit" disabled={processing} className="bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs cursor-pointer shadow-sm">
-                            {processing ? 'Submitting...' : 'Submit Profile Changes'}
-                        </Button>
-                    </div>
                 </form>
             </div>
         </ResidentLayout>

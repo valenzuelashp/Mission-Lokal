@@ -29,12 +29,12 @@ export default function FlashToasts() {
             <div
                 className={
                     isError
-                        ? 'pointer-events-auto flex items-center gap-2.5 max-w-md rounded-2xl border border-red-200 bg-red-600 px-5 py-3 text-xs font-bold text-white shadow-xl animate-bounce-short'
-                        : 'pointer-events-auto flex items-center gap-2.5 max-w-md rounded-2xl border border-emerald-200 bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-xl'
+                        ? 'pointer-events-auto flex items-center gap-3 max-w-md rounded-2xl border border-red-200 bg-rose-600 px-6 py-4 text-xs font-black text-white shadow-2xl animate-bounce-short'
+                        : 'pointer-events-auto flex items-center gap-3 max-w-md rounded-2xl border border-emerald-200 bg-emerald-600 px-6 py-4 text-xs font-black text-white shadow-2xl'
                 }
                 role="status"
             >
-                {isError ? <AlertCircle className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                {isError ? <AlertCircle className="h-5 w-5 shrink-0" /> : <CheckCircle2 className="h-5 w-5 shrink-0" />}
                 <span>{message}</span>
             </div>
         </div>

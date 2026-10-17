@@ -27,28 +27,28 @@ export default function ResidentCard({ resident }: Props) {
 
     return (
         <Link href={`/admin/residents/${resident.id}`} className="block group">
-            <Card className="shadow-xs transition-all duration-200 hover:shadow-md hover:border-blue-300 border-slate-200/80 bg-white">
-                <CardContent className="space-y-3 p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 font-black border border-blue-100 shadow-2xs">
+            <Card className="shadow-2xs transition-all duration-200 hover:shadow-md hover:border-blue-300 border-slate-200/80 bg-white rounded-3xl">
+                <CardContent className="space-y-4 p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 font-black border border-blue-100 shadow-2xs">
                             {initials}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="font-bold leading-snug text-slate-900 group-hover:text-blue-700 transition-colors text-sm">{resident.full_name}</p>
+                            <p className="font-extrabold leading-snug text-slate-900 group-hover:text-blue-700 transition-colors text-sm">{resident.full_name}</p>
                             <p className="text-xs font-mono font-bold text-blue-600 mt-0.5">{resident.account_id}</p>
                         </div>
-                        <Badge variant="outline" className={cn("text-[10px] font-bold shrink-0", isVerified ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
+                        <Badge variant="outline" className={cn("text-[10px] font-bold shrink-0 px-2.5 py-1", isVerified ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
                             {statusLabel[resident.verification_status]}
                         </Badge>
                     </div>
-                    <p className="line-clamp-2 text-xs text-muted-foreground">{resident.address}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-2.5 border-t border-slate-100">
-                        <span className="inline-flex items-center gap-1 font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                    <p className="line-clamp-2 text-xs text-slate-500 font-medium">{resident.address}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-3 border-t border-slate-100">
+                        <span className="inline-flex items-center gap-1.5 font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 shadow-2xs">
                             <Award className="h-3.5 w-3.5 text-blue-600" />
                             {resident.civic_xp} XP
                         </span>
-                        <span className="text-slate-600 font-semibold">{resident.reports_count ?? 0} reports</span>
-                        <span className="ml-auto font-bold text-blue-700 inline-flex items-center group-hover:underline">
+                        <span className="text-slate-600 font-bold">{resident.reports_count ?? 0} reports</span>
+                        <span className="ml-auto font-black text-blue-700 inline-flex items-center group-hover:underline">
                             View
                             <ChevronRight className="ml-0.5 inline h-3.5 w-3.5" />
                         </span>

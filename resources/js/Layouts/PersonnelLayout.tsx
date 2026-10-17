@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bell, CalendarDays, ClipboardList, LogOut, Shield } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, LogOut, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import PersonnelTopBar from '@/Components/personnel/PersonnelTopBar';
 import { Badge } from '@/Components/ui/badge';
@@ -25,40 +25,61 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
     const { unread_count } = usePage<PageProps & { unread_count?: number }>().props;
     const unread = unread_count ?? 0;
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
 
     const sidebar = (
-        <div className="flex h-full flex-col bg-slate-950 text-slate-300 border-r border-slate-800/80">
-            <div className="flex items-center gap-3 border-b border-slate-800/80 px-6 py-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/20">
-                    <Shield className="h-5 w-5" />
+        <div className={cn(
+            "flex h-full flex-col bg-[#eaf1fb] text-slate-800 border-r border-blue-200/80 shadow-sm transition-all duration-300 relative",
+            collapsed ? "w-20" : "w-72"
+        )}>
+            {/* Collapse Toggle Button */}
+            <button
+                type="button"
+                onClick={() => setCollapsed(!collapsed)}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                className="absolute -right-3.5 top-7 hidden h-7 w-7 items-center justify-center rounded-full bg-blue-700 text-white shadow-md hover:bg-blue-800 lg:flex z-30 cursor-pointer transition-transform hover:scale-105"
+            >
+                {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+
+            {/* Brand Header */}
+            <div className={cn("flex items-center gap-3.5 border-b border-blue-200/70 py-5 bg-white/50 backdrop-blur-md transition-all shrink-0", collapsed ? "justify-center px-4" : "px-7")}>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-700 text-white shadow-md shadow-blue-700/20">
+                    <Shield className="h-6 w-6" />
                 </div>
-                <div>
-                    <p className="text-base font-black tracking-wider text-white">MISSION-LOKAL</p>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Field Unit Portal</p>
-                </div>
+                {!collapsed && (
+                    <div className="overflow-hidden">
+                        <p className="text-base font-black tracking-wider text-slate-900 truncate">MISSION-LOKAL</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-blue-700 mt-0.5 truncate">Field Unit Portal</p>
+                    </div>
+                )}
             </div>
 
-            <div className="border-b border-slate-800/60 bg-slate-900/40 px-5 py-4">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-bold">
-                            {user?.first_name?.[0] ?? 'P'}
+            {/* User Profile Pill */}
+            {!collapsed && (
+                <div className="border-b border-blue-200/70 bg-white/70 px-6 py-4 backdrop-blur-md shrink-0">
+                    <div className="flex items-center gap-3.5">
+                        <div className="relative">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 border border-blue-300 font-black text-sm shadow-2xs">
+                                {user?.first_name?.[0] ?? 'P'}
+                            </div>
+                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-white animate-pulse" />
                         </div>
-                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950 animate-pulse" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-white">
-                            {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Personnel'}
-                        </p>
-                        <p className="font-mono text-[10px] tracking-wider text-slate-400 uppercase">
-                            {user?.account_id ?? 'PER-001'}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-black text-slate-900">
+                                {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Personnel'}
+                            </p>
+                            <p className="font-mono text-[10px] tracking-wider text-blue-700 uppercase mt-0.5 font-bold">
+                                {user?.account_id ?? 'PER-001'}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-                <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Field Assignments</div>
+            {/* Navigation Links (Scrollable if needed) */}
+            <nav className="flex-1 space-y-1.5 overflow-y-auto px-4 py-4 admin-sidebar-scrollbar">
+                {!collapsed && <div className="px-3 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Field Assignments</div>}
                 {nav.map((item) => {
                     const isActiveLink = isActive(item.href);
                     return (
@@ -66,17 +87,19 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                             key={item.href}
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
+                            title={collapsed ? item.label : undefined}
                             className={cn(
-                                'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-150',
+                                'group flex items-center rounded-2xl text-xs font-black transition-all duration-200 relative',
+                                collapsed ? 'justify-center p-3.5' : 'gap-3.5 px-4 py-3',
                                 isActiveLink
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 font-bold translate-x-1'
-                                    : 'text-slate-400 hover:bg-slate-900 hover:text-white',
+                                    ? 'bg-blue-700 text-white shadow-md shadow-blue-700/20 translate-x-1'
+                                    : 'text-slate-600 hover:bg-blue-100/60 hover:text-blue-950',
                             )}
                         >
-                            <item.icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', isActiveLink ? 'text-white' : 'text-slate-500 group-hover:text-emerald-400')} />
-                            <span className="truncate">{item.label}</span>
+                            <item.icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', isActiveLink ? 'text-white' : 'text-slate-500 group-hover:text-blue-700')} />
+                            {!collapsed && <span className="truncate">{item.label}</span>}
                             {item.href.includes('notifications') && unread > 0 && (
-                                <Badge className="ml-auto h-5 min-w-5 justify-center bg-emerald-600 text-white text-[10px] font-extrabold px-1.5">
+                                <Badge className={cn("h-5 min-w-5 justify-center bg-rose-600 text-white text-[10px] font-black px-1.5 rounded-full shadow-2xs", collapsed ? "absolute -top-1 -right-1" : "ml-auto")}>
                                     {unread}
                                 </Badge>
                             )}
@@ -85,39 +108,62 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                 })}
             </nav>
 
-            <div className="border-t border-slate-800/80 p-3 bg-slate-950/60">
+            {/* Pinned Bottom Logout Footer */}
+            <div className="shrink-0 border-t border-blue-200/70 p-3 bg-white/40">
                 <button
                     type="button"
                     onClick={() => router.post('/logout')}
-                    className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
+                    title={collapsed ? "Logout Session" : undefined}
+                    className={cn(
+                        "flex w-full items-center rounded-2xl text-xs font-black text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer",
+                        collapsed ? "justify-center p-3.5" : "gap-3.5 px-4 py-2.5"
+                    )}
                 >
                     <LogOut className="h-4 w-4 shrink-0 text-slate-500" />
-                    <span> Logout </span>
+                    {!collapsed && <span>Logout Session</span>}
                 </button>
             </div>
         </div>
     );
 
     return (
-        <div className="flex min-h-screen bg-slate-900/5 text-slate-900">
+        <div className="flex h-screen overflow-hidden bg-[#eef3fb] text-slate-900 w-full antialiased selection:bg-blue-100 selection:text-blue-900">
+            <style>{`
+                .admin-sidebar-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(59, 130, 246, 0.2);
+                    border-radius: 9999px;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(59, 130, 246, 0.4);
+                }
+            `}</style>
+
             <FlashToasts />
-            <aside className="hidden w-64 shrink-0 flex-col lg:flex">{sidebar}</aside>
+            <aside className={cn("hidden h-full shrink-0 flex-col lg:flex shadow-md z-20 transition-all duration-300", collapsed ? "w-20" : "w-72")}>
+                {sidebar}
+            </aside>
 
             {mobileOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
                     <button
                         type="button"
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs transition-opacity"
+                        className="absolute inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity"
                         aria-label="Close menu"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <aside className="relative flex h-full w-64 flex-col z-10">{sidebar}</aside>
+                    <aside className="relative flex h-full w-72 flex-col z-10 shadow-2xl">{sidebar}</aside>
                 </div>
             )}
 
-            <div className="flex min-w-0 flex-1 flex-col bg-[#f8fafc]">
+            <div className="flex h-full min-w-0 flex-1 flex-col bg-[#f4f8ff] w-full overflow-hidden">
                 <PersonnelTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8">{children}</main>
+                <main className="flex-1 w-full overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12 max-w-7xl mx-auto space-y-6">{children}</main>
             </div>
         </div>
     );

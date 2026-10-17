@@ -8,7 +8,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
         return (
             <div
                 ref={ref}
-                className={cn('rounded-2xl border shadow-xs transition-colors', theme.cardBg, theme.cardBorder, theme.textMain, className)}
+                className={cn('rounded-3xl border shadow-2xs transition-colors', theme.cardBg, theme.cardBorder, theme.textMain, className)}
                 {...props}
             />
         );
@@ -22,7 +22,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
         return (
             <div
                 ref={ref}
-                className={cn('flex flex-col space-y-1.5 p-6', theme.dividerColor && `border-b ${theme.dividerColor}`, className)}
+                className={cn('flex flex-col space-y-1.5 p-6 sm:p-7', theme.dividerColor && `border-b ${theme.dividerColor}`, className)}
                 {...props}
             />
         );
@@ -48,14 +48,14 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
     ({ className, ...props }, ref) => {
         const theme = useResidentTheme();
         return (
-            <p ref={ref} className={cn('text-xs font-medium', theme.textMuted, className)} {...props} />
+            <p ref={ref} className={cn('text-xs font-semibold', theme.textMuted, className)} {...props} />
         );
     },
 );
 CardDescription.displayName = 'CardDescription';
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-    ({ className, ...props }, ref) => <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />,
+    ({ className, ...props }, ref) => <div ref={ref} className={cn('p-6 sm:p-7 pt-0', className)} {...props} />,
 );
 CardContent.displayName = 'CardContent';
 
@@ -65,7 +65,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
         return (
             <div
                 ref={ref}
-                className={cn('flex items-center p-6 pt-0 border-t', theme.dividerColor, className)}
+                className={cn('flex items-center p-6 sm:p-7 pt-0 border-t', theme.dividerColor, className)}
                 {...props}
             />
         );

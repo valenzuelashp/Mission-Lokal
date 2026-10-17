@@ -7,23 +7,23 @@ type Props = PropsWithChildren<{
 
 export default function ResidentSocialShell({ children, right }: Props) {
     return (
-        <>
-            <div className="hidden w-full lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,260px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,640px)_minmax(0,1fr)] justify-center gap-5 py-4 xl:gap-8 xl:py-6">
+        <div className="w-full">
+            <div className="hidden w-full lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] xl:grid-cols-[300px_minmax(0,1fr)_340px] justify-center gap-6 py-6 xl:gap-8 xl:py-8">
                 <aside className="sticky top-[5rem] h-fit w-full">
                     <ResidentShortcuts />
                 </aside>
 
-                <main className="min-w-0 space-y-5">{children}</main>
+                <main className="min-w-0 space-y-6 w-full">{children}</main>
 
-                <aside className="sticky top-[5rem] h-fit w-full space-y-5">
+                <aside className="sticky top-[5rem] h-fit w-full space-y-6">
                     {right}
                 </aside>
             </div>
 
-            <main className="mx-auto w-full max-w-2xl space-y-4 py-1 md:max-w-3xl md:space-y-5 md:py-2 lg:hidden">
+            <main className="mx-auto w-full space-y-6 py-4 lg:hidden">
                 {children}
-                {right && <div className="space-y-4 md:space-y-5">{right}</div>}
+                {right && <div className="space-y-6">{right}</div>}
             </main>
-        </>
+        </div>
     );
 }

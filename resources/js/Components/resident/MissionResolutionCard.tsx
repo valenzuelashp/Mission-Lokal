@@ -1,5 +1,6 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/Components/ui/card';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 type MissionResolution = {
     id: string;
@@ -10,26 +11,28 @@ type MissionResolution = {
 };
 
 export default function MissionResolutionCard({ update }: { update: MissionResolution }) {
+    const theme = useResidentTheme();
+
     return (
-        <Card className="overflow-hidden rounded-xl border-emerald-200 bg-white shadow-xs">
-            <CardContent className="space-y-3 p-4 sm:p-5">
+        <Card className={`overflow-hidden rounded-3xl border ${theme.badgeBorder} ${theme.badgeBg} shadow-sm w-full`}>
+            <CardContent className="space-y-4 p-6 sm:p-7">
                 <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 text-emerald-800">
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
-                        <span className="text-[10px] font-black uppercase tracking-wider">Verified Community Resolution</span>
+                    <div className={`flex items-center gap-2 ${theme.primaryText}`}>
+                        <CheckCircle2 className="h-5 w-5 shrink-0" />
+                        <span className="text-xs font-black uppercase tracking-wider">Verified Community Resolution</span>
                     </div>
-                    {update.published_at && <time className="shrink-0 text-[10px] font-semibold text-slate-500">{update.published_at}</time>}
+                    {update.published_at && <time className={`shrink-0 text-xs font-bold ${theme.textMuted}`}>{update.published_at}</time>}
                 </div>
-                <h3 className="text-base font-black text-slate-900">{update.title}</h3>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{update.body}</p>
+                <h3 className={`text-lg font-black tracking-tight ${theme.textMain}`}>{update.title}</h3>
+                <p className={`whitespace-pre-line text-sm leading-relaxed ${theme.textMuted} font-medium`}>{update.body}</p>
                 {update.photos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 pt-2">
                         {update.photos.map((photo, index) => (
                             <img
                                 key={`${update.id}-${index}`}
                                 src={photo}
                                 alt={`Verified completion evidence ${index + 1}`}
-                                className="aspect-[4/3] w-full rounded-lg border border-slate-200 object-cover"
+                                className={`aspect-[4/3] w-full rounded-2xl border ${theme.cardBorder} object-cover shadow-2xs`}
                                 loading="lazy"
                             />
                         ))}

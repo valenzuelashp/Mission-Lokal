@@ -24,7 +24,6 @@ const tabs: { key: FilterKey; label: string }[] = [
 export default function Index(props: Partial<AdminReportQueuePageProps & { counts?: Record<string, number> }>) {
     const rawReports = props.reports ?? demoReports;
     
-    // Attach ranked ordering
     const reports = useMemo(() => {
         return rawReports.map((r, idx) => ({
             ...r,
@@ -75,56 +74,72 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
         <AdminLayout title="Mission-Lokal Admin: Report Queue">
             <Head title="Report Queue" />
 
-            <div className="mb-6">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Triage & Report Queue</h2>
-                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
-                    Mathematically prioritized by AI severity, community upvotes, and duplicate detection. Review potential matches and merge reports seamlessly.
-                </p>
-            </div>
-
-            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
-                    <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => setFilter(tab.key)}
-                            className={cn(
-                                'rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer',
-                                filter === tab.key
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200',
-                            )}
-                        >
-                            {tab.label}
-                            <span className="ml-1.5 text-[10px] opacity-80">({counts[tab.key] ?? 0})</span>
-                        </button>
-                    ))}
+            <div className="w-full space-y-6 pb-12">
+                {/* Header Section */}
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/60 pb-5">
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">AI Triage & Report Queue</h2>
+                        <p className="mt-1 text-sm font-medium text-slate-500 max-w-3xl">
+                            Mathematically prioritized by AI severity, community upvotes, and duplicate detection. Review potential matches and merge reports seamlessly.
+                        </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                            className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
-                            placeholder="Search reports or duplicates…"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    <Button variant="outline" size="icon" className="shrink-0 border-slate-200 bg-white">
-                        <Filter className="h-4 w-4 text-slate-600" />
-                    </Button>
-                </div>
-            </div>
 
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
-                <div className="mb-4 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    <span>Showing {filtered.length} of {reports.length} incoming reports</span>
+                {/* Filter and Search Controls */}
+                <div className="space-y-4 pt-1">
+                    <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
+                        <div className="flex w-max gap-2 pb-1 sm:w-auto sm:flex-wrap">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setFilter(tab.key)}
+                                    className={cn(
+                                        'rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs',
+                                        filter === tab.key
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-2 ring-blue-600/20'
+                                            : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80',
+                                    )}
+                                >
+                                    <span>{tab.label}</span>
+                                    <span className={cn(
+                                        'rounded-md px-1.5 py-0.5 text-[10px] font-black',
+                                        filter === tab.key ? 'bg-blue-700/60 text-white' : 'bg-slate-200/70 text-slate-700'
+                                    )}>
+                                        {counts[tab.key] ?? 0}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                className="pl-10 bg-white text-xs h-11 border-slate-200 focus:bg-white transition-colors rounded-xl shadow-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                                placeholder="Search reports by ID, incident type, location, category, or duplicate title…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                        <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-slate-200 bg-white rounded-xl shadow-none hover:bg-slate-50 cursor-pointer">
+                            <Filter className="h-4 w-4 text-slate-600" />
+                        </Button>
+                    </div>
                 </div>
-                <ReportQueueTable reports={filtered} />
-            </section>
+
+                {/* Main Data Table Section */}
+                <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span>Showing <strong className="text-slate-900">{filtered.length}</strong> of <strong className="text-slate-900">{reports.length}</strong> incoming reports</span>
+                        <span className="text-[11px] text-slate-400 font-normal normal-case">Updated in real-time</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <ReportQueueTable reports={filtered} />
+                    </div>
+                </section>
+            </div>
         </AdminLayout>
     );
 }

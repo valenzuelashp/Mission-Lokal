@@ -24,13 +24,13 @@ export default function VolunteerJoinButton({
     };
 
     return (
-        <div className={cn('flex items-center justify-between gap-3', compact ? '' : 'w-full')}>
+        <div className={cn('flex items-center justify-between gap-4', compact ? '' : 'w-full')}>
             <Button
                 type="button"
                 size={compact ? 'sm' : 'default'}
                 variant={hasJoined ? 'outline' : 'default'}
                 className={cn(
-                    'font-bold cursor-pointer shadow-2xs',
+                    'font-black cursor-pointer shadow-2xs rounded-2xl h-11 px-6',
                     hasJoined
                         ? `${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border`
                         : `${theme.primaryBg} ${theme.primaryHover} text-white`,
@@ -41,7 +41,7 @@ export default function VolunteerJoinButton({
                 <HandHelping className="mr-2 h-4 w-4" />
                 {hasJoined ? "✓ You're Volunteering" : 'I Can Help / Volunteer'}
             </Button>
-            <p className={`text-xs font-semibold ${theme.textMuted}`}>
+            <p className={`text-xs font-black ${theme.textMain}`}>
                 {volunteerCount} volunteer{volunteerCount === 1 ? '' : 's'} enrolled
             </p>
         </div>

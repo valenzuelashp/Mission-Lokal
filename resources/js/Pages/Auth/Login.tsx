@@ -28,9 +28,9 @@ export default function Login() {
                 <Card className="w-full max-w-sm">
                     <CardHeader className="items-center text-center">
                         <img
-                            src="/images/barangay-tambo-logo.png"
+                            src="/images/mission-lokal-logo.png"
                             alt="Barangay Tambo, City of Parañaque"
-                            className="h-28 w-28 object-contain sm:h-32 sm:w-32"
+                            className="h-36 w-36 object-contain sm:h-44 sm:w-44"
                         />
                         <CardTitle>Mission-Lokal</CardTitle>
                         <CardDescription>Resident &amp; admin sign in</CardDescription>

@@ -1,12 +1,13 @@
 import { useState, useTransition } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2, Zap, MapPin, ShieldAlert, GitMerge, User, Phone, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Zap, MapPin, ShieldAlert, GitMerge, User, Phone, Calendar, Sparkles, Clock } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import MapView from '@/Components/maps/MapView';
 import { Badge } from '@/Components/ui/badge';
 import { TAMBO_CENTER } from '@/Lib/mapUtils';
+import { cn } from '@/Lib/utils';
 
 function formatStep(step: unknown): string {
     if (typeof step === 'string') return step;
@@ -24,7 +25,7 @@ interface Props {
     personnel?: { id: string; name: string; category: string; subcategories: string[] }[];
 }
 
-export default function Show({ report, masterCandidates = [], personnel = [] }: Props) {
+export default function Show({ report, personnel = [] }: Props) {
     const [overrideAction, setOverrideAction] = useState<string | null>(null);
     const [, startTransition] = useTransition();
 
@@ -63,356 +64,370 @@ export default function Show({ report, masterCandidates = [], personnel = [] }: 
         <AdminLayout title={report ? `Report ${report?.id?.substring(0, 8)}` : "Report"}>
             <Head title={`Review: ${report?.title ?? 'Incident'}`} />
             
-            <div className="mb-4">
-                <Button variant="ghost" className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer" asChild>
-                    <Link href="/admin/reports">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Report Queue
-                    </Link>
-                </Button>
-            </div>
-
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-2xl font-black tracking-tight text-slate-900">AI Triage & Review Console</h2>
-                        {report?.duplicate_of_id && (
-                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-extrabold text-xs">
-                                <GitMerge className="h-3 w-3 mr-1" /> Merged Duplicate
-                            </Badge>
-                        )}
-                        {report?.merged_duplicates && report.merged_duplicates.length > 0 && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-extrabold text-xs">
-                                <GitMerge className="h-3 w-3 mr-1" /> Master Concern ({report.merged_duplicates.length} Linked)
-                            </Badge>
-                        )}
-                    </div>
-                    <p className="text-xs font-medium text-slate-500 mt-0.5">Evaluating evidence, location telemetry, and automated AI prescriptive playbooks.</p>
-                </div>
-                <Badge variant="outline" className="text-xs capitalize font-extrabold px-3 py-1 bg-white">{report?.status}</Badge>
-            </div>
-
-            {report?.duplicate_of_id && (
-                <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-4 shadow-2xs flex items-center justify-between">
+            <div className="w-full space-y-8 pb-16">
+                
+                {/* Immersive Top Command Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-600 text-white rounded-xl">
-                            <GitMerge className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black text-purple-950 uppercase tracking-wider">Merged Into Master Concern</p>
-                            <p className="text-xs font-medium text-purple-900">
-                                This report was consolidated into: <strong className="font-bold">{report.duplicate_of_title ?? report.duplicate_of_id}</strong>
-                                {report.duplicate_of_reporter && ` (Reported by ${report.duplicate_of_reporter})`}
-                            </p>
+                        <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-bold text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100 transition-all rounded-xl" asChild>
+                            <Link href="/admin/reports" className="flex items-center gap-2">
+                                <ArrowLeft className="h-4 w-4 text-slate-500" /> Back to Queue
+                            </Link>
+                        </Button>
+                        <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-400">Report Ref:</span>
+                            <span className="text-xs font-black text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                #{report?.id?.substring(0, 8).toUpperCase() ?? 'INC-0000'}
+                            </span>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" asChild className="bg-white border-purple-200 text-purple-900 text-xs font-bold shadow-2xs">
-                        <Link href={`/admin/reports/${report.duplicate_of_id}`}>View Master Ticket</Link>
-                    </Button>
+
+                    <div className="flex items-center gap-2.5">
+                        <Badge variant="outline" className="text-xs font-black px-3.5 py-1.5 bg-blue-50/70 border-blue-200 text-blue-800 shadow-2xs uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                            Status: {report?.status ?? 'Pending'}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs font-black px-3.5 py-1.5 bg-slate-900 border-slate-900 text-white shadow-2xs uppercase tracking-wider">
+                            {report?.severity ?? 'Medium'} Priority
+                        </Badge>
+                    </div>
                 </div>
-            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-black text-slate-900">{report?.title}</h3>
-                            <Badge className="capitalize font-bold text-xs">{report?.severity} Severity</Badge>
+                {/* Header Title Block */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/60">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                                <Sparkles className="h-3 w-3" /> AI Triage & Verification Suite
+                            </span>
                         </div>
-                        <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 font-medium">{report?.description}</p>
-                        
-                        {report?.images && report.images.length > 0 && (
-                            <div>
-                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2">Evidence Photo Attachments</h4>
-                                <div className="flex gap-3 overflow-x-auto pb-1">
-                                    {report.images.map((url: string, idx: number) => (
-                                        <img 
-                                            key={idx} 
-                                            src={url} 
-                                            alt="Report Attachment" 
-                                            className="h-36 w-36 shrink-0 rounded-xl border border-slate-200 object-cover shadow-2xs"
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="border-t border-slate-100 pt-5">
-                            <h4 className="mb-3 font-bold flex items-center gap-2 text-slate-800 text-xs uppercase tracking-wider">
-                                <MapPin className="h-4 w-4 text-blue-600" />
-                                {report?.location_label}
-                            </h4>
-                            <MapView 
-                                center={[safeLat, safeLng]} 
-                                pins={[{
-                                    id: report?.id,
-                                    lat: safeLat,
-                                    lng: safeLng,
-                                    title: report?.title,
-                                    severity: report?.severity ?? 'medium',
-                                }]} 
-                                className="h-64 rounded-xl border border-slate-200 shadow-2xs z-0 relative overflow-hidden" 
-                            />
-                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                            {report?.title ?? 'Incident Review Console'}
+                        </h1>
                     </div>
-
-                    {/* MERGED DUPLICATE REPORTS LIST */}
-                    {report?.merged_duplicates && report.merged_duplicates.length > 0 && (
-                        <div className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">
-                                        <GitMerge className="h-4 w-4" />
-                                    </div>
-                                    <h3 className="text-sm font-black text-slate-900">
-                                        Consolidated Duplicate Reports ({report.merged_duplicates.length})
-                                    </h3>
-                                </div>
-                                <span className="text-[11px] font-bold text-slate-500">
-                                    Multiple residents reported this same incident
-                                </span>
-                            </div>
-
-                            <div className="space-y-3">
-                                {report.merged_duplicates.map((dup: any) => (
-                                    <div key={dup.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div>
-                                                <h4 className="text-xs font-black text-slate-900">{dup.title}</h4>
-                                                <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
-                                                    <span className="flex items-center gap-1 font-semibold text-slate-700">
-                                                        <User className="h-3 w-3 text-slate-400" />
-                                                        {dup.reporter_name || 'Resident'}
-                                                    </span>
-                                                    {dup.reporter_mobile && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Phone className="h-3 w-3 text-slate-400" />
-                                                            {dup.reporter_mobile}
-                                                        </span>
-                                                    )}
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3 text-slate-400" />
-                                                        {dup.submitted_at}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <Button variant="ghost" size="sm" asChild className="h-7 text-xs font-bold text-blue-600 hover:text-blue-800">
-                                                <Link href={`/admin/reports/${dup.id}`}>View Raw</Link>
-                                            </Button>
-                                        </div>
-
-                                        <p className="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200/80 leading-relaxed font-medium">
-                                            "{dup.description}"
-                                        </p>
-
-                                        {dup.images && dup.images.length > 0 && (
-                                            <div className="flex gap-2 overflow-x-auto pt-1">
-                                                {dup.images.map((img: string, i: number) => (
-                                                    <img key={i} src={img} alt="Resident photo" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                    
+                    {report?.submitted_at && (
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/60">
+                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <span>Logged on {report.submitted_at}</span>
                         </div>
                     )}
                 </div>
 
-                <div className="space-y-6">
-                    {/* AI VERDICT REVIEW CARD */}
-                    <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-white to-white p-6 shadow-sm space-y-4">
-                        <div className="flex items-center gap-2.5 border-b border-blue-100 pb-3">
-                            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
-                                <Zap className="h-4 w-4" />
+                {/* Merged Banner Alert if applicable */}
+                {report?.duplicate_of_id && (
+                    <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 via-white to-purple-50 p-5 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-xs shrink-0">
+                                <GitMerge className="h-5 w-5" />
                             </div>
-                            <h3 className="text-base font-black text-blue-900">AI Triage Verdict</h3>
-                        </div>
-
-                        <div className="space-y-3 text-xs">
-                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-                                <span className="text-slate-500 font-bold uppercase">Recommended Action:</span>
-                                <Badge className="uppercase font-black tracking-wide bg-blue-700 text-white px-2.5 py-0.5">
-                                    {overrideAction ?? report?.ai_recommended_action ?? 'Escalate'}
-                                </Badge>
-                            </div>
-                            <p className="text-slate-700 italic bg-white/90 p-3.5 rounded-xl border border-slate-200/80 font-medium">
-                                "{report?.ai_action_reason ?? 'AI analyzed evidence and recommends standard workflow dispatch.'}"
-                            </p>
-                        </div>
-
-                        {report?.ai_duplicate_id && (
-                            <div className="space-y-2.5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="font-black text-amber-950 flex items-center gap-1.5">
-                                        <ShieldAlert className="h-4 w-4 text-amber-600" /> Potential Duplicate Report
-                                    </h4>
-                                    {report.ai_duplicate_similarity != null && (
-                                        <Badge className="bg-amber-600 text-white font-extrabold text-[10px]">
-                                            {Math.round(report.ai_duplicate_similarity * 100)}% match
-                                        </Badge>
-                                    )}
-                                </div>
-                                <p className="text-amber-900 leading-relaxed font-medium">
-                                    Matches <strong>{report.ai_duplicate_title ?? 'another report'}</strong>
-                                    {report.ai_duplicate_reporter && ` by ${report.ai_duplicate_reporter}`}.
-                                    {report.ai_duplicate_reporter_count && ` (${report.ai_duplicate_reporter_count} residents reported similar incidents in this radius).`}
+                            <div>
+                                <h4 className="text-xs font-black text-purple-950 uppercase tracking-wider">Merged Into Master Concern</h4>
+                                <p className="text-xs font-medium text-purple-900 mt-0.5">
+                                    Consolidated into parent ticket: <strong className="font-bold text-purple-950">{report.duplicate_of_title ?? report.duplicate_of_id}</strong>
+                                    {report.duplicate_of_reporter && ` (Reported by ${report.duplicate_of_reporter})`}
                                 </p>
-                                {report.ai_duplicate_description && (
-                                    <p className="text-[11px] text-amber-800 bg-white/80 p-2.5 rounded-lg border border-amber-200/70 italic line-clamp-3">
-                                        "{report.ai_duplicate_description}"
-                                    </p>
-                                )}
-                                <div className="pt-1 flex gap-2">
-                                    <Button 
-                                        type="button" 
-                                        size="sm" 
-                                        variant="outline" 
-                                        onClick={() => {
-                                            setOverrideAction('merge');
-                                            setData('confirmed_action', 'merge');
-                                            setData('master_concern_id', report.ai_duplicate_id);
-                                        }}
-                                        className="h-7 text-xs font-bold bg-white text-amber-900 border-amber-300 hover:bg-amber-100"
-                                    >
-                                        <GitMerge className="h-3.5 w-3.5 mr-1" /> Quick Select For Merge
-                                    </Button>
-                                    <Button 
-                                        type="button" 
-                                        size="sm" 
-                                        variant="ghost" 
-                                        asChild 
-                                        className="h-7 text-xs font-bold text-amber-900 hover:text-amber-950"
-                                    >
-                                        <Link href={`/admin/reports/${report.ai_duplicate_id}`}>Inspect Parent</Link>
-                                    </Button>
+                            </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="bg-white border-purple-300 text-purple-900 text-xs font-bold shadow-2xs shrink-0 hover:bg-purple-100">
+                            <Link href={`/admin/reports/${report.duplicate_of_id}`}>View Master Ticket</Link>
+                        </Button>
+                    </div>
+                )}
+
+                {/* Main Asymmetric Grid Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    {/* Left Column */}
+                    <div className="lg:col-span-7 space-y-6">
+                        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-2xs space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Incident Narrative & Scope</h3>
+                                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-xl">
+                                    {report?.category ?? 'Community Concern'}
+                                </span>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50/80 p-5 border border-slate-100">
+                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                    {report?.description ?? 'No detailed description provided for this incident.'}
+                                </p>
+                            </div>
+
+                            {report?.images && report.images.length > 0 && (
+                                <div className="space-y-3 pt-2">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Attached Evidence Photos</h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {report.images.map((url: string, idx: number) => (
+                                            <div key={idx} className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-2xs">
+                                                <img 
+                                                    src={url} 
+                                                    alt="Evidence Attachment" 
+                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="border-t border-slate-100 pt-6 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold flex items-center gap-2 text-slate-800 text-xs uppercase tracking-wider">
+                                        <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+                                        <span>{report?.location_label ?? 'Pinned Barangay Location'}</span>
+                                    </h4>
+                                    <span className="text-[11px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                        {safeLat.toFixed(4)}, {safeLng.toFixed(4)}
+                                    </span>
+                                </div>
+                                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-2xs">
+                                    <MapView 
+                                        center={[safeLat, safeLng]} 
+                                        pins={[{
+                                            id: report?.id,
+                                            lat: safeLat,
+                                            lng: safeLng,
+                                            title: report?.title,
+                                            severity: report?.severity ?? 'medium',
+                                        }]} 
+                                        className="h-72 w-full z-0 relative" 
+                                    />
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {!isTerminal ? (
-                            <form onSubmit={handleConfirmAiVerdict} className="space-y-4 pt-2">
-                                {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
-                                    <div>
-                                        <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">Mission Due Date</label>
-                                        <Input
-                                            id="mission-due-date"
-                                            type="date"
-                                            value={data.due_date}
-                                            max={report?.max_due_date}
-                                            onChange={(e) => setData('due_date', e.target.value)}
-                                            required
-                                            className="bg-white"
-                                        />
-                                        <p className="mt-1 text-[11px] text-slate-500">
-                                            RA 11032 maximum: {report?.deadline_days ?? 3} working days, through {report?.max_due_date}.
-                                        </p>
-                                        {errors.due_date && <p className="mt-1 text-xs font-semibold text-red-700">{errors.due_date}</p>}
-                                    </div>
-                                )}
-
-                                {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
-                                    <div>
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700">Matched Personnel Units</label>
-                                            <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-extrabold">AI Recommended</span>
+                        {report?.merged_duplicates && report.merged_duplicates.length > 0 && (
+                            <div className="rounded-3xl border border-blue-200/80 bg-white p-6 sm:p-8 shadow-2xs space-y-5">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                                            <GitMerge className="h-4 w-4" />
                                         </div>
-                                        <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-200 p-2.5 space-y-2 bg-white">
-                                            {personnel.length === 0 ? (
-                                                <p className="text-xs text-muted-foreground p-2 text-center">No active personnel available.</p>
-                                            ) : (
-                                                personnel.map(p => {
-                                                    const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
-                                                    return (
-                                                        <label key={p.id} className={`flex items-center justify-between cursor-pointer text-xs p-2 rounded-lg transition-colors border ${isAiSuggested ? 'bg-blue-50/80 border-blue-200 font-bold' : 'border-slate-100 hover:bg-slate-50'}`}>
-                                                            <div className="flex items-center gap-2.5">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={data.personnel_ids.includes(p.id)}
-                                                                    onChange={() => togglePersonnelSelection(p.id)}
-                                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                                                                />
-                                                                <div>
-                                                                    <span className="font-bold text-slate-900">{p.name}</span>
-                                                                    <p className="text-[10px] text-muted-foreground font-medium">{p.category}</p>
-                                                                </div>
-                                                            </div>
-                                                            {isAiSuggested && <span className="text-[9px] font-black text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">Best Match</span>}
-                                                        </label>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {(overrideAction ?? report?.ai_recommended_action) === 'merge' && (
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">Target Master Report</label>
-                                        <select 
-                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-800" 
-                                            value={data.master_concern_id}
-                                            onChange={(e) => setData('master_concern_id', e.target.value)}
-                                            required
-                                        >
-                                            <option value="" disabled>Select Master Parent Report</option>
-                                            {masterCandidates.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {(overrideAction ?? report?.ai_recommended_action) === 'dismiss' && (
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">Dismissal / Rejection Reason</label>
-                                        <Input 
-                                            value={data.rejection_reason} 
-                                            onChange={(e) => setData('rejection_reason', e.target.value)} 
-                                            placeholder="Provide reason for rejection..."
-                                            required 
-                                            className="bg-white"
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="pt-2 flex flex-col gap-2.5">
-                                    <Button type="submit" disabled={processing} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs py-2.5 shadow-sm cursor-pointer">
-                                        <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm AI Verdict & Execute Action
-                                    </Button>
-
-                                    <div className="flex justify-between items-center pt-2 text-[11px] font-bold text-slate-500 border-t border-blue-100">
-                                        <span>Override Decision:</span>
-                                        <div className="flex gap-1.5">
-                                            <button type="button" onClick={() => { setOverrideAction('escalate'); setData('confirmed_action', 'escalate'); }} className="underline hover:text-blue-700 cursor-pointer">Escalate</button>
-                                            <span>•</span>
-                                            <button type="button" onClick={() => { setOverrideAction('merge'); setData('confirmed_action', 'merge'); }} className="underline hover:text-blue-700 cursor-pointer">Merge</button>
-                                            <span>•</span>
-                                            <button type="button" onClick={() => { setOverrideAction('dismiss'); setData('confirmed_action', 'dismiss'); }} className="underline hover:text-blue-700 cursor-pointer">Dismiss</button>
+                                        <div>
+                                            <h3 className="text-sm font-black text-slate-900">
+                                                Consolidated Duplicate Reports
+                                            </h3>
+                                            <p className="text-xs text-slate-500 font-medium">
+                                                {report.merged_duplicates.length} other resident reports mapped to this master record
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-                            </form>
-                        ) : (
-                            <p className="text-xs font-bold text-emerald-800 text-center py-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                                ✓ Report has been processed and is currently in terminal state.
-                            </p>
+
+                                <div className="space-y-4">
+                                    {report.merged_duplicates.map((dup: any) => (
+                                        <div key={dup.id} className="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 space-y-3.5 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <h4 className="text-xs font-black text-slate-900">{dup.title}</h4>
+                                                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+                                                        <span className="flex items-center gap-1 font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200/60">
+                                                            <User className="h-3 w-3 text-slate-400" />
+                                                            {dup.reporter_name || 'Resident'}
+                                                        </span>
+                                                        {dup.reporter_mobile && (
+                                                            <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200/60">
+                                                                <Phone className="h-3 w-3 text-slate-400" />
+                                                                {dup.reporter_mobile}
+                                                            </span>
+                                                        )}
+                                                        <span className="flex items-center gap-1">
+                                                            <Calendar className="h-3 w-3 text-slate-400" />
+                                                            {dup.submitted_at}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <Button variant="outline" size="sm" asChild className="h-8 text-xs font-bold text-blue-600 bg-white border-slate-200 hover:bg-blue-50 shadow-2xs">
+                                                    <Link href={`/admin/reports/${dup.id}`}>View Raw</Link>
+                                                </Button>
+                                            </div>
+
+                                            <p className="text-xs text-slate-700 bg-white p-3.5 rounded-xl border border-slate-200/80 leading-relaxed font-medium">
+                                                "{dup.description}"
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-3">
-                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Prescriptive Action Playbook</h3>
-                        {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
-                            <ol className="space-y-2.5">
-                                {report.prescriptive_steps.map((step: unknown, index: number) => (
-                                    <li key={index} className="flex gap-3 text-xs text-slate-700 font-medium">
-                                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 font-black text-[10px] border border-blue-200">
-                                            {index + 1}
-                                        </span>
-                                        <span className="pt-0.5">{formatStep(step)}</span>
-                                    </li>
-                                ))}
-                            </ol>
-                        ) : (
-                            <p className="text-xs text-muted-foreground">No prescriptive steps available for this category.</p>
-                        )}
+                    {/* Right Column */}
+                    <div className="lg:col-span-5 space-y-6">
+                        <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-white to-white p-6 sm:p-8 shadow-sm space-y-6">
+                            <div className="flex items-center justify-between border-b border-blue-100 pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-600 text-white rounded-2xl shadow-xs">
+                                        <Zap className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-blue-950">AI Triage Intelligence</h3>
+                                        <p className="text-[11px] font-bold text-blue-700/80">Automated classification & telemetry</p>
+                                    </div>
+                                </div>
+                                <Badge className="uppercase font-black tracking-wider bg-blue-700 text-white px-3.5 py-1 text-xs shadow-2xs">
+                                    {overrideAction ?? report?.ai_recommended_action ?? 'Escalate'}
+                                </Badge>
+                            </div>
+
+                            <div className="rounded-2xl bg-white p-4 border border-blue-100/80 shadow-2xs space-y-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AI Reasoning Engine</span>
+                                <p className="text-xs text-slate-700 font-medium italic leading-relaxed">
+                                    "{report?.ai_action_reason ?? 'AI analyzed telemetry, category playbooks, and community density to recommend standard deployment workflow.'}"
+                                </p>
+                            </div>
+
+                            {report?.ai_duplicate_id && (
+                                <div className="space-y-3.5 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 text-xs shadow-2xs">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-black text-amber-950 flex items-center gap-2">
+                                            <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" /> Potential Duplicate Match
+                                        </h4>
+                                        {report.ai_duplicate_similarity != null && (
+                                            <Badge className="bg-amber-600 text-white font-extrabold text-[10px] px-2 py-0.5">
+                                                {Math.round(report.ai_duplicate_similarity * 100)}% match
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className="text-amber-900 leading-relaxed font-medium">
+                                        Matches <strong>{report.ai_duplicate_title ?? 'another report'}</strong>
+                                        {report.ai_duplicate_reporter && ` by ${report.ai_duplicate_reporter}`}.
+                                    </p>
+                                    
+                                    <div className="pt-1 flex flex-wrap gap-2">
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            variant="outline" 
+                                            onClick={() => {
+                                                setOverrideAction('merge');
+                                                setData('confirmed_action', 'merge');
+                                                setData('master_concern_id', report.ai_duplicate_id);
+                                            }}
+                                            className="h-8 text-xs font-bold bg-white text-amber-950 border-amber-300 hover:bg-amber-100 cursor-pointer shadow-2xs"
+                                        >
+                                            <GitMerge className="h-3.5 w-3.5 mr-1.5 text-amber-700" /> Select For Merge
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!isTerminal ? (
+                                <form onSubmit={handleConfirmAiVerdict} className="space-y-5 pt-2">
+                                    {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
+                                        <div className="space-y-2">
+                                            <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                                Mission Due Date Target
+                                            </label>
+                                            <Input
+                                                id="mission-due-date"
+                                                type="date"
+                                                value={data.due_date}
+                                                max={report?.max_due_date}
+                                                onChange={(e) => setData('due_date', e.target.value)}
+                                                required
+                                                className="bg-white text-xs h-11 border-slate-200 rounded-2xl shadow-2xs font-semibold"
+                                            />
+                                            {errors.due_date && <p className="text-xs font-semibold text-red-600">{errors.due_date}</p>}
+                                        </div>
+                                    )}
+
+                                    {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
+                                        <div className="space-y-2.5">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs font-black uppercase tracking-wider text-slate-700">Matched Personnel Units</label>
+                                                <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">AI Recommended</span>
+                                            </div>
+                                            <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-200 p-3 space-y-2 bg-white shadow-2xs">
+                                                {personnel.length === 0 ? (
+                                                    <p className="text-xs text-muted-foreground p-4 text-center">No active personnel available online.</p>
+                                                ) : (
+                                                    personnel.map(p => {
+                                                        const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
+                                                        return (
+                                                            <label key={p.id} className={cn(
+                                                                "flex items-center justify-between cursor-pointer text-xs p-3 rounded-xl transition-all border",
+                                                                data.personnel_ids.includes(p.id) 
+                                                                    ? "bg-blue-50/90 border-blue-300 font-bold shadow-2xs" 
+                                                                    : "border-slate-100 hover:bg-slate-50 bg-white"
+                                                            )}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={data.personnel_ids.includes(p.id)}
+                                                                        onChange={() => togglePersonnelSelection(p.id)}
+                                                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                                                    />
+                                                                    <div>
+                                                                        <span className="font-bold text-slate-900">{p.name}</span>
+                                                                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.category}</p>
+                                                                    </div>
+                                                                </div>
+                                                                {isAiSuggested && (
+                                                                    <span className="text-[9px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                                                                        Best Match
+                                                                    </span>
+                                                                )}
+                                                            </label>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 space-y-3.5 border-t border-blue-100">
+                                        <Button type="submit" disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3.5 shadow-sm cursor-pointer rounded-2xl transition-all">
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm AI Verdict & Execute Dispatch
+                                        </Button>
+
+                                        <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 pt-1">
+                                            <span className="text-slate-400">Manual Override:</span>
+                                            <div className="flex items-center gap-2">
+                                                <button type="button" onClick={() => { setOverrideAction('escalate'); setData('confirmed_action', 'escalate'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Escalate</button>
+                                                <span className="text-slate-300">•</span>
+                                                <button type="button" onClick={() => { setOverrideAction('merge'); setData('confirmed_action', 'merge'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Merge</button>
+                                                <span className="text-slate-300">•</span>
+                                                <button type="button" onClick={() => { setOverrideAction('dismiss'); setData('confirmed_action', 'dismiss'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Dismiss</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-center">
+                                    <p className="text-xs font-black text-emerald-900">
+                                        ✓ Report successfully processed and locked in terminal state.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Prescriptive Action Playbook Card */}
+                        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-2xs space-y-5">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Prescriptive Action Playbook</h3>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                    Standard SOP
+                                </span>
+                            </div>
+
+                            {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
+                                <ol className="space-y-3">
+                                    {report.prescriptive_steps.map((step: unknown, index: number) => (
+                                        <li key={index} className="flex gap-3.5 text-xs text-slate-700 font-medium bg-slate-50/70 p-3.5 rounded-2xl border border-slate-100">
+                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-800 font-black text-[11px] border border-blue-200">
+                                                {index + 1}
+                                            </span>
+                                            <span className="pt-0.5 leading-relaxed font-semibold">{formatStep(step)}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                            ) : (
+                                <p className="text-xs text-muted-foreground p-3 text-center bg-slate-50 rounded-2xl">No prescriptive steps available for this category.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

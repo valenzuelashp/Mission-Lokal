@@ -34,7 +34,7 @@ const AlertDialogContent = React.forwardRef<
       <AlertDialogPrimitive.Content
         ref={ref}
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-2xl",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-5 border p-7 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-3xl",
           theme.cardBg,
           theme.cardBorder,
           className
@@ -68,7 +68,7 @@ const AlertDialogFooter = ({
   return (
     <div
       className={cn(
-        "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-2 border-t",
+        "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4 border-t",
         theme.dividerColor,
         className
       )}
@@ -86,7 +86,7 @@ const AlertDialogTitle = React.forwardRef<
   return (
     <AlertDialogPrimitive.Title
       ref={ref}
-      className={cn("text-base font-black", theme.textMain, className)}
+      className={cn("text-base font-black tracking-tight", theme.textMain, className)}
       {...props}
     />
   );
@@ -101,7 +101,7 @@ const AlertDialogDescription = React.forwardRef<
   return (
     <AlertDialogPrimitive.Description
       ref={ref}
-      className={cn("text-xs leading-relaxed font-medium", theme.textMuted, className)}
+      className={cn("text-xs leading-relaxed font-semibold", theme.textMuted, className)}
       {...props}
     />
   );
@@ -114,7 +114,7 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants(), "rounded-xl font-bold cursor-pointer shadow-xs", className)}
+    className={cn(buttonVariants(), "rounded-2xl font-bold cursor-pointer shadow-sm h-11 px-5", className)}
     {...props}
   />
 ));
@@ -128,7 +128,7 @@ const AlertDialogCancel = React.forwardRef<
     ref={ref}
     className={cn(
       buttonVariants({ variant: "outline" }),
-      "mt-2 sm:mt-0 rounded-xl font-bold cursor-pointer",
+      "mt-2 sm:mt-0 rounded-2xl font-bold cursor-pointer h-11 px-5",
       className
     )}
     {...props}

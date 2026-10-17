@@ -36,6 +36,44 @@
     }
 }
 
+/* ==========================================================================
+   GLOBAL CUSTOM SOFT-BLUE SCROLLBAR STYLES
+   ========================================================================== */
+
+/* Width and height for WebKit browsers (Chrome, Safari, Edge, Brave) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+/* Scrollbar Track (Background) */
+::-webkit-scrollbar-track {
+    background: rgba(224, 242, 254, 0.45); /* Soft sky-blue tint */
+    border-radius: 9999px;
+}
+
+/* Scrollbar Thumb (Draggable Handle) */
+::-webkit-scrollbar-thumb {
+    background: #38bdf8; /* sky-400 */
+    border-radius: 9999px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Scrollbar Thumb Hover State */
+::-webkit-scrollbar-thumb:hover {
+    background: #0284c7; /* sky-600 */
+}
+
+/* Firefox Scrollbar Styling (Fixed: changed '-' to '*') */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #38bdf8 rgba(224, 242, 254, 0.45);
+}
+
+/* ==========================================================================
+   CUSTOM UTILITIES & ANIMATIONS
+   ========================================================================== */
+
 .leaflet-container {
     @apply z-0 h-full w-full rounded-md;
 }

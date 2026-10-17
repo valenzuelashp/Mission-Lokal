@@ -1,5 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Filter, Search, X, GitMerge } from 'lucide-react';
+import { Filter, Search, X, Calendar } from 'lucide-react';
 import { useMemo, useState, FormEvent } from 'react';
 import MissionQueueTable from '@/Components/admin/MissionQueueTable';
 import { Button } from '@/Components/ui/button';
@@ -145,101 +145,120 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
         <AdminLayout title="Mission-Lokal Admin: Mission Queue">
             <Head title="Mission Queue" />
 
-            <div className="mb-6">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Mission Dispatch Queue</h2>
-                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
-                    {canModify ? 'Monitor prioritized field operations, assign multidisciplinary units, and review completed work proofs.' : 'View active field operations and inspect completed work proofs.'}
-                </p>
-            </div>
-
-            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
-                    <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => setFilter(tab.key)}
-                            className={cn(
-                                'rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer',
-                                filter === tab.key
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200',
-                            )}
-                        >
-                            {tab.label}
-                            <span className="ml-1.5 text-[10px] opacity-80">
-                                ({counts[tab.key] ?? 0})
-                            </span>
-                        </button>
-                    ))}
+            <div className="w-full space-y-6 pb-12">
+                {/* Header Section */}
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/60 pb-5">
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Mission Dispatch Queue</h2>
+                        <p className="mt-1 text-sm font-medium text-slate-500 max-w-3xl">
+                            {canModify ? 'Monitor prioritized field operations, assign multidisciplinary units, and review completed work proofs.' : 'View active field operations and inspect completed work proofs.'}
+                        </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                            className="pl-9 bg-white text-xs h-10 border-slate-200 shadow-2xs"
-                            placeholder="Search missions…"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    <Button variant="outline" size="icon" className="shrink-0 cursor-pointer border-slate-200 bg-white">
-                        <Filter className="h-4 w-4 text-slate-600" />
-                    </Button>
-                </div>
-            </div>
 
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
-                <div className="mb-4 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    <span>Showing {filtered.length} of {missions.length} active missions</span>
-                </div>
-                
-                <MissionQueueTable missions={filtered} onOpenAssign={canModify ? openAssignModal : undefined} />
-            </section>
-
-            {selectedMission && canModify && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
-                        <div className="mb-5 flex items-center justify-between border-b pb-3">
-                            <div>
-                                <h3 className="text-base font-black text-slate-900">Manage Personnel Assignments</h3>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[280px]">{selectedMission.concern_title}</p>
-                                {selectedMission.has_merged_duplicates && (
-                                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                                        <GitMerge className="h-3 w-3" /> Includes {selectedMission.merged_duplicates_count} Merged Resident Reports
+                {/* Filter and Search Controls */}
+                <div className="space-y-4 pt-1">
+                    <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
+                        <div className="flex w-max gap-2 pb-1 sm:w-auto sm:flex-wrap">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setFilter(tab.key)}
+                                    className={cn(
+                                        'rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs',
+                                        filter === tab.key
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-2 ring-blue-600/20'
+                                            : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80',
+                                    )}
+                                >
+                                    <span>{tab.label}</span>
+                                    <span className={cn(
+                                        'rounded-md px-1.5 py-0.5 text-[10px] font-black',
+                                        filter === tab.key ? 'bg-blue-700/60 text-white' : 'bg-slate-200/70 text-slate-700'
+                                    )}>
+                                        {counts[tab.key] ?? 0}
                                     </span>
-                                )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                className="pl-10 bg-white text-xs h-11 border-slate-200 focus:bg-white transition-colors rounded-xl shadow-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                                placeholder="Search missions by ID, title, location, or assignee…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                        <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-slate-200 bg-white rounded-xl shadow-none hover:bg-slate-50 cursor-pointer">
+                            <Filter className="h-4 w-4 text-slate-600" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Main Data Table Section */}
+                <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <span>Showing <strong className="text-slate-900">{filtered.length}</strong> of <strong className="text-slate-900">{missions.length}</strong> active missions</span>
+                        <span className="text-[11px] text-slate-400 font-normal normal-case">Live updates enabled</span>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                        <MissionQueueTable missions={filtered} onOpenAssign={canModify ? openAssignModal : undefined} />
+                    </div>
+                </section>
+            </div>
+
+            {/* Assignment Modal */}
+            {selectedMission && canModify && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                                    Dispatch Desk
+                                </span>
+                                <h3 className="text-lg font-black text-slate-900 mt-1">Manage Personnel Assignments</h3>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[280px]">{selectedMission.concern_title}</p>
                             </div>
-                            <button onClick={closeModal} className="rounded-full p-1.5 hover:bg-slate-100 cursor-pointer">
-                                <X className="h-4 w-4 text-slate-500" />
+                            <button onClick={closeModal} className="rounded-full p-2 hover:bg-slate-100 transition-colors cursor-pointer text-slate-400 hover:text-slate-700">
+                                <X className="h-5 w-5" />
                             </button>
                         </div>
 
                         <form onSubmit={submitAssignment} className="space-y-4">
-                            <div>
-                                <label htmlFor="mission-due-date" className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700">Statutory Due Date</label>
-                                <Input
-                                    id="mission-due-date"
-                                    type="date"
-                                    value={data.due_date}
-                                    max={selectedMission.max_due_date}
-                                    onChange={(e) => setData('due_date', e.target.value)}
-                                    required
-                                    className="bg-white"
-                                />
-                                <p className="mt-1 text-[11px] text-slate-500">RA 11032 limit: {selectedMission.max_due_date}</p>
-                                {errors.due_date && <p className="mt-1 text-xs font-medium text-red-600">{errors.due_date}</p>}
+                            <div className="space-y-1.5">
+                                <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Statutory Due Date
+                                </label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        id="mission-due-date"
+                                        type="date"
+                                        value={data.due_date}
+                                        max={selectedMission.max_due_date}
+                                        onChange={(e) => setData('due_date', e.target.value)}
+                                        required
+                                        className="pl-10 bg-white text-xs h-11 border-slate-200 rounded-xl shadow-none"
+                                    />
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium">RA 11032 statutory limit: {selectedMission.max_due_date}</p>
+                                {errors.due_date && <p className="text-xs font-semibold text-red-600">{errors.due_date}</p>}
                             </div>
-                            <div>
-                                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div className="space-y-2">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <label className="text-xs font-black uppercase tracking-wider text-slate-700">Select Units (Multiple allowed)</label>
                                     <select
                                         aria-label="Filter personnel by category"
                                         value={personnelCategoryFilter}
                                         onChange={(e) => setPersonnelCategoryFilter(e.target.value)}
-                                        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 cursor-pointer"
+                                        className="h-8 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 cursor-pointer shadow-none"
                                     >
                                         <option value="all">All Categories</option>
                                         {categories.map((category) => (
@@ -247,20 +266,26 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                         ))}
                                     </select>
                                 </div>
-                                <div className="min-h-[6rem] max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-3">
+                                
+                                <div className="min-h-[7rem] max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-3 shadow-inner">
                                     {personnel.length === 0 ? (
-                                        <p className="text-xs text-muted-foreground text-center py-4">No active municipal personnel found.</p>
+                                        <p className="text-xs text-muted-foreground text-center py-6">No active municipal personnel found.</p>
                                     ) : (
                                         <>
                                             {groupedPersonnel
                                                 .filter((group) => personnelCategoryFilter === 'all' || group.category === personnelCategoryFilter)
                                                 .map((group) => (
                                                     <div key={group.category} className="space-y-1.5">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
                                                             {group.category}
                                                         </p>
                                                         {group.members.length > 0 ? group.members.map((p) => (
-                                                            <label key={p.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2 text-xs font-bold text-slate-800 bg-white border border-slate-200/80 hover:border-blue-300 transition-colors shadow-2xs">
+                                                            <label key={p.id} className={cn(
+                                                                "flex cursor-pointer items-center gap-3 rounded-xl p-2.5 text-xs font-bold transition-all border shadow-2xs",
+                                                                data.personnel_ids.includes(p.id)
+                                                                    ? "bg-blue-50 border-blue-300 text-blue-950 shadow-xs"
+                                                                    : "bg-white border-slate-200/80 text-slate-800 hover:border-slate-300"
+                                                            )}>
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={data.personnel_ids.includes(p.id)}
@@ -270,21 +295,21 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                                                 <span>{p.name}</span>
                                                             </label>
                                                         )) : (
-                                                            <p className="text-[11px] text-muted-foreground italic pl-1">No active personnel in this unit.</p>
+                                                            <p className="text-[11px] text-muted-foreground italic pl-2">No active personnel in this unit.</p>
                                                         )}
                                                     </div>
                                                 ))}
                                         </>
                                     )}
                                 </div>
-                                {errors.personnel_ids && <p className="mt-1 text-xs font-medium text-red-600">{errors.personnel_ids}</p>}
+                                {errors.personnel_ids && <p className="text-xs font-semibold text-red-600">{errors.personnel_ids}</p>}
                             </div>
 
                             <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
-                                <Button type="button" variant="outline" onClick={closeModal} className="cursor-pointer font-bold text-xs">
+                                <Button type="button" variant="outline" onClick={closeModal} className="cursor-pointer font-bold text-xs rounded-xl h-10 px-4">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={processing} className="bg-blue-700 text-white hover:bg-blue-800 cursor-pointer font-bold text-xs shadow-sm">
+                                <Button type="submit" disabled={processing} className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-bold text-xs rounded-xl h-10 px-5 shadow-sm">
                                     {processing ? 'Saving...' : 'Confirm Assignment'}
                                 </Button>
                             </div>

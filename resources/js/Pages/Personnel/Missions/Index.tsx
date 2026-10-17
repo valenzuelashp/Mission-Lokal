@@ -46,50 +46,51 @@ export default function Index({ missions = [], counts = { all: 0, active: 0, in_
             <Head title="My Field Missions" />
 
             {flash.success && (
-                <div className="mb-6 flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-xs font-bold text-emerald-900 shadow-2xs">
-                    <AlertCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
+                    <AlertCircle className="h-5 w-5 shrink-0 text-emerald-600" />
                     {flash.success}
                 </div>
             )}
 
-            <div className="mb-6">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Assigned Field Missions</h2>
-                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+            <div className="space-y-1">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Assigned Field Missions</h2>
+                <p className="text-xs sm:text-sm font-medium text-slate-500 leading-relaxed">
                     Active operational deployments — acknowledge tasks, update progress checklists, and upload proof.
                 </p>
             </div>
 
             {overdue > 0 && (
-                <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-3.5 text-xs font-bold text-red-900 shadow-2xs">
-                    ⚠️ <strong className="font-black">{overdue}</strong> mission{overdue > 1 ? 's' : ''} currently overdue for completion. Immediate action required.
+                <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-xs font-bold text-rose-900 shadow-2xs">
+                    <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
+                    <p className="leading-relaxed"><strong className="font-black">{overdue}</strong> mission{overdue > 1 ? 's' : ''} currently overdue for completion. Immediate action required.</p>
                 </div>
             )}
 
-            <div className="mb-5 -mx-3 overflow-x-auto px-3 sm:mx-0 sm:overflow-visible sm:px-0">
+            <div className="overflow-x-auto pb-2">
                 <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setFilter(tab.key)}
-                        className={cn(
-                            'rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-2xs cursor-pointer',
-                            filter === tab.key
-                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200',
-                        )}
-                    >
-                        {tab.label}
-                        <span className="ml-1.5 text-[10px] opacity-80">
-                            ({counts[tab.key as keyof typeof counts] ?? 0})
-                        </span>
-                    </button>
-                ))}
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() => setFilter(tab.key)}
+                            className={cn(
+                                'rounded-2xl px-4 py-2.5 text-xs font-black transition-all shadow-2xs cursor-pointer border',
+                                filter === tab.key
+                                    ? 'bg-blue-700 text-white shadow-md shadow-blue-700/20 border-blue-700'
+                                    : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200',
+                            )}
+                        >
+                            {tab.label}
+                            <span className="ml-2 text-[10px] opacity-85 font-mono">
+                                ({counts[tab.key as keyof typeof counts] ?? 0})
+                            </span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
-                <div className="mb-4 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8 w-full space-y-4">
+                <div className="flex items-center justify-between text-xs font-black text-slate-400 uppercase tracking-wider pb-3 border-b border-slate-100">
                     <span>Showing {filtered.length} of {missions.length} assigned missions</span>
                 </div>
 

@@ -16,7 +16,7 @@ export default function BufferedImage({ className, imgClassName, alt = '', src, 
     }, [src]);
 
     return (
-        <div className={cn('relative overflow-hidden rounded-xl border', theme.cardBorder, theme.inputBg, className)}>
+        <div className={cn('relative overflow-hidden rounded-2xl border', theme.cardBorder, theme.inputBg, className)}>
             {status !== 'ready' && (
                 <div className={cn('pointer-events-none absolute inset-0 animate-pulse opacity-40', theme.primaryBg)} aria-hidden />
             )}

@@ -25,15 +25,15 @@ export default function ConcernVoteButtons({ concernId, upvotes, downvotes, user
     };
 
     return (
-        <div className={cn('flex items-center gap-3', compact ? '' : `rounded-xl ${theme.inputBg} p-2 border ${theme.cardBorder}`)}>
-            <div className="flex items-center gap-1.5">
+        <div className={cn('flex items-center gap-4', compact ? '' : `rounded-2xl ${theme.inputBg} p-3 border ${theme.cardBorder}`)}>
+            <div className="flex items-center gap-2">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className={cn(
-                        'gap-1.5 font-bold transition-colors cursor-pointer',
-                        userVote === 'up' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : `${theme.textMuted} hover:opacity-100`,
+                        'gap-2 font-black transition-colors cursor-pointer rounded-xl h-9 px-3.5',
+                        userVote === 'up' ? `${theme.primaryBg} text-white shadow-2xs` : `${theme.textMuted} hover:opacity-100`,
                     )}
                     onClick={() => cast('up')}
                 >
@@ -45,21 +45,21 @@ export default function ConcernVoteButtons({ concernId, upvotes, downvotes, user
                 </span>
             </div>
             
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className={cn(
-                        'gap-1.5 font-bold transition-colors cursor-pointer',
-                        userVote === 'down' ? 'bg-red-100 text-red-700 hover:bg-red-200' : `${theme.textMuted} hover:opacity-100`,
+                        'gap-2 font-black transition-colors cursor-pointer rounded-xl h-9 px-3.5',
+                        userVote === 'down' ? 'bg-rose-600 text-white shadow-2xs' : `${theme.textMuted} hover:opacity-100`,
                     )}
                     onClick={() => cast('down')}
                 >
                     <ThumbsDown className={cn('h-4 w-4', userVote === 'down' && 'fill-current')} />
                     {!compact && 'Downvote'}
                 </Button>
-                <span className={cn('min-w-[1.25rem] text-xs font-black tabular-nums', downvotes > 0 ? 'text-red-600' : theme.textMuted)}>
+                <span className={cn('min-w-[1.25rem] text-xs font-black tabular-nums', downvotes > 0 ? 'text-rose-600' : theme.textMuted)}>
                     {downvotes}
                 </span>
             </div>

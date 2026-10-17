@@ -1,5 +1,5 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, Command } from 'lucide-react';
-import { PropsWithChildren, useState } from 'react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
 import { Badge } from '@/Components/ui/badge';
@@ -9,21 +9,70 @@ import { useActivePath } from '@/Hooks/useActivePath';
 import type { PageProps } from '@/Types';
 import FlashToasts from '@/Components/shared/FlashToasts';
 
-const nav = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-    { href: '/admin/reports', label: 'Report queue', icon: FileText },
-    { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
-    { href: '/admin/personnel', label: 'Personnel', icon: Users },
-    { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
-    { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
-    { href: '/admin/map', label: 'Map operations', icon: Map },
-    { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-    { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
-    { href: '/admin/library', label: 'Library', icon: BookOpen },
-    { href: '/admin/residents', label: 'Residents', icon: Users },
-    { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },
-    { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
-    { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+interface NavItem {
+    href: string;
+    label: string;
+    icon: any;
+    exact?: boolean;
+}
+
+interface NavSection {
+    id: string;
+    title: string;
+    icon: any;
+    items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+    {
+        id: 'overview',
+        title: 'Overview',
+        icon: LayoutDashboard,
+        items: [
+            { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+            { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+        ],
+    },
+    {
+        id: 'operations',
+        title: 'Operations',
+        icon: ShieldAlert,
+        items: [
+            { href: '/admin/reports', label: 'Report queue', icon: FileText },
+            { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
+            { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
+            { href: '/admin/map', label: 'Map operations', icon: Map },
+        ],
+    },
+    {
+        id: 'users',
+        title: 'Users',
+        icon: Users,
+        items: [
+            { href: '/admin/personnel', label: 'Personnel', icon: Users },
+            { href: '/admin/residents', label: 'Residents', icon: Users },
+            { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
+            { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },
+        ],
+    },
+    {
+        id: 'communications',
+        title: 'Communications',
+        icon: Megaphone,
+        items: [
+            { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+            { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
+            { href: '/admin/library', label: 'Library', icon: BookOpen },
+        ],
+    },
+    {
+        id: 'system',
+        title: 'System',
+        icon: ShieldCheck,
+        items: [
+            { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
+        ],
+    },
 ];
 
 type Props = PropsWithChildren<{
@@ -34,6 +83,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { isActive } = useActivePath();
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
     
     const { 
         unread_count, 
@@ -66,124 +116,271 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
         return isActive(href);
     };
 
-    const sidebar = (
-        <div className="flex h-full flex-col bg-[#f0f6fc] text-slate-700 border-r border-sky-100/90 shadow-[1px_0_6px_rgba(56,189,248,0.05)]">
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        const initialOpenState: Record<string, boolean> = {};
+        navSections.forEach(section => {
+            const hasActiveChild = section.items.some(item => active(item.href, item.exact));
+            if (hasActiveChild) {
+                initialOpenState[section.id] = true;
+            }
+        });
+        setOpenSections(prev => ({ ...initialOpenState, ...prev }));
+    }, []);
+
+    const toggleSection = (id: string) => {
+        setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const getItemBadgeCount = (href: string) => {
+        if (href.includes('reports')) return pendingReports;
+        if (href.includes('missions')) return pendingMissions;
+        if (href.includes('verifications')) return pendingRegistrations;
+        if (href.includes('blotters')) return pendingBlotters;
+        if (href.includes('map')) return pendingMapAlerts;
+        if (href.includes('profile-edits')) return pendingProfileEdits;
+        if (href.includes('notifications')) return unread;
+        return 0;
+    };
+
+    const getSectionBadgeCount = (section: NavSection) => {
+        return section.items.reduce((acc, item) => acc + getItemBadgeCount(item.href), 0);
+    };
+
+    const renderBadge = (href: string, isActiveLink: boolean) => {
+        const count = getItemBadgeCount(href);
+        if (count <= 0) return null;
+
+        let badgeStyle = 'bg-sky-100 text-sky-800 border-sky-200';
+        if (href.includes('reports') || href.includes('map')) badgeStyle = 'bg-rose-100 text-rose-700 border-rose-200';
+        if (href.includes('missions')) badgeStyle = 'bg-amber-100 text-amber-700 border-amber-200';
+        if (href.includes('blotters')) badgeStyle = 'bg-indigo-100 text-indigo-700 border-indigo-200';
+
+        return (
+            <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : badgeStyle)}>
+                {count > 99 ? '99+' : count}
+            </Badge>
+        );
+    };
+
+    const sidebarContent = (isMobile = false) => (
+        <div className={cn(
+            "flex h-full flex-col bg-[#f0f6fc] text-slate-700 border-r border-sky-100/90 shadow-[1px_0_6px_rgba(56,189,248,0.05)] transition-all duration-300 relative overflow-visible",
+            !isMobile && collapsed ? "w-20" : "w-64"
+        )}>
+            {/* Collapse Toggle Button */}
+            {!isMobile && (
+                <button
+                    type="button"
+                    onClick={() => setCollapsed(!collapsed)}
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    className="absolute -right-3.5 top-[6.50rem] -translate-y-1/2 hidden h-7 w-7 items-center justify-center rounded-full bg-sky-500 text-white shadow-md hover:bg-sky-600 lg:flex z-30 cursor-pointer transition-transform hover:scale-105"
+                >
+                    {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                </button>
+            )}
+
             {/* Header / Brand */}
-            <div className="flex items-center gap-3 border-b border-sky-100/90 px-6 py-5 bg-white/70 backdrop-blur-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/20">
-                    <Command className="h-5 w-5" />
-                </div>
-                <div>
-                    <p className="text-base font-black tracking-tight text-slate-900">MISSION-LOKAL</p>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-sky-600">Command Core</p>
+            <div className={cn(
+                "flex items-center shrink-0 border-b border-sky-100/90 py-4 bg-white/70 backdrop-blur-xs",
+                !isMobile && collapsed ? "justify-center px-3" : "justify-between px-5"
+            )}>
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm border border-sky-100">
+                        <img 
+                            src="/images/barangay-tambo-logo.png" 
+                            alt="Barangay Tambo Logo" 
+                            className="h-full w-full object-contain"
+                        />
+                    </div>
+                    {(!collapsed || isMobile) && (
+                        <div className="min-w-0 overflow-hidden">
+                            <p className="text-base font-black tracking-tight text-slate-900 truncate">MISSION-LOKAL</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-sky-600 truncate">Command Core</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Profile Pill */}
-            <div className="border-b border-sky-100/80 bg-white/40 px-5 py-3.5">
-                <div className="flex items-center gap-3">
+            <div className={cn(
+                "shrink-0 border-b border-sky-100/80 bg-white/40 py-3.5",
+                !isMobile && collapsed ? "px-3 flex justify-center" : "px-5"
+            )}>
+                {(!collapsed || isMobile) ? (
+                    <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700 font-bold text-sm border border-sky-200/80 shadow-2xs">
+                                {user?.first_name?.[0] ?? 'A'}
+                            </div>
+                            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-bold text-slate-800">
+                                {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Administrator'}
+                            </p>
+                            <p className="font-mono text-[10px] tracking-wider text-sky-700/70 uppercase truncate">
+                                {user?.account_id ?? 'CMD-001'}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
                     <div className="relative">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700 font-bold text-sm border border-sky-200/80 shadow-2xs">
                             {user?.first_name?.[0] ?? 'A'}
                         </div>
                         <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold text-slate-800">
-                            {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Administrator'}
-                        </p>
-                        <p className="font-mono text-[10px] tracking-wider text-sky-700/70 uppercase">
-                            {user?.account_id ?? 'CMD-001'}
-                        </p>
-                    </div>
-                </div>
+                )}
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 custom-scrollbar">
-                <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-wider text-sky-800/60">
-                    Operations
-                </div>
-                {nav.map((item) => {
-                    const isActiveLink = active(item.href, item.exact);
+            {/* Navigation Accordion - Scrollable Area */}
+            <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 admin-sidebar-scrollbar">
+                {navSections.map((section) => {
+                    const isSectionOpen = !!openSections[section.id];
+                    const hasActiveChild = section.items.some(item => active(item.href, item.exact));
+                    const sectionBadgeCount = getSectionBadgeCount(section);
+
+                    if (!isMobile && collapsed) {
+                        return (
+                            <div key={section.id} className="space-y-1">
+                                {section.items.map((item) => {
+                                    const isActiveLink = active(item.href, item.exact);
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            title={item.label}
+                                            className={cn(
+                                                'group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all duration-150',
+                                                isActiveLink
+                                                    ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                                                    : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                                            )}
+                                        >
+                                            <item.icon className={cn('h-4 w-4 shrink-0', isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700')} />
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        );
+                    }
+
                     return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setMobileOpen(false)}
-                            className={cn(
-                                'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-150',
-                                isActiveLink
-                                    ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
-                                    : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
-                            )}
-                        >
-                            <item.icon 
+                        <div key={section.id} className="space-y-1">
+                            {/* Main Dropdown Header */}
+                            <button
+                                type="button"
+                                onClick={() => toggleSection(section.id)}
                                 className={cn(
-                                    'h-4 w-4 shrink-0 transition-colors', 
-                                    isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700'
-                                )} 
-                            />
-                            <span className="truncate">{item.label}</span>
-                            
-                            {item.href.includes('reports') && pendingReports > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-rose-100 text-rose-700 border-rose-200')}>
-                                    {pendingReports > 99 ? '99+' : pendingReports}
-                                </Badge>
+                                    'group flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-150 cursor-pointer',
+                                    hasActiveChild
+                                        ? 'bg-white/90 text-sky-900 font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:bg-white/80 hover:text-sky-900'
+                                )}
+                            >
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <section.icon className={cn('h-4 w-4 shrink-0 transition-colors', hasActiveChild ? 'text-sky-600' : 'text-sky-600/70 group-hover:text-sky-700')} />
+                                    <span className="truncate">{section.title}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {!isSectionOpen && sectionBadgeCount > 0 && (
+                                        <Badge className="h-4 min-w-4 justify-center text-[9px] font-bold px-1 bg-rose-500 text-white">
+                                            {sectionBadgeCount > 99 ? '99+' : sectionBadgeCount}
+                                        </Badge>
+                                    )}
+                                    {isSectionOpen ? (
+                                        <ChevronDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-sky-700 transition-transform" />
+                                    ) : (
+                                        <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-sky-700 transition-transform" />
+                                    )}
+                                </div>
+                            </button>
+
+                            {/* Subtabs / Dropdown Content */}
+                            {isSectionOpen && (
+                                <div className="pl-3.5 space-y-1 pt-0.5 border-l-2 border-sky-200/80 ml-4">
+                                    {section.items.map((item) => {
+                                        const isActiveLink = active(item.href, item.exact);
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => isMobile && setMobileOpen(false)}
+                                                className={cn(
+                                                    'group flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-150',
+                                                    isActiveLink
+                                                        ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                                                        : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                                                )}
+                                            >
+                                                <item.icon 
+                                                    className={cn(
+                                                        'h-4 w-4 shrink-0 transition-colors', 
+                                                        isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700'
+                                                    )} 
+                                                />
+                                                <span className="truncate">{item.label}</span>
+                                                {renderBadge(item.href, isActiveLink)}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
                             )}
-                            {item.href.includes('missions') && pendingMissions > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-amber-100 text-amber-700 border-amber-200')}>
-                                    {pendingMissions > 99 ? '99+' : pendingMissions}
-                                </Badge>
-                            )}
-                            {item.href.includes('verifications') && pendingRegistrations > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-sky-100 text-sky-800 border-sky-200')}>
-                                    {pendingRegistrations > 99 ? '99+' : pendingRegistrations}
-                                </Badge>
-                            )}
-                            {item.href.includes('blotters') && pendingBlotters > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-indigo-100 text-indigo-700 border-indigo-200')}>
-                                    {pendingBlotters > 99 ? '99+' : pendingBlotters}
-                                </Badge>
-                            )}
-                            {item.href.includes('map') && pendingMapAlerts > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-rose-100 text-rose-700 border-rose-200')}>
-                                    {pendingMapAlerts > 99 ? '99+' : pendingMapAlerts}
-                                </Badge>
-                            )}
-                            {item.href.includes('profile-edits') && pendingProfileEdits > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-sky-100 text-sky-800 border-sky-200')}>
-                                    {pendingProfileEdits > 99 ? '99+' : pendingProfileEdits}
-                                </Badge>
-                            )}
-                            {item.href.includes('notifications') && unread > 0 && (
-                                <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : 'bg-sky-200 text-sky-900 border-sky-300')}>
-                                    {unread > 99 ? '99+' : unread}
-                                </Badge>
-                            )}
-                        </Link>
+                        </div>
                     );
                 })}
             </nav>
 
-            {/* Logout Footer */}
-            <div className="border-t border-sky-100/80 p-3 bg-white/40">
+            {/* Logout Footer - Permanently Pinned at Bottom */}
+            <div className="shrink-0 border-t border-sky-100/80 p-3 bg-white/40">
                 <button
                     type="button"
                     onClick={() => router.post('/logout')}
-                    className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                    className={cn(
+                        "flex w-full items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer",
+                        !isMobile && collapsed ? "justify-center px-2" : ""
+                    )}
+                    title={!isMobile && collapsed ? "Logout" : undefined}
                 >
-                    <LogOut className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-rose-500" />
-                    <span>Logout</span>
+                    <LogOut className="h-4 w-4 shrink-0 text-slate-400" />
+                    {(!collapsed || isMobile) && <span>Logout</span>}
                 </button>
             </div>
         </div>
     );
 
     return (
-        <div className="flex min-h-screen bg-[#f8fafc] text-slate-900">
+        <div className="flex h-screen overflow-hidden bg-[#f8fafc] text-slate-900">
+            <style>{`
+                .admin-sidebar-scrollbar::-webkit-scrollbar {
+                    width: 5px;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(224, 242, 254, 0.4);
+                    border-radius: 9999px;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+                    background: #38bdf8;
+                    border-radius: 9999px;
+                }
+                .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #0284c7;
+                }
+                .admin-sidebar-scrollbar {
+                    scrollbar-width: thin;
+                    scrollbar-color: #38bdf8 rgba(224, 242, 254, 0.4);
+                }
+            `}</style>
+
             <FlashToasts />
-            <aside className="hidden w-64 shrink-0 flex-col lg:flex">{sidebar}</aside>
+            <aside className={cn(
+                "hidden h-full shrink-0 flex-col lg:flex transition-all duration-300 overflow-visible z-20",
+                collapsed ? "w-20" : "w-64"
+            )}>
+                {sidebarContent(false)}
+            </aside>
 
             {mobileOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
@@ -193,13 +390,15 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         aria-label="Close menu"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <aside className="relative flex h-full w-64 flex-col z-10">{sidebar}</aside>
+                    <aside className="relative flex h-full w-64 flex-col z-10">
+                        {sidebarContent(true)}
+                    </aside>
                 </div>
             )}
 
-            <div className="flex min-w-0 flex-1 flex-col bg-white">
+            <div className="flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden">
                 <AdminTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
             </div>
         </div>
     );

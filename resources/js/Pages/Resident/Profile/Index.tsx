@@ -42,7 +42,7 @@ export default function ProfileIndex({ profile }: { profile: any }) {
     const isVerifiedUser = statusKey === 'approved';
 
     const rightAside = (
-        <>
+        <div className="space-y-6">
             <DigitalIdCard
                 fullName={activeProfile.full_name}
                 accountId={user.account_id}
@@ -50,12 +50,12 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                 memberSince={activeProfile.member_since}
                 isVerified={isVerifiedUser}
             />
-            <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
-                <CardHeader className={`pb-3 border-b ${theme.dividerColor}`}>
+            <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                <CardHeader className={`pb-4 border-b ${theme.dividerColor}`}>
                     <CardTitle className={`text-xs font-black uppercase tracking-wider ${theme.textMain}`}>Account Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-2.5 pt-4">
-                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg}`} disabled={isPendingEdit} asChild={!isPendingEdit}>
+                <CardContent className="flex flex-col gap-3 pt-5">
+                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} disabled={isPendingEdit} asChild={!isPendingEdit}>
                         {isPendingEdit ? (
                             <>
                                 <Pencil className={`mr-2 h-4 w-4 ${theme.textMuted}`} />
@@ -68,110 +68,114 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                             </Link>
                         )}
                     </Button>
-                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg}`} asChild>
+                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
                         <Link href="/profile/security">
                             <Lock className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
                             Security Password Settings
                         </Link>
                     </Button>
-                    <div className={`pt-2 border-t ${theme.dividerColor}`}>
-                        <ResidentLogoutButton variant="outline" className="w-full text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50" />
+                    <div className={`pt-3 border-t ${theme.dividerColor}`}>
+                        <ResidentLogoutButton variant="outline" className="w-full text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 rounded-2xl h-11" />
                     </div>
                 </CardContent>
             </Card>
-        </>
+        </div>
     );
 
     return (
         <ResidentLayout wide>
             <Head title="Resident Profile" />
 
-            {isPendingEdit && (
-                <div className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3.5 text-xs font-bold text-amber-900 shadow-2xs animate-pulse">
-                    <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
-                    <p className="leading-relaxed">
-                        You have pending profile modifications currently awaiting administrative review. Account editing is temporarily locked.
-                    </p>
-                </div>
-            )}
-
-            <ResidentSocialShell right={rightAside}>
-                <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
-                    <CardContent className="p-6">
-                        <h1 className={`text-2xl font-black ${theme.textMain} tracking-tight`}>Resident Profile Dashboard</h1>
-                        <p className={`mt-1 text-xs sm:text-sm font-medium ${theme.textMuted}`}>
-                            Official municipal account details, cryptographic digital ID, and civic participation metrics.
+            <div className="w-full space-y-6 pb-16">
+                {isPendingEdit && (
+                    <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-xs font-bold text-amber-900 shadow-2xs animate-pulse">
+                        <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+                        <p className="leading-relaxed">
+                            You have pending profile modifications currently awaiting administrative review. Account editing is temporarily locked.
                         </p>
-                    </CardContent>
-                </Card>
+                    </div>
+                )}
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                    <StatCard label="Civic XP Score" value={user.civic_xp ?? 50} icon={Award} hint="Earned from verified reports" />
-                    <StatCard label="Total Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Community submissions" />
-                    <StatCard label="Verification Status" value={status.label} icon={Shield} hint={`State: ${statusKey}`} />
-                </div>
+                <ResidentSocialShell right={rightAside}>
+                    <div className="space-y-6 w-full">
+                        <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                            <CardContent className="p-6 sm:p-8">
+                                <h1 className={`text-2xl sm:text-3xl font-black ${theme.textMain} tracking-tight`}>Resident Profile Dashboard</h1>
+                                <p className={`mt-2 text-xs sm:text-sm font-medium ${theme.textMuted} leading-relaxed`}>
+                                    Official municipal account details, cryptographic digital ID, and civic participation metrics.
+                                </p>
+                            </CardContent>
+                        </Card>
 
-                <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
-                    <CardHeader className={`flex flex-row items-center justify-between pb-3 border-b ${theme.dividerColor}`}>
-                        <CardTitle className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Official Resident Details</CardTitle>
-                        <Badge variant={status.variant} className="font-bold">{status.label}</Badge>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <dl className="grid gap-4 sm:grid-cols-2 text-xs">
-                            <div>
-                                <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
-                                    Full Registered Name
-                                </dt>
-                                <dd className={`mt-1 font-bold ${theme.textMain} text-sm`}>{activeProfile.full_name}</dd>
-                            </div>
-                            <div>
-                                <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
-                                    Date of Birth
-                                </dt>
-                                <dd className={`mt-1 font-bold ${theme.textMain} text-sm`}>{activeProfile.birthday}</dd>
-                            </div>
-                            <div className="sm:col-span-2">
-                                <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
-                                    Physical Address
-                                </dt>
-                                <dd className={`mt-1 font-bold ${theme.textMain} text-sm`}>{activeProfile.address}</dd>
-                            </div>
-                            <div>
-                                <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
-                                    Email Address
-                                </dt>
-                                <dd className={`mt-1 font-bold ${theme.textMain} font-mono text-xs`}>{profile?.email ?? user.email}</dd>
-                            </div>
-                            <div>
-                                <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
-                                    Mobile Number
-                                </dt>
-                                <dd className={`mt-1 font-bold ${theme.textMain} font-mono text-xs`}>{profile?.mobile ?? (user.mobile ?? '—')}</dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                        <div className="grid gap-5 sm:grid-cols-3">
+                            <StatCard label="Civic XP Score" value={user.civic_xp ?? 50} icon={Award} hint="Earned from verified reports" />
+                            <StatCard label="Total Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Community submissions" />
+                            <StatCard label="Verification Status" value={status.label} icon={Shield} hint={`State: ${statusKey}`} />
+                        </div>
 
-                <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
-                    <CardHeader className={`pb-3 border-b ${theme.dividerColor}`}>
-                        <CardTitle className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Civic Badges & Achievements</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        {activeProfile.badges.length === 0 ? (
-                            <p className={`text-xs ${theme.textMuted} font-medium`}>Submit valid community concerns to unlock achievement badges.</p>
-                        ) : (
-                            <div className="flex flex-wrap gap-2">
-                                {activeProfile.badges.map((badge: any) => (
-                                    <Badge key={badge.id} variant="outline" className={`gap-1.5 py-1.5 px-3 font-bold ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}>
-                                        <Award className={`h-3.5 w-3.5 ${theme.primaryText}`} />
-                                        {badge.name}
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </ResidentSocialShell>
+                        <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                            <CardHeader className={`flex flex-row items-center justify-between pb-4 border-b ${theme.dividerColor}`}>
+                                <CardTitle className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Official Resident Details</CardTitle>
+                                <Badge variant={status.variant} className="font-bold px-3 py-1 rounded-xl">{status.label}</Badge>
+                            </CardHeader>
+                            <CardContent className="p-6 sm:p-8">
+                                <dl className="grid gap-6 sm:grid-cols-2 text-xs">
+                                    <div>
+                                        <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
+                                            Full Registered Name
+                                        </dt>
+                                        <dd className={`mt-1 font-black ${theme.textMain} text-sm sm:text-base`}>{activeProfile.full_name}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
+                                            Date of Birth
+                                        </dt>
+                                        <dd className={`mt-1 font-black ${theme.textMain} text-sm sm:text-base`}>{activeProfile.birthday}</dd>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
+                                            Physical Address
+                                        </dt>
+                                        <dd className={`mt-1 font-black ${theme.textMain} text-sm sm:text-base`}>{activeProfile.address}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
+                                            Email Address
+                                        </dt>
+                                        <dd className={`mt-1 font-bold ${theme.textMain} font-mono text-xs sm:text-sm`}>{profile?.email ?? user.email}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className={`font-black uppercase tracking-wider ${theme.textMuted}`}>
+                                            Mobile Number
+                                        </dt>
+                                        <dd className={`mt-1 font-bold ${theme.textMain} font-mono text-xs sm:text-sm`}>{profile?.mobile ?? (user.mobile ?? '—')}</dd>
+                                    </div>
+                                </dl>
+                            </CardContent>
+                        </Card>
+
+                        <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                            <CardHeader className={`pb-4 border-b ${theme.dividerColor}`}>
+                                <CardTitle className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Civic Badges & Achievements</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6 sm:p-8">
+                                {activeProfile.badges.length === 0 ? (
+                                    <p className={`text-xs ${theme.textMuted} font-semibold`}>Submit valid community concerns to unlock achievement badges.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {activeProfile.badges.map((badge: any) => (
+                                            <Badge key={badge.id} variant="outline" className={`gap-2 py-2 px-3.5 font-bold ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} rounded-xl shadow-2xs`}>
+                                                <Award className={`h-4 w-4 ${theme.primaryText}`} />
+                                                {badge.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </ResidentSocialShell>
+            </div>
         </ResidentLayout>
     );
 }

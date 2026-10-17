@@ -13,18 +13,18 @@ type Props = {
 
 export default function KpiCard({ label, value, icon: Icon, hint, trend, iconClassName }: Props) {
     return (
-        <Card className="shadow-xs border-slate-200/80 bg-white hover:border-blue-300 transition-all duration-200">
-            <CardContent className="p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-3">
+        <Card className="shadow-2xs border-slate-200/80 bg-white rounded-3xl hover:border-blue-300 transition-all duration-200 overflow-hidden">
+            <CardContent className="p-6 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-black uppercase tracking-widest text-slate-500">
+                        <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-400">
                             {label}
                         </p>
-                        <p className="mt-2 text-2xl font-black text-slate-900 tracking-tight sm:text-3xl">{value}</p>
+                        <p className="mt-2 text-3xl font-black text-slate-900 tracking-tight sm:text-4xl">{value}</p>
                         {trend && (
                             <p
                                 className={cn(
-                                    'mt-2 hidden items-center gap-1.5 text-xs font-bold sm:flex',
+                                    'mt-2.5 hidden items-center gap-1.5 text-xs font-bold sm:flex',
                                     trend.positive ? 'text-emerald-600' : 'text-rose-600',
                                 )}
                             >
@@ -37,16 +37,16 @@ export default function KpiCard({ label, value, icon: Icon, hint, trend, iconCla
                             </p>
                         )}
                         {hint && !trend && (
-                            <p className="mt-1.5 hidden truncate text-xs text-muted-foreground font-medium sm:block">{hint}</p>
+                            <p className="mt-2 hidden truncate text-xs text-slate-400 font-medium sm:block">{hint}</p>
                         )}
                     </div>
                     <div
                         className={cn(
-                            'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs',
+                            'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs',
                             iconClassName,
                         )}
                     >
-                        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
                     </div>
                 </div>
             </CardContent>

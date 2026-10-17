@@ -17,30 +17,30 @@ export default function ResidentHeader() {
     const initials = user?.first_name?.[0] ?? user?.account_id?.slice(0, 2) ?? 'R';
 
     return (
-        <header className={`sticky top-0 z-50 border-b ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md shadow-2xs`}>
-            <div className="flex h-14 w-full min-w-0 items-center gap-1.5 px-3 sm:h-16 sm:gap-3 sm:px-4 xl:px-8">
-                <Link href="/feed" className="flex shrink-0 items-center gap-2.5 group">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-2xl sm:h-10 sm:w-10 ${theme.primaryBg} text-sm font-black text-white shadow-md group-hover:scale-105 transition-transform`}>
+        <header className={`sticky top-0 z-50 border-b ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md shadow-2xs w-full`}>
+            <div className="flex h-16 w-full min-w-0 items-center gap-2 px-4 sm:gap-4 sm:px-6 xl:px-10">
+                <Link href="/feed" className="flex shrink-0 items-center gap-3 group">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${theme.primaryBg} text-sm font-black text-white shadow-md group-hover:scale-105 transition-transform`}>
                         ML
                     </div>
                     <span className={`hidden font-black tracking-tight text-base md:inline ${theme.textMain}`}>MISSION-LOKAL</span>
                 </Link>
 
-                <div className="relative hidden max-w-sm flex-1 md:block">
-                    <Search className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 ${theme.textMuted}`} />
+                <div className="relative hidden max-w-md flex-1 md:block">
+                    <Search className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${theme.textMuted}`} />
                     <Input
-                        className={`h-10 rounded-xl pl-10 text-xs font-medium ${theme.inputBg} ${theme.inputBorder} ${theme.inputText}`}
+                        className={`h-11 rounded-2xl pl-11 text-xs font-bold ${theme.inputBg} ${theme.cardBorder} ${theme.textMain} shadow-2xs`}
                         placeholder="Search community concerns…"
                         readOnly
                     />
                 </div>
 
-                <div className="ml-auto flex min-w-0 items-center gap-0.5 sm:gap-2">
+                <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-3">
                     <ThemePickerModal />
 
                     <Link
                         href="/calendar"
-                        className={`hidden h-10 w-10 items-center justify-center rounded-xl md:flex ${theme.textMuted} hover:opacity-100 hover:bg-slate-100/50 transition-colors`}
+                        className={`hidden h-11 w-11 items-center justify-center rounded-2xl md:flex ${theme.textMuted} hover:opacity-100 hover:${theme.badgeBg} transition-colors`}
                         aria-label="Calendar"
                     >
                         <CalendarDays className="h-5 w-5" />
@@ -48,7 +48,7 @@ export default function ResidentHeader() {
 
                     <Link 
                         href="/blotters" 
-                        className={`hidden sm:flex items-center gap-1.5 text-xs font-bold ${theme.textMuted} hover:opacity-100 transition-colors`}
+                        className={`hidden sm:flex items-center gap-2 text-xs font-black ${theme.textMuted} hover:opacity-100 transition-colors px-3 py-2 rounded-2xl hover:${theme.badgeBg}`}
                     >
                         <ShieldCheck className="h-4 w-4" />
                         My Records
@@ -56,7 +56,7 @@ export default function ResidentHeader() {
 
                     <Link 
                         href="/help" 
-                        className={`hidden sm:flex items-center gap-1.5 text-xs font-bold ${theme.textMuted} transition-colors`}
+                        className={`hidden sm:flex items-center gap-2 text-xs font-black ${theme.textMuted} transition-colors px-3 py-2 rounded-2xl hover:${theme.badgeBg}`}
                     >
                         <CircleHelp className="h-4 w-4" />
                         Help
@@ -64,11 +64,11 @@ export default function ResidentHeader() {
 
                     <Link 
                         href="/notifications" 
-                        className={`relative flex items-center justify-center h-10 w-10 rounded-xl ${theme.textMuted} hover:opacity-100 hover:bg-slate-100/50 transition-colors`}
+                        className={`relative flex items-center justify-center h-11 w-11 rounded-2xl ${theme.textMuted} hover:opacity-100 hover:${theme.badgeBg} transition-colors`}
                     >
                         <Bell className="h-5 w-5" />
                         {unread > 0 && (
-                            <Badge className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px] font-black bg-red-600 text-white border-2 border-white">
+                            <Badge className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px] font-black bg-rose-600 text-white border-2 border-white">
                                 {unread > 99 ? '99+' : unread}
                             </Badge>
                         )}
@@ -77,12 +77,12 @@ export default function ResidentHeader() {
                     {user && (
                         <Link
                             href="/profile"
-                            className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-1.5 transition-colors border sm:pl-1.5 sm:pr-3.5 ${theme.cardBorder} ${theme.hoverBg}`}
+                            className={`flex items-center gap-2.5 rounded-2xl py-1.5 pl-1.5 pr-3 transition-colors border sm:pl-2 sm:pr-4 ${theme.cardBorder} ${theme.hoverBg}`}
                         >
-                            <span className={`flex h-8 w-8 items-center justify-center rounded-full sm:h-7 sm:w-7 ${theme.primaryBg} text-xs font-black text-white`}>
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${theme.primaryBg} text-xs font-black text-white shadow-2xs`}>
                                 {initials}
                             </span>
-                            <span className={`hidden text-xs font-extrabold ${theme.primaryText} sm:inline`}>{user.civic_xp ?? 0} XP</span>
+                            <span className={`hidden text-xs font-black ${theme.primaryText} sm:inline`}>{user.civic_xp ?? 0} XP</span>
                         </Link>
                     )}
                     <ResidentLogoutButton variant="icon" />
