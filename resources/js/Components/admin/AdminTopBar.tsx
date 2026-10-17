@@ -14,13 +14,13 @@ export default function AdminTopBar({ title, onMenuClick }: Props) {
     const unread = Number(usePage<PageProps>().props.unread_count ?? 0);
 
     return (
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-md sm:px-6 shadow-2xs">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-slate-200/80 bg-white/90 px-3 py-2.5 backdrop-blur-md shadow-2xs sm:gap-4 sm:px-6 sm:py-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 <Button variant="outline" size="icon" className="shrink-0 lg:hidden border-slate-200" onClick={onMenuClick}>
                     <Menu className="h-5 w-5 text-slate-700" />
                 </Button>
                 <div>
-                    <h1 className="text-base font-extrabold tracking-tight text-slate-900 sm:text-xl">
+                    <h1 className="truncate text-base font-extrabold tracking-tight text-slate-900 sm:text-xl">
                         <span className="sm:hidden">{shortTitle}</span>
                         <span className="hidden sm:inline">{title}</span>
                     </h1>

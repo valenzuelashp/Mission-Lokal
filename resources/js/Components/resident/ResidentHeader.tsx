@@ -18,12 +18,12 @@ export default function ResidentHeader() {
 
     return (
         <header className={`sticky top-0 z-50 border-b ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md shadow-2xs`}>
-            <div className="flex h-16 w-full items-center gap-4 px-4 xl:px-8">
+            <div className="flex h-14 w-full min-w-0 items-center gap-1.5 px-3 sm:h-16 sm:gap-3 sm:px-4 xl:px-8">
                 <Link href="/feed" className="flex shrink-0 items-center gap-2.5 group">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${theme.primaryBg} text-sm font-black text-white shadow-md group-hover:scale-105 transition-transform`}>
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-2xl sm:h-10 sm:w-10 ${theme.primaryBg} text-sm font-black text-white shadow-md group-hover:scale-105 transition-transform`}>
                         ML
                     </div>
-                    <span className={`hidden font-black tracking-tight text-base sm:inline ${theme.textMain}`}>MISSION-LOKAL</span>
+                    <span className={`hidden font-black tracking-tight text-base md:inline ${theme.textMain}`}>MISSION-LOKAL</span>
                 </Link>
 
                 <div className="relative hidden max-w-sm flex-1 md:block">
@@ -35,12 +35,12 @@ export default function ResidentHeader() {
                     />
                 </div>
 
-                <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                <div className="ml-auto flex min-w-0 items-center gap-0.5 sm:gap-2">
                     <ThemePickerModal />
 
                     <Link
                         href="/calendar"
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${theme.textMuted} hover:opacity-100 hover:bg-slate-100/50 transition-colors`}
+                        className={`hidden h-10 w-10 items-center justify-center rounded-xl md:flex ${theme.textMuted} hover:opacity-100 hover:bg-slate-100/50 transition-colors`}
                         aria-label="Calendar"
                     >
                         <CalendarDays className="h-5 w-5" />
@@ -77,9 +77,9 @@ export default function ResidentHeader() {
                     {user && (
                         <Link
                             href="/profile"
-                            className={`flex items-center gap-2 rounded-xl py-1 pl-1.5 pr-3.5 transition-colors border ${theme.cardBorder} ${theme.hoverBg}`}
+                            className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-1.5 transition-colors border sm:pl-1.5 sm:pr-3.5 ${theme.cardBorder} ${theme.hoverBg}`}
                         >
-                            <span className={`flex h-7 w-7 items-center justify-center rounded-full ${theme.primaryBg} text-xs font-black text-white`}>
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-full sm:h-7 sm:w-7 ${theme.primaryBg} text-xs font-black text-white`}>
                                 {initials}
                             </span>
                             <span className={`hidden text-xs font-extrabold ${theme.primaryText} sm:inline`}>{user.civic_xp ?? 0} XP</span>

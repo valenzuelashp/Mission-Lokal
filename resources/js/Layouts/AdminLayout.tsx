@@ -199,7 +199,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
 
             <div className="flex min-w-0 flex-1 flex-col bg-white">
                 <AdminTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
+                <main className="flex-1 overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
             </div>
         </div>
     );

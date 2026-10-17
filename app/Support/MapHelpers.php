@@ -24,7 +24,7 @@ class MapHelpers
         $safeLng = max(-180.0, min(180.0, $lng));
 
         // Format as POINT(longitude latitude)
-        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326)", $safeLng, $safeLat));
+        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326, 'axis-order=long-lat')", $safeLng, $safeLat));
     }
 
     public static function latLngSelect(string $column = 'location'): Expression

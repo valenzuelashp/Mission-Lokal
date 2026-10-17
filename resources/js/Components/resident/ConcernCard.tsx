@@ -43,14 +43,14 @@ export default function ConcernCard({ concern }: Props) {
 
     return (
         <article className={`overflow-hidden rounded-2xl border ${theme.cardBorder} ${theme.cardBg} shadow-xs transition-all hover:shadow-md`}>
-            <div className={`flex items-center justify-between p-4 pb-3 border-b ${theme.dividerColor}`}>
-                <div className="flex items-center gap-3">
+            <div className={`flex items-center justify-between gap-2 p-3 pb-3 border-b sm:p-4 ${theme.dividerColor}`}>
+                <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100 shadow-2xs">
                         {concern.reporter_name ? concern.reporter_name.charAt(0) : 'ML'}
                     </div>
-                    <div>
-                        <p className={`text-sm font-bold ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
-                        <p className={`text-xs font-semibold ${theme.primaryText}`}>{concern.category}</p>
+                    <div className="min-w-0">
+                        <p className={`truncate text-sm font-bold ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
+                        <p className={`truncate text-xs font-semibold ${theme.primaryText}`}>{concern.category}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -114,17 +114,17 @@ export default function ConcernCard({ concern }: Props) {
                 </div>
             </div>
 
-            <div className="px-5 py-3">
-                <Link href={`/concerns/${concern.id}`} className={`block break-words text-base font-bold ${theme.textMain} hover:opacity-80 transition-colors`}>
+            <div className="px-3 py-3 sm:px-5">
+                <Link href={`/concerns/${concern.id}`} className={`block break-words text-base font-bold leading-snug ${theme.textMain} hover:opacity-80 transition-colors sm:text-lg`}>
                     {concern.title}
                 </Link>
                 
-                <div className={`mt-2 flex flex-wrap items-center gap-4 text-xs ${theme.textMuted} font-medium`}>
+                <div className={`mt-2 flex flex-col gap-1.5 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 ${theme.textMuted} font-medium`}>
                     <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 opacity-60" />
+                        <Calendar className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span>Posted {concern.created_at}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 truncate max-w-[260px]">
+                    <div className="flex min-w-0 items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span className="truncate">{concern.location_label}</span>
                     </div>
@@ -139,14 +139,14 @@ export default function ConcernCard({ concern }: Props) {
                                 key={idx}
                                 src={url}
                                 alt="Concern attachment"
-                                className={`h-64 w-full rounded-xl border ${theme.cardBorder} shadow-2xs`}
+                                className={`h-48 w-full shrink-0 rounded-xl border sm:h-64 ${theme.cardBorder} shadow-2xs`}
                             />
                         ))}
                     </div>
                 </div>
             )}
 
-            <div className={`flex items-center justify-between gap-2 border-t ${theme.dividerColor} px-5 py-3 bg-slate-50/30`}>
+            <div className={`flex flex-wrap items-center justify-between gap-2 border-t ${theme.dividerColor} px-3 py-3 sm:px-5 bg-slate-50/30`}>
                 <ConcernVoteButtons
                     concernId={concern.id}
                     upvotes={concern.upvotes}

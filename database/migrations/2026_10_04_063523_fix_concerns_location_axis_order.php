@@ -12,7 +12,7 @@ return new class extends Migration
     {
         DB::statement("
             UPDATE concerns 
-            SET location = PointFromText(CONCAT('POINT(', ST_Y(location), ' ', ST_X(location), ')'), 4326)
+            SET location = ST_GeomFromText(CONCAT('POINT(', ST_Y(location), ' ', ST_X(location), ')'), 4326, 'axis-order=long-lat')
             WHERE ST_X(location) < 90 AND ST_Y(location) > 90
         ");
     }
@@ -25,7 +25,7 @@ return new class extends Migration
         // Revert back if rolled back
         DB::statement("
             UPDATE concerns 
-            SET location = PointFromText(CONCAT('POINT(', ST_Y(location), ' ', ST_X(location), ')'), 4326)
+            SET location = ST_GeomFromText(CONCAT('POINT(', ST_Y(location), ' ', ST_X(location), ')'), 4326, 'axis-order=long-lat')
             WHERE ST_X(location) > 90 AND ST_Y(location) < 90
         ");
     }

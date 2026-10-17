@@ -117,7 +117,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
 
             <div className="flex min-w-0 flex-1 flex-col bg-[#f8fafc]">
                 <PersonnelTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8">{children}</main>
+                <main className="flex-1 overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8">{children}</main>
             </div>
         </div>
     );

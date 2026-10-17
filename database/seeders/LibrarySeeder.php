@@ -55,7 +55,7 @@ class LibrarySeeder extends Seeder
                     'capacity' => 180,
                     'facilities' => ['Restrooms', 'Mobile Clinic', 'Community Kitchen', 'Pet Shelter'],
                 ],
-                'location' => DB::raw("PointFromText('POINT(120.993381 14.517308)', 4326)"),
+                'location' => DB::raw("ST_GeomFromText('POINT(120.993381 14.517308)', 4326, 'axis-order=long-lat')"),
                 'sort_order' => 3,
                 'is_active' => true,
             ],

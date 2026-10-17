@@ -13,13 +13,13 @@ export default function FeedComposer() {
     return (
         <Card className={`overflow-hidden ${theme.cardBorder} ${theme.cardBg} shadow-xs rounded-2xl`}>
             <CardContent className="p-3.5">
-                <Button asChild className={`h-12 w-full gap-2.5 text-xs font-bold uppercase tracking-wider ${theme.primaryBg} ${theme.primaryHover} shadow-sm cursor-pointer`}>
+                <Button asChild className={`h-12 w-full gap-2 px-3 text-xs font-bold sm:gap-2.5 sm:text-sm ${theme.primaryBg} ${theme.primaryHover} shadow-sm cursor-pointer`}>
                     <Link href="/concerns/new">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/25 text-xs font-black">
                             {initials}
                         </span>
-                        <Plus className="h-4 w-4" />
-                        Post a Community Concern
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">Post a Concern</span>
                     </Link>
                 </Button>
             </CardContent>

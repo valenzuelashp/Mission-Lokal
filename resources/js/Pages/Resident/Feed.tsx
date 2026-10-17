@@ -103,7 +103,7 @@ export default function Feed({ concerns, resolutionPosts = [], announcements = [
                 )}
 
                 {concerns.length === 0 && resolutionPosts.length === 0 ? (
-                    <div className={`rounded-2xl border border-dashed ${theme.cardBorder} ${theme.cardBg} p-16 text-center shadow-xs`}>
+                    <div className={`rounded-2xl border border-dashed ${theme.cardBorder} ${theme.cardBg} px-5 py-10 text-center shadow-xs sm:px-8 sm:py-14 md:p-16`}>
                         <h3 className="font-black text-base">No public concerns reported yet</h3>
                         <p className={`mt-1 text-xs font-medium ${theme.textMuted} max-w-xs mx-auto leading-relaxed`}>
                             Be the first neighbor to report a community issue and help municipal staff triage operations.
