@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
+use PDO;
 
 class MapHelpers
 {
@@ -23,8 +24,22 @@ class MapHelpers
         $safeLat = max(-90.0, min(90.0, $lat));
         $safeLng = max(-180.0, min(180.0, $lng));
 
-        // Format as POINT(longitude latitude)
-        return DB::raw(sprintf("ST_GeomFromText('POINT(%F %F)', 4326, 'axis-order=long-lat')", $safeLng, $safeLat));
+        // MySQL 8 needs an explicit axis order for SRID 4326; MariaDB 10.4 does not support that argument.
+        $axisOrder = self::usesMariaDb() ? '' : ", 'axis-order=long-lat'";
+
+        return DB::raw(sprintf(
+            "ST_GeomFromText('POINT(%F %F)', 4326%s)",
+            $safeLng,
+            $safeLat,
+            $axisOrder,
+        ));
+    }
+
+    public static function usesMariaDb(): bool
+    {
+        $version = DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
+
+        return str_contains(strtolower((string) $version), 'mariadb');
     }
 
     public static function latLngSelect(string $column = 'location'): Expression

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
-import { Droplets, Flame, Lightbulb, MapPin, Trash2, Volume2, Waves, ArrowUpRight, AlertCircle, GitMerge, ShieldAlert } from 'lucide-react';
+import { Droplets, Flame, Lightbulb, MapPin, Trash2, Volume2, Waves, ArrowUpRight, GitMerge, ShieldAlert } from 'lucide-react';
+import PriorityBar from '@/Components/admin/PriorityBar';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
@@ -32,10 +33,12 @@ const queueStyle: Record<AdminReport['queue_status'], string> = {
 };
 
 type Props = {
-    report: AdminReport & { rank?: number; priority_reason?: string };
+    report: AdminReport & { rank?: number };
+    scoreDisplay: 'severity' | 'priority';
+    maxUpvotes: number;
 };
 
-export default function ReportQueueCard({ report }: Props) {
+export default function ReportQueueCard({ report, scoreDisplay, maxUpvotes }: Props) {
     const Icon = typeIcons[report.type_icon as keyof typeof typeIcons] ?? Flame;
 
     return (
@@ -113,14 +116,17 @@ export default function ReportQueueCard({ report }: Props) {
                         </div>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 max-w-[200px]">
-                                <SeverityBar score={report.ai_severity} />
+                                {scoreDisplay === 'severity' ? (
+                                    <SeverityBar score={report.ai_severity} />
+                                ) : (
+                                    <PriorityBar score={report.upvotes_count ?? 0} maxScore={maxUpvotes} />
+                                )}
                             </div>
                             <span className="text-[11px] text-slate-400 font-semibold">{report.submitted_at}</span>
                         </div>
-                        {report.priority_reason && (
-                            <p className="text-[11px] text-blue-700 bg-blue-50/80 px-3 py-1.5 rounded-xl border border-blue-100 font-medium flex items-center gap-1.5 mt-1">
-                                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                                <span className="truncate">{report.priority_reason}</span>
+                        {scoreDisplay === 'priority' && (
+                            <p className="text-[11px] text-blue-700 font-medium">
+                                {report.upvotes_count ?? 0} community {(report.upvotes_count ?? 0) === 1 ? 'upvote' : 'upvotes'}
                             </p>
                         )}
                     </div>

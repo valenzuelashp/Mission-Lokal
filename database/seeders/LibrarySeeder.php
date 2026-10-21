@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Barangay;
 use App\Models\LibraryItem;
+use App\Support\MapHelpers;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LibrarySeeder extends Seeder
@@ -55,7 +55,7 @@ class LibrarySeeder extends Seeder
                     'capacity' => 180,
                     'facilities' => ['Restrooms', 'Mobile Clinic', 'Community Kitchen', 'Pet Shelter'],
                 ],
-                'location' => DB::raw("ST_GeomFromText('POINT(120.993381 14.517308)', 4326, 'axis-order=long-lat')"),
+                'location' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
                 'sort_order' => 3,
                 'is_active' => true,
             ],

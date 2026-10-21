@@ -1,8 +1,7 @@
 import { Head } from '@inertiajs/react';
-import { Filter, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ReportQueueTable from '@/Components/admin/ReportQueueTable';
-import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { demoReports, reportCounts } from '@/Lib/adminDemo';
@@ -10,6 +9,7 @@ import { cn } from '@/Lib/utils';
 import type { AdminReportQueuePageProps } from '@/Types';
 
 type FilterKey = 'all' | 'ai_processed' | 'under_review' | 'active' | 'candidates' | 'merged' | 'rejected';
+type ScoreDisplay = 'severity' | 'priority';
 
 const tabs: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'All Reports' },
@@ -39,9 +39,24 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
 
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
+    const [scoreDisplay, setScoreDisplay] = useState<ScoreDisplay>('severity');
+    const maxUpvotes = reports.reduce(
+        (maxCount, report) => Math.max(maxCount, report.upvotes_count ?? 0),
+        0,
+    );
+
+    const rankedReports = useMemo(() => {
+        if (scoreDisplay !== 'priority') {
+            return reports;
+        }
+
+        return [...reports]
+            .sort((a, b) => (b.upvotes_count ?? 0) - (a.upvotes_count ?? 0))
+            .map((report, index) => ({ ...report, rank: index + 1 }));
+    }, [reports, scoreDisplay]);
 
     const filtered = useMemo(() => {
-        return reports.filter((row: any) => {
+        return rankedReports.filter((row: any) => {
             let matchesFilter = true;
 
             if (filter === 'all') {
@@ -68,7 +83,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
 
             return matchesFilter && matchesSearch;
         });
-    }, [reports, filter, search]);
+    }, [rankedReports, filter, search]);
 
     return (
         <AdminLayout title="Mission-Lokal Admin: Report Queue">
@@ -80,7 +95,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
                     <div>
                         <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">AI Triage & Report Queue</h2>
                         <p className="mt-1 text-sm font-medium text-slate-500 max-w-3xl">
-                            Mathematically prioritized by AI severity, community upvotes, and duplicate detection. Review potential matches and merge reports seamlessly.
+                            Reports are prioritized by AI severity, safety keywords, and waiting time. Review potential matches and merge reports seamlessly.
                         </p>
                     </div>
                 </div>
@@ -113,7 +128,7 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
                         <div className="relative flex-1">
                             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
@@ -123,9 +138,18 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-slate-200 bg-white rounded-xl shadow-none hover:bg-slate-50 cursor-pointer">
-                            <Filter className="h-4 w-4 text-slate-600" />
-                        </Button>
+                        <label className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-none">
+                            <span>Show</span>
+                            <select
+                                aria-label="Score to display"
+                                className="h-full bg-transparent text-xs font-bold text-slate-900 outline-none"
+                                value={scoreDisplay}
+                                onChange={(e) => setScoreDisplay(e.target.value as ScoreDisplay)}
+                            >
+                                <option value="severity">AI Severity</option>
+                                <option value="priority">Priority</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
 
@@ -136,7 +160,11 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
                         <span className="text-[11px] text-slate-400 font-normal normal-case">Updated in real-time</span>
                     </div>
                     <div className="overflow-x-auto">
-                        <ReportQueueTable reports={filtered} />
+                        <ReportQueueTable
+                            reports={filtered}
+                            scoreDisplay={scoreDisplay}
+                            maxUpvotes={maxUpvotes}
+                        />
                     </div>
                 </section>
             </div>

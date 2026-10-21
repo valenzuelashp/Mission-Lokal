@@ -126,6 +126,11 @@ class Concern extends Model
         return $this->hasMany(ConcernStatusHistory::class);
     }
 
+    public function latestStatusHistory(): HasOne
+    {
+        return $this->hasOne(ConcernStatusHistory::class)->latestOfMany('created_at');
+    }
+
     public function denyUnlessVisibleToResident(User $user): void
     {
         if ($this->barangay_id !== $user->barangay_id) {

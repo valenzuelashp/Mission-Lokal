@@ -115,6 +115,14 @@ export interface PublicConcern {
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
     reporter_name?: string;
+    latest_update?: {
+        label: string;
+        message: string;
+        at?: string | null;
+        prescriptive_steps?: string[];
+        estimated_duration?: string | null;
+        estimated_completion?: string | null;
+    } | null;
 }
 
 export interface FeedPageProps extends PageProps {
@@ -193,7 +201,18 @@ export interface ConcernDetail extends PublicConcern {
     lat: number;
     lng: number;
     description: string;
-    timeline: { key: string; label: string; description?: string; at?: string; state: 'done' | 'current' | 'upcoming' }[];
+    timeline: {
+        key: string;
+        label: string;
+        description?: string;
+        at?: string;
+        state: 'done' | 'current' | 'upcoming';
+    }[];
+    response_plan: {
+        prescriptive_steps: string[];
+        estimated_duration: string | null;
+        estimated_completion: string | null;
+    };
 }
 
 export interface ConcernShowPageProps extends PageProps {
@@ -236,6 +255,7 @@ export interface AdminReport extends AdminIncident {
     ai_category: string;
     priority_score?: number;
     priority_reason?: string;
+    upvotes_count?: number;
     visibility: 'public' | 'private';
     queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;
@@ -309,6 +329,7 @@ export interface PersonnelMission {
     lng: number;
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
+    assignment_acknowledged?: boolean;
     due_date: string;
     is_overdue?: boolean;
     visibility: 'public' | 'private';

@@ -16,6 +16,7 @@ use App\Jobs\SendMissionAssignmentSms;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Services\Missions\MissionLifecycleService;
 use App\Services\Missions\MissionResolutionPostBuilder;
+use App\Support\ConcernStatusUpdate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -62,8 +63,8 @@ class MissionController extends Controller
             };
             $upvotes = $concern->relationLoaded('votes') ? $concern->votes->where('vote', 1)->count() : 0;
             $mergedCount = $concern->duplicates->count();
-            $duplicateBoost = $mergedCount * 30; // Boost missions that consolidate multiple resident reports
-            $priorityScore = $severityScore + ($upvotes * 10) + $duplicateBoost;
+            $duplicateBoost = $mergedCount * 10; // Boost missions that consolidate multiple resident reports
+            $priorityScore = $severityScore + ($upvotes * 30) + $duplicateBoost;
 
             return [
                 'id' => $rawId, 
@@ -365,7 +366,17 @@ class MissionController extends Controller
             $concern = Concern::where('id', $mission->concern_id)->with('duplicates')->first();
             
             if ($concern) {
+                $previousConcernStatus = $concern->status->value ?? $concern->status;
                 $concern->update(['status' => 'resolved']);
+                if ($previousConcernStatus !== 'resolved') {
+                    ConcernStatusUpdate::record(
+                        $concern,
+                        $previousConcernStatus,
+                        'resolved',
+                        $request->user()->id,
+                        ConcernStatusUpdate::resolutionNote($concern),
+                    );
+                }
 
                 if ($concern->visibility === 'public' && !$concern->is_blotter_candidate && $mission->proof) {
                     $existingPost = $mission->resolutionPost;
@@ -390,7 +401,17 @@ class MissionController extends Controller
 
                 // Also notify all residents whose reports were merged into this primary concern
                 foreach ($concern->duplicates as $duplicateConcern) {
+                    $previousDuplicateStatus = $duplicateConcern->status->value ?? $duplicateConcern->status;
                     $duplicateConcern->update(['status' => 'resolved']);
+                    if ($previousDuplicateStatus !== 'resolved') {
+                        ConcernStatusUpdate::record(
+                            $duplicateConcern,
+                            $previousDuplicateStatus,
+                            'resolved',
+                            $request->user()->id,
+                            ConcernStatusUpdate::resolutionNote($duplicateConcern),
+                        );
+                    }
                     
                     Notification::create([
                         'user_id' => $duplicateConcern->reporter_id,

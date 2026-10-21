@@ -277,6 +277,22 @@ export default function Show({ report, personnel = [] }: Props) {
                                 <p className="text-xs text-slate-700 font-medium italic leading-relaxed">
                                     "{report?.ai_action_reason ?? 'AI analyzed telemetry, category playbooks, and community density to recommend standard deployment workflow.'}"
                                 </p>
+                                {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
+                                    <ol className="space-y-2 pt-2">
+                                        {report.prescriptive_steps.map((step: unknown, index: number) => (
+                                            <li key={index} className="flex gap-2.5 text-xs text-slate-700 font-medium leading-relaxed">
+                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-100 text-blue-800 font-black text-[10px]">
+                                                    {index + 1}
+                                                </span>
+                                                <span className="pt-0.5">{formatStep(step)}</span>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                ) : (
+                                    <p className="pt-1 text-xs text-slate-500 font-medium">
+                                        No prescriptive steps are available for this report.
+                                    </p>
+                                )}
                             </div>
 
                             {report?.ai_duplicate_id && (
@@ -378,6 +394,27 @@ export default function Show({ report, personnel = [] }: Props) {
                                         </div>
                                     )}
 
+                                    {(overrideAction ?? report?.ai_recommended_action) === 'dismiss' && (
+                                        <div className="space-y-2">
+                                            <label htmlFor="rejection-reason" className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                                Reason for rejection
+                                            </label>
+                                            <textarea
+                                                id="rejection-reason"
+                                                value={data.rejection_reason}
+                                                onChange={(event) => setData('rejection_reason', event.target.value)}
+                                                required
+                                                minLength={3}
+                                                maxLength={1000}
+                                                rows={3}
+                                                className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-xs font-semibold shadow-2xs"
+                                            />
+                                            {errors.rejection_reason && (
+                                                <p className="text-xs font-semibold text-red-600">{errors.rejection_reason}</p>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="pt-4 space-y-3.5 border-t border-blue-100">
                                         <Button type="submit" disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3.5 shadow-sm cursor-pointer rounded-2xl transition-all">
                                             <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm AI Verdict & Execute Dispatch
@@ -404,30 +441,6 @@ export default function Show({ report, personnel = [] }: Props) {
                             )}
                         </div>
 
-                        {/* Prescriptive Action Playbook Card */}
-                        <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-2xs space-y-5">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Prescriptive Action Playbook</h3>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                                    Standard SOP
-                                </span>
-                            </div>
-
-                            {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
-                                <ol className="space-y-3">
-                                    {report.prescriptive_steps.map((step: unknown, index: number) => (
-                                        <li key={index} className="flex gap-3.5 text-xs text-slate-700 font-medium bg-slate-50/70 p-3.5 rounded-2xl border border-slate-100">
-                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-800 font-black text-[11px] border border-blue-200">
-                                                {index + 1}
-                                            </span>
-                                            <span className="pt-0.5 leading-relaxed font-semibold">{formatStep(step)}</span>
-                                        </li>
-                                    ))}
-                                </ol>
-                            ) : (
-                                <p className="text-xs text-muted-foreground p-3 text-center bg-slate-50 rounded-2xl">No prescriptive steps available for this category.</p>
-                            )}
-                        </div>
                     </div>
                 </div>
             </div>

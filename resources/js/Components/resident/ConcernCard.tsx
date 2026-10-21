@@ -4,7 +4,6 @@ import { useState } from 'react';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
-import { Button } from '@/Components/ui/button';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { PublicConcern, Severity } from '@/Types';
 
@@ -162,21 +161,52 @@ export default function ConcernCard({ concern }: Props) {
                 </div>
             </div>
 
+            {concern.latest_update && (
             <div className={`border-t ${theme.dividerColor} p-4 ${theme.badgeBg}/10`}>
-                <div className={`flex items-center gap-3.5 rounded-2xl ${theme.cardBg} p-3.5 border ${theme.cardBorder} shadow-2xs`}>
+                <Link
+                    href={`/concerns/${concern.id}`}
+                    className={`flex items-start gap-3.5 rounded-2xl ${theme.cardBg} p-3.5 border ${theme.cardBorder} shadow-2xs`}
+                >
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${theme.primaryBg} text-white text-xs font-black shadow-2xs`}>
-                        R
+                        B
                     </div>
-                    <Link href={`/concerns/${concern.id}`} className={`flex-1 text-xs font-bold ${theme.textMuted} hover:opacity-100 truncate`}>
-                        Write a comment or view discussion details...
-                    </Link>
-                    <Button variant="ghost" size="icon" asChild className={`h-9 w-9 rounded-xl ${theme.primaryText} hover:opacity-80`}>
-                        <Link href={`/concerns/${concern.id}`}>
-                            <MessageCircle className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                </div>
+                    <div className="min-w-0 flex-1">
+                        <p className={`text-[10px] font-black uppercase tracking-wider ${theme.primaryText}`}>
+                            Barangay update
+                            {` · ${concern.latest_update.label}`}
+                            {concern.latest_update.at ? ` · ${concern.latest_update.at}` : ''}
+                        </p>
+                        <p className={`mt-1 text-xs font-semibold leading-relaxed ${theme.textMain}`}>
+                            {concern.latest_update.message}
+                        </p>
+                        {concern.latest_update?.prescriptive_steps && concern.latest_update.prescriptive_steps.length > 0 && (
+                            <div className="mt-2">
+                                <p className={`text-[11px] font-black ${theme.textMain}`}>AI-suggested next steps</p>
+                                <ol className={`mt-1 list-decimal space-y-1 pl-4 text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
+                                    {concern.latest_update.prescriptive_steps.map((step, index) => (
+                                        <li key={`${index}-${step}`}>{step}</li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}
+                        {(concern.latest_update?.estimated_duration || concern.latest_update?.estimated_completion) && (
+                            <p className={`mt-2 text-[11px] font-semibold ${theme.textMuted}`}>
+                                {concern.latest_update.estimated_duration && `Estimated duration: ${concern.latest_update.estimated_duration}`}
+                                {concern.latest_update.estimated_duration && concern.latest_update.estimated_completion && ' · '}
+                                {concern.latest_update.estimated_completion && `Target completion: ${concern.latest_update.estimated_completion}`}
+                                <span className="block">Estimate only; actual timing may vary.</span>
+                            </p>
+                        )}
+                        <span className={`mt-1.5 inline-block text-[11px] font-bold ${theme.textMuted}`}>
+                            View all updates
+                        </span>
+                    </div>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${theme.primaryText}`}>
+                        <MessageCircle className="h-4 w-4" />
+                    </span>
+                </Link>
             </div>
+            )}
         </article>
     );
 }

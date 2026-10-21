@@ -55,7 +55,7 @@ export default function Register() {
 
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
-    const [brgyStatus, setBrgyStatus] = useState<'checking' | 'found' | 'unlisted' | null>(null);
+    const [brgyStatus, setBrgyStatus] = useState<'checking' | 'found' | 'unlisted' | 'error' | null>(null);
 
     useEffect(() => {
         if (data.birthday) {
@@ -75,7 +75,8 @@ export default function Register() {
     // Live validation for barangay existence
     useEffect(() => {
         const trimmed = data.barangay_name.trim();
-        if (trimmed.length < 2) {
+        const city = data.city.trim();
+        if (trimmed.length < 2 || city.length < 2) {
             setBrgyStatus(null);
             return;
         }
@@ -83,16 +84,23 @@ export default function Register() {
         setBrgyStatus('checking');
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/check-barangay?name=${encodeURIComponent(trimmed)}`);
+                const params = new URLSearchParams({ name: trimmed, city });
+                const res = await fetch(`/api/check-barangay?${params}`);
+                if (!res.ok) {
+                    setBrgyStatus('error');
+                    return;
+                }
                 const json = await res.json();
                 setBrgyStatus(json.exists ? 'found' : 'unlisted');
             } catch {
-                setBrgyStatus(null);
+                setBrgyStatus('error');
             }
         }, 300);
 
-        return () => clearTimeout(timer);
-    }, [data.barangay_name]);
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [data.barangay_name, data.city]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -190,6 +198,7 @@ export default function Register() {
                         <div>
                             <label className="text-xs font-medium">House / Street *</label>
                             <CapsInput placeholder="House #, Street" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
+                            {errors.house_street && <p className="text-xs text-red-600 mt-1">{errors.house_street}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">Barangay Name *</label>
@@ -204,15 +213,22 @@ export default function Register() {
                                     <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Unlisted barangay (registration will be blocked)
                                 </p>
                             )}
+                            {brgyStatus === 'error' && (
+                                <p className="mt-1 text-[11px] font-medium text-red-600">
+                                    Could not verify the barangay right now. You can still submit the form.
+                                </p>
+                            )}
                             {errors.barangay_name && <p className="text-xs text-red-600 mt-1">{errors.barangay_name}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">City / Municipality *</label>
                             <CapsInput placeholder="City" value={data.city} onChange={(value) => setData('city', value)} required />
+                            {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city}</p>}
                         </div>
                         <div>
                             <label className="text-xs font-medium">Province *</label>
                             <CapsInput placeholder="Province" value={data.province} onChange={(value) => setData('province', value)} required />
+                            {errors.province && <p className="text-xs text-red-600 mt-1">{errors.province}</p>}
                         </div>
                     </div>
 

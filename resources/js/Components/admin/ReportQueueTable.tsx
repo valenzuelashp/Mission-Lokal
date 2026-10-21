@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import ReportQueueCard from '@/Components/admin/ReportQueueCard';
+import PriorityBar from '@/Components/admin/PriorityBar';
 import SeverityBar from '@/Components/admin/SeverityBar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -25,10 +26,12 @@ const queueStyle: Record<AdminReport['queue_status'], string> = {
 };
 
 type Props = {
-    reports: (AdminReport & { rank?: number; priority_reason?: string })[];
+    reports: (AdminReport & { rank?: number })[];
+    scoreDisplay: 'severity' | 'priority';
+    maxUpvotes: number;
 };
 
-export default function ReportQueueTable({ reports }: Props) {
+export default function ReportQueueTable({ reports, scoreDisplay, maxUpvotes }: Props) {
     if (reports.length === 0) {
         return (
             <div className="py-20 text-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/50">
@@ -41,7 +44,12 @@ export default function ReportQueueTable({ reports }: Props) {
         <>
             <div className="space-y-4 md:hidden">
                 {reports.map((report) => (
-                    <ReportQueueCard key={report.concern_id ?? report.id} report={report} />
+                    <ReportQueueCard
+                        key={report.concern_id ?? report.id}
+                        report={report}
+                        scoreDisplay={scoreDisplay}
+                        maxUpvotes={maxUpvotes}
+                    />
                 ))}
             </div>
 
@@ -54,7 +62,7 @@ export default function ReportQueueTable({ reports }: Props) {
                             <th className="px-6 py-4">Incident Concern</th>
                             <th className="px-6 py-4">Location</th>
                             <th className="px-6 py-4">AI Category</th>
-                            <th className="px-6 py-4">Severity & Score</th>
+                            <th className="px-6 py-4">{scoreDisplay === 'severity' ? 'AI Severity' : 'Upvotes'}</th>
                             <th className="px-6 py-4">Duplicate / Status</th>
                             <th className="px-6 py-4 text-right w-36">Action</th>
                         </tr>
@@ -116,11 +124,10 @@ export default function ReportQueueTable({ reports }: Props) {
                                     </td>
                                     <td className="min-w-[160px] px-6 py-4">
                                         <div className="space-y-1.5">
-                                            <SeverityBar score={row.ai_severity} />
-                                            {row.priority_reason && (
-                                                <div className="text-[10px] font-medium text-blue-700 truncate max-w-[180px]" title={row.priority_reason}>
-                                                    {row.priority_reason}
-                                                </div>
+                                            {scoreDisplay === 'severity' ? (
+                                                <SeverityBar score={row.ai_severity} />
+                                            ) : (
+                                                <PriorityBar score={row.upvotes_count ?? 0} maxScore={maxUpvotes} />
                                             )}
                                         </div>
                                     </td>
