@@ -291,8 +291,25 @@ class MissionController extends Controller
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
 
+        $assignment = MissionAssignment::query()
+            ->where('mission_id', $mission->id)
+            ->where('personnel_id', $request->user()->id)
+            ->whereNull('unassigned_at')
+            ->latest('assigned_at')
+            ->first();
+        $pivotStatus = DB::table('mission_personnel')
+            ->where('mission_id', $mission->id)
+            ->where('personnel_id', $personnel->id)
+            ->value('status');
+        $assignmentAcknowledged = ($assignment && $assignment->acknowledged_at)
+            || in_array($pivotStatus, ['acknowledged', 'in_progress'], true);
+
+        if (!$assignmentAcknowledged) {
+            return back()->with('error', 'Acknowledge the assignment before updating its checklist.');
+        }
+
         if (($mission->status->value ?? $mission->status) !== 'in_progress') {
-            return back()->withErrors(['checklist' => 'Start the mission before updating its checklist.']);
+            return back()->with('error', 'Start Field Work before updating the checklist.');
         }
 
         $validated = $request->validate([

@@ -1,9 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertCircle, FileText, TrendingUp } from 'lucide-react';
 import AnnouncementCard from '@/Components/resident/AnnouncementCard';
+import CommunityResolutionCarousel from '@/Components/resident/CommunityResolutionCarousel';
 import ConcernCard from '@/Components/resident/ConcernCard';
 import FeedComposer from '@/Components/resident/FeedComposer';
-import MissionResolutionCard from '@/Components/resident/MissionResolutionCard';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -96,15 +96,9 @@ export default function Feed({ concerns, resolutionPosts = [], announcements = [
                 <ResidentSocialShell right={rightAside}>
                     <div className="w-full space-y-6">
                         <FeedComposer />
+                        <CommunityResolutionCarousel items={resolutionPosts} compact />
 
-                        {resolutionPosts.length > 0 && (
-                            <section className="space-y-3.5" aria-labelledby="community-resolutions-heading">
-                                <h2 id="community-resolutions-heading" className="text-xs font-black uppercase tracking-wider text-emerald-800">Verified Community Resolutions</h2>
-                                {resolutionPosts.map((update) => <MissionResolutionCard key={update.id} update={update} />)}
-                            </section>
-                        )}
-
-                        {concerns.length === 0 && resolutionPosts.length === 0 ? (
+                        {concerns.length === 0 ? (
                             <div className={`rounded-3xl border border-dashed ${theme.cardBorder} ${theme.cardBg} px-6 py-16 text-center shadow-2xs`}>
                                 <h3 className={`font-black text-base ${theme.textMain}`}>No public concerns reported yet</h3>
                                 <p className={`mt-1.5 text-xs font-semibold ${theme.textMuted} max-w-sm mx-auto leading-relaxed`}>

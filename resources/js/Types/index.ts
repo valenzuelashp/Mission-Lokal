@@ -328,6 +328,7 @@ export interface PersonnelMission {
     lng: number;
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
+    assignment_acknowledged?: boolean;
     due_date: string;
     is_overdue?: boolean;
     visibility: 'public' | 'private';

@@ -10,7 +10,9 @@ use App\Support\ConcernStatusUpdate;
 use App\Enums\ConcernStatus;
 use App\Models\ConcernVote;
 use App\Models\MissionResolutionPost;
+use App\Services\Geocoding\ReverseGeocoder;
 use App\Support\MapHelpers;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -121,35 +123,10 @@ class ConcernController extends Controller
                 ];
             });
 
-        $resolutionPosts = MissionResolutionPost::query()
-            ->where('is_published', true)
-            ->whereHas('mission.concern', function ($query) use ($user) {
-                $query->where('barangay_id', $user->barangay_id)
-                    ->where('visibility', 'public')
-                    ->where('is_blotter_candidate', false);
-            })
-            ->with(['mission.concern', 'mission.personnel.user', 'mission.proof.media'])
-            ->latest('published_at')
-            ->take(20)
+        $resolutionPosts = $this->publishedResolutionPosts($user->barangay_id)
+            ->take(5)
             ->get()
-            ->map(function (MissionResolutionPost $post) {
-                $mission = $post->mission;
-                $proofMedia = $mission?->proof?->media ?? collect();
-                $photos = $proofMedia
-                    ->whereIn('id', $post->media_ids ?? [])
-                    ->map(fn ($media) => asset('storage/'.$media->storage_key))
-                    ->values()
-                    ->all();
-
-                return [
-                    'id' => (string) $post->id,
-                    'title' => $post->title,
-                    'body' => $post->body,
-                    'photos' => $photos,
-                    'published_at' => $post->published_at?->timezone('Asia/Manila')->format('M d, Y g:i A'),
-                    'mission_id' => $mission?->id,
-                ];
-            });
+            ->map(fn (MissionResolutionPost $post) => $this->formatResolutionPost($post));
 
         return Inertia::render('Resident/Feed', [
             'concerns' => $concerns,
@@ -159,6 +136,52 @@ class ConcernController extends Controller
                 'active_reports' => $userActiveReports,
             ],
         ]);
+    }
+
+    public function resolutions(Request $request): Response
+    {
+        $user = $request->user();
+
+        $resolutionPosts = $this->publishedResolutionPosts($user->barangay_id)
+            ->paginate(12)
+            ->through(fn (MissionResolutionPost $post) => $this->formatResolutionPost($post));
+
+        return Inertia::render('Resident/Resolutions', [
+            'resolutionPosts' => $resolutionPosts,
+        ]);
+    }
+
+    private function publishedResolutionPosts(string $barangayId): Builder
+    {
+        return MissionResolutionPost::query()
+            ->where('is_published', true)
+            ->whereHas('mission.concern', function ($query) use ($barangayId) {
+                $query->where('barangay_id', $barangayId)
+                    ->where('visibility', 'public')
+                    ->where('is_blotter_candidate', false);
+            })
+            ->with(['mission.concern', 'mission.personnel.user', 'mission.proof.media'])
+            ->latest('published_at');
+    }
+
+    private function formatResolutionPost(MissionResolutionPost $post): array
+    {
+        $mission = $post->mission;
+        $proofMedia = $mission?->proof?->media ?? collect();
+        $photos = $proofMedia
+            ->whereIn('id', $post->media_ids ?? [])
+            ->map(fn ($media) => asset('storage/'.$media->storage_key))
+            ->values()
+            ->all();
+
+        return [
+            'id' => (string) $post->id,
+            'title' => $post->title,
+            'body' => $post->body,
+            'photos' => $photos,
+            'published_at' => $post->published_at?->timezone('Asia/Manila')->format('M d, Y g:i A'),
+            'mission_id' => $mission?->id,
+        ];
     }
 
     /**
@@ -226,8 +249,14 @@ class ConcernController extends Controller
             $request->description ?? ''
         );
         $visibility = $forcePrivate ? 'private' : 'public';
+        $lat = (float) $request->lat;
+        $lng = (float) $request->lng;
+        $addressText = $forcePrivate
+            ? null
+            : app(ReverseGeocoder::class)->label($lat, $lng);
+        $addressText ??= "Coordinates: {$lat}, {$lng}";
         
-        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility, $forcePrivate) {
+        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility, $forcePrivate, $lat, $lng, $addressText) {
             $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
@@ -236,8 +265,8 @@ class ConcernController extends Controller
                 'category_id' => $categoryIdInt,
                 'visibility' => $visibility, 
                 'status' => ConcernStatus::Submitted, 
-                'location' => MapHelpers::pointFromLatLng((float) $request->lat, (float) $request->lng),
-                'address_text' => $request->address_text ?? "Coordinates: {$request->lat}, {$request->lng}",
+                'location' => MapHelpers::pointFromLatLng($lat, $lng),
+                'address_text' => $addressText,
                 'is_blotter_candidate' => $forcePrivate,
                 'severity_confirmed' => false,
             ]);

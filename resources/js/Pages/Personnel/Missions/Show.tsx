@@ -28,7 +28,9 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
     const mission = props.mission ?? demoPersonnelMissions[0];
     const { flash } = usePage<PageProps>().props;
 
-    const action = ['assigned', 'acknowledged', 'in_progress'].includes(mission.status) && !mission.assignment_acknowledged
+    const assignmentAcknowledged = mission.assignment_acknowledged
+        ?? ['acknowledged', 'in_progress', 'completed', 'verified'].includes(mission.status);
+    const action = ['assigned', 'acknowledged', 'in_progress'].includes(mission.status) && !assignmentAcknowledged
         ? { label: 'Acknowledge Assignment', status: 'acknowledged' as MissionStatus }
         : nextStatus[mission.status];
     const readonly = ['completed', 'verified', 'cancelled'].includes(mission.status);
@@ -70,6 +72,12 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
                     <AlertCircle className="h-5 w-5 shrink-0 text-emerald-600" />
                     {flash.success}
+                </div>
+            )}
+            {flash.error && (
+                <div role="alert" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-xs font-bold text-amber-900 shadow-2xs">
+                    <CircleAlert className="h-5 w-5 shrink-0 text-amber-600" />
+                    {flash.error}
                 </div>
             )}
 
@@ -205,6 +213,8 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                             <MissionChecklist
                                 missionId={mission.id}
                                 items={checklist}
+                                status={mission.status}
+                                assignmentAcknowledged={assignmentAcknowledged}
                                 readonly={readonly}
                             />
                         </CardContent>

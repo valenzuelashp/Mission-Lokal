@@ -79,6 +79,7 @@ Route::middleware(['auth', EnsureSuperAdmin::class])->group(function () {
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
     Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
+    Route::get('/resolutions', [ConcernController::class, 'resolutions'])->name('resolutions.index');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
     
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:30,1');
