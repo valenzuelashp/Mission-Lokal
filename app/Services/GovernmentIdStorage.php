@@ -17,7 +17,7 @@ class GovernmentIdStorage
 
         Storage::disk('local')->put(
             $path,
-            Crypt::encrypt(file_get_contents($file->getRealPath()))
+            Crypt::encrypt(file_get_contents($file->getRealPath() ?: $file->getPathname()))
         );
 
         return $path;

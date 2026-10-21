@@ -126,7 +126,7 @@ class ResidentController extends Controller
             $cleanName = time() . '_' . Str::random(10) . '.' . $extension . '.enc';
             $idPath = 'government_ids/' . $cleanName;
 
-            $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath()));
+            $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath() ?: $file->getPathname()));
             Storage::disk('local')->put($idPath, $encryptedContent);
         }
 
@@ -211,7 +211,7 @@ class ResidentController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $file = $request->file('file');
-        $path = $file->getRealPath();
+        $path = $file->getRealPath() ?: $file->getPathname();
         $data = array_map('str_getcsv', file($path));
         array_shift($data);
 
