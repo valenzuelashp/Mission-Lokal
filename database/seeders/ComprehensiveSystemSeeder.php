@@ -32,6 +32,7 @@ use App\Models\ResidentProfile;
 use App\Models\ResidentRegistration;
 use App\Models\User;
 use App\Services\LocalIdentifier;
+use App\Support\MapHelpers;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -313,8 +314,8 @@ class ComprehensiveSystemSeeder extends Seeder
                 'id' => (string) Str::uuid(),
                 'birthday' => $pu['birthday'],
                 'category' => $pu['category'],
-                'registered_zone' => DB::raw("ST_GeomFromText('POINT(120.993381 14.517308)', 4326, 'axis-order=long-lat')"),
-                'last_known_location' => DB::raw("ST_GeomFromText('POINT(120.993381 14.517308)', 4326, 'axis-order=long-lat')"),
+                'registered_zone' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
+                'last_known_location' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
                 'location_updated_at' => now(),
                 'sms_enabled' => 1,
                 'is_active' => 1,
@@ -459,7 +460,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'severity' => 'critical',
             'severity_confirmed' => 1,
             'status' => ConcernStatus::Active,
-            'location' => DB::raw("ST_GeomFromText('POINT(120.993381 14.517308)', 4326, 'axis-order=long-lat')"),
+            'location' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
             'address_text' => 'Phase 1 Curve, Zone 15, Tambo',
             'is_blotter_candidate' => 0,
             'duplicate_of_id' => null,
@@ -483,7 +484,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'severity' => 'high',
             'severity_confirmed' => 1,
             'status' => ConcernStatus::Resolved,
-            'location' => DB::raw("ST_GeomFromText('POINT(120.993420 14.517350)', 4326, 'axis-order=long-lat')"),
+            'location' => MapHelpers::pointFromLatLng(14.517350, 120.993420),
             'address_text' => 'Kanto ng Covered Court, Phase 1, Tambo',
             'is_blotter_candidate' => 0,
             'duplicate_of_id' => $masterConcern->id,
@@ -508,7 +509,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'severity' => 'high',
             'severity_confirmed' => 1,
             'status' => ConcernStatus::Active,
-            'location' => DB::raw("ST_GeomFromText('POINT(120.991500 14.515200)', 4326, 'axis-order=long-lat')"),
+            'location' => MapHelpers::pointFromLatLng(14.515200, 120.991500),
             'address_text' => 'Opposite 124 Quirino Avenue, Tambo',
             'is_blotter_candidate' => 0,
             'duplicate_of_id' => null,
@@ -532,7 +533,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'severity' => 'low',
             'severity_confirmed' => 0,
             'status' => ConcernStatus::UnderReview,
-            'location' => DB::raw("ST_GeomFromText('POINT(120.992200 14.516100)', 4326, 'axis-order=long-lat')"),
+            'location' => MapHelpers::pointFromLatLng(14.516100, 120.992200),
             'address_text' => 'Compound #3, Riverside Alley, Zone 12',
             'is_blotter_candidate' => 1,
             'duplicate_of_id' => null,
@@ -738,7 +739,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'respondent_name' => 'Armando Castro',
             'narrative' => 'Complainant reported constant videoke operations at residential dwelling exceeding permitted barangay decibel levels.',
             'incident_at' => now()->subDays(1),
-            'incident_location' => DB::raw("ST_GeomFromText('POINT(120.992200 14.516100)', 4326, 'axis-order=long-lat')"),
+            'incident_location' => MapHelpers::pointFromLatLng(14.516100, 120.992200),
             'incident_address' => 'Compound #3, Riverside Alley, Tambo',
             'relief_sought' => 'Formal barangay conciliation and cessation of late-night sound amplification.',
             'witnesses' => ['Eduardo Ramos', 'Leticia Morales'],

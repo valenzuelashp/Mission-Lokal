@@ -45,7 +45,7 @@ class ReportController extends Controller
                 'category', 
                 'currentAiAnalysis.suggestedCategory', 
                 'currentAiAnalysis.duplicateCandidate',
-                'votes', 
+                'votes',
                 'duplicates.reporter',
                 'duplicateOf',
                 'primaryDuplicateLinks'
@@ -74,6 +74,7 @@ class ReportController extends Controller
                 'priority' => MapHelpers::priorityFromSeverity($c->severity),
                 'priority_score' => $priority['score'],
                 'priority_reason' => $priority['reason'],
+                'upvotes_count' => $c->votes->where('vote', 1)->count(),
                 'visibility' => $c->visibility,
                 'images' => $c->media->sortBy('sort_order')->map(fn ($m) => asset('storage/' . $m->storage_key))->values()->all(),
                 'status' => $status,
@@ -124,24 +125,17 @@ class ReportController extends Controller
         $safetyTerms = ['fire', 'flood', 'live wire', 'electrical', 'collapse', 'injury', 'danger', 'gas leak', 'outbreak'];
         $safetyMatches = collect($safetyTerms)->filter(fn ($term) => str_contains($text, $term))->count();
         
-        $upvotesCount = $concern->relationLoaded('votes') 
-            ? $concern->votes->where('vote', 1)->count() 
-            : $concern->votes()->where('vote', 1)->count();
-        $voteBoost = $upvotesCount * 10;
-
-        $ageHours = $concern->created_at ? max(0, now()->diffInHours($concern->created_at)) : 0;
+        $ageHours = $concern->created_at ? max(0, $concern->created_at->diffInHours(now())) : 0;
         $ageScore = min(48, $ageHours * 2);
-        $score = $severityScore + ($safetyMatches * 25) + $voteBoost + $ageScore;
+        $score = $severityScore + ($safetyMatches * 25) + $ageScore;
 
         $reason = $concern->severity
             ? ucfirst($concern->severity) . ' AI severity'
             : 'Awaiting AI severity';
         if ($safetyMatches > 0) {
-            $reason .= ' + safety keyword';
+            $reason .= ' + safety keywords';
         } 
-        if ($voteBoost > 0) {
-            $reason .= ' + community upvotes';
-        } elseif ($ageScore > 0) {
+        if ($ageScore > 0) {
             $reason .= ' + waiting time';
         }
 

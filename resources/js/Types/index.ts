@@ -236,6 +236,7 @@ export interface AdminReport extends AdminIncident {
     ai_category: string;
     priority_score?: number;
     priority_reason?: string;
+    upvotes_count?: number;
     visibility: 'public' | 'private';
     queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;

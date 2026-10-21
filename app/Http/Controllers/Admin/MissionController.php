@@ -62,8 +62,8 @@ class MissionController extends Controller
             };
             $upvotes = $concern->relationLoaded('votes') ? $concern->votes->where('vote', 1)->count() : 0;
             $mergedCount = $concern->duplicates->count();
-            $duplicateBoost = $mergedCount * 30; // Boost missions that consolidate multiple resident reports
-            $priorityScore = $severityScore + ($upvotes * 10) + $duplicateBoost;
+            $duplicateBoost = $mergedCount * 10; // Boost missions that consolidate multiple resident reports
+            $priorityScore = $severityScore + ($upvotes * 30) + $duplicateBoost;
 
             return [
                 'id' => $rawId, 

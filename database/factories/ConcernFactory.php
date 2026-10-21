@@ -6,8 +6,8 @@ use App\Enums\ConcernStatus;
 use App\Models\Barangay;
 use App\Models\Concern;
 use App\Models\User;
+use App\Support\MapHelpers;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\DB;
 
 class ConcernFactory extends Factory
 {
@@ -54,8 +54,8 @@ class ConcernFactory extends Factory
             'severity_confirmed' => fake()->boolean(),
             'is_blotter_candidate' => fake()->boolean(10),
             
-            'location' => DB::raw("ST_GeomFromText('POINT($lat $lng)', 4326)"),
-            'public_location' => DB::raw("ST_GeomFromText('POINT($lat $lng)', 4326)"),
+            'location' => MapHelpers::pointFromLatLng($lat, $lng),
+            'public_location' => MapHelpers::pointFromLatLng($lat, $lng),
         ];
     }
 }
