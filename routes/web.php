@@ -133,13 +133,19 @@ Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::clas
 Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
 
 Route::get('/api/check-barangay', function (Request $request) {
-    $brgyName = $request->query('name', '');
-    if (trim($brgyName) === '') {
+    $brgyName = trim((string) $request->query('name', ''));
+    $city = trim((string) $request->query('city', ''));
+    if (mb_strlen($brgyName) < 2 || mb_strlen($city) < 2) {
         return response()->json(['exists' => false]);
     }
 
-    $exists = Barangay::where('name', 'like', "%{$brgyName}%")
-        ->orWhere('code', 'like', "%{$brgyName}%")
+    $exists = Barangay::query()
+        ->where('is_active', true)
+        ->where(function ($query) use ($brgyName) {
+            $query->where('name', 'like', "%{$brgyName}%")
+                ->orWhere('code', 'like', "%{$brgyName}%");
+        })
+        ->where('city', 'like', "%{$city}%")
         ->exists();
 
     return response()->json(['exists' => $exists]);

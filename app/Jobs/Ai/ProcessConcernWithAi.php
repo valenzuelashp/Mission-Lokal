@@ -9,6 +9,7 @@ use App\Models\ConcernSubcategory;
 use App\Services\Concerns\ConcernDuplicateMatcher;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Enums\ConcernStatus;
+use App\Support\ConcernStatusUpdate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -250,12 +251,23 @@ class ProcessConcernWithAi implements ShouldQueue
                 'processed_at' => now(),
             ]);
 
+            $previousStatus = $this->concern->status->value ?? $this->concern->status;
             $this->concern->update([
                 'severity' => $severity,
                 'visibility' => $visibility,
                 'status' => ConcernStatus::AiProcessed,
                 'ai_processed_at' => now(),
             ]);
+
+            if ($previousStatus !== ConcernStatus::AiProcessed->value) {
+                ConcernStatusUpdate::record(
+                    $this->concern,
+                    $previousStatus,
+                    ConcernStatus::AiProcessed->value,
+                    null,
+                    'AI triage completed.',
+                );
+            }
 
             if ($duplicateMatch && $crowdSeverity) {
                 $duplicateMatcher->raiseMatchedIncidentSeverity(

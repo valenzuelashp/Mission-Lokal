@@ -115,6 +115,14 @@ export interface PublicConcern {
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
     reporter_name?: string;
+    latest_update?: {
+        label: string;
+        message: string;
+        at?: string | null;
+        prescriptive_steps?: string[];
+        estimated_duration?: string | null;
+        estimated_completion?: string | null;
+    } | null;
 }
 
 export interface FeedPageProps extends PageProps {
@@ -193,7 +201,18 @@ export interface ConcernDetail extends PublicConcern {
     lat: number;
     lng: number;
     description: string;
-    timeline: { key: string; label: string; description?: string; at?: string; state: 'done' | 'current' | 'upcoming' }[];
+    timeline: {
+        key: string;
+        label: string;
+        description?: string;
+        at?: string;
+        state: 'done' | 'current' | 'upcoming';
+    }[];
+    response_plan: {
+        prescriptive_steps: string[];
+        estimated_duration: string | null;
+        estimated_completion: string | null;
+    };
 }
 
 export interface ConcernShowPageProps extends PageProps {

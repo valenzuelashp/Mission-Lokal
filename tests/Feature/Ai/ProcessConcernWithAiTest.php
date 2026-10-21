@@ -30,6 +30,16 @@ class ProcessConcernWithAiTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('concern_status_history', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('concern_id');
+            $table->string('from_status')->nullable();
+            $table->string('to_status');
+            $table->uuid('actor_id')->nullable();
+            $table->text('note')->nullable();
+            $table->timestamp('created_at')->nullable();
+        });
+
         Schema::create('concern_categories', function (Blueprint $table) {
             $table->unsignedSmallInteger('id')->primary();
             $table->uuid('barangay_id')->nullable();
@@ -83,6 +93,7 @@ class ProcessConcernWithAiTest extends TestCase
 
     protected function tearDown(): void
     {
+        Schema::dropIfExists('concern_status_history');
         Schema::dropIfExists('concern_ai_analysis');
         Schema::dropIfExists('concern_media');
         Schema::dropIfExists('concern_subcategories');
@@ -138,6 +149,11 @@ class ProcessConcernWithAiTest extends TestCase
         ]);
         $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
         $this->assertSame('high', $concern->fresh()->severity);
+        $this->assertDatabaseHas('concern_status_history', [
+            'concern_id' => $concern->id,
+            'to_status' => 'ai_processed',
+            'note' => 'AI triage completed.',
+        ]);
         $this->assertSame(
             app(\App\Services\Concerns\ConcernResolutionDeadline::class)->deadlineFor($concern, 'high')->toDateString(),
             ConcernAiAnalysis::where('concern_id', $concern->id)->first()->suggested_due_date->toDateString(),

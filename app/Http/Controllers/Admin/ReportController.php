@@ -18,6 +18,7 @@ use Inertia\Response;
 use App\Models\Personnel;
 use App\Support\MapHelpers;
 use App\Services\Concerns\ConcernResolutionDeadline;
+use App\Support\ConcernStatusUpdate;
 use App\Services\Missions\MissionLifecycleService;
 
 class ReportController extends Controller
@@ -297,21 +298,34 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        $validated = $request->validate(['status' => 'required|string']);
+        $validated = $request->validate([
+            'status' => ['required', 'string'],
+            'rejection_reason' => ['required_if:status,rejected,spam', 'nullable', 'string', 'min:3', 'max:1000', 'regex:/\S/'],
+        ]);
 
         if (!$this->validateTransition($concern->status->value ?? $concern->status, $validated['status'])) {
             return back()->withErrors(['status' => 'Invalid status transition.']);
         }
 
+        if ($validated['status'] === 'active' && ! $concern->mission()->exists()) {
+            return back()->withErrors(['status' => 'Create and assign a mission before marking this report active.']);
+        }
+
         $fromStatus = $concern->status->value ?? $concern->status;
-        $concern->update(['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()]);
+        $attributes = ['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()];
+        if (in_array($validated['status'], ['rejected', 'spam'], true)) {
+            $attributes['closed_summary'] = $validated['rejection_reason'];
+        }
+        $concern->update($attributes);
 
         DB::table('concern_status_history')->insert([
             'concern_id' => $concern->id,
             'from_status' => $fromStatus,
             'to_status' => $validated['status'],
             'actor_id' => Auth::id(),
-            'note' => 'Admin status update: ' . $validated['status'],
+            'note' => in_array($validated['status'], ['rejected', 'spam'], true)
+                ? 'Rejected: ' . $validated['rejection_reason']
+                : 'Admin status update: ' . $validated['status'],
             'created_at' => now(),
         ]);
 
@@ -337,9 +351,19 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        
+        $previousStatus = $concern->status->value ?? $concern->status;
         $concern->update(['status' => 'under_review']); 
-        
+
+        if ($previousStatus !== 'under_review') {
+            ConcernStatusUpdate::record(
+                $concern,
+                $previousStatus,
+                'under_review',
+                Auth::id(),
+                'Barangay verified the concern for review.',
+            );
+        }
+
         DB::table('audit_logs')->insert([
             'barangay_id' => $barangayId,
             'actor_id' => Auth::id(),
@@ -370,7 +394,7 @@ class ReportController extends Controller
             'personnel_ids' => ['present', 'array'],
             'personnel_ids.*' => ['exists:personnel,id'],
             'master_concern_id' => ['nullable', 'string', 'exists:concerns,id'],
-            'rejection_reason' => ['nullable', 'string'],
+            'rejection_reason' => ['required_if:confirmed_action,dismiss', 'nullable', 'string', 'min:3', 'max:1000', 'regex:/\S/'],
             'due_date' => ['nullable', 'date', 'before_or_equal:'.$maxDueDate],
         ], [
             'due_date.before_or_equal' => 'RA 11032 compliance: this due date exceeds the allowed resolution deadline.',
@@ -391,6 +415,7 @@ class ReportController extends Controller
             }
 
             DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+                $previousConcernStatus = $concern->status->value ?? $concern->status;
                 $existingMission = Mission::where('concern_id', $concern->id)->first();
                 $previousStatus = $existingMission
                     ? ($existingMission->status->value ?? $existingMission->status)
@@ -450,6 +475,15 @@ class ReportController extends Controller
                     $lifecycle->recordStatusChange($mission, $previousStatus, 'assigned', $request->user()->id, 'Admin assigned or reassigned personnel.');
                 }
                 $concern->update(['status' => 'active', 'staff_reviewed_by' => Auth::id(), 'staff_reviewed_at' => now()]);
+                if ($previousConcernStatus !== 'active') {
+                    ConcernStatusUpdate::record(
+                        $concern,
+                        $previousConcernStatus,
+                        'active',
+                        $request->user()->id,
+                        'A response mission was assigned to this concern.',
+                    );
+                }
 
                 DB::table('audit_logs')->insert([
                     'barangay_id' => $barangayId,
@@ -680,7 +714,10 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        $reason = $request->rejection_reason ?? 'Rejected by administrator';
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:3', 'max:1000', 'regex:/\S/'],
+        ]);
+        $reason = $validated['rejection_reason'];
 
         $concern->update(['status' => 'rejected', 'closed_summary' => $reason]);
         
@@ -745,6 +782,7 @@ class ReportController extends Controller
         }
 
         DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+            $previousConcernStatus = $concern->status->value ?? $concern->status;
             $existingMission = Mission::where('concern_id', $concern->id)->first();
             $previousStatus = $existingMission
                 ? ($existingMission->status->value ?? $existingMission->status)
@@ -805,6 +843,15 @@ class ReportController extends Controller
             }
             
             $concern->update(['status' => 'active']);
+            if ($previousConcernStatus !== 'active') {
+                ConcernStatusUpdate::record(
+                    $concern,
+                    $previousConcernStatus,
+                    'active',
+                    $request->user()->id,
+                    'A response mission was assigned to this concern.',
+                );
+            }
             
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,

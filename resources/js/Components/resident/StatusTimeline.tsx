@@ -17,6 +17,14 @@ type Props = {
 export default function StatusTimeline({ steps }: Props) {
     const theme = useResidentTheme();
 
+    if (steps.length === 0) {
+        return (
+            <p className={`text-xs ${theme.textMuted} leading-relaxed font-medium`}>
+                Your submission is recorded. The barangay's decision will appear here once it approves the report and assigns a mission, or rejects it with a reason.
+            </p>
+        );
+    }
+
     return (
         <ol className="space-y-0 relative before:absolute before:bottom-4 before:top-4 before:left-3 before:w-0.5 before:bg-slate-200">
             {steps.map((step) => (
