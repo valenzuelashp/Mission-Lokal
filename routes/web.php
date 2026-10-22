@@ -162,6 +162,7 @@ Route::middleware('guest')->group(function () {
     // Secure Registration Routes (strictly for guests)
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
+    Route::get('/api/location-options', [RegisteredUserController::class, 'getLocationOptions']);
 
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showRequestForm'])->name('password.request');
     Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])->name('password.email')->middleware('throttle:otp');

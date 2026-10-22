@@ -245,7 +245,19 @@ class ReportController extends Controller
             ];
         });
 
-        $recommendedAction = $aiAnalysis?->duplicate_candidate_id ? 'merge' : 'escalate';
+        // Intelligent Recommended Action based on AI confidence & duplicate match
+        $isLowConfidence = ($aiAnalysis?->severity_confidence ?? 0.55) < 0.1;
+        $recommendedAction = 'escalate';
+        $actionReason = 'AI suggests standard operational triage and deployment.';
+
+        if ($isLowConfidence) {
+            $recommendedAction = 'dismiss';
+            $actionReason = 'AI detected potential spam, gibberish, or insufficient context. Recommended for dismissal.';
+        } elseif ($aiAnalysis?->duplicate_candidate_id) {
+            $recommendedAction = 'merge';
+            $actionReason = 'AI detected a high-probability duplicate report nearby. Merging will consolidate resources.';
+        }
+
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
         $maxDueDate = $deadlinePolicy->deadlineFor($record)->toDateString();
         $suggestedDueDate = $record->mission?->due_date?->toDateString();
@@ -270,16 +282,14 @@ class ReportController extends Controller
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
                 'assigned_personnel_ids' => !empty($assignedPersonnelIds) ? $assignedPersonnelIds : ($aiAnalysis?->suggested_personnel_ids ?? []),
                 'ai_recommended_action' => $recommendedAction,
-                'ai_action_reason' => $aiAnalysis?->duplicate_candidate_id 
-                    ? 'AI detected a high-probability duplicate report nearby. Merging will consolidate resources.' 
-                    : 'AI suggests standard operational triage and deployment.',
+                'ai_action_reason' => $actionReason,
                 'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
                 'ai_duplicate_title' => $duplicateCandidate?->title,
                 'ai_duplicate_description' => $duplicateCandidate?->description,
                 'ai_duplicate_reporter' => trim(($duplicateCandidate?->reporter?->first_name ?? '') . ' ' . ($duplicateCandidate?->reporter?->last_name ?? '')),
                 'ai_duplicate_similarity' => $aiAnalysis?->duplicate_similarity,
                 'ai_duplicate_reporter_count' => $duplicateReporterCount,
-                'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason,
+                'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason ?? 'Flagged as spam, test input, or non-actionable gibberish.',
                 'duplicate_of_id' => $record->duplicate_of_id,
                 'duplicate_of_title' => $record->duplicateOf?->title,
                 'duplicate_of_reporter' => trim(($record->duplicateOf?->reporter?->first_name ?? '') . ' ' . ($record->duplicateOf?->reporter?->last_name ?? '')),

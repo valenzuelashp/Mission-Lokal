@@ -42,8 +42,8 @@ class ConcernStatusUpdate
     public static function message(string $status, ?string $note = null, ?string $closedSummary = null): string
     {
         return match ($status) {
-            'submitted' => 'The barangay has received this concern. It is awaiting verification.',
-            'ai_processed' => 'Initial triage is complete. The barangay team will review this concern.',
+            'submitted' => '',
+            'ai_processed' => '',
             'under_review' => 'The barangay has verified this concern and is reviewing it for action.',
             'active' => 'The barangay approved this report and created a mission to address it.',
             'resolved' => self::resolutionMessage($note),

@@ -34,6 +34,8 @@ export default function Show({ concern }: Props) {
     const reporterName = concern.reporter_name ?? 'Verified Resident';
     const firstInitial = reporterName.charAt(0).toUpperCase();
 
+    const isPendingReview = ['submitted', 'ai_processed'].includes(concern.status);
+
     return (
         <ResidentLayout wide>
             <Head title={concern.title} />
@@ -171,40 +173,43 @@ export default function Show({ concern }: Props) {
                             </CardContent>
                         </Card>
 
-                        <Card className={`border ${theme.cardBorder} ${theme.cardBg} shadow-2xs rounded-3xl overflow-hidden`}>
-                            <CardHeader className={`py-4 px-6 border-b ${theme.dividerColor}`}>
-                                <CardTitle className={`text-xs font-black uppercase tracking-wider ${theme.textMuted}`}>Barangay Updates</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <StatusTimeline steps={concern.timeline} />
-                                {(concern.response_plan.prescriptive_steps.length > 0
-                                    || concern.response_plan.estimated_duration
-                                    || concern.response_plan.estimated_completion) && (
-                                    <div className={`mt-6 border-t ${theme.dividerColor} pt-5`}>
-                                        <h3 className={`text-xs font-black uppercase tracking-wider ${theme.textMain}`}>
-                                            AI-suggested response plan
-                                        </h3>
-                                        {concern.response_plan.prescriptive_steps.length > 0 && (
-                                            <ol className={`mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed ${theme.textMuted}`}>
-                                                {concern.response_plan.prescriptive_steps.map((step, index) => (
-                                                    <li key={`${index}-${step}`}>{step}</li>
-                                                ))}
-                                            </ol>
-                                        )}
-                                        {(concern.response_plan.estimated_duration || concern.response_plan.estimated_completion) && (
-                                            <p className={`mt-3 text-[11px] font-semibold ${theme.textMuted}`}>
-                                                {concern.response_plan.estimated_duration
-                                                    && `Estimated duration: ${concern.response_plan.estimated_duration}`}
-                                                {concern.response_plan.estimated_duration && concern.response_plan.estimated_completion && ' · '}
-                                                {concern.response_plan.estimated_completion
-                                                    && `Target completion: ${concern.response_plan.estimated_completion}`}
-                                                <span className="block">Estimate only; actual timing may vary.</span>
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {/* Timeline & Updates card is ONLY visible if the concern has been reviewed and has official updates */}
+                        {!isPendingReview && concern.timeline && concern.timeline.length > 0 && (
+                            <Card className={`border ${theme.cardBorder} ${theme.cardBg} shadow-2xs rounded-3xl overflow-hidden`}>
+                                <CardHeader className={`py-4 px-6 border-b ${theme.dividerColor}`}>
+                                    <CardTitle className={`text-xs font-black uppercase tracking-wider ${theme.textMuted}`}>Barangay Updates</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <StatusTimeline steps={concern.timeline} />
+                                    {(concern.response_plan?.prescriptive_steps?.length > 0
+                                        || concern.response_plan?.estimated_duration
+                                        || concern.response_plan?.estimated_completion) && (
+                                        <div className={`mt-6 border-t ${theme.dividerColor} pt-5`}>
+                                            <h3 className={`text-xs font-black uppercase tracking-wider ${theme.textMain}`}>
+                                                AI-suggested response plan
+                                            </h3>
+                                            {concern.response_plan.prescriptive_steps.length > 0 && (
+                                                <ol className={`mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed ${theme.textMuted}`}>
+                                                    {concern.response_plan.prescriptive_steps.map((step: string, index: number) => (
+                                                        <li key={`${index}-${step}`}>{step}</li>
+                                                    ))}
+                                                </ol>
+                                            )}
+                                            {(concern.response_plan.estimated_duration || concern.response_plan.estimated_completion) && (
+                                                <p className={`mt-3 text-[11px] font-semibold ${theme.textMuted}`}>
+                                                    {concern.response_plan.estimated_duration
+                                                        && `Estimated duration: ${concern.response_plan.estimated_duration}`}
+                                                    {concern.response_plan.estimated_duration && concern.response_plan.estimated_completion && ' · '}
+                                                    {concern.response_plan.estimated_completion
+                                                        && `Target completion: ${concern.response_plan.estimated_completion}`}
+                                                    <span className="block">Estimate only; actual timing may vary.</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>

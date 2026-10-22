@@ -1,7 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { BookOpen, FolderOpen } from 'lucide-react';
-import LibraryHero from '@/Components/resident/library/LibraryHero';
 import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
 import RespondersDirectory from '@/Components/resident/library/RespondersDirectory';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
@@ -63,7 +62,7 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
                             <div className="min-w-0">
                                 <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textMain}`}>Resource & Safety Library</h1>
                                 <p className={`text-xs sm:text-sm font-medium ${theme.textMuted} mt-1 leading-relaxed`}>
-                                    Verified emergency manuals and municipal hotline directories
+                                Access official emergency protocols, evacuation manuals, and verified municipal hotlines. Fully available offline via PWA caching.
                                 </p>
                             </div>
                         </CardContent>
@@ -71,7 +70,6 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
 
                     {hasData ? (
                         <div className="space-y-6">
-                            <LibraryHero />
                             {manuals.length > 0 && <PreparednessManuals manuals={manuals} />}
                             {contacts.length > 0 && <RespondersDirectory contacts={contacts} />}
                         </div>

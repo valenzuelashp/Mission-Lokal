@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FileText, Home, Megaphone, User } from 'lucide-react';
+import { BookOpen, CalendarDays, FileText, Home, Megaphone, User } from 'lucide-react';
 import { useActivePath } from '@/Hooks/useActivePath';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
@@ -7,6 +7,7 @@ import { cn } from '@/Lib/utils';
 const items = [
     { href: '/feed', label: 'Feed', icon: Home },
     { href: '/announcements', label: 'News', icon: Megaphone },
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
     { href: '/blotters', label: 'Blotters', icon: FileText },
     { href: '/library', label: 'Library', icon: BookOpen },
     { href: '/profile', label: 'Profile', icon: User },

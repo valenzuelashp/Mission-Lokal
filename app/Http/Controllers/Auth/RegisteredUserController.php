@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Crypt;
@@ -22,6 +23,63 @@ class RegisteredUserController extends Controller
     public function create(): Response
     {
         return Inertia::render('Auth/Register');
+    }
+
+    /**
+     * Provide hierarchical location options (Provinces -> Cities -> Barangays) from DB.
+     */
+    public function getLocationOptions(Request $request): JsonResponse
+    {
+        $type = $request->query('type');
+        $province = $request->query('province');
+        $city = $request->query('city');
+
+        if ($type === 'provinces') {
+            $provinces = Barangay::where('is_active', true)
+                ->whereNotNull('province')
+                ->where('province', '!=', '')
+                ->distinct()
+                ->orderBy('province', 'asc')
+                ->pluck('province');
+
+            return response()->json($provinces);
+        }
+
+        if ($type === 'cities') {
+            $query = Barangay::where('is_active', true)
+                ->whereNotNull('city')
+                ->where('city', '!=', '');
+
+            if ($province) {
+                $query->where('province', $province);
+            }
+
+            $cities = $query->distinct()
+                ->orderBy('city', 'asc')
+                ->pluck('city');
+
+            return response()->json($cities);
+        }
+
+        if ($type === 'barangays') {
+            $query = Barangay::where('is_active', true)
+                ->whereNotNull('name')
+                ->where('name', '!=', '');
+
+            if ($province) {
+                $query->where('province', $province);
+            }
+            if ($city) {
+                $query->where('city', $city);
+            }
+
+            $barangays = $query->orderBy('name', 'asc')
+                ->get(['id', 'name', 'code']);
+
+            return response()->json($barangays);
+        }
+
+        return response()->json([]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -113,28 +171,18 @@ class RegisteredUserController extends Controller
             ])->withInput();
         }
 
-        // Strict Barangay Validation: Must match an active registered node
+        // Fetch barangay ID based on selected dropdown values
         $inputBrgy = trim($request->barangay_name);
         $inputCity = trim($request->city);
+        $inputProvince = trim($request->province);
 
         $barangay = Barangay::where('is_active', true)
-            ->where(function($query) use ($inputBrgy) {
-                $query->where('name', 'like', "%{$inputBrgy}%")
-                      ->orWhere('code', 'like', "%{$inputBrgy}%");
-            })
-            ->where(function($query) use ($inputCity) {
-                $query->where('city', 'like', "%{$inputCity}%");
-            })
+            ->where('name', $inputBrgy)
+            ->where('city', $inputCity)
+            ->where('province', $inputProvince)
             ->first();
 
-        if (! $barangay) {
-            return back()->withErrors([
-                'barangay_name' => 'The specified barangay is not registered or supported in the system yet.',
-                'general' => 'Registration failed: Only residents belonging to officially registered barangays are allowed to register.',
-            ])->withInput();
-        }
-
-        $barangayId = $barangay->id;
+        $barangayId = $barangay?->id;
 
         $file = $request->file('government_id');
         $extension = $file->getClientOriginalExtension();
@@ -162,7 +210,7 @@ class RegisteredUserController extends Controller
             'parent_contact' => $isMinor ? $request->parent_contact : null,
         ]);
 
-        $accountId = LocalIdentifier::next($barangay, LocalIdentifier::RES);
+        $accountId = $barangay ? LocalIdentifier::next($barangay, LocalIdentifier::RES) : 'RES-' . strtoupper(Str::random(6));
 
         $user = User::create([
             'barangay_id' => $barangayId,
@@ -184,14 +232,16 @@ class RegisteredUserController extends Controller
             'address' => "{$request->house_street}, {$request->barangay_name}, {$request->city}, {$request->province}",
         ]);
 
-        $fullName = trim($request->first_name.' '.$request->last_name);
-        Notification::notifyBarangayAdmins(
-            $barangayId,
-            'resident_registration',
-            'New resident registration',
-            $fullName.' submitted a registration for physical record verification.',
-            ['registration_id' => $registration->id]
-        );
+        if ($barangayId) {
+            $fullName = trim($request->first_name.' '.$request->last_name);
+            Notification::notifyBarangayAdmins(
+                $barangayId,
+                'resident_registration',
+                'New resident registration',
+                $fullName.' submitted a registration for physical record verification.',
+                ['registration_id' => $registration->id]
+            );
+        }
 
         return redirect()->route('login')->with('success', 'Registration submitted successfully! Admin will verify your details against physical barangay records.');
     }

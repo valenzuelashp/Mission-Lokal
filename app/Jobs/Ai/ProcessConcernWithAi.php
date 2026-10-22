@@ -36,6 +36,12 @@ class ProcessConcernWithAi implements ShouldQueue
     {
         $apiKey = config('services.gemini.key');
 
+        // Pre-check for blatant keyboard smashes / gibberish before querying AI or heuristics
+        if ($this->isGibberishText($this->concern->title . ' ' . $this->concern->description)) {
+            $this->suggestSpamReview();
+            return;
+        }
+
         if (!$apiKey) {
             Log::warning('Gemini API key is missing; using rule-based analysis.', [
                 'concern_id' => $this->concern->id,
@@ -45,11 +51,11 @@ class ProcessConcernWithAi implements ShouldQueue
         }
 
         $prompt = "
-            You are a cautious case-triage assistant for a barangay in the Philippines.
-            Analyze only the supplied report text and image evidence. Do not invent names, dates,
-            locations, causes, damage, threats, or facts that are not visible or stated.
-            If evidence is insufficient, return null for the uncertain field and use an empty array
-            for uncertain lists. Do not treat a category label as proof of what happened.
+            You are an expert case-triage assistant for a barangay in the Philippines. 
+            You are fluent in English, Tagalog, Taglish, common Filipino text shortcuts, acronyms, and informal terms.
+
+            Analyze the supplied report text and image evidence. Look past typos, slang, and shorthand to extract the true underlying intent or community issue. 
+            If the text is purely random string sequences, keyboard smashes (e.g., 'asdjfugiocnrle' or 'asdasd'), or meaningless gibberish with no valid community concern, you MUST set suggested_severity to 'low', severity_confidence to 0.01, and add 'Possible spam or gibberish input' to uncertainties.
 
             Respond ONLY with a valid JSON object matching this exact schema:
             {
@@ -69,20 +75,13 @@ class ProcessConcernWithAi implements ShouldQueue
             Choose category and subcategory ONLY from this catalog. Return null when none matches:
             " . json_encode($this->categoryCatalog(), JSON_UNESCAPED_SLASHES) . "
 
-            Analysis rules:
-            - Prefer the resident's submitted category when the evidence does not contradict it.
-            - Use only category and subcategory codes present in the catalog.
-            - Recommend inspection or verification when the report does not prove a condition.
-            - Never claim that an image proves ownership, identity, intent, exact measurements, or causation.
-            - Keep prescriptive steps actionable and limited to what barangay personnel can verify or do.
-                        - Set suggested_duration_hours to 72 for low/medium simple concerns, 168 for high/complex or
-                            blotter/mediation concerns, and 480 for critical technical or public safety/health hazards.
-                        - Suggest a due date no later than the matching 3/7/20 working-day limit. The server will
-                            calculate the authoritative due date from the report's official handling date.
-
-            Routing Rules:
-            - If the report contains sensitive info, PII, domestic disputes, or VAWC, set visibility to 'private'.
-            - If it is a public hazard (infrastructure, sanitation), set visibility to 'public'.
+            Analysis & Quality Guidelines:
+            - Keyboard Smashes / Gibberish: If the text is purely random string sequences with no discernible words or meaning (e.g., \"asdjfugiocnrle\" or \"asdasd\"), set suggested_severity to \"low\", severity_confidence to 0.05, and add \"Report consists of gibberish or non-sensical text\" to uncertainties.
+            - Taglish, Typos & Shorthand: Accurately interpret Tagalog, Taglish, abbreviations (like brgy, baha, kuryente, sirang ilaw), and common typos. Do not penalize reports just because they are misspelled or informal.
+            - Vague Context: If the report lacks actionable details, set low confidence and note what is missing in uncertainties.
+            - Reliable Concern: Genuine municipal or barangay issues should receive appropriate categories and actionable steps.
+            - Routing Rules: If the report contains sensitive info, PII, domestic disputes, or VAWC, set visibility to 'private'. Otherwise set 'public'.
+            - Prescriptive Steps: Provide detailed, step-by-step operational solutions to resolve the concern. CRITICAL: You must write these steps from a third-person perspective referring to the barangay personnel (e.g., \"The barangay response team will deploy...\", \"Assigned officials must bring...\", \"The engineering desk will repair...\"). Do NOT write them as direct commands like \"Clear the debris,\" because residents will read these steps on the public feed and might mistakenly think they are being instructed to do the work themselves.
 
             Title: {$this->concern->title}
             Description: {$this->concern->description}
@@ -126,6 +125,12 @@ class ProcessConcernWithAi implements ShouldQueue
                     throw new \RuntimeException('Gemini response was not valid JSON.');
                 }
 
+                if (($analysisData['severity_confidence'] ?? 1.0) < 0.1 || 
+                    collect($analysisData['uncertainties'] ?? [])->contains(fn($u) => stripos($u, 'gibberish') !== false || stripos($u, 'spam') !== false)) {
+                    $this->suggestSpamReview();
+                    return;
+                }
+
                 $this->persistAnalysis($this->sanitizeAnalysis($analysisData));
                 return;
             }
@@ -150,12 +155,101 @@ class ProcessConcernWithAi implements ShouldQueue
         }
     }
 
+    private function isGibberishText(string $text): bool
+    {
+        $text = strtolower(trim($text));
+        if ($text === '') {
+            return true;
+        }
+
+        $cleanAlpha = preg_replace('/[^a-z]/', '', $text);
+        if (strlen($cleanAlpha) < 4) {
+            return true; 
+        }
+
+        $commonTokens = [
+            'ang', 'mga', 'sa', 'ng', 'at', 'na', 'ay', 'ko', 'mo', 'nya', 'ka', 'kita', 'kami', 'sila', 'kayo',
+            'po', 'opo', 'yung', 'ito', 'iyan', 'iyon', 'may', 'mayroon', 'wala', 'hindi', 'oo', 'ba', 'pa', 'na',
+            'baha', 'tubig', 'ilaw', 'kuryente', 'basura', 'tapon', 'kalat', 'daan', 'kalsada', 'pothole', 'lubak',
+            'sunog', 'fire', 'nakawan', 'magnanakaw', 'away', 'gulo', 'ingay', 'videoke', 'street', 'road', 'light',
+            'pole', 'electric', 'leak', 'pipe', 'dog', 'aso', 'pusa', 'cat', 'stray', 'report', 'concern', 'issue',
+            'tulong', 'help', 'please', 'paki', 'sir', 'maam', 'kapitan', 'tanod', 'barangay', 'bgy', 'brgy', 'lgu'
+        ];
+
+        $hasKnownToken = false;
+        foreach ($commonTokens as $token) {
+            if (str_contains($text, $token)) {
+                $hasKnownToken = true;
+                break;
+            }
+        }
+
+        if (!$hasKnownToken && strlen($cleanAlpha) >= 5) {
+            return true;
+        }
+
+        $words = preg_split('/\s+/', $text);
+        $hasLongNonsenseWord = collect($words)->contains(function($w) {
+            $wClean = preg_replace('/[^a-z]/', '', $w);
+            return strlen($wClean) > 10 && !preg_match('/[aeiou]{2}/', $wClean);
+        });
+
+        return $hasLongNonsenseWord;
+    }
+
+    /**
+     * Suggest Spam / Rejection to Admin Queue (Waits for Human Confirmation)
+     */
+    private function suggestSpamReview(): void
+    {
+        DB::transaction(function () {
+            $previousStatus = $this->concern->status->value ?? $this->concern->status;
+            
+            // Set to AI Processed so it appears in the Admin Report Queue for human review/rejection
+            $this->concern->update([
+                'severity' => 'low',
+                'status' => ConcernStatus::AiProcessed,
+                'ai_processed_at' => now(),
+            ]);
+
+            ConcernAiAnalysis::create([
+                'concern_id' => $this->concern->id,
+                'is_current' => true,
+                'detected_language' => 'en',
+                'suggested_visibility' => $this->concern->visibility ?? 'public',
+                'suggested_severity' => 'low',
+                'severity_confidence' => 0.01,
+                'prescriptive_steps' => [
+                    'Review report content for spam or meaningless text.',
+                    'Confirm rejection or dismissal if non-actionable.',
+                ],
+                'raw_model_output' => ['reason' => 'AI flagged as potential spam/gibberish requiring admin confirmation.'],
+                'processed_at' => now(),
+            ]);
+
+            if ($previousStatus !== ConcernStatus::AiProcessed->value) {
+                ConcernStatusUpdate::record(
+                    $this->concern,
+                    $previousStatus,
+                    ConcernStatus::AiProcessed->value,
+                    null,
+                    'AI suggests reviewing for spam or dismissal.',
+                );
+            }
+        });
+    }
+
     private function applyHeuristicAnalysis(): void
     {
         $text = strtolower(trim($this->concern->title.' '.$this->concern->description));
 
-        $hasFilipino = (bool) preg_match('/\b(ang|mga|po|yung|naman|hindi|sa|ng)\b/u', $text);
-        $hasEnglish = (bool) preg_match('/\b(the|and|please|street|flood|garbage)\b/i', $text);
+        if ($this->isGibberishText($text)) {
+            $this->suggestSpamReview();
+            return;
+        }
+
+        $hasFilipino = (bool) preg_match('/\b(ang|mga|po|yung|naman|hindi|sa|ng|baha|ilaw|basura|kalat|daan|kalsada)\b/u', $text);
+        $hasEnglish = (bool) preg_match('/\b(the|and|please|street|flood|garbage|road|water|light)\b/i', $text);
 
         $language = match (true) {
             $hasFilipino && $hasEnglish => 'mixed',
@@ -170,9 +264,9 @@ class ProcessConcernWithAi implements ShouldQueue
         ) || $this->concern->visibility === 'private';
 
         $severity = match (true) {
-            str_contains($text, 'fire') || str_contains($text, 'collapse') || str_contains($text, 'electroc') => 'critical',
-            str_contains($text, 'flood') || str_contains($text, 'baha') || str_contains($text, 'pothole') => 'high',
-            str_contains($text, 'noise') || str_contains($text, 'videoke') => 'low',
+            str_contains($text, 'fire') || str_contains($text, 'sunog') || str_contains($text, 'collapse') || str_contains($text, 'electroc') => 'critical',
+            str_contains($text, 'flood') || str_contains($text, 'baha') || str_contains($text, 'pothole') || str_contains($text, 'lubak') => 'high',
+            str_contains($text, 'noise') || str_contains($text, 'ingay') || str_contains($text, 'videoke') => 'low',
             default => 'medium',
         };
 
@@ -182,9 +276,9 @@ class ProcessConcernWithAi implements ShouldQueue
             'suggested_severity' => $severity,
             'severity_confidence' => 0.55,
             'prescriptive_steps' => [
-                'Inspect the reported location.',
-                'Document current conditions with photos.',
-                'Apply the matching barangay playbook and update the resident.',
+                'The barangay response team will be deployed to the site with appropriate tools to physically resolve the reported issue.',
+                'Assigned personnel will clear any hazards, conduct necessary repairs, or mediate the dispute based on barangay protocols.',
+                'The field team will document the completed operational resolution with before and after photos.',
             ],
             'suggested_duration_hours' => app(ConcernResolutionDeadline::class)
                 ->durationHoursForConcern($this->concern, $severity),

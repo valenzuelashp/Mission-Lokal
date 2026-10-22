@@ -247,7 +247,7 @@ export default function ConcernCard({ concern }: Props) {
                         </p>
                         {concern.latest_update?.prescriptive_steps && concern.latest_update.prescriptive_steps.length > 0 && (
                             <div className="mt-2">
-                                <p className={`text-[11px] font-black ${theme.textMain}`}>AI-suggested next steps</p>
+                                <p className={`text-[11px] font-black ${theme.textMain}`}>AI-suggested response plan</p>
                                 <ol className={`mt-1 list-decimal space-y-1 pl-4 text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
                                     {concern.latest_update.prescriptive_steps.map((step, index) => (
                                         <li key={`${index}-${step}`}>{step}</li>

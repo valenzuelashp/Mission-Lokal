@@ -1,8 +1,8 @@
 import { Head, useForm, Link } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ShieldAlert, Search, ChevronDown, FileText } from 'lucide-react';
 
 function toUpperCase(value: string) {
     return value.toUpperCase();
@@ -27,9 +27,93 @@ function CapsInput({
             placeholder={placeholder}
             required={required}
             disabled={disabled}
-            className="uppercase"
+            className="uppercase bg-slate-50/50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500/20 transition-all text-xs font-medium h-9"
             onChange={(e) => onChange(toUpperCase(e.target.value))}
         />
+    );
+}
+
+// Searchable Dropdown Component with Alphabetical Sorting & Search Bar
+function SearchableSelect({
+    label,
+    options,
+    value,
+    onChange,
+    placeholder,
+    required,
+    disabled,
+}: {
+    label: string;
+    options: string[];
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    required?: boolean;
+    disabled?: boolean;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const sortedAndFilteredOptions = useMemo(() => {
+        return [...options]
+            .filter((opt) => opt.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => a.localeCompare(b));
+    }, [options, searchTerm]);
+
+    return (
+        <div className="relative">
+            <label className="text-[11px] font-semibold text-slate-700 mb-1 block">
+                {label} {required && <span className="text-blue-600">*</span>}
+            </label>
+            <div
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`flex h-9 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs transition-all cursor-pointer ${
+                    disabled ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:border-blue-400 hover:bg-white focus:ring-2 focus:ring-blue-500/20'
+                }`}
+            >
+                <span className={value ? 'uppercase text-slate-900 font-semibold tracking-wide' : 'text-slate-400'}>
+                    {value || placeholder}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400 opacity-70" />
+            </div>
+
+            {isOpen && !disabled && (
+                <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-100 bg-white shadow-xl shadow-blue-950/5 overflow-hidden animate-in fade-in-50 zoom-in-95">
+                    <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                        <Search className="h-3.5 w-3.5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-transparent text-xs uppercase focus:outline-none text-slate-800 font-medium"
+                            autoFocus
+                        />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto p-1 space-y-0.5">
+                        {sortedAndFilteredOptions.length === 0 ? (
+                            <div className="py-2 text-center text-xs text-slate-400 font-medium">No matches found in DB</div>
+                        ) : (
+                            sortedAndFilteredOptions.map((opt) => (
+                                <div
+                                    key={opt}
+                                    onClick={() => {
+                                        onChange(opt);
+                                        setIsOpen(false);
+                                        setSearchTerm('');
+                                    }}
+                                    className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs uppercase transition-colors font-medium ${
+                                        value === opt ? 'bg-blue-50 text-blue-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    {opt}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -55,7 +139,44 @@ export default function Register() {
 
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
-    const [brgyStatus, setBrgyStatus] = useState<'checking' | 'found' | 'unlisted' | 'error' | null>(null);
+    
+    // Cascading DB Data States
+    const [provinces, setProvinces] = useState<string[]>([]);
+    const [cities, setCities] = useState<string[]>([]);
+    const [barangays, setBarangays] = useState<{ id: string; name: string; code: string }[]>([]);
+
+    // Load Provinces on mount
+    useEffect(() => {
+        fetch('/api/location-options?type=provinces')
+            .then((res) => res.json())
+            .then((data) => setProvinces(data))
+            .catch(() => setProvinces([]));
+    }, []);
+
+    // Load Cities when Province changes
+    useEffect(() => {
+        if (!data.province) {
+            setCities([]);
+            setBarangays([]);
+            return;
+        }
+        fetch(`/api/location-options?type=cities&province=${encodeURIComponent(data.province)}`)
+            .then((res) => res.json())
+            .then((resData) => setCities(resData))
+            .catch(() => setCities([]));
+    }, [data.province]);
+
+    // Load Barangays when City changes
+    useEffect(() => {
+        if (!data.city) {
+            setBarangays([]);
+            return;
+        }
+        fetch(`/api/location-options?type=barangays&province=${encodeURIComponent(data.province)}&city=${encodeURIComponent(data.city)}`)
+            .then((res) => res.json())
+            .then((resData) => setBarangays(resData))
+            .catch(() => setBarangays([]));
+    }, [data.city, data.province]);
 
     useEffect(() => {
         if (data.birthday) {
@@ -72,215 +193,246 @@ export default function Register() {
         }
     }, [data.birthday]);
 
-    // Live validation for barangay existence
-    useEffect(() => {
-        const trimmed = data.barangay_name.trim();
-        const city = data.city.trim();
-        if (trimmed.length < 2 || city.length < 2) {
-            setBrgyStatus(null);
-            return;
-        }
-
-        setBrgyStatus('checking');
-        const timer = setTimeout(async () => {
-            try {
-                const params = new URLSearchParams({ name: trimmed, city });
-                const res = await fetch(`/api/check-barangay?${params}`);
-                if (!res.ok) {
-                    setBrgyStatus('error');
-                    return;
-                }
-                const json = await res.json();
-                setBrgyStatus(json.exists ? 'found' : 'unlisted');
-            } catch {
-                setBrgyStatus('error');
-            }
-        }, 300);
-
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [data.barangay_name, data.city]);
-
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post('/register');
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+        <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/60 px-6 sm:px-10 py-6 flex items-center justify-center">
             <Head title="Resident Registration" />
 
-            <div className="w-full max-w-2xl rounded-xl border bg-white p-8 shadow-sm">
-                <div className="mb-6 text-center">
-                    <h1 className="text-2xl font-bold text-blue-900">Mission-Lokal Resident Portal</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Register your details for physical record verification at the barangay hall.</p>
+            <div className="w-full rounded-2xl border border-blue-100/80 bg-white/95 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-blue-950/5 space-y-5">
+                
+                {/* Header Banner */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold mb-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                            Official Resident Portal
+                        </span>
+                        <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+                            Mission-Lokal Registration
+                        </h1>
+                    </div>
+                    <Link 
+                        href="/login" 
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Sign in instead
+                    </Link>
                 </div>
 
                 {formErrors.general && (
-                    <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {formErrors.general}
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />
+                        <span>{formErrors.general}</span>
                     </div>
                 )}
 
+                {/* Form Body in 2 Columns */}
                 <form onSubmit={submit} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-medium">First Name *</label>
-                            <CapsInput value={data.first_name} onChange={(value) => setData('first_name', value)} required />
-                            {errors.first_name && <p className="text-xs text-red-600 mt-1">{errors.first_name}</p>}
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Middle Name</label>
-                            <CapsInput
-                                value={data.middle_name}
-                                onChange={(value) => setData('middle_name', value)}
-                                disabled={data.no_middle_name}
-                            />
-                            <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-slate-600">
-                                <input
-                                    type="checkbox"
-                                    checked={data.no_middle_name}
-                                    onChange={(e) => {
-                                        const noMiddleName = e.target.checked;
-                                        setData('no_middle_name', noMiddleName);
-                                        setData('middle_name', noMiddleName ? 'N/A' : '');
-                                    }}
-                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                        
+                        {/* COLUMN 1: Personal Info & Contacts */}
+                        <div className="space-y-3">
+                            <div className="text-xs font-bold uppercase tracking-wider text-blue-900 border-b pb-1">
+                                1. Personal & Contact Details
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">First Name *</label>
+                                    <CapsInput value={data.first_name} onChange={(value) => setData('first_name', value)} required placeholder="JUAN" />
+                                    {errors.first_name && <p className="text-[10px] text-red-600 mt-0.5">{errors.first_name}</p>}
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Middle Name</label>
+                                    <CapsInput
+                                        value={data.middle_name}
+                                        onChange={(value) => setData('middle_name', value)}
+                                        disabled={data.no_middle_name}
+                                        placeholder="SANTOS"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={data.no_middle_name}
+                                        onChange={(e) => {
+                                            const noMiddleName = e.target.checked;
+                                            setData('no_middle_name', noMiddleName);
+                                            setData('middle_name', noMiddleName ? 'N/A' : '');
+                                        }}
+                                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                                    />
+                                    No middle name
+                                </label>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Last Name *</label>
+                                    <CapsInput value={data.last_name} onChange={(value) => setData('last_name', value)} required placeholder="DELA CRUZ" />
+                                    {errors.last_name && <p className="text-[10px] text-red-600 mt-0.5">{errors.last_name}</p>}
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Extension</label>
+                                    <CapsInput placeholder="JR, III" value={data.name_extension} onChange={(value) => setData('name_extension', value)} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Birthday *</label>
+                                    <Input 
+                                        type="date" 
+                                        value={data.birthday} 
+                                        onChange={e => setData('birthday', e.target.value)} 
+                                        required 
+                                        className="bg-slate-50/50 border-slate-200 text-xs h-9 font-medium"
+                                    />
+                                    {errors.birthday && <p className="text-[10px] text-red-600 mt-0.5">{errors.birthday}</p>}
+                                </div>
+                                <div>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Phone Number *</label>
+                                    <Input 
+                                        placeholder="09123456789" 
+                                        value={data.mobile} 
+                                        onChange={e => setData('mobile', e.target.value)} 
+                                        required 
+                                        className="bg-slate-50/50 border-slate-200 text-xs h-9 font-medium"
+                                    />
+                                    {errors.mobile && <p className="text-[10px] text-red-600 mt-0.5">{errors.mobile}</p>}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Email Address *</label>
+                                <Input 
+                                    type="email" 
+                                    value={data.email} 
+                                    onChange={e => setData('email', e.target.value)} 
+                                    required 
+                                    placeholder="name@example.com"
+                                    className="bg-slate-50/50 border-slate-200 text-xs h-9 font-medium"
                                 />
-                                No middle name
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-medium">Last Name *</label>
-                            <CapsInput value={data.last_name} onChange={(value) => setData('last_name', value)} required />
-                            {errors.last_name && <p className="text-xs text-red-600 mt-1">{errors.last_name}</p>}
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Name Extension</label>
-                            <CapsInput placeholder="JR, III, etc." value={data.name_extension} onChange={(value) => setData('name_extension', value)} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-medium">Birthday *</label>
-                        <Input type="date" value={data.birthday} onChange={e => setData('birthday', e.target.value)} required />
-                        {errors.birthday && <p className="text-xs text-red-600 mt-1">{errors.birthday}</p>}
-                    </div>
-
-                    {isMinor && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4">
-                            <div className="flex items-start gap-2">
-                                <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                                <p className="text-xs text-amber-900 font-medium">
-                                    You have entered a birthdate indicating you are a minor (under 18 years old). Please provide your parent or guardian's details below.
-                                </p>
+                                {errors.email && <p className="text-[10px] text-red-600 mt-0.5">{errors.email}</p>}
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs font-medium">Parent / Guardian Full Name *</label>
-                                    <CapsInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="Guardian Name" />
-                                    {errors.parent_name && <p className="text-xs text-red-600 mt-1">{errors.parent_name}</p>}
+
+                            {isMinor && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 space-y-2">
+                                    <p className="text-[10px] text-amber-900 font-semibold">Minor detected (under 18). Guardian details required:</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <CapsInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="GUARDIAN NAME" />
+                                        <Input placeholder="09123456789" value={data.parent_contact} onChange={e => setData('parent_contact', e.target.value)} required={isMinor} className="bg-white text-xs h-9" />
+                                    </div>
                                 </div>
+                            )}
+                        </div>
+
+                        {/* COLUMN 2: Address & Identity Verification */}
+                        <div className="space-y-3">
+                            <div className="text-xs font-bold uppercase tracking-wider text-blue-900 border-b pb-1">
+                                2. Address & Verification
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <SearchableSelect
+                                    label="Province"
+                                    options={provinces}
+                                    value={data.province}
+                                    onChange={(val) => {
+                                        setData('province', val);
+                                        setData('city', '');
+                                        setData('barangay_name', '');
+                                    }}
+                                    placeholder="SELECT PROVINCE"
+                                    required
+                                />
+
+                                <SearchableSelect
+                                    label="City / Municipality"
+                                    options={cities}
+                                    value={data.city}
+                                    onChange={(val) => {
+                                        setData('city', val);
+                                        setData('barangay_name', '');
+                                    }}
+                                    placeholder="SELECT CITY"
+                                    required
+                                    disabled={!data.province}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <SearchableSelect
+                                    label="Barangay Name"
+                                    options={barangays.map(b => b.name)}
+                                    value={data.barangay_name}
+                                    onChange={(val) => setData('barangay_name', val)}
+                                    placeholder="SELECT BARANGAY"
+                                    required
+                                    disabled={!data.city}
+                                />
+
                                 <div>
-                                    <label className="text-xs font-medium">Parent / Guardian Contact *</label>
-                                    <Input placeholder="09123456789" value={data.parent_contact} onChange={e => setData('parent_contact', e.target.value)} required={isMinor} />
-                                    {errors.parent_contact && <p className="text-xs text-red-600 mt-1">{errors.parent_contact}</p>}
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">House / Street *</label>
+                                    <CapsInput placeholder="HOUSE #, STREET" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
                                 </div>
                             </div>
-                        </div>
-                    )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-3">
-                        <div>
-                            <label className="text-xs font-medium">House / Street *</label>
-                            <CapsInput placeholder="House #, Street" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
-                            {errors.house_street && <p className="text-xs text-red-600 mt-1">{errors.house_street}</p>}
+                            <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-2.5">
+                                <label className="text-[11px] font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+                                    <FileText className="h-3.5 w-3.5 text-blue-600" />
+                                    Government Issued ID (Image/PDF) *
+                                </label>
+                                <input 
+                                    type="file" 
+                                    accept=".jpg, .jpeg, .png, .pdf"
+                                    onChange={e => setData('government_id', e.target.files ? e.target.files[0] : null)}
+                                    className="w-full text-[11px] text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer bg-white border border-slate-200 rounded-md p-1"
+                                    required
+                                />
+                                {errors.government_id && <p className="text-[10px] text-red-600 mt-0.5">{errors.government_id}</p>}
+                            </div>
+
+                            <div>
+                                <div className="flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/30 p-2.5">
+                                    <input
+                                        type="checkbox"
+                                        id="consent"
+                                        checked={data.consent}
+                                        onChange={e => setData('consent', e.target.checked)}
+                                        className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                                        required
+                                    />
+                                    <label htmlFor="consent" className="text-[10px] text-slate-700 leading-tight font-medium">
+                                        I consent to the collection and processing of my data for barangay verification under the Data Privacy Act of 2012.{' '}
+                                        <Link href="/privacy" className="font-bold text-blue-700 underline">Privacy Policy</Link>
+                                    </label>
+                                </div>
+                                {errors.consent && <p className="text-[10px] font-semibold text-red-600 mt-1">{errors.consent}</p>}
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs font-medium">Barangay Name *</label>
-                            <CapsInput placeholder="Barangay" value={data.barangay_name} onChange={(value) => setData('barangay_name', value)} required />
-                            {brgyStatus === 'found' && (
-                                <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-                                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Registered Barangay Node Found
-                                </p>
-                            )}
-                            {brgyStatus === 'unlisted' && (
-                                <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-600">
-                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Unlisted barangay (registration will be blocked)
-                                </p>
-                            )}
-                            {brgyStatus === 'error' && (
-                                <p className="mt-1 text-[11px] font-medium text-red-600">
-                                    Could not verify the barangay right now. You can still submit the form.
-                                </p>
-                            )}
-                            {errors.barangay_name && <p className="text-xs text-red-600 mt-1">{errors.barangay_name}</p>}
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">City / Municipality *</label>
-                            <CapsInput placeholder="City" value={data.city} onChange={(value) => setData('city', value)} required />
-                            {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city}</p>}
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Province *</label>
-                            <CapsInput placeholder="Province" value={data.province} onChange={(value) => setData('province', value)} required />
-                            {errors.province && <p className="text-xs text-red-600 mt-1">{errors.province}</p>}
-                        </div>
+
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
-                        <div>
-                            <label className="text-xs font-medium">Email Address *</label>
-                            <Input type="email" value={data.email} onChange={e => setData('email', e.target.value)} required />
-                            {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
-                        </div>
-                        <div>
-                            <label className="text-xs font-medium">Phone Number *</label>
-                            <Input placeholder="09123456789" value={data.mobile} onChange={e => setData('mobile', e.target.value)} required />
-                            {errors.mobile && <p className="text-xs text-red-600 mt-1">{errors.mobile}</p>}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-medium mb-1 block">Submit Government ID (Image or PDF) *</label>
-                        <input 
-                            type="file" 
-                            accept=".jpg, .jpeg, .png, .pdf"
-                            onChange={e => setData('government_id', e.target.files ? e.target.files[0] : null)}
-                            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                            required
-                        />
-                        {errors.government_id && <p className="text-xs text-red-600 mt-1">{errors.government_id}</p>}
-                    </div>
-
-                    <div className="pt-2">
-                        <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
-                            <input
-                                type="checkbox"
-                                id="consent"
-                                checked={data.consent}
-                                onChange={e => setData('consent', e.target.checked)}
-                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
-                                required
-                            />
-                            <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed">
-                                By registering, I consent to the collection and processing of my personal data by Mission-Lokal for the purpose of barangay identity verification and community service management, in accordance with the Data Privacy Act of 2012. I have read the{' '}
-                                <Link href="/privacy" className="font-medium text-blue-700 underline underline-offset-2">
-                                    Privacy Policy
-                                </Link>
-                                .
-                            </label>
-                        </div>
-                        {errors.consent && <p className="text-xs font-medium text-red-600 mt-1">{errors.consent}</p>}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t">
-                        <Link href="/login" className="text-sm text-blue-600 hover:underline">Back to Login</Link>
-                        <Button type="submit" disabled={processing} className="bg-red-600 hover:bg-red-700">Submit Registration</Button>
+                    {/* Footer Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <Link href="/login" className="text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors">
+                            &larr; Back to Login
+                        </Link>
+                        <Button 
+                            type="submit" 
+                            disabled={processing} 
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 transition-all text-xs tracking-wide h-9"
+                        >
+                            {processing ? 'Submitting...' : 'Submit Registration'}
+                        </Button>
                     </div>
                 </form>
             </div>

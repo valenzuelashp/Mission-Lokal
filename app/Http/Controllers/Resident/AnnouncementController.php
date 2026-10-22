@@ -16,7 +16,20 @@ class AnnouncementController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $announcements = $this->publishedQuery($user->barangay_id, $user->id)
+        
+        $query = Announcement::query()
+            ->where('is_published', true)
+            ->with('creator')
+            ->withCount('volunteers')
+            ->withExists([
+                'volunteers as joined' => fn ($query) => $query->where('user_id', $user->id),
+            ]);
+
+        if ($user->barangay_id) {
+            $query->where('barangay_id', $user->barangay_id);
+        }
+
+        $announcements = $query
             ->latest('published_at')
             ->get()
             ->map(fn (Announcement $item) => $item->toResidentArray($user->id));
@@ -73,7 +86,7 @@ class AnnouncementController extends Controller
         // 2. Handle actual Database records
         $announcement = Announcement::findOrFail($id);
 
-        if ($announcement->barangay_id !== $user->barangay_id || ! $announcement->is_published) {
+        if (($user->barangay_id && $announcement->barangay_id !== $user->barangay_id) || ! $announcement->is_published) {
             abort(404);
         }
 
@@ -100,7 +113,7 @@ class AnnouncementController extends Controller
 
         $announcement = Announcement::findOrFail($id);
 
-        if ($announcement->barangay_id !== $user->barangay_id || ! $announcement->is_published) {
+        if (($user->barangay_id && $announcement->barangay_id !== $user->barangay_id) || ! $announcement->is_published) {
             abort(404);
         }
 

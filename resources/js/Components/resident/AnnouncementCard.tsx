@@ -22,11 +22,48 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
     const kind = announcement.kind ?? 'advisory';
     const Icon = kindIcons[kind] ?? Megaphone;
     const kindLabel = announcement.kind_label ?? 'Advisory';
+    
     const body = compact
-        ? announcement.body.length > 120
-            ? `${announcement.body.slice(0, 120)}…`
+        ? announcement.body.length > 90
+            ? `${announcement.body.slice(0, 90)}…`
             : announcement.body
         : announcement.body;
+
+    if (compact) {
+        return (
+            <article className={`overflow-hidden rounded-2xl border ${theme.cardBorder} ${theme.cardBg} shadow-2xs transition-all hover:shadow-sm w-full`}>
+                <div className="flex items-start gap-3 p-3.5">
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border`}>
+                        <Icon className={`h-4 w-4 ${theme.primaryText}`} />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[10px] font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</span>
+                            <span className={`text-[10px] ${theme.textMuted} font-medium`}>{announcement.published_at}</span>
+                        </div>
+                        <Link
+                            href={`/announcements/${announcement.id}`}
+                            className={`block truncate text-xs font-black tracking-tight ${theme.textMain} hover:underline`}
+                        >
+                            {announcement.title}
+                        </Link>
+                        <p className={`text-[11px] leading-relaxed ${theme.textMuted} font-medium line-clamp-2`}>{body}</p>
+                    </div>
+                </div>
+
+                {announcement.image_url && (
+                    <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-100 border-t border-slate-100">
+                        <BufferedImage
+                            src={announcement.image_url}
+                            alt={announcement.title}
+                            className="w-full h-24 object-cover"
+                            imgClassName="transition-transform duration-300 hover:scale-105"
+                        />
+                    </Link>
+                )}
+            </article>
+        );
+    }
 
     return (
         <article className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md w-full`}>
@@ -49,7 +86,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                     <BufferedImage
                         src={announcement.image_url}
                         alt={announcement.title}
-                        className={compact ? 'aspect-video max-h-44 min-h-32 w-full' : 'aspect-video max-h-[32rem] min-h-56 w-full'}
+                        className="aspect-video max-h-[32rem] min-h-56 w-full"
                         imgClassName="transition-transform duration-500 hover:scale-105"
                     />
                 </Link>
@@ -63,7 +100,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                     {announcement.title}
                 </Link>
                 <p className={`whitespace-pre-wrap text-sm leading-relaxed ${theme.textMuted} font-medium`}>{body}</p>
-                {!compact && announcement.body.length > 200 && (
+                {announcement.body.length > 200 && (
                     <Link
                         href={`/announcements/${announcement.id}`}
                         className={`inline-block pt-1 text-xs font-extrabold ${theme.primaryText} hover:underline`}
@@ -73,7 +110,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 )}
             </div>
 
-            {!compact && kind === 'volunteer' && (
+            {kind === 'volunteer' && (
                 <div className={`border-t ${theme.dividerColor} px-6 py-4 ${theme.badgeBg}/40`}>
                     <VolunteerJoinButton
                         announcementId={announcement.id}
@@ -83,25 +120,21 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 </div>
             )}
 
-            {!compact && (
-                <>
-                    {announcement.author_name && (
-                        <div className={`border-t ${theme.dividerColor} ${theme.badgeBg}/20 px-6 py-3 text-xs ${theme.textMuted} font-semibold`}>
-                            Posted by <span className={`font-black ${theme.textMain}`}>{announcement.author_name}</span>
-                        </div>
-                    )}
-                    <div className={`grid grid-cols-2 gap-2 border-t ${theme.dividerColor} ${theme.badgeBg}/20 p-2`}>
-                        <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
-                            <ThumbsUp className="h-4 w-4" />
-                            Acknowledge
-                        </Button>
-                        <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
-                            <Share2 className="h-4 w-4" />
-                            Share Notice
-                        </Button>
-                    </div>
-                </>
+            {announcement.author_name && (
+                <div className={`border-t ${theme.dividerColor} ${theme.badgeBg}/20 px-6 py-3 text-xs ${theme.textMuted} font-semibold`}>
+                    Posted by <span className={`font-black ${theme.textMain}`}>{announcement.author_name}</span>
+                </div>
             )}
+            <div className={`grid grid-cols-2 gap-2 border-t ${theme.dividerColor} ${theme.badgeBg}/20 p-2`}>
+                <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
+                    <ThumbsUp className="h-4 w-4" />
+                    Acknowledge
+                </Button>
+                <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
+                    <Share2 className="h-4 w-4" />
+                    Share Notice
+                </Button>
+            </div>
         </article>
     );
 }

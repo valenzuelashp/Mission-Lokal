@@ -6,6 +6,7 @@ use App\Services\Concerns\FileUploadService;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\ConcernStatusHistory;
+use App\Models\Announcement;
 use App\Support\ConcernStatusUpdate;
 use App\Enums\ConcernStatus;
 use App\Models\ConcernVote;
@@ -29,13 +30,11 @@ class ConcernController extends Controller
     {
         $user = $request->user();
 
-        // 1. Compute personal report metrics for the logged-in resident only
         $userTotalReports = Concern::where('reporter_id', $user->id)->count();
         $userActiveReports = Concern::where('reporter_id', $user->id)
             ->whereIn('status', [ConcernStatus::Submitted, ConcernStatus::UnderReview, ConcernStatus::Active, 'submitted', 'under_review', 'active'])
             ->count();
 
-        // 2. Row-level access query rules for private vs public visibility bounds on the feed
         $concerns = Concern::query()
             ->select('concerns.*')
             ->selectRaw('ST_Y(concerns.location) as map_lat, ST_X(concerns.location) as map_lng')
@@ -64,31 +63,38 @@ class ConcernController extends Controller
             ->map(function ($item) {
                 $reporterName = trim(($item->reporter?->first_name ?? '') . ' ' . ($item->reporter?->last_name ?? ''));
                 $rawVote = $item->votes->first()?->vote;
-                $history = $item->statusHistory;
-                $decisionIndex = $history->search(function ($log) use ($item) {
-                    $status = $log->to_status->value ?? $log->to_status;
+                $statusStr = $item->status->value ?? $item->status;
+                
+                // Barangay updates are strictly hidden while awaiting admin review
+                $latestResidentUpdate = null;
+                if (!in_array($statusStr, ['submitted', 'ai_processed'], true)) {
+                    $history = $item->statusHistory;
+                    $decisionIndex = $history->search(function ($log) use ($item) {
+                        $status = $log->to_status->value ?? $log->to_status;
 
-                    return ConcernStatusUpdate::isResidentDecision(
-                        $status,
-                        $log->note,
-                        $item->closed_summary,
-                        $item->mission !== null,
-                    );
-                });
-                $residentUpdates = $decisionIndex === false
-                    ? $history->filter(fn ($log) => ($log->to_status->value ?? $log->to_status) === 'submitted')
-                    : $history->slice($decisionIndex)
-                        ->filter(function ($log) use ($item) {
-                            $status = $log->to_status->value ?? $log->to_status;
+                        return ConcernStatusUpdate::isResidentDecision(
+                            $status,
+                            $log->note,
+                            $item->closed_summary,
+                            $item->mission !== null,
+                        );
+                    });
+                    $residentUpdates = $decisionIndex === false
+                        ? collect()
+                        : $history->slice($decisionIndex)
+                            ->filter(function ($log) use ($item) {
+                                $status = $log->to_status->value ?? $log->to_status;
 
-                            return ConcernStatusUpdate::isResidentUpdate(
-                                $status,
-                                $log->note,
-                                $item->closed_summary,
-                                $item->mission !== null,
-                            );
-                        });
-                $latestResidentUpdate = $residentUpdates->last();
+                                return ConcernStatusUpdate::isResidentUpdate(
+                                    $status,
+                                    $log->note,
+                                    $item->closed_summary,
+                                    $item->mission !== null,
+                                );
+                            });
+                    $latestResidentUpdate = $residentUpdates->last();
+                }
+
                 $latestUpdateStatus = $latestResidentUpdate
                     ? ($latestResidentUpdate->to_status->value ?? $latestResidentUpdate->to_status)
                     : null;
@@ -99,7 +105,7 @@ class ConcernController extends Controller
                     'title' => $item->title,
                     'category' => ucwords(str_replace('_', ' ', $item->category_id)),
                     'severity' => $item->severity ?? 'medium',
-                    'status' => $item->status->value ?? $item->status, 
+                    'status' => $statusStr, 
                     'upvotes' => (int) $item->upvotes_count,
                     'downvotes' => (int) $item->downvotes_count,
                     'user_vote' => ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null),
@@ -121,13 +127,31 @@ class ConcernController extends Controller
                         ),
                         'at' => $latestResidentUpdate->created_at?->format('M d, Y · g:i A'),
                         ...(
-                            $latestUpdateStatus === 'active'
+                            in_array($latestUpdateStatus, ['active', 'resolved'], true)
                                 ? ConcernStatusUpdate::plan($item->currentAiAnalysis)
                                 : []
                         ),
                     ] : null,
                 ];
             });
+
+        $announcementsQuery = Announcement::query()
+            ->where('is_published', true)
+            ->with('creator')
+            ->withCount('volunteers')
+            ->withExists([
+                'volunteers as joined' => fn ($query) => $query->where('user_id', $user->id),
+            ]);
+
+        if ($user->barangay_id) {
+            $announcementsQuery->where('barangay_id', $user->barangay_id);
+        }
+
+        $announcements = $announcementsQuery
+            ->latest('published_at')
+            ->take(2)
+            ->get()
+            ->map(fn (Announcement $item) => $item->toResidentArray($user->id));
 
         $resolutionPosts = $this->publishedResolutionPosts($user->barangay_id)
             ->take(5)
@@ -136,6 +160,7 @@ class ConcernController extends Controller
 
         return Inertia::render('Resident/Feed', [
             'concerns' => $concerns,
+            'announcements' => $announcements,
             'resolutionPosts' => $resolutionPosts,
             'userStats' => [
                 'total_reports' => $userTotalReports,
@@ -157,9 +182,6 @@ class ConcernController extends Controller
         ]);
     }
 
-    /**
-     * @return array{lat: float|null, lng: float|null}
-     */
     private function mapPoint(object $item): array
     {
         if ($item->map_lat === null || $item->map_lng === null) {
@@ -209,9 +231,6 @@ class ConcernController extends Controller
         ];
     }
 
-    /**
-     * R9: Render the Post New Concern view setup.
-     */
     public function create(): Response
     {
         return Inertia::render('Resident/Concerns/New', [
@@ -233,9 +252,6 @@ class ConcernController extends Controller
         ]);
     }
 
-    /**
-     * R9: Save formal community concern report records using atomic transactions.
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -331,9 +347,6 @@ class ConcernController extends Controller
         return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
     }
 
-    /**
-     * R10: Render specific details with row-level authorization boundaries.
-     */
     public function show(Request $request, Concern $concern): Response
     {
         $user = $request->user();
@@ -342,7 +355,6 @@ class ConcernController extends Controller
         $concern->load('reporter', 'currentAiAnalysis');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
 
-        // Determine lat/lng correctly regardless of whether location is stored (lng, lat) or (lat, lng)
         $locationData = DB::selectOne("SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?", [$concern->id]);
         $lat = 14.5173079;
         $lng = 120.9933811;
@@ -350,7 +362,6 @@ class ConcernController extends Controller
         if ($locationData) {
             $x = (float) $locationData->x;
             $y = (float) $locationData->y;
-            // In GIS, the coordinate with value > 90 is always Longitude
             if ($x > 90) {
                 $lng = $x;
                 $lat = $y;
@@ -365,6 +376,9 @@ class ConcernController extends Controller
         $rawVote = $concern->votes()->where('user_id', $user->id)->value('vote');
         $userVote = ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null);
 
+        $statusStr = $concern->status->value ?? $concern->status;
+        $isPendingReview = in_array($statusStr, ['submitted', 'ai_processed'], true);
+
         $statusHistory = DB::table('concern_status_history')
             ->where('concern_id', $concern->id)
             ->whereIn('to_status', ['submitted', 'active', 'rejected', 'spam', 'resolved', 'closed'])
@@ -373,33 +387,39 @@ class ConcernController extends Controller
             ->get();
         $missionCreated = $concern->mission()->exists();
 
-        $decisionIndex = $statusHistory->search(fn ($log) => ConcernStatusUpdate::isResidentDecision(
-            $log->to_status,
-            $log->note,
-            $concern->closed_summary,
-            $missionCreated,
-        ));
-        $submittedUpdates = $statusHistory
-            ->filter(fn ($log) => $log->to_status === 'submitted');
-        $decisionUpdates = $decisionIndex === false
-            ? collect()
-            : $statusHistory->slice($decisionIndex)
-                ->filter(fn ($log) => ConcernStatusUpdate::isResidentUpdate(
-                    $log->to_status,
-                    $log->note,
-                    $concern->closed_summary,
-                    $missionCreated,
-                ));
-        $timeline = $submittedUpdates
-            ->concat($decisionUpdates)
-            ->values()
-            ->map(fn ($log) => [
+        $timeline = [];
+        if (!$isPendingReview) {
+            $decisionIndex = $statusHistory->search(fn ($log) => ConcernStatusUpdate::isResidentDecision(
+                $log->to_status,
+                $log->note,
+                $concern->closed_summary,
+                $missionCreated,
+            ));
+            $decisionUpdates = $decisionIndex === false
+                ? collect()
+                : $statusHistory->slice($decisionIndex)
+                    ->filter(fn ($log) => ConcernStatusUpdate::isResidentUpdate(
+                        $log->to_status,
+                        $log->note,
+                        $concern->closed_summary,
+                        $missionCreated,
+                    ));
+            $timeline = $decisionUpdates
+                ->values()
+                ->map(fn ($log) => [
                     'key' => (string) $log->id,
                     'label' => ConcernStatusUpdate::label($log->to_status),
                     'description' => ConcernStatusUpdate::message($log->to_status, $log->note, $concern->closed_summary),
                     'at' => \Carbon\Carbon::parse($log->created_at)->format('M d, Y g:i A'),
                     'state' => 'done',
                 ])->toArray();
+        }
+
+        $responsePlan = $isPendingReview ? [
+            'prescriptive_steps' => [],
+            'estimated_duration' => null,
+            'estimated_completion' => null,
+        ] : ConcernStatusUpdate::plan($concern->currentAiAnalysis);
 
         return Inertia::render('Resident/Concerns/Show', [
             'concern' => [
@@ -407,7 +427,7 @@ class ConcernController extends Controller
                 'title' => $concern->title,
                 'category' => ucwords(str_replace('_', ' ', $concern->category_id)),
                 'severity' => $concern->severity ?? 'medium',
-                'status' => $concern->status->value ?? $concern->status,
+                'status' => $statusStr,
                 'description' => $concern->description,
                 'location_label' => $concern->locationLabel(),
                 'lat' => $lat,
@@ -419,14 +439,11 @@ class ConcernController extends Controller
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
                 'images' => $concern->media->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
                 'timeline' => $timeline,
-                'response_plan' => ConcernStatusUpdate::plan($concern->currentAiAnalysis),
+                'response_plan' => $responsePlan,
             ]
         ]);
     }
 
-    /**
-     * Complete, Idempotent Voting Engine Pipeline with Toggle Inversions.
-     */
     public function vote(Request $request, Concern $concern): RedirectResponse
     {
         $request->validate([
@@ -490,9 +507,6 @@ class ConcernController extends Controller
         return back()->with('success', 'Post privacy updated successfully.');
     }
 
-    /**
-     * Clean Lifecycle Mutator Rule: Revoke or delete report records before review actions occur.
-     */
     public function destroy(Request $request, Concern $concern): RedirectResponse
     {
         if ($concern->reporter_id !== $request->user()->id) {

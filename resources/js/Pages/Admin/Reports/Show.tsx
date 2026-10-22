@@ -56,7 +56,7 @@ export default function Show({ report, personnel = [] }: Props) {
     const handleConfirmAiVerdict = (e: React.FormEvent) => {
         e.preventDefault();
         post(`/admin/reports/${report.id}/confirm-ai-verdict`, {
-            onSuccess: () => {},
+            preserveScroll: true,
         });
     };
 
@@ -133,6 +133,17 @@ export default function Show({ report, personnel = [] }: Props) {
                         <Button variant="outline" size="sm" asChild className="bg-white border-purple-300 text-purple-900 text-xs font-bold shadow-2xs shrink-0 hover:bg-purple-100">
                             <Link href={`/admin/reports/${report.duplicate_of_id}`}>View Master Ticket</Link>
                         </Button>
+                    </div>
+                )}
+
+                {/* Global Error Notice */}
+                {Object.keys(errors).length > 0 && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-700 flex items-center gap-3">
+                        <ShieldAlert className="h-5 w-5 text-red-600 shrink-0" />
+                        <div>
+                            <span className="font-bold block mb-1">Validation Error:</span>
+                            Unable to process the action. Please check the required fields below.
+                        </div>
                     </div>
                 )}
 
@@ -329,68 +340,97 @@ export default function Show({ report, personnel = [] }: Props) {
 
                             {!isTerminal ? (
                                 <form onSubmit={handleConfirmAiVerdict} className="space-y-5 pt-2">
+                                    
+                                    {/* Escalate Specific Fields */}
                                     {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
-                                        <div className="space-y-2">
-                                            <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                                                Mission Due Date Target
-                                            </label>
-                                            <Input
-                                                id="mission-due-date"
-                                                type="date"
-                                                value={data.due_date}
-                                                max={report?.max_due_date}
-                                                onChange={(e) => setData('due_date', e.target.value)}
-                                                required
-                                                className="bg-white text-xs h-11 border-slate-200 rounded-2xl shadow-2xs font-semibold"
-                                            />
-                                            {errors.due_date && <p className="text-xs font-semibold text-red-600">{errors.due_date}</p>}
-                                        </div>
-                                    )}
-
-                                    {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
-                                        <div className="space-y-2.5">
-                                            <div className="flex justify-between items-center">
-                                                <label className="text-xs font-black uppercase tracking-wider text-slate-700">Matched Personnel Units</label>
-                                                <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">AI Recommended</span>
+                                        <>
+                                            <div className="space-y-2">
+                                                <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                                    Mission Due Date Target
+                                                </label>
+                                                <Input
+                                                    id="mission-due-date"
+                                                    type="date"
+                                                    value={data.due_date}
+                                                    max={report?.max_due_date}
+                                                    onChange={(e) => setData('due_date', e.target.value)}
+                                                    required
+                                                    className="bg-white text-xs h-11 border-slate-200 rounded-2xl shadow-2xs font-semibold"
+                                                />
+                                                {errors.due_date && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.due_date}</p>}
                                             </div>
-                                            <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-200 p-3 space-y-2 bg-white shadow-2xs">
-                                                {personnel.length === 0 ? (
-                                                    <p className="text-xs text-muted-foreground p-4 text-center">No active personnel available online.</p>
-                                                ) : (
-                                                    personnel.map(p => {
-                                                        const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
-                                                        return (
-                                                            <label key={p.id} className={cn(
-                                                                "flex items-center justify-between cursor-pointer text-xs p-3 rounded-xl transition-all border",
-                                                                data.personnel_ids.includes(p.id) 
-                                                                    ? "bg-blue-50/90 border-blue-300 font-bold shadow-2xs" 
-                                                                    : "border-slate-100 hover:bg-slate-50 bg-white"
-                                                            )}>
-                                                                <div className="flex items-center gap-3">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={data.personnel_ids.includes(p.id)}
-                                                                        onChange={() => togglePersonnelSelection(p.id)}
-                                                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                                                                    />
-                                                                    <div>
-                                                                        <span className="font-bold text-slate-900">{p.name}</span>
-                                                                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.category}</p>
+
+                                            <div className="space-y-2.5">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-xs font-black uppercase tracking-wider text-slate-700">Matched Personnel Units</label>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">AI Recommended</span>
+                                                </div>
+                                                <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-200 p-3 space-y-2 bg-white shadow-2xs">
+                                                    {personnel.length === 0 ? (
+                                                        <p className="text-xs text-muted-foreground p-4 text-center">No active personnel available online.</p>
+                                                    ) : (
+                                                        personnel.map(p => {
+                                                            const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
+                                                            return (
+                                                                <label key={p.id} className={cn(
+                                                                    "flex items-center justify-between cursor-pointer text-xs p-3 rounded-xl transition-all border",
+                                                                    data.personnel_ids.includes(p.id) 
+                                                                        ? "bg-blue-50/90 border-blue-300 font-bold shadow-2xs" 
+                                                                        : "border-slate-100 hover:bg-slate-50 bg-white"
+                                                                )}>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={data.personnel_ids.includes(p.id)}
+                                                                            onChange={() => togglePersonnelSelection(p.id)}
+                                                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                                                        />
+                                                                        <div>
+                                                                            <span className="font-bold text-slate-900">{p.name}</span>
+                                                                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.category}</p>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                {isAiSuggested && (
-                                                                    <span className="text-[9px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
-                                                                        Best Match
-                                                                    </span>
-                                                                )}
-                                                            </label>
-                                                        );
-                                                    })
-                                                )}
+                                                                    {isAiSuggested && (
+                                                                        <span className="text-[9px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                                                                            Best Match
+                                                                        </span>
+                                                                    )}
+                                                                </label>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                                {errors.personnel_ids && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.personnel_ids}</p>}
                                             </div>
+                                        </>
+                                    )}
+
+                                    {/* Merge Specific Fields */}
+                                    {(overrideAction ?? report?.ai_recommended_action) === 'merge' && (
+                                        <div className="space-y-2">
+                                            <label htmlFor="master-concern" className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                                Select Master Concern
+                                            </label>
+                                            <select
+                                                id="master-concern"
+                                                value={data.master_concern_id}
+                                                onChange={(e) => setData('master_concern_id', e.target.value)}
+                                                required
+                                                className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-xs font-semibold shadow-2xs"
+                                            >
+                                                <option value="" disabled>Choose the primary master ticket...</option>
+                                                {report?.ai_duplicate_id && (
+                                                    <option value={report.ai_duplicate_id}>
+                                                        [AI Suggestion] {report.ai_duplicate_title}
+                                                    </option>
+                                                )}
+                                                {/* Fallback to list master candidates if provided by backend */}
+                                            </select>
+                                            {errors.master_concern_id && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.master_concern_id}</p>}
                                         </div>
                                     )}
 
+                                    {/* Dismiss Specific Fields */}
                                     {(overrideAction ?? report?.ai_recommended_action) === 'dismiss' && (
                                         <div className="space-y-2">
                                             <label htmlFor="rejection-reason" className="block text-xs font-black uppercase tracking-wider text-slate-700">
@@ -407,24 +447,25 @@ export default function Show({ report, personnel = [] }: Props) {
                                                 className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-xs font-semibold shadow-2xs"
                                             />
                                             {errors.rejection_reason && (
-                                                <p className="text-xs font-semibold text-red-600">{errors.rejection_reason}</p>
+                                                <p className="text-[11px] font-bold text-red-600 mt-1">{errors.rejection_reason}</p>
                                             )}
                                         </div>
                                     )}
 
                                     <div className="pt-4 space-y-3.5 border-t border-blue-100">
                                         <Button type="submit" disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3.5 shadow-sm cursor-pointer rounded-2xl transition-all">
-                                            <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm AI Verdict & Execute Dispatch
+                                            <CheckCircle2 className="mr-2 h-4 w-4" /> 
+                                            {processing ? 'Processing...' : 'Confirm AI Verdict & Execute Dispatch'}
                                         </Button>
 
                                         <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 pt-1">
                                             <span className="text-slate-400">Manual Override:</span>
                                             <div className="flex items-center gap-2">
-                                                <button type="button" onClick={() => { setOverrideAction('escalate'); setData('confirmed_action', 'escalate'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Escalate</button>
+                                                <button type="button" onClick={() => { setOverrideAction('escalate'); setData('confirmed_action', 'escalate'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'escalate' ? 'text-slate-800' : 'text-blue-600')}>Escalate</button>
                                                 <span className="text-slate-300">•</span>
-                                                <button type="button" onClick={() => { setOverrideAction('merge'); setData('confirmed_action', 'merge'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Merge</button>
+                                                <button type="button" onClick={() => { setOverrideAction('merge'); setData('confirmed_action', 'merge'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'merge' ? 'text-slate-800' : 'text-blue-600')}>Merge</button>
                                                 <span className="text-slate-300">•</span>
-                                                <button type="button" onClick={() => { setOverrideAction('dismiss'); setData('confirmed_action', 'dismiss'); }} className="text-blue-600 hover:underline cursor-pointer font-bold">Dismiss</button>
+                                                <button type="button" onClick={() => { setOverrideAction('dismiss'); setData('confirmed_action', 'dismiss'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'dismiss' ? 'text-slate-800' : 'text-blue-600')}>Dismiss</button>
                                             </div>
                                         </div>
                                     </div>
