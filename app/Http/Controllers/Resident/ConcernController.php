@@ -36,7 +36,10 @@ class ConcernController extends Controller
             ->count();
 
         // 2. Row-level access query rules for private vs public visibility bounds on the feed
-        $concerns = Concern::where('barangay_id', $user->barangay_id)
+        $concerns = Concern::query()
+            ->select('concerns.*')
+            ->selectRaw('ST_Y(concerns.location) as map_lat, ST_X(concerns.location) as map_lng')
+            ->where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($user) {
                 $query->where('visibility', 'public')
                       ->orWhere('reporter_id', $user->id);
@@ -89,6 +92,7 @@ class ConcernController extends Controller
                 $latestUpdateStatus = $latestResidentUpdate
                     ? ($latestResidentUpdate->to_status->value ?? $latestResidentUpdate->to_status)
                     : null;
+                $point = $this->mapPoint($item);
                 
                 return [
                     'id' => (string) $item->id,
@@ -99,7 +103,9 @@ class ConcernController extends Controller
                     'upvotes' => (int) $item->upvotes_count,
                     'downvotes' => (int) $item->downvotes_count,
                     'user_vote' => ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null),
-                    'location_label' => $item->address_text ?? 'Pinpointed Coordinates',
+                    'location_label' => $item->locationLabel(),
+                    'lat' => $point['lat'],
+                    'lng' => $point['lng'],
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
                     'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
                     'is_owner' => $item->reporter_id === auth()->id(),
@@ -149,6 +155,25 @@ class ConcernController extends Controller
         return Inertia::render('Resident/Resolutions', [
             'resolutionPosts' => $resolutionPosts,
         ]);
+    }
+
+    /**
+     * @return array{lat: float|null, lng: float|null}
+     */
+    private function mapPoint(object $item): array
+    {
+        if ($item->map_lat === null || $item->map_lng === null) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        $lat = (float) $item->map_lat;
+        $lng = (float) $item->map_lng;
+
+        if (abs($lat) > 90 && abs($lng) <= 90) {
+            return ['lat' => $lng, 'lng' => $lat];
+        }
+
+        return ['lat' => $lat, 'lng' => $lng];
     }
 
     private function publishedResolutionPosts(string $barangayId): Builder
@@ -384,7 +409,7 @@ class ConcernController extends Controller
                 'severity' => $concern->severity ?? 'medium',
                 'status' => $concern->status->value ?? $concern->status,
                 'description' => $concern->description,
-                'location_label' => $concern->address_text ?? 'Pinpointed Location',
+                'location_label' => $concern->locationLabel(),
                 'lat' => $lat,
                 'lng' => $lng,
                 'upvotes' => $upvotes,

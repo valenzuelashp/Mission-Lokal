@@ -66,7 +66,7 @@ class ReportController extends Controller
                 'concern_id' => $c->id,
                 'incident_type' => $c->title,
                 'type_icon' => MapHelpers::typeIconFromText($c->title, $c->description),
-                'location' => $c->address_text ?? 'Unknown location',
+                'location' => $c->locationLabel(),
                 'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name
                     ?? $c->category?->name
                     ?? 'Uncategorized',
@@ -209,7 +209,7 @@ class ReportController extends Controller
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id, 
-                'label' => $c->title . ' (' . ($c->address_text ?? 'No address') . ' - ' . $c->created_at->format('M d') . ')'
+                'label' => $c->title . ' (' . $c->locationLabel() . ' - ' . $c->created_at->format('M d') . ')'
             ]);
 
         $record->refresh();
@@ -259,7 +259,7 @@ class ReportController extends Controller
                 'title' => $record->title,
                 'description' => $record->description,
                 'status' => $record->status->value ?? $record->status,
-                'location_label' => $record->address_text ?? 'Unknown Location',
+                'location_label' => $record->locationLabel(),
                 'severity' => $record->severity ?? 'medium',
                 'deadline_days' => $deadlinePolicy->workingDaysFor($record),
                 'max_due_date' => $maxDueDate,

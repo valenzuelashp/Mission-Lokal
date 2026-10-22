@@ -56,6 +56,17 @@ class Concern extends Model
     // These methods allow us to easily grab related data. 
     // E.g., $concern->reporter->full_name
 
+    public function locationLabel(): string
+    {
+        $address = trim((string) $this->address_text);
+
+        if ($address === '' || preg_match('/^Coordinates\s*:/i', $address) === 1) {
+            return 'Pinned location';
+        }
+
+        return $address;
+    }
+
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class);

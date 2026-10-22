@@ -53,7 +53,7 @@ class MapController extends Controller
                     'lat' => $lat,
                     'lng' => $lng,
                     'incident_type' => $concern->title,
-                    'location_label' => $concern->address_text ?? 'Pinned Location',
+                    'location_label' => $concern->locationLabel(),
                     'severity' => $severity,
                     'status' => $status,
                     'type_icon' => MapHelpers::typeIconFromText($concern->title, $concern->address_text),

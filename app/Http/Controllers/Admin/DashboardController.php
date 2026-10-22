@@ -85,7 +85,7 @@ class DashboardController extends Controller
                     'concern_id' => $mission->concern_id,
                     'incident_type' => $mission->concern->title ?? 'Unknown Issue',
                     'type_icon' => MapHelpers::typeIconFromText($mission->concern->title ?? ''),
-                    'location' => $mission->concern->address_text ?? 'Pinned Location',
+                    'location' => $mission->concern->locationLabel(),
                     'ai_severity' => MapHelpers::scoreFromSeverity($severity),
                     'priority' => MapHelpers::priorityFromSeverity($severity),
                     'status' => MapHelpers::queueStatusFromMission($missionStatus),

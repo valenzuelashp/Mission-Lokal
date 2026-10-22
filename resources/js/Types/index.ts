@@ -108,6 +108,8 @@ export interface PublicConcern {
     upvotes: number;
     downvotes: number;    
     location_label: string;
+    lat?: number | null;
+    lng?: number | null;
     created_at: string;
     visibility?: 'public' | 'private';
     is_owner?: boolean;

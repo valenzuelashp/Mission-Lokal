@@ -73,7 +73,7 @@ class MissionController extends Controller
                 'id' => $mission->id, 
                 'concern_id' => $concern?->id,
                 'title' => $concern?->title ?? 'Untitled Mission',
-                'location' => $concern?->address_text ?? 'Unknown location',
+                'location' => $concern?->locationLabel() ?? 'Unknown location',
                 'images' => $concernImages,
                 'lat' => $mission->lat,
                 'lng' => $mission->lng,
@@ -174,7 +174,7 @@ class MissionController extends Controller
             'id' => $mission->id,
             'concern_id' => $concern?->id,
             'title' => $concern?->title ?? 'Untitled Mission',
-            'location' => $concern?->address_text ?? 'Unknown location',
+            'location' => $concern?->locationLabel() ?? 'Unknown location',
             'lat' => $mission->lat, 
             'lng' => $mission->lng,
             'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
@@ -348,7 +348,7 @@ class MissionController extends Controller
         $formattedMission = [
             'id' => $mission->id,
             'title' => $concern?->title ?? 'Untitled Mission',
-            'location' => $concern?->address_text ?? 'Unknown location',
+            'location' => $concern?->locationLabel() ?? 'Unknown location',
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
         ];
 

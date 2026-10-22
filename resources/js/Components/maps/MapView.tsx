@@ -25,6 +25,7 @@ type Props = {
     pins?: MapPin[];
     className?: string;
     showLegend?: boolean;
+    interactive?: boolean;
     onPinDrop?: (lat: number, lng: number) => void;
 };
 
@@ -36,14 +37,23 @@ export default function MapView({
     pins = [],
     className = 'h-64',
     showLegend = false,
+    interactive = true,
 }: Props) {
     const theme = useResidentTheme();
     const { basemap, setBasemap } = useMapBasemap();
 
     return (
         <div className={className}>
-            <div className={`relative h-full min-h-[14rem] overflow-hidden rounded-2xl border ${theme.cardBorder} shadow-md ${theme.cardBg}`}>
-                <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full z-0">
+            <div className={`relative h-full overflow-hidden rounded-2xl border ${theme.cardBorder} shadow-md ${theme.cardBg} ${interactive ? 'min-h-[14rem]' : 'min-h-0'}`}>
+                <MapContainer
+                    center={center}
+                    zoom={zoom}
+                    scrollWheelZoom={interactive}
+                    dragging={interactive}
+                    zoomControl={interactive}
+                    doubleClickZoom={interactive}
+                    className="h-full w-full z-0"
+                >
                     <MapInvalidateSize />
                     <MapBasemapTiles basemap={basemap} />
                     {pins.map((pin) => {
@@ -64,7 +74,7 @@ export default function MapView({
                         );
                     })}
                 </MapContainer>
-                <MapBasemapToggle value={basemap} onChange={setBasemap} />
+                {interactive && <MapBasemapToggle value={basemap} onChange={setBasemap} />}
                 {showLegend && (
                     <div className={`pointer-events-none absolute bottom-3 left-3 z-[400] rounded-xl border ${theme.cardBorder} ${theme.cardBg}/95 px-3 py-2 text-[10px] shadow-md backdrop-blur-xs`}>
                         <p className={`mb-1.5 font-black uppercase tracking-wider ${theme.textMuted}`}>Severity</p>

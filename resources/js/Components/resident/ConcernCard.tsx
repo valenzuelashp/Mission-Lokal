@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
-import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import MapView from '@/Components/maps/MapView';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
@@ -29,6 +30,23 @@ export default function ConcernCard({ concern }: Props) {
     const theme = useResidentTheme();
     const [menuOpen, setMenuOpen] = useState(false);
     const [privacyEditorOpen, setPrivacyEditorOpen] = useState(false);
+    const [mapOpen, setMapOpen] = useState(false);
+    const hasMap = concern.lat != null && concern.lng != null;
+
+    useEffect(() => {
+        if (!mapOpen) {
+            return;
+        }
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setMapOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    }, [mapOpen]);
 
     const handleDelete = () => {
         if (confirm('Delete this community concern? This cannot be undone.')) {
@@ -126,9 +144,57 @@ export default function ConcernCard({ concern }: Props) {
                     <div className="flex min-w-0 items-center gap-2">
                         <MapPin className="h-4 w-4 shrink-0 opacity-60" />
                         <span className="truncate">{concern.location_label}</span>
+                        {hasMap && (
+                            <button
+                                type="button"
+                                onClick={() => setMapOpen(true)}
+                                className={`shrink-0 rounded-xl border px-2.5 py-1 text-[11px] font-black uppercase tracking-wider ${theme.cardBorder} ${theme.badgeBg} ${theme.primaryText} cursor-pointer`}
+                            >
+                                View map
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {mapOpen && hasMap && (
+                <div
+                    className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs"
+                    onClick={() => setMapOpen(false)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Map for ${concern.title}`}
+                        className={`w-full max-w-lg space-y-3 rounded-3xl border p-4 shadow-2xl ${theme.cardBorder} ${theme.cardBg}`}
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-3">
+                            <p className={`min-w-0 truncate text-sm font-black ${theme.textMain}`}>{concern.location_label}</p>
+                            <button
+                                type="button"
+                                onClick={() => setMapOpen(false)}
+                                aria-label="Close map"
+                                className={`rounded-xl p-2 ${theme.textMuted} hover:${theme.badgeBg} cursor-pointer`}
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <MapView
+                            center={[concern.lat as number, concern.lng as number]}
+                            zoom={16}
+                            pins={[{
+                                id: concern.id,
+                                lat: concern.lat as number,
+                                lng: concern.lng as number,
+                                title: concern.title,
+                                severity: concern.severity,
+                            }]}
+                            className="h-72"
+                        />
+                    </div>
+                </div>
+            )}
 
             {concern.images && concern.images.length > 0 && (
                 <div className="bg-slate-100/50 overflow-hidden px-5 pb-3">

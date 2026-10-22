@@ -176,11 +176,8 @@ export default function Show({ report, personnel = [] }: Props) {
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-bold flex items-center gap-2 text-slate-800 text-xs uppercase tracking-wider">
                                         <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-                                        <span>{report?.location_label ?? 'Pinned Barangay Location'}</span>
+                                        <span>{report?.location_label ?? 'Pinned location'}</span>
                                     </h4>
-                                    <span className="text-[11px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                                        {safeLat.toFixed(4)}, {safeLng.toFixed(4)}
-                                    </span>
                                 </div>
                                 <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-2xs">
                                     <MapView 

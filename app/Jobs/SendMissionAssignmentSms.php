@@ -44,7 +44,7 @@ class SendMissionAssignmentSms implements ShouldQueue
                 return;
             }
 
-            $location = $mission->concern?->address_text ?? $mission->barangay?->name ?? 'the barangay';
+            $location = $mission->concern?->locationLabel() ?? $mission->barangay?->name ?? 'the barangay';
             $title = $mission->concern?->title ?? 'a reported issue';
             $dueDate = $mission->due_date ? $mission->due_date->format('M d, Y') : 'ASAP';
 
