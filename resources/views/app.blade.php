@@ -10,7 +10,7 @@
         
         <!-- PHASE 9 FIX: Updated path to match the root output directory -->
         <link rel="manifest" href="/build/manifest.webmanifest">
-        <link rel="apple-touch-icon" href="/icons/pwa/icon-192.png">
+        <link rel="apple-touch-icon" href="/icons/pwa/mission-lokal-logo.png">
         
         <title inertia>{{ config('app.name', 'Mission-Lokal') }}</title>
         @routes
