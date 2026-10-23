@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Sms\LogSmsGateway;
-use App\Services\Sms\SemaphoreSmsGateway;
+use App\Services\Sms\IprogSmsGateway;
 use App\Services\Sms\SmsGatewayInterface;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -15,16 +15,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(SmsGatewayInterface::class, function () {
-            $driver = config('services.sms.driver', config('services.sms.gateway', env('SMS_DRIVER', 'log')));
-            $apiKey = config('services.sms.semaphore.api_key', env('SEMAPHORE_API_KEY'));
+            $driver = config('services.sms.driver', 'log');
 
-            $isSemaphoreUsable = ($driver === 'semaphore')
-                && !empty($apiKey)
-                && $apiKey !== 'your_semaphore_api_key'
-                && !str_contains($apiKey, 'your_');
-
-            if ($isSemaphoreUsable) {
-                return new SemaphoreSmsGateway();
+            if ($driver === 'iprog') {
+                return new IprogSmsGateway();
             }
 
             return new LogSmsGateway();

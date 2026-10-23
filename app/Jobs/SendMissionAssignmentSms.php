@@ -48,9 +48,9 @@ class SendMissionAssignmentSms implements ShouldQueue
             $title = $mission->concern?->title ?? 'a reported issue';
             $dueDate = $mission->due_date ? $mission->due_date->format('M d, Y') : 'ASAP';
 
-            $appUrl = config('app.url') . '/personnel/missions/' . $mission->id;
-
-            $message = "Mission-Lokal: New assignment near {$location}. Issue: {$title}. Due: {$dueDate}. Open app: {$appUrl}";
+            $firstName = trim((string) $personnel->user?->first_name);
+            $greeting = $firstName !== '' ? "Hi {$firstName},\n" : '';
+            $message = "{$greeting}Mission-Lokal: New assignment\nLocation: {$location}\nIssue: {$title}\nDue: {$dueDate}.";
 
             if ($smsGateway->send($mobile, $message)) {
                 MissionAssignment::where('mission_id', $mission->id)
