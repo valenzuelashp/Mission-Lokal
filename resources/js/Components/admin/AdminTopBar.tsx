@@ -6,12 +6,14 @@ import type { PageProps } from '@/Types';
 
 type Props = {
     title: string;
+    unreadCount?: number;
     onMenuClick?: () => void;
+    onNotificationsClick?: () => void;
 };
 
-export default function AdminTopBar({ title, onMenuClick }: Props) {
+export default function AdminTopBar({ title, unreadCount, onMenuClick, onNotificationsClick }: Props) {
     const shortTitle = title.includes(':') ? title.split(':').pop()?.trim() ?? title : title;
-    const unread = Number(usePage<PageProps>().props.unread_count ?? 0);
+    const unread = unreadCount ?? Number(usePage<PageProps>().props.unread_count ?? 0);
 
     return (
         <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-md shadow-2xs sm:gap-4 sm:px-8 sm:py-4">
@@ -34,15 +36,20 @@ export default function AdminTopBar({ title, onMenuClick }: Props) {
                     <Input className="pl-10 bg-slate-50/70 border-slate-200 text-xs h-10 rounded-2xl shadow-none" placeholder="Search mission ID or record…" readOnly />
                 </div>
                 
-                <Button variant="outline" size="icon" className="relative border-slate-200 hover:bg-slate-50 rounded-2xl h-10 w-10 shadow-2xs" asChild>
-                    <Link href="/admin/notifications">
-                        <Bell className="h-4 w-4 text-slate-700" />
-                        {unread > 0 && (
-                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white shadow-xs">
-                                {unread > 99 ? '99+' : unread}
-                            </span>
-                        )}
-                    </Link>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="relative border-slate-200 hover:bg-slate-50 rounded-2xl h-10 w-10 shadow-2xs"
+                    aria-label="Notifications"
+                    onClick={onNotificationsClick}
+                >
+                    <Bell className="h-4 w-4 text-slate-700" />
+                    {unread > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white shadow-xs">
+                            {unread > 99 ? '99+' : unread}
+                        </span>
+                    )}
                 </Button>
 
                 <Button variant="outline" size="icon" className="hidden sm:inline-flex border-slate-200 hover:bg-slate-50 rounded-2xl h-10 w-10 shadow-2xs" asChild>

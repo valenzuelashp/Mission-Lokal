@@ -23,7 +23,7 @@
         .body { margin: .8rem 0 0; line-height: 1.55; white-space: pre-wrap; }
         .contact { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
         .contact p { margin: 0; }
-        .contact a { color: #08786e; font-weight: 650; white-space: nowrap; }
+        .contact a, .contact button { color: #08786e; font-weight: 650; white-space: nowrap; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; }
         .empty { padding: 1rem; border: 1px dashed #aab8b3; border-radius: .5rem; }
     </style>
 </head>
@@ -69,6 +69,29 @@
         manualsContainer.append(details);
     }
 
+    function downloadContactCard(contact) {
+        const name = contact.name || 'Barangay contact';
+        const phone = String(contact.phone || '').replace(/[^\d+]/g, '');
+        const escapeValue = (value) => String(value).replace(/\\/g, '\\\\').replace(/\r\n|\n|\r/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+        const lines = [
+            'BEGIN:VCARD',
+            'VERSION:3.0',
+            `FN:${escapeValue(name)}`,
+            contact.role ? `TITLE:${escapeValue(contact.role)}` : '',
+            `TEL;TYPE=CELL:${phone || contact.phone}`,
+            'END:VCARD',
+        ].filter(Boolean);
+        const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${name.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'contact'}.vcf`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
     function addContact(contact) {
         const card = document.createElement('article');
         const information = document.createElement('div');
@@ -82,10 +105,11 @@
         card.append(information);
 
         if (contact.phone && contact.phone !== 'N/A') {
-            const phone = document.createElement('a');
-            phone.href = `tel:${contact.phone}`;
+            const phone = document.createElement('button');
+            phone.type = 'button';
             phone.textContent = contact.phone;
-            phone.setAttribute('aria-label', `Call ${contact.name || 'emergency contact'}`);
+            phone.title = 'Save this contact to your phone';
+            phone.addEventListener('click', () => downloadContactCard(contact));
             card.append(phone);
         }
 

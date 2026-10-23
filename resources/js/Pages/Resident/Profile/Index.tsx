@@ -69,6 +69,18 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                         )}
                     </Button>
                     <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
+                        <Link href="/documents">
+                            <FileText className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
+                            Request a barangay document
+                        </Link>
+                    </Button>
+                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
+                        <Link href="/documents">
+                            <FileText className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
+                            Request a Barangay Document
+                        </Link>
+                    </Button>
+                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
                         <Link href="/profile/security">
                             <Lock className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
                             Security Password Settings

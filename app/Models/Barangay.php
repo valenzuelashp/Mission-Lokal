@@ -21,6 +21,7 @@ class Barangay extends Model
         'boundary',
         'contact_phone',
         'contact_email',
+        'signature_path',
         'office_hours',
         'is_active',
     ];
