@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\VerificationController;
@@ -92,6 +93,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents/signature', [DocumentController::class, 'storeSignature'])->name('documents.signature');
+    Route::get('/documents/templates/create', [DocumentController::class, 'create'])->name('documents.create');
+    Route::post('/documents/templates', [DocumentController::class, 'store'])->name('documents.store');
+    Route::get('/documents/templates/{template}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+    Route::put('/documents/templates/{template}', [DocumentController::class, 'update'])->name('documents.update');
+    Route::delete('/documents/templates/{template}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::get('/documents/requests/{documentRequest}', [DocumentController::class, 'show'])->name('documents.requests.show');
+    Route::post('/documents/requests/{documentRequest}/status', [DocumentController::class, 'updateStatus'])->name('documents.requests.status');
 
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::post('/library', [LibraryController::class, 'store'])->name('library.store');

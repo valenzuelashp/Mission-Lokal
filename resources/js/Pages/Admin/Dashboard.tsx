@@ -11,6 +11,7 @@ import {
     Building2,
     Users,
     BookOpen,
+    ScrollText,
     Calendar,
     Bell,
     ShieldAlert,
@@ -243,6 +244,14 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                         </Link>
 
                         {/* Resource Library */}
+                        <Link href="/admin/documents" className="flex flex-col items-center justify-center p-5 rounded-3xl border border-slate-200/80 bg-white hover:bg-slate-50 transition-all hover:shadow-2xs text-center group shadow-2xs">
+                            <div className="p-3 bg-indigo-50 text-indigo-700 rounded-2xl group-hover:scale-110 transition-transform mb-3 border border-indigo-100">
+                                <ScrollText className="h-5 w-5" />
+                            </div>
+                            <span className="text-xs font-black text-slate-900">Documents</span>
+                            <span className="text-[11px] text-slate-400 font-medium mt-0.5">Certificates & clearances</span>
+                        </Link>
+
                         <Link href="/admin/library" className="flex flex-col items-center justify-center p-5 rounded-3xl border border-slate-200/80 bg-white hover:bg-slate-50 transition-all hover:shadow-2xs text-center group shadow-2xs">
                             <div className="p-3 bg-teal-50 text-teal-700 rounded-2xl group-hover:scale-110 transition-transform mb-3 border border-teal-100">
                                 <BookOpen className="h-5 w-5" />

@@ -2,6 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
+use App\Http\Controllers\Resident\DocumentRequestController as ResidentDocumentRequestController;
 use App\Http\Controllers\Resident\ProfileController;
 use App\Http\Controllers\Resident\LibraryController;
 use App\Http\Controllers\Resident\SecurityController;
@@ -89,6 +90,11 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     Route::delete('/concerns/{concern}', [ConcernController::class, 'destroy'])->name('concerns.destroy');
     
+    Route::get('/documents', [ResidentDocumentRequestController::class, 'index'])->name('documents.index');
+    Route::get('/documents/new/{template}', [ResidentDocumentRequestController::class, 'create'])->name('documents.create');
+    Route::post('/documents/{template}', [ResidentDocumentRequestController::class, 'store'])->name('documents.store');
+    Route::get('/documents/{documentRequest}', [ResidentDocumentRequestController::class, 'show'])->name('documents.show');
+
     Route::get('/library', [LibraryController::class, 'index'])->name('library');
     Route::get('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'index'])->name('help');
     Route::post('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'ask'])

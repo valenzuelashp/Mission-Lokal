@@ -2,6 +2,7 @@ import { Flame, Phone, Shield, Stethoscope, User, PhoneCall } from 'lucide-react
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
+import { downloadContactCard } from '@/Lib/contactCard';
 import { cn } from '@/Lib/utils';
 import type { LibraryContact } from '@/Types';
 
@@ -53,6 +54,14 @@ export default function RespondersDirectory({ contacts }: Props) {
                             <div className="min-w-0 flex-1">
                                 <p className={`text-sm font-bold ${theme.textMain} truncate`}>{contact.name}</p>
                                 <p className={`text-xs ${theme.textMuted} truncate font-medium`}>{contact.role}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => downloadContactCard(contact)}
+                                    className={`mt-1 block max-w-full truncate text-left text-xs font-black underline ${theme.primaryText}`}
+                                    title="Save this contact to your phone"
+                                >
+                                    {contact.phone}
+                                </button>
                             </div>
                             <a
                                 href={`tel:${contact.phone}`}

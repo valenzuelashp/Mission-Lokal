@@ -1,6 +1,7 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
+import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
 import { Badge } from '@/Components/ui/badge';
 import { useAuth } from '@/Hooks/usePageProps';
@@ -63,6 +64,7 @@ const navSections: NavSection[] = [
             { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
             { href: '/admin/calendar', label: 'Calendar', icon: CalendarDays },
             { href: '/admin/library', label: 'Library', icon: BookOpen },
+            { href: '/admin/documents', label: 'Documents', icon: ScrollText },
         ],
     },
     {
@@ -84,6 +86,8 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [clearedUnread, setClearedUnread] = useState(false);
     
     const { 
         unread_count, 
@@ -103,7 +107,17 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
         pending_map_alerts_count?: number;
     }>().props;
     
-    const unread = Number(unread_count ?? 0);
+    const serverUnread = Number(unread_count ?? 0);
+    const unread = clearedUnread ? 0 : serverUnread;
+
+    useEffect(() => {
+        setClearedUnread(false);
+    }, [serverUnread]);
+
+    const openNotifications = () => {
+        setMobileOpen(false);
+        setNotificationsOpen(true);
+    };
     const pendingRegistrations = Number(pending_registrations_count ?? 0);
     const pendingReports = Number(pending_reports_count ?? 0);
     const pendingMissions = Number(pending_missions_count ?? 0);
@@ -246,20 +260,27 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         return (
                             <div key={section.id} className="space-y-1">
                                 {section.items.map((item) => {
-                                    const isActiveLink = active(item.href, item.exact);
+                                    const isNotifications = item.href === '/admin/notifications';
+                                    const isActiveLink = active(item.href, item.exact) || (isNotifications && notificationsOpen);
+                                    const className = cn(
+                                        'group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all duration-150',
+                                        isActiveLink
+                                            ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                                            : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                                    );
+                                    const icon = <item.icon className={cn('h-4 w-4 shrink-0', isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700')} />;
+
+                                    if (isNotifications) {
+                                        return (
+                                            <button key={item.href} type="button" title={item.label} onClick={openNotifications} className={className}>
+                                                {icon}
+                                            </button>
+                                        );
+                                    }
+
                                     return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            title={item.label}
-                                            className={cn(
-                                                'group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all duration-150',
-                                                isActiveLink
-                                                    ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
-                                                    : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
-                                            )}
-                                        >
-                                            <item.icon className={cn('h-4 w-4 shrink-0', isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700')} />
+                                        <Link key={item.href} href={item.href} title={item.label} className={className}>
+                                            {icon}
                                         </Link>
                                     );
                                 })}
@@ -302,27 +323,43 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                             {isSectionOpen && (
                                 <div className="pl-3.5 space-y-1 pt-0.5 border-l-2 border-sky-200/80 ml-4">
                                     {section.items.map((item) => {
-                                        const isActiveLink = active(item.href, item.exact);
+                                        const isNotifications = item.href === '/admin/notifications';
+                                        const isActiveLink = active(item.href, item.exact) || (isNotifications && notificationsOpen);
+                                        const className = cn(
+                                            'group flex w-full items-center gap-3 rounded-xl px-3.5 py-2 text-left text-xs font-semibold transition-all duration-150',
+                                            isActiveLink
+                                                ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                                                : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                                        );
+                                        const content = (
+                                            <>
+                                                <item.icon
+                                                    className={cn(
+                                                        'h-4 w-4 shrink-0 transition-colors',
+                                                        isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700',
+                                                    )}
+                                                />
+                                                <span className="truncate">{item.label}</span>
+                                                {renderBadge(item.href, isActiveLink)}
+                                            </>
+                                        );
+
+                                        if (isNotifications) {
+                                            return (
+                                                <button key={item.href} type="button" onClick={openNotifications} className={className}>
+                                                    {content}
+                                                </button>
+                                            );
+                                        }
+
                                         return (
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
                                                 onClick={() => isMobile && setMobileOpen(false)}
-                                                className={cn(
-                                                    'group flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-150',
-                                                    isActiveLink
-                                                        ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
-                                                        : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
-                                                )}
+                                                className={className}
                                             >
-                                                <item.icon 
-                                                    className={cn(
-                                                        'h-4 w-4 shrink-0 transition-colors', 
-                                                        isActiveLink ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700'
-                                                    )} 
-                                                />
-                                                <span className="truncate">{item.label}</span>
-                                                {renderBadge(item.href, isActiveLink)}
+                                                {content}
                                             </Link>
                                         );
                                     })}
@@ -397,9 +434,19 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
             )}
 
             <div className="flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden">
-                <AdminTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
+                <AdminTopBar
+                    title={title}
+                    unreadCount={unread}
+                    onMenuClick={() => setMobileOpen(true)}
+                    onNotificationsClick={openNotifications}
+                />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
             </div>
+            <AdminNotificationDrawer
+                open={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                onLoaded={() => setClearedUnread(true)}
+            />
         </div>
     );
 }

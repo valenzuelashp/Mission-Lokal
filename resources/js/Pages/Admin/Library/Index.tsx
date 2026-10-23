@@ -81,9 +81,30 @@ export default function Index({ items = [] }: { items: ItemProp[] }) {
                     </div>
 
                     {canModify && (
-                        <Button onClick={() => setShowModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-5 shadow-sm cursor-pointer rounded-2xl shrink-0">
-                            <Plus className="mr-2 h-4 w-4" /> Add Directory Asset
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                onClick={() => {
+                                    setData({
+                                        title: '',
+                                        type: 'contact',
+                                        content: '',
+                                        subtitle: '',
+                                        role: '',
+                                        phone: '',
+                                        address: '',
+                                        is_active: true,
+                                    });
+                                    setShowModal(true);
+                                }}
+                                variant="outline"
+                                className="font-bold h-11 px-5 cursor-pointer rounded-2xl shrink-0"
+                            >
+                                <Plus className="mr-2 h-4 w-4" /> Add contact
+                            </Button>
+                            <Button onClick={() => setShowModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-5 shadow-sm cursor-pointer rounded-2xl shrink-0">
+                                <Plus className="mr-2 h-4 w-4" /> Add Directory Asset
+                            </Button>
+                        </div>
                     )}
                 </div>
 
