@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import CertificatePaper from '@/Components/documents/CertificatePaper';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -17,20 +18,29 @@ type Template = {
     paper_size: 'show' | 'short' | 'long' | 'a4';
 };
 
+type Letterhead = {
+    barangay_name: string | null;
+    city: string | null;
+    contact_phone: string | null;
+    logo_url: string | null;
+};
+
 const sample: Record<string, string> = {
-    resident_name: 'Maria Clara Resident',
+    resident_name: 'MARIA CLARA RESIDENT',
     address: '124 Quirino Avenue, Tambo',
     barangay_name: 'Barangay Tambo',
     date: 'October 23, 2026',
     signatory_name: 'Juan Dela Cruz',
-    signatory_title: 'Punong Barangay',
+    signatory_title: 'Barangay Chairman',
     purpose: 'school enrollment',
     requesting_office: 'Tambo Elementary School',
-    business_name: 'Tambo Sari-Sari Store',
+    business_name: 'TAMBO SARI-SARI STORE',
     business_nature: 'retail goods',
     business_address: '124 Quirino Avenue',
     years_of_residency: '10 years',
 };
+
+const defaultBody = 'This is to certify that this document is hereby granted and issued to {{resident_name}}, a resident of {{address}}, {{barangay_name}}.\n\nThis certification is being issued upon the request of {{resident_name}} for {{purpose}}.';
 
 function preview(body: string, signatoryName: string, signatoryTitle: string): string {
     return body.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, key: string) => {
@@ -40,12 +50,22 @@ function preview(body: string, signatoryName: string, signatoryTitle: string): s
     });
 }
 
-export default function DocumentForm({ template, fields }: { template: Template | null; fields: FieldOption[] }) {
+export default function DocumentForm({
+    template,
+    fields,
+    letterhead,
+    signatureUrl,
+}: {
+    template: Template | null;
+    fields: FieldOption[];
+    letterhead: Letterhead;
+    signatureUrl: string | null;
+}) {
     const form = useForm({
         name: template?.name ?? '',
-        body: template?.body ?? 'This is to certify that {{resident_name}}, of {{address}}, {{barangay_name}}, is requesting this document for {{purpose}}.',
+        body: template?.body ?? defaultBody,
         signatory_name: template?.signatory_name ?? '',
-        signatory_title: template?.signatory_title ?? 'Punong Barangay',
+        signatory_title: template?.signatory_title ?? 'Barangay Chairman',
         resident_fields: template?.resident_fields ?? ['purpose'],
         paper_size: template?.paper_size ?? 'short',
         is_enabled: template?.is_enabled ?? true,
@@ -151,13 +171,23 @@ export default function DocumentForm({ template, fields }: { template: Template 
                     Residents can request this document
                 </label>
 
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Sample with stand-in details</p>
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
-                        {preview(form.data.body, form.data.signatory_name, form.data.signatory_title)}
-                    </p>
-                    <p className="mt-6 text-sm font-black text-slate-900">{form.data.signatory_name || 'Signatory name'}</p>
-                    <p className="text-xs font-semibold text-slate-500">{form.data.signatory_title}</p>
+                <div>
+                    <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-slate-500">Sample with stand-in details</p>
+                    <CertificatePaper
+                        paperSize={form.data.paper_size}
+                        title={form.data.name || 'Document'}
+                        barangayName={letterhead.barangay_name ?? sample.barangay_name}
+                        city={letterhead.city}
+                        contactPhone={letterhead.contact_phone}
+                        logoUrl={letterhead.logo_url}
+                        body={preview(form.data.body, form.data.signatory_name, form.data.signatory_title)}
+                        issuedDay="23rd"
+                        issuedMonth="October"
+                        issuedYear="2026"
+                        signatoryName={form.data.signatory_name || sample.signatory_name}
+                        signatoryTitle={form.data.signatory_title || sample.signatory_title}
+                        signatureUrl={signatureUrl}
+                    />
                 </div>
 
                 <div className="flex justify-end gap-2">

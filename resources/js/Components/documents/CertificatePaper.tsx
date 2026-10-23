@@ -17,8 +17,13 @@ type Props = {
     paperSize: PaperSize;
     title: string;
     barangayName: string | null;
+    city: string | null;
+    contactPhone: string | null;
+    logoUrl: string | null;
     body: string;
-    issuedOn: string;
+    issuedDay: string;
+    issuedMonth: string;
+    issuedYear: string;
     signatoryName: string | null;
     signatoryTitle: string;
     signatureUrl: string | null;
@@ -28,13 +33,25 @@ export default function CertificatePaper({
     paperSize,
     title,
     barangayName,
+    city,
+    contactPhone,
+    logoUrl,
     body,
-    issuedOn,
+    issuedDay,
+    issuedMonth,
+    issuedYear,
     signatoryName,
     signatoryTitle,
     signatureUrl,
 }: Props) {
     const printable = paperSize !== 'show';
+    const seal = (side: string) => (
+        logoUrl ? (
+            <img src={logoUrl} alt={`${side} seal`} className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
+        ) : (
+            <span className="block h-16 w-16 sm:h-20 sm:w-20" />
+        )
+    );
 
     return (
         <>
@@ -48,18 +65,32 @@ export default function CertificatePaper({
                     }
                 `}</style>
             )}
-            <article className={`certificate-sheet overflow-hidden border border-slate-300 bg-white p-8 text-slate-900 shadow-sm sm:p-10 ${frames[paperSize]}`}>
-                <p className="text-center text-[10px] font-black uppercase tracking-[0.2em]">Republic of the Philippines</p>
-                <p className="mt-1 text-center text-sm font-black">{barangayName ?? 'Barangay'}</p>
-                <h2 className="mt-6 text-center text-base font-black uppercase tracking-wide">{title}</h2>
-                <p className="mt-6 whitespace-pre-wrap text-sm leading-7">{body}</p>
-                <p className="mt-4 text-sm">Date: {issuedOn}</p>
-                <div className="mt-10 text-center">
+            <article className={`certificate-sheet overflow-hidden border border-slate-300 bg-white p-8 font-serif text-[13px] leading-relaxed text-black shadow-sm sm:p-10 ${frames[paperSize]}`}>
+                <div className="grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-3 sm:grid-cols-[5rem_1fr_5rem]">
+                    <div className="justify-self-center">{seal('Left')}</div>
+                    <div className="text-center">
+                        <p>Republic of the Philippines</p>
+                        {city && <p>{city}</p>}
+                        <p className="text-[15px] font-bold uppercase">{barangayName ?? 'Barangay'}</p>
+                        {contactPhone && <p>Mobile No. {contactPhone}</p>}
+                    </div>
+                    <div className="justify-self-center">{seal('Right')}</div>
+                </div>
+                <div className="mt-2 h-[2px] bg-red-700" />
+                <div className="mt-0.5 h-[3px] bg-black" />
+                <h2 className="mt-5 text-center text-[15px] font-bold uppercase tracking-wide">{title}</h2>
+                <p className="mt-5 font-bold">TO WHOM IT MAY CONCERN:</p>
+                <p className="mt-4 whitespace-pre-wrap text-justify leading-6">{body}</p>
+                <p className="mt-4">
+                    Given this <span className="underline">{issuedDay}</span> day of <span className="underline">{issuedMonth}</span>, {issuedYear}.
+                </p>
+                <div className="ml-auto mt-10 w-56 text-center">
+                    <p>Approved By:</p>
                     {signatureUrl && (
-                        <img src={signatureUrl} alt="Barangay signature" className="mx-auto mb-1 h-16 w-40 object-contain" />
+                        <img src={signatureUrl} alt="Barangay signature" className="mx-auto my-1 h-14 w-36 object-contain" />
                     )}
-                    <p className="text-sm font-black">{signatoryName || '________________'}</p>
-                    <p className="text-xs font-semibold">{signatoryTitle}</p>
+                    <p className="font-bold uppercase">{signatoryName || '________________'}</p>
+                    <p>{signatoryTitle}</p>
                 </div>
             </article>
         </>

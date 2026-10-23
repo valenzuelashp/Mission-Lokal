@@ -115,7 +115,8 @@ class DocumentRequestController extends Controller
                 'signature_url' => $documentRequest->resident->barangay?->signature_path
                     ? asset('storage/'.$documentRequest->resident->barangay->signature_path)
                     : null,
-                'barangay_name' => $documentRequest->resident->barangay?->name,
+                ...$renderer->letterhead($documentRequest->resident->barangay),
+                ...$renderer->issuedParts($documentRequest->reviewed_at ?? $documentRequest->created_at),
             ],
         ]);
     }

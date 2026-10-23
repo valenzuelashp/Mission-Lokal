@@ -116,7 +116,7 @@ export default function DocumentsIndex({
                                         {template.is_enabled ? 'On' : 'Off'}
                                     </span>
                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={`/admin/documents/templates/${template.id}/edit`}>Edit wording</Link>
+                                        <Link href={`/admin/documents/templates/${template.id}/edit`}>Edit</Link>
                                     </Button>
                                     {canModify && !template.is_system && (
                                         <Button

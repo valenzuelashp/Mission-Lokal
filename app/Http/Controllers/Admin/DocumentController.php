@@ -53,11 +53,15 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request, DocumentRenderer $renderer): Response
     {
+        $barangay = $request->user()->barangay;
+
         return Inertia::render('Admin/Documents/Form', [
             'template' => null,
             'fields' => $this->fieldOptions(),
+            'letterhead' => $renderer->letterhead($barangay),
+            'signatureUrl' => $this->signatureUrl($barangay?->signature_path),
         ]);
     }
 
@@ -95,13 +99,16 @@ class DocumentController extends Controller
         return redirect()->route('admin.documents.index')->with('success', 'Document template added.');
     }
 
-    public function edit(Request $request, DocumentTemplate $template): Response
+    public function edit(Request $request, DocumentTemplate $template, DocumentRenderer $renderer): Response
     {
         $this->authorizeTemplate($request, $template);
+        $barangay = $request->user()->barangay;
 
         return Inertia::render('Admin/Documents/Form', [
             'template' => $this->templatePayload($template),
             'fields' => $this->fieldOptions(),
+            'letterhead' => $renderer->letterhead($barangay),
+            'signatureUrl' => $this->signatureUrl($barangay?->signature_path),
         ]);
     }
 
@@ -166,7 +173,8 @@ class DocumentController extends Controller
                 'signatory_title' => $documentRequest->template->signatory_title,
                 'paper_size' => $documentRequest->template->paper_size ?: 'short',
                 'signature_url' => $this->signatureUrl($documentRequest->resident->barangay?->signature_path),
-                'barangay_name' => $documentRequest->resident->barangay?->name,
+                ...$renderer->letterhead($documentRequest->resident->barangay),
+                ...$renderer->issuedParts($documentRequest->reviewed_at ?? $documentRequest->created_at),
             ],
             'canModify' => $request->user()->canModifySystem(),
         ]);

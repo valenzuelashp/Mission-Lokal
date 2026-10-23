@@ -14,6 +14,12 @@ type RequestItem = {
     paper_size: 'show' | 'short' | 'long' | 'a4';
     signature_url: string | null;
     barangay_name: string | null;
+    city: string | null;
+    contact_phone: string | null;
+    logo_url: string | null;
+    issued_day: string;
+    issued_month: string;
+    issued_year: string;
 };
 
 const statusCopy: Record<string, string> = {
@@ -50,8 +56,13 @@ export default function ResidentDocumentShow({ requestItem }: { requestItem: Req
                         paperSize={requestItem.paper_size}
                         title={requestItem.document_name}
                         barangayName={requestItem.barangay_name}
+                        city={requestItem.city}
+                        contactPhone={requestItem.contact_phone}
+                        logoUrl={requestItem.logo_url}
                         body={requestItem.certificate}
-                        issuedOn={requestItem.submitted_at}
+                        issuedDay={requestItem.issued_day}
+                        issuedMonth={requestItem.issued_month}
+                        issuedYear={requestItem.issued_year}
                         signatoryName={requestItem.signatory_name}
                         signatoryTitle={requestItem.signatory_title}
                         signatureUrl={requestItem.signature_url}
