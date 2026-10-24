@@ -70,6 +70,9 @@ class BarangayManagementController extends Controller
                     ->where('is_view_only', true)
                     ->get()
                     ->map(fn($va) => [
+                        'id' => $va->id,
+                        'first_name' => $va->first_name,
+                        'last_name' => $va->last_name,
                         'name' => trim($va->first_name . ' ' . $va->last_name),
                         'email' => $va->email,
                         'account_id' => $va->account_id,
@@ -88,6 +91,9 @@ class BarangayManagementController extends Controller
                     'users_count' => $b->users_count,
                     'concerns_count' => $b->concerns_count,
                     'primary_admin' => $primaryAdmin ? [
+                        'id' => $primaryAdmin->id,
+                        'first_name' => $primaryAdmin->first_name,
+                        'last_name' => $primaryAdmin->last_name,
                         'name' => trim($primaryAdmin->first_name . ' ' . $primaryAdmin->last_name),
                         'email' => $primaryAdmin->email,
                         'account_id' => $primaryAdmin->account_id,
@@ -100,6 +106,111 @@ class BarangayManagementController extends Controller
         return Inertia::render('SuperAdmin/Barangays/Index', [
             'barangays' => $barangays,
         ]);
+    }
+
+    public function getPublicBarangayOptions()
+    {
+        $barangays = Barangay::select('id', 'name', 'city', 'province', 'code')
+            ->orderBy('province')
+            ->orderBy('city')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($barangays);
+    }
+
+    public function storeAppeal(Request $request)
+    {
+        $validated = $request->validate([
+            'barangay_id' => ['required', 'exists:barangays,id'],
+            'contact_email' => ['required', 'email', 'max:255'],
+            'reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        DB::table('barangay_appeals')->insert([
+            'id' => (string) Str::uuid(),
+            'barangay_id' => $validated['barangay_id'],
+            'contact_email' => $validated['contact_email'],
+            'reason' => $validated['reason'],
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('success', 'Reactivation appeal submitted successfully.');
+    }
+
+    public function appealsIndex(): Response
+    {
+        $appeals = DB::table('barangay_appeals')
+            ->join('barangays', 'barangay_appeals.barangay_id', '=', 'barangays.id')
+            ->select(
+                'barangay_appeals.id as appeal_id',
+                'barangay_appeals.contact_email',
+                'barangay_appeals.reason',
+                'barangay_appeals.status',
+                'barangay_appeals.created_at',
+                'barangays.id as barangay_id',
+                'barangays.name as barangay_name',
+                'barangays.code as barangay_code',
+                'barangays.city',
+                'barangays.province',
+                'barangays.is_active as barangay_is_active'
+            )
+            ->latest('barangay_appeals.created_at')
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'appeal_id' => $a->appeal_id,
+                    'barangay_id' => $a->barangay_id,
+                    'barangay_name' => $a->barangay_name,
+                    'barangay_code' => $a->barangay_code,
+                    'location' => "{$a->city}, {$a->province}",
+                    'contact_email' => $a->contact_email,
+                    'reason' => $a->reason,
+                    'status' => $a->status,
+                    'barangay_is_active' => (bool) $a->barangay_is_active,
+                    'created_at' => \Carbon\Carbon::parse($a->created_at)->format('M d, Y h:i A'),
+                ];
+            });
+
+        return Inertia::render('SuperAdmin/Barangays/Appeals', [
+            'appeals' => $appeals,
+        ]);
+    }
+
+    public function resolveAppeal(Request $request, string $appealId): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'in:approve,reject'],
+        ]);
+
+        $appeal = DB::table('barangay_appeals')->where('id', $appealId)->first();
+        if (! $appeal) {
+            return back()->with('error', 'Appeal record not found.');
+        }
+
+        DB::transaction(function () use ($appeal, $validated) {
+            if ($validated['action'] === 'approve') {
+                DB::table('barangays')
+                    ->where('id', $appeal->barangay_id)
+                    ->update(['is_active' => true, 'updated_at' => now()]);
+
+                DB::table('barangay_appeals')
+                    ->where('id', $appeal->id)
+                    ->update(['status' => 'approved', 'updated_at' => now()]);
+            } else {
+                DB::table('barangay_appeals')
+                    ->where('id', $appeal->id)
+                    ->update(['status' => 'rejected', 'updated_at' => now()]);
+            }
+        });
+
+        $msg = $validated['action'] === 'approve' 
+            ? 'Appeal approved! Barangay node has been successfully reactivated.' 
+            : 'Appeal has been rejected.';
+
+        return back()->with('success', $msg);
     }
 
     public function store(Request $request): RedirectResponse
@@ -155,6 +266,7 @@ class BarangayManagementController extends Controller
 
             $accountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
 
+            array_map('trim', $validated);
             $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['admin_last_name']);
             $readableLastName = ucfirst(strtolower($cleanLastName ?: 'Admin'));
             
@@ -183,9 +295,7 @@ class BarangayManagementController extends Controller
 
         try {
             Mail::to($validated['admin_email'])->send(new PrimaryAdminCredentials($adminPayload));
-        } catch (\Exception $e) {
-            // Suppress mail error
-        }
+        } catch (\Exception $e) {}
 
         return back()->with([
             'success' => 'Barangay node and primary admin successfully provisioned and emailed.',
@@ -237,9 +347,7 @@ class BarangayManagementController extends Controller
 
         try {
             Mail::to($validated['email'])->send(new ViewOnlyAdminCredentials($viewOnlyPayload));
-        } catch (\Exception $e) {
-            // Suppress mail error
-        }
+        } catch (\Exception $e) {}
 
         return back()->with([
             'success' => 'View-only monitoring account successfully created and emailed.',
@@ -252,15 +360,44 @@ class BarangayManagementController extends Controller
         $barangay = Barangay::findOrFail($id);
 
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:50', 'unique:barangays,code,' . $barangay->id],
             'house_street' => ['required', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:100'],
             'province' => ['required', 'string', 'max:100'],
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'is_active' => ['required', 'boolean'],
+            'primary_admin_first_name' => ['nullable', 'string', 'max:255'],
+            'primary_admin_last_name' => ['nullable', 'string', 'max:255'],
+            'primary_admin_email' => ['nullable', 'email', 'max:255'],
         ]);
 
-        $barangay->update($validated);
+        DB::transaction(function () use ($barangay, $validated) {
+            $barangay->update([
+                'name' => $validated['name'],
+                'code' => $validated['code'],
+                'house_street' => $validated['house_street'],
+                'city' => $validated['city'],
+                'province' => $validated['province'],
+                'contact_phone' => $validated['contact_phone'] ?? null,
+                'contact_email' => $validated['contact_email'] ?? null,
+                'is_active' => $validated['is_active'],
+            ]);
 
-        return back()->with('success', 'Barangay node contact properties updated successfully.');
+            if (!empty($validated['primary_admin_email'])) {
+                User::where('barangay_id', $barangay->id)
+                    ->where('role', UserRole::Admin)
+                    ->where('is_view_only', false)
+                    ->update([
+                        'first_name' => $validated['primary_admin_first_name'],
+                        'last_name' => $validated['primary_admin_last_name'],
+                        'email' => $validated['primary_admin_email'],
+                        'updated_at' => now(),
+                    ]);
+            }
+        });
+
+        return back()->with('success', 'Barangay node and administrative details updated successfully.');
     }
 }

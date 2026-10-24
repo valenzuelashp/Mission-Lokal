@@ -20,5 +20,5 @@
         },
         "types": ["vite/client"]
     },
-    "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "vite.config.ts"]
+    "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "vite.config.ts", "resources/js/Pages/SuperAdmin/ProfileEdits"]
 }

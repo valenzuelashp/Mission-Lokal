@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Personnel;
+use App\Models\ResidentProfile;
+use App\Models\BarangaySetting;
 use App\Support\MapHelpers;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Support\ConcernStatusUpdate;
@@ -35,6 +37,33 @@ class ReportController extends Controller
             'rejected'     => [],
         ];
         return isset($map[$current]) && in_array($next, $map[$current]);
+    }
+
+    /**
+     * Helper method to assign specific Civic XP points based on Concern Category.
+     */
+    private function calculateCategoryXp(Concern $concern, string $barangayId): int
+    {
+        $concern->loadMissing('category');
+        $categoryName = $concern->category ? $concern->category->name : 'Unknown';
+
+        // Custom criteria: Define how many points each category gives.
+        // You can change these numbers anytime!
+        $pointsMap = [
+            'Public Safety & Order'      => 20, // High priority/risk
+            'Infrastructure & Utilities' => 15,
+            'Sanitation & Environment'   => 10,
+            'Katarungang Pambarangay'    => 5,  // Lower operational impact
+        ];
+
+        // If the category exists in our map, give those points
+        if (array_key_exists($categoryName, $pointsMap)) {
+            return $pointsMap[$categoryName];
+        }
+
+        // Fallback to the default settings (usually 10) if category isn't mapped
+        $settings = BarangaySetting::find($barangayId);
+        return $settings ? $settings->civic_xp_per_valid_report : 10;
     }
 
     public function index(Request $request): Response
@@ -323,9 +352,18 @@ class ReportController extends Controller
 
         $fromStatus = $concern->status->value ?? $concern->status;
         $attributes = ['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()];
+        
         if (in_array($validated['status'], ['rejected', 'spam'], true)) {
             $attributes['closed_summary'] = $validated['rejection_reason'];
+            
+            // Deduct XP: -15 for spam, -10 for standard rejection
+            $penalty = $validated['status'] === 'spam' ? 15 : 10;
+            $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
+            if ($reporterProfile) {
+                $reporterProfile->penalize('report_' . $validated['status'], $penalty, 'concern', $concern->id, $barangayId);
+            }
         }
+        
         $concern->update($attributes);
 
         DB::table('concern_status_history')->insert([
@@ -493,6 +531,17 @@ class ReportController extends Controller
                         $request->user()->id,
                         'A response mission was assigned to this concern.',
                     );
+
+                    // ==========================================
+                    // DYNAMIC CATEGORY-BASED CIVIC XP
+                    // ==========================================
+                    $points = $this->calculateCategoryXp($concern, $barangayId);
+                    
+                    $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
+                    if ($reporterProfile) {
+                        $reporterProfile->awardXp('valid_report', $points, 'concern', $concern->id, $barangayId);
+                    }
+                    // ==========================================
                 }
 
                 DB::table('audit_logs')->insert([
@@ -602,6 +651,12 @@ class ReportController extends Controller
                 'staff_reviewed_by' => Auth::id(),
                 'staff_reviewed_at' => now(),
             ]);
+
+            // Deduct -10 XP for AI-confirmed dismissal/spam
+            $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
+            if ($reporterProfile) {
+                $reporterProfile->penalize('report_dismissed', 10, 'concern', $concern->id, $barangayId);
+            }
 
             DB::table('concern_status_history')->insert([
                 'concern_id' => $concern->id,
@@ -731,6 +786,12 @@ class ReportController extends Controller
 
         $concern->update(['status' => 'rejected', 'closed_summary' => $reason]);
         
+        // Deduct -10 XP for direct rejection
+        $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
+        if ($reporterProfile) {
+            $reporterProfile->penalize('report_rejected', 10, 'concern', $concern->id, $barangayId);
+        }
+
         DB::table('concern_status_history')->insert([
             'concern_id' => $concern->id,
             'from_status' => $concern->getOriginal('status') ?? 'under_review',
@@ -861,6 +922,17 @@ class ReportController extends Controller
                     $request->user()->id,
                     'A response mission was assigned to this concern.',
                 );
+
+                // ==========================================
+                // DYNAMIC CATEGORY-BASED CIVIC XP
+                // ==========================================
+                $points = $this->calculateCategoryXp($concern, $barangayId);
+                
+                $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
+                if ($reporterProfile) {
+                    $reporterProfile->awardXp('valid_report', $points, 'concern', $concern->id, $barangayId);
+                }
+                // ==========================================
             }
             
             DB::table('audit_logs')->insert([

@@ -1,6 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Building2, Plus, Users, FileText, Edit2, UserPlus, CheckCircle2, Copy, Lock } from 'lucide-react';
+import { Building2, Plus, Users, FileText, Edit2, UserPlus, CheckCircle2, Copy, Shield, User, BarChart3 } from 'lucide-react';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -41,15 +41,16 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
 
     const editForm = useForm({
         name: '',
+        code: '',
         house_street: '',
         city: '',
         province: '',
         contact_phone: '',
         contact_email: '',
         is_active: true,
-        admin_first_name: '',
-        admin_last_name: '',
-        admin_email: '',
+        primary_admin_first_name: '',
+        primary_admin_last_name: '',
+        primary_admin_email: '',
     });
 
     const handleCreate = (e: React.FormEvent) => {
@@ -97,25 +98,18 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
     const openEditModal = (b: any) => {
         setEditingBarangay(b);
         
-        let adminFirst = '';
-        let adminLast = '';
-        if (b.primary_admin?.name) {
-            const parts = b.primary_admin.name.trim().split(' ');
-            adminFirst = parts[0] || '';
-            adminLast = parts.slice(1).join(' ') || '';
-        }
-
         editForm.setData({
             name: b.name || '',
-            house_street: b.house_street || '',
+            code: b.code || '',
+            house_street: b.house_street === 'N/A' ? '' : (b.house_street || ''),
             city: b.city || '',
             province: b.province || '',
             contact_phone: b.contact_phone === 'N/A' ? '' : (b.contact_phone || ''),
             contact_email: b.contact_email === 'N/A' ? '' : (b.contact_email || ''),
             is_active: Boolean(b.is_active),
-            admin_first_name: adminFirst,
-            admin_last_name: adminLast,
-            admin_email: b.primary_admin?.email || '',
+            primary_admin_first_name: b.primary_admin?.first_name || '',
+            primary_admin_last_name: b.primary_admin?.last_name || '',
+            primary_admin_email: b.primary_admin?.email || '',
         });
     };
 
@@ -336,72 +330,142 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                 </div>
             )}
 
-            {/* EDIT MODAL */}
+            {/* COMPREHENSIVE EDIT MODAL */}
             {editingBarangay && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+                    <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border space-y-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between border-b pb-3">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Edit Barangay Node: {editingBarangay.name}</h3>
-                                <p className="text-xs text-muted-foreground font-mono">Code: {editingBarangay.code}</p>
+                                <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                    <Building2 className="h-5 w-5 text-blue-600" /> Edit Barangay Node: {editingBarangay.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground font-mono mt-0.5">Node ID: {editingBarangay.id}</p>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => setEditingBarangay(null)}>✕</Button>
                         </div>
 
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2 text-blue-800 text-xs">
-                            <Lock className="h-4 w-4 shrink-0 mt-0.5" />
-                            <div>
-                                <span className="font-semibold block">Foundational Identifiers Locked:</span>
-                                Barangay Name, Code, and City cannot be modified post-creation to protect credentials and records.
+                        <form onSubmit={handleUpdate} className="space-y-6">
+                            
+                            {/* Section 1: Tenant Node Properties */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5 border-b pb-1">
+                                    <Building2 className="h-3.5 w-3.5" /> Physical & System Properties
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">Barangay Name *</label>
+                                        <Input value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">System Code *</label>
+                                        <Input value={editForm.data.code} onChange={e => editForm.setData('code', e.target.value)} required className="font-mono" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">House / Street / Compound *</label>
+                                    <Input value={editForm.data.house_street} onChange={e => editForm.setData('house_street', e.target.value)} required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">City / Municipality *</label>
+                                        <Input value={editForm.data.city} onChange={e => editForm.setData('city', e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">Province *</label>
+                                        <Input value={editForm.data.province} onChange={e => editForm.setData('province', e.target.value)} required />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">Contact Phone</label>
+                                        <Input value={editForm.data.contact_phone} onChange={e => editForm.setData('contact_phone', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold uppercase">Contact Email</label>
+                                        <Input type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">Operational Status</label>
+                                    <select 
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm mt-1"
+                                        value={editForm.data.is_active ? '1' : '0'}
+                                        onChange={e => editForm.setData('is_active', e.target.value === '1')}
+                                    >
+                                        <option value="1">Active Node</option>
+                                        <option value="0">Inactive / Suspended</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        <form onSubmit={handleUpdate} className="space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold uppercase">Barangay Name (Locked)</label>
-                                <Input value={editForm.data.name} disabled className="bg-slate-100 cursor-not-allowed text-slate-500" />
+                            {/* Section 2: Primary Administrator Details */}
+                            <div className="space-y-3 pt-2">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5 border-b pb-1">
+                                    <Shield className="h-3.5 w-3.5" /> Primary Administrator Account
+                                </h4>
+                                {editingBarangay.primary_admin ? (
+                                    <div className="grid grid-cols-2 gap-3 bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">
+                                        <div>
+                                            <label className="text-xs font-semibold uppercase text-slate-700">First Name *</label>
+                                            <Input value={editForm.data.primary_admin_first_name} onChange={e => editForm.setData('primary_admin_first_name', e.target.value)} required className="bg-white" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold uppercase text-slate-700">Last Name *</label>
+                                            <Input value={editForm.data.primary_admin_last_name} onChange={e => editForm.setData('primary_admin_last_name', e.target.value)} required className="bg-white" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="text-xs font-semibold uppercase text-slate-700">Official Email *</label>
+                                            <Input type="email" value={editForm.data.primary_admin_email} onChange={e => editForm.setData('primary_admin_email', e.target.value)} required className="bg-white font-mono text-xs" />
+                                            <p className="text-[10px] text-muted-foreground mt-1 font-mono">Account ID: {editingBarangay.primary_admin.account_id}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-red-600 font-medium">No primary administrator assigned to this node.</p>
+                                )}
                             </div>
-                            <div>
-                                <label className="text-xs font-semibold uppercase">House / Street / Compound *</label>
-                                <Input value={editForm.data.house_street} onChange={e => editForm.setData('house_street', e.target.value)} required />
+
+                            {/* Section 3: View-Only Accounts Overview */}
+                            <div className="space-y-3 pt-2">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5 border-b pb-1">
+                                    <User className="h-3.5 w-3.5" /> View-Only Monitoring Accounts ({editingBarangay.view_only_admins?.length || 0})
+                                </h4>
+                                {editingBarangay.view_only_admins && editingBarangay.view_only_admins.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {editingBarangay.view_only_admins.map((va: any, idx: number) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/30 border border-indigo-100 text-xs">
+                                                <div>
+                                                    <p className="font-bold text-slate-900">{va.name} <span className="font-mono text-[10px] text-indigo-600 ml-1">({va.account_id})</span></p>
+                                                    <p className="font-mono text-slate-500">{va.email}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-500 italic">No view-only accounts created for this node yet.</p>
+                                )}
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-xs font-semibold uppercase">City / Municipality (Locked)</label>
-                                    <Input value={editForm.data.city} disabled className="bg-slate-100 cursor-not-allowed text-slate-500" />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold uppercase">Province *</label>
-                                    <Input value={editForm.data.province} onChange={e => editForm.setData('province', e.target.value)} required />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-xs font-semibold uppercase">Contact Phone</label>
-                                    <Input value={editForm.data.contact_phone} onChange={e => editForm.setData('contact_phone', e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-semibold uppercase">Contact Email</label>
-                                    <Input type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} />
+
+                            {/* Section 4: Live Node Analytics Summary */}
+                            <div className="space-y-3 pt-2">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 border-b pb-1">
+                                    <BarChart3 className="h-3.5 w-3.5" /> Live Node Telemetry
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border">
+                                    <div>
+                                        <span className="text-muted-foreground block">Registered Users:</span>
+                                        <strong className="text-slate-900 text-sm">{editingBarangay.users_count} total</strong>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground block">Submitted Reports:</span>
+                                        <strong className="text-slate-900 text-sm">{editingBarangay.concerns_count} total</strong>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="pt-2 border-t">
-                                <label className="text-xs font-semibold uppercase">Operational Status</label>
-                                <select 
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm mt-1"
-                                    value={editForm.data.is_active ? '1' : '0'}
-                                    onChange={e => editForm.setData('is_active', e.target.value === '1')}
-                                >
-                                    <option value="1">Active Node</option>
-                                    <option value="0">Inactive / Suspended</option>
-                                </select>
-                            </div>
-
-                            <div className="flex justify-end gap-2 pt-2 border-t">
+                            <div className="flex justify-end gap-2 pt-4 border-t">
                                 <Button type="button" variant="outline" onClick={() => setEditingBarangay(null)}>Cancel</Button>
-                                <Button type="submit" disabled={editForm.processing} className="bg-blue-600 hover:bg-blue-700 text-white">
-                                    {editForm.processing ? 'Saving...' : 'Save Changes'}
+                                <Button type="submit" disabled={editForm.processing} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs">
+                                    {editForm.processing ? 'Saving Changes...' : 'Save Comprehensive Node Details'}
                                 </Button>
                             </div>
                         </form>

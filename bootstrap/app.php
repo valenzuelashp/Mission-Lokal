@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\EnsureBarangayIsActive::class,
         ]);
 
         // --- CSRF Exemptions ---
@@ -27,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'password/custom/store',
             'concerns',
             'concerns/*',
+            'node-suspended/appeal', // <--- CRITICAL: Prevents 419 error when submitting appeal
         ]);
         
         $middleware->alias([
@@ -35,5 +39,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Automatically route admins/personnel to their specific login page when unauthenticated
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('admin*') || $request->is('super-admin*') || $request->is('personnel*')) {
+                return redirect()->guest(route('admin-personnel.login'));
+            }
+
+            return redirect()->guest(route('login'));
+        });
     })->create();

@@ -1,5 +1,5 @@
-import { router, usePage } from '@inertiajs/react';
-import { Building2, LayoutDashboard, LogOut, ShieldCheck, Globe } from 'lucide-react';
+import { router, usePage, Link } from '@inertiajs/react';
+import { Building2, LayoutDashboard, LogOut, ShieldCheck, Globe, UserCircle, KeyRound, MessageSquareWarning } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 
 export default function SuperAdminLayout({ children, title }: PropsWithChildren<{ title?: string }>) {
@@ -21,20 +21,41 @@ export default function SuperAdminLayout({ children, title }: PropsWithChildren<
 
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
                     <div className="px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Platform Control</div>
-                    <a
+                    <Link
                         href="/super-admin/dashboard"
                         className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
                     >
                         <LayoutDashboard className="h-4 w-4 text-slate-400" />
                         Overview Dashboard
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                         href="/super-admin/barangays"
                         className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
                     >
                         <Building2 className="h-4 w-4 text-slate-400" />
                         Barangay Tenants
-                    </a>
+                    </Link>
+                    <Link
+                        href="/super-admin/barangay-appeals"
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
+                    >
+                        <MessageSquareWarning className="h-4 w-4 text-slate-400" />
+                        Node Appeals
+                    </Link>
+                    <Link
+                        href="/super-admin/profile-edits"
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
+                    >
+                        <UserCircle className="h-4 w-4 text-slate-400" />
+                        Profile Requests
+                    </Link>
+                    <Link
+                        href="/super-admin/clearances"
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
+                    >
+                        <KeyRound className="h-4 w-4 text-slate-400" />
+                        Security Clearances
+                    </Link>
                 </nav>
 
                 <div className="p-4 border-t border-slate-800/80 bg-slate-900/40">

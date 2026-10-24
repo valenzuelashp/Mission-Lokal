@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Award, FileText, Lock, Pencil, Shield, AlertCircle } from 'lucide-react';
+import { Award, FileText, Lock, Pencil, Shield, AlertCircle, History, TrendingUp, TrendingDown } from 'lucide-react';
 import DigitalIdCard from '@/Components/resident/DigitalIdCard';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
@@ -18,7 +18,7 @@ const verificationBadge: Record<string, { label: string; variant: 'success' | 'w
     rejected: { label: 'Rejected', variant: 'danger' },
 };
 
-export default function ProfileIndex({ profile }: { profile: any }) {
+export default function ProfileIndex({ profile, xp_history = [] }: { profile: any; xp_history?: any[] }) {
     const theme = useResidentTheme();
     const { user } = useAuth();
 
@@ -67,12 +67,6 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                                 Update Contact Details
                             </Link>
                         )}
-                    </Button>
-                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
-                        <Link href="/documents">
-                            <FileText className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
-                            Request a barangay document
-                        </Link>
                     </Button>
                     <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
                         <Link href="/documents">
@@ -185,6 +179,43 @@ export default function ProfileIndex({ profile }: { profile: any }) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* NEW CIVIC XP HISTORY CARD */}
+                        <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                            <CardHeader className={`pb-4 border-b ${theme.dividerColor}`}>
+                                <CardTitle className={`flex items-center gap-2 text-sm font-black uppercase tracking-wider ${theme.textMain}`}>
+                                    <History className="h-4 w-4 text-blue-600" />
+                                    Civic XP History
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {xp_history.length === 0 ? (
+                                    <div className="p-8 text-center">
+                                        <p className={`text-xs ${theme.textMuted} font-semibold`}>No XP transactions recorded yet. Report valid concerns to earn points.</p>
+                                    </div>
+                                ) : (
+                                    <div className={`divide-y ${theme.dividerColor}`}>
+                                        {xp_history.map((record: any) => (
+                                            <div key={record.id} className={`flex items-center justify-between p-4 sm:p-6 hover:${theme.hoverBg} transition-colors`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${record.is_positive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                                                        {record.is_positive ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className={`font-bold ${theme.textMain} text-sm capitalize`}>{record.action}</p>
+                                                        <p className={`text-[11px] font-medium ${theme.textMuted} mt-0.5`}>{record.date}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`font-black text-sm ${record.is_positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {record.is_positive ? '+' : ''}{record.points} XP
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
                     </div>
                 </ResidentSocialShell>
             </div>

@@ -38,7 +38,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     // Core Operational Report Actions Pipeline (Task A4/A5 workflows)
     Route::post('/reports/{id}/confirm-ai', [ReportController::class, 'confirmAI'])->name('reports.confirm-ai');
-    Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict'); // <-- ADDED ROUTE TO FIX 404
+    Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict');
     Route::post('/reports/{id}/merge', [ReportController::class, 'mergeDuplicate'])->name('reports.merge');
     Route::post('/reports/{id}/reject', [ReportController::class, 'rejectConcern'])->name('reports.reject');
     Route::post('/reports/{id}/escalate', [ReportController::class, 'createMission'])->name('reports.escalate');
@@ -115,5 +115,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    
+    // NEW POST ROUTES FOR SECURITY MFA
+    Route::post('/settings/security/request-otp', [SettingsController::class, 'sendOtp'])->name('settings.security.request_otp');
+    Route::post('/settings/security/request-clearance', [SettingsController::class, 'requestClearanceKey'])->name('settings.security.request_clearance');
+    
     Route::put('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
 });

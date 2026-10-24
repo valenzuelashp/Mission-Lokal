@@ -15,7 +15,6 @@ use App\Http\Controllers\Auth\AccountStatusController;
 use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\SuperAdmin\BarangayManagementController;
-use App\Http\Middleware\EnsureSuperAdmin;
 use App\Models\Barangay;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -37,7 +36,7 @@ Route::get('/', function () {
     $role = $user->role instanceof UserRole ? $user->role->value : $user->role;
 
     if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {
-        return redirect()->route('super_admin.barangays.index');
+        return redirect()->route('super_admin.dashboard');
     }
 
     if ($role === 'admin' || $role === UserRole::Admin) {
@@ -57,19 +56,6 @@ Route::get('/', function () {
     }
 
     return redirect()->route('feed');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Super Administrator Routes
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', EnsureSuperAdmin::class])->group(function () {
-    Route::get('/super-admin/dashboard', [BarangayManagementController::class, 'dashboard'])->name('super_admin.dashboard');
-    Route::get('/super-admin/barangays', [BarangayManagementController::class, 'index'])->name('super_admin.barangays.index');
-    Route::post('/super-admin/barangays', [BarangayManagementController::class, 'store'])->name('super_admin.barangays.store');
-    Route::post('/super-admin/barangays/view-only-admin', [BarangayManagementController::class, 'storeViewOnlyAdmin'])->name('super_admin.barangays.view_only');
-    Route::put('/super-admin/barangays/{barangay}', [BarangayManagementController::class, 'update'])->name('super_admin.barangays.update');
 });
 
 /*
@@ -139,6 +125,15 @@ Route::post('/account-status/resubmit-form/{id}', [AccountStatusController::clas
 */
 Route::get('/privacy', [PrivacyPolicyController::class, 'show'])->name('privacy');
 
+/*
+|--------------------------------------------------------------------------
+| Suspension & Appeal Public Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/node-suspended', fn () => Inertia::render('Auth/NodeSuspended'))->name('node.suspended');
+Route::get('/api/suspended-barangay-options', [BarangayManagementController::class, 'getPublicBarangayOptions']);
+Route::post('/node-suspended/appeal', [BarangayManagementController::class, 'storeAppeal']);
+
 Route::get('/api/check-barangay', function (Request $request) {
     $brgyName = trim((string) $request->query('name', ''));
     $city = trim((string) $request->query('city', ''));
@@ -184,8 +179,10 @@ Route::middleware(['auth', 'role:resident'])->group(function () {
     Route::post('/password/prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');
 });
 
+// Segmented Routing Files
 require __DIR__.'/personnel.php';
 require __DIR__.'/admin.php';
+require __DIR__.'/superadmin.php';
 
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');

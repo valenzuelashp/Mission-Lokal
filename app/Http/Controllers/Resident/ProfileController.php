@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Resident;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\ProfileEditRequest;
+use App\Models\CivicXpEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -76,8 +77,24 @@ class ProfileController extends Controller
             'badges'              => [],
         ];
 
+        // Fetch the 10 most recent XP changes for the resident
+        $xpHistory = CivicXpEvent::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($event) {
+                return [
+                    'id' => $event->id,
+                    'action' => ucwords(str_replace('_', ' ', $event->action)), // 'valid_report' -> 'Valid Report'
+                    'points' => $event->points,
+                    'date' => $event->created_at ? $event->created_at->format('M d, Y g:i A') : 'Unknown Date',
+                    'is_positive' => $event->points > 0,
+                ];
+            });
+
         return Inertia::render('Resident/Profile/Index', [
-            'profile' => $profileData
+            'profile' => $profileData,
+            'xp_history' => $xpHistory,
         ]);
     }
 

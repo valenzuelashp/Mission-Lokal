@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, Bell, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
@@ -25,15 +25,6 @@ interface NavSection {
 }
 
 const navSections: NavSection[] = [
-    {
-        id: 'overview',
-        title: 'Overview',
-        icon: LayoutDashboard,
-        items: [
-            { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-            { href: '/admin/notifications', label: 'Notifications', icon: Bell },
-        ],
-    },
     {
         id: 'operations',
         title: 'Operations',
@@ -251,6 +242,24 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
 
             {/* Navigation Accordion - Scrollable Area */}
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 admin-sidebar-scrollbar">
+                <Link
+                    href="/admin"
+                    title={!isMobile && collapsed ? 'Dashboard' : undefined}
+                    className={cn(
+                        'group flex items-center rounded-xl text-xs font-semibold transition-all duration-150',
+                        !isMobile && collapsed ? 'justify-center p-2.5' : 'w-full gap-3 px-3.5 py-2.5',
+                        active('/admin', true)
+                            ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                            : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                    )}
+                >
+                    <LayoutDashboard className={cn(
+                        'h-4 w-4 shrink-0',
+                        active('/admin', true) ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700',
+                    )} />
+                    {(!collapsed || isMobile) && <span>Dashboard</span>}
+                </Link>
+
                 {navSections.map((section) => {
                     const isSectionOpen = !!openSections[section.id];
                     const hasActiveChild = section.items.some(item => active(item.href, item.exact));

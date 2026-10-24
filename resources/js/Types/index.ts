@@ -321,7 +321,6 @@ export interface PersonnelChecklistItem {
 }
 
 export interface PersonnelMission {
-    assignment_acknowledged: any;
     id: string;
     concern_id: string;
     title: string;
