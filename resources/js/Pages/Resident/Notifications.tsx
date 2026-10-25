@@ -3,7 +3,6 @@ import { Bell, FileText, ShieldAlert } from 'lucide-react';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import PageHeader from '@/Components/shared/PageHeader';
 import EmptyState from '@/Components/shared/EmptyState';
-import { Card, CardContent } from '@/Components/ui/card';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 
@@ -28,84 +27,77 @@ export default function Notifications({ notifications }: Props) {
         <ResidentLayout wide>
             <Head title="Notifications" />
 
-            <div className="w-full space-y-6 pb-16">
-                <div className="mb-2">
-                    <PageHeader 
-                        title="Resident Notifications Inbox" 
-                        description="Real-time updates regarding your community concern reports, blotter cases, and barangay notices." 
-                    />
-                </div>
+            <div className="w-full space-y-4">
+                <PageHeader
+                    title="Notifications"
+                    description="Concern updates, blotter cases, and barangay notices."
+                />
 
                 {notifications.length === 0 ? (
-                    <div className={`rounded-3xl border ${theme.cardBorder} ${theme.cardBg} p-6 shadow-2xs`}>
-                        <EmptyState 
-                            title="No Notifications Found" 
-                            description="You have no unread community alerts at the moment."
+                    <div className={`rounded-2xl border p-6 shadow-2xs ${theme.cardBorder} ${theme.cardBg}`}>
+                        <EmptyState
+                            title="No alerts"
+                            description="Your inbox is caught up."
                         >
-                            <Bell className="mx-auto mt-4 h-10 w-10 text-slate-300 animate-pulse" />
+                            <Bell className="mx-auto mt-4 h-8 w-8 text-slate-300" />
                         </EmptyState>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-4">
+                    <ul className="space-y-2">
                         {notifications.map((notif) => {
-                            let href = null;
-                            let Icon = Bell;
-
-                            if (notif.concern_id) {
-                                href = `/concerns/${notif.concern_id}`;
-                                Icon = FileText;
-                            } else if (notif.blotter_id) {
-                                href = `/blotters`; 
-                                Icon = ShieldAlert;
-                            }
+                            const href = notif.concern_id
+                                ? `/concerns/${notif.concern_id}`
+                                : notif.blotter_id
+                                  ? '/blotters'
+                                  : null;
+                            const Icon = notif.concern_id ? FileText : notif.blotter_id ? ShieldAlert : Bell;
 
                             const content = (
-                                <Card 
-                                    className={cn(
-                                        "transition-all shadow-2xs rounded-3xl overflow-hidden",
-                                        theme.cardBorder,
-                                        theme.cardBg,
-                                        !notif.read ? "border-blue-300 bg-blue-50/40 font-semibold" : ""
-                                    )}
-                                >
-                                    <CardContent className="flex items-start gap-4 p-5 sm:p-6">
-                                        <div className={cn(
-                                            "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-2xs border",
-                                            !notif.read ? `${theme.primaryBg} text-white` : "bg-slate-100 text-slate-600 border-slate-200"
-                                        )}>
-                                            <Icon className="h-5 w-5" />
-                                        </div>
-                                        <div className="flex-1 space-y-1.5">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <p className={`text-sm font-black ${theme.textMain}`}>
-                                                    {notif.title}
-                                                </p>
-                                                <span className={`shrink-0 text-xs font-semibold ${theme.textMuted}`}>
-                                                    {notif.sent_at}
-                                                </span>
-                                            </div>
-                                            <p className={cn(
-                                                "text-xs leading-relaxed",
-                                                !notif.read ? `font-medium ${theme.textMain}` : theme.textMuted
-                                            )}>
-                                                {notif.body}
-                                            </p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <span className="flex items-start gap-3">
+                                    <span
+                                        className={cn(
+                                            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
+                                            !notif.read
+                                                ? 'border-sky-500 bg-sky-600 text-white'
+                                                : 'border-slate-200 bg-slate-100 text-slate-600',
+                                        )}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="flex items-start justify-between gap-2">
+                                            <span className={cn('text-xs font-black', notif.read ? theme.textMuted : theme.textMain)}>
+                                                {notif.title}
+                                            </span>
+                                            <span className={`shrink-0 text-[10px] font-semibold ${theme.textMuted}`}>
+                                                {notif.sent_at}
+                                            </span>
+                                        </span>
+                                        <span className={`mt-1 block text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
+                                            {notif.body}
+                                        </span>
+                                    </span>
+                                </span>
                             );
 
-                            return href ? (
-                                <Link key={notif.id} href={href} className="block group">
-                                    {content}
-                                </Link>
-                            ) : (
-                                <div key={notif.id}>
-                                    {content}
-                                </div>
+                            const className = cn(
+                                'block w-full rounded-2xl border px-3 py-3 text-left transition-colors',
+                                notif.read ? `${theme.cardBorder} ${theme.cardBg}` : 'border-sky-200 bg-sky-50/70',
+                            );
+
+                            return (
+                                <li key={notif.id}>
+                                    {href ? (
+                                        <Link href={href} className={className}>
+                                            {content}
+                                        </Link>
+                                    ) : (
+                                        <div className={className}>{content}</div>
+                                    )}
+                                </li>
                             );
                         })}
-                    </div>
+                    </ul>
                 )}
             </div>
         </ResidentLayout>

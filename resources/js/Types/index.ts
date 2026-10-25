@@ -17,6 +17,7 @@ export interface User {
     email?: string;
     mobile?: string;
     civic_xp?: number;
+    profile_photo_url?: string | null;
     verification_status?: VerificationStatus;
     can_modify_system?: boolean;
     is_minor?: boolean;
@@ -117,6 +118,7 @@ export interface PublicConcern {
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
     reporter_name?: string;
+    reporter_photo_url?: string | null;
     latest_update?: {
         label: string;
         message: string;
@@ -427,6 +429,7 @@ export interface AdminResident {
     id: string;
     account_id: string;
     full_name: string;
+    profile_photo_url?: string | null;
     email: string | null;
     mobile: string | null;
     address: string;

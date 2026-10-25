@@ -45,6 +45,7 @@ class ConcernController extends Controller
             })
             ->with([
                 'reporter',
+                'category',
                 'media',
                 'mission',
                 'statusHistory' => fn ($query) => $query
@@ -103,7 +104,7 @@ class ConcernController extends Controller
                 return [
                     'id' => (string) $item->id,
                     'title' => $item->title,
-                    'category' => ucwords(str_replace('_', ' ', $item->category_id)),
+                    'category' => $this->categoryName($item),
                     'severity' => $item->severity ?? 'medium',
                     'status' => $statusStr, 
                     'upvotes' => (int) $item->upvotes_count,
@@ -114,6 +115,7 @@ class ConcernController extends Controller
                     'lng' => $point['lng'],
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
                     'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                    'reporter_photo_url' => $item->reporter?->profilePhotoUrl(),
                     'is_owner' => $item->reporter_id === auth()->id(),
                     'visibility' => $item->visibility,
                     'privacy_locked' => (bool) $item->is_blotter_candidate,
@@ -196,6 +198,13 @@ class ConcernController extends Controller
         }
 
         return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    private function categoryName(Concern $concern): string
+    {
+        $name = trim((string) ($concern->category?->name ?? ''));
+
+        return $name !== '' ? $name : 'Other Concerns';
     }
 
     private function publishedResolutionPosts(string $barangayId): Builder
@@ -352,7 +361,7 @@ class ConcernController extends Controller
         $user = $request->user();
         $concern->denyUnlessVisibleToResident($user);
 
-        $concern->load('reporter', 'currentAiAnalysis');
+        $concern->load('reporter', 'category', 'currentAiAnalysis');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
 
         $locationData = DB::selectOne("SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?", [$concern->id]);
@@ -425,7 +434,7 @@ class ConcernController extends Controller
             'concern' => [
                 'id' => (string) $concern->id,
                 'title' => $concern->title,
-                'category' => ucwords(str_replace('_', ' ', $concern->category_id)),
+                'category' => $this->categoryName($concern),
                 'severity' => $concern->severity ?? 'medium',
                 'status' => $statusStr,
                 'description' => $concern->description,
@@ -436,6 +445,7 @@ class ConcernController extends Controller
                 'downvotes' => $downvotes,
                 'user_vote' => $userVote,
                 'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                'reporter_photo_url' => $concern->reporter?->profilePhotoUrl(),
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
                 'images' => $concern->media->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
                 'timeline' => $timeline,

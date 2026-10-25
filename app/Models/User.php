@@ -30,6 +30,7 @@ class User extends Authenticatable
         'address',  
         'email',
         'mobile',
+        'profile_photo_path',
         'password',
         'profile_edit_status',
         'is_active',
@@ -132,6 +133,15 @@ class User extends Authenticatable
         }
 
         return $this->role === UserRole::Personnel || $this->role === 'personnel';
+    }
+
+    public function profilePhotoUrl(): ?string
+    {
+        if (! $this->profile_photo_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->profile_photo_path);
     }
 
     public function governmentIdFileLabel(): string

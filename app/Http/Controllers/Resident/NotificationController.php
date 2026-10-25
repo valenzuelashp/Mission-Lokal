@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class NotificationController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|JsonResponse
     {
         $user = $request->user();
 
@@ -43,9 +44,12 @@ class NotificationController extends Controller
                 'read_at' => now(),
             ]);
 
-        // 4. Send the data to the React page
-        return Inertia::render('Resident/Notifications', [
-            'notifications' => $notifications->values(),
-        ]);
+        $payload = ['notifications' => $notifications->values()];
+
+        if ($request->boolean('panel')) {
+            return response()->json($payload);
+        }
+
+        return Inertia::render('Resident/Notifications', $payload);
     }
 }

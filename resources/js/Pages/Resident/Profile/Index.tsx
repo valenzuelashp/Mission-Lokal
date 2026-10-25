@@ -3,6 +3,7 @@ import { Award, FileText, Lock, Pencil, Shield, AlertCircle, History, TrendingUp
 import DigitalIdCard from '@/Components/resident/DigitalIdCard';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
+import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import StatCard from '@/Components/shared/StatCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -105,7 +106,11 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                 <ResidentSocialShell right={rightAside}>
                     <div className="space-y-6 w-full">
                         <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
-                            <CardContent className="p-6 sm:p-8">
+                            <CardContent className="space-y-5 p-6 sm:p-8">
+                                <ProfilePhotoPicker
+                                    fallback="R"
+                                    avatarClassName={`h-16 w-16 rounded-2xl text-lg font-black text-white ${theme.primaryBg}`}
+                                />
                                 <h1 className={`text-2xl sm:text-3xl font-black ${theme.textMain} tracking-tight`}>Resident Profile Dashboard</h1>
                                 <p className={`mt-2 text-xs sm:text-sm font-medium ${theme.textMuted} leading-relaxed`}>
                                     Official municipal account details, cryptographic digital ID, and civic participation metrics.
@@ -113,7 +118,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                             </CardContent>
                         </Card>
 
-                        <div className="grid gap-5 sm:grid-cols-3">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-5">
                             <StatCard label="Civic XP Score" value={user.civic_xp ?? 50} icon={Award} hint="Earned from verified reports" />
                             <StatCard label="Total Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Community submissions" />
                             <StatCard label="Verification Status" value={status.label} icon={Shield} hint={`State: ${statusKey}`} />

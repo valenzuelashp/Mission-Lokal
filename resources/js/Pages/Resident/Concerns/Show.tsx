@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react';
 import BufferedImage from '@/Components/shared/BufferedImage';
+import UserAvatar from '@/Components/shared/UserAvatar';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import StatusTimeline from '@/Components/resident/StatusTimeline';
 import { Badge } from '@/Components/ui/badge';
@@ -26,13 +27,12 @@ const severityLabel: Record<Severity, string> = {
 };
 
 type Props = ConcernShowPageProps & {
-    concern: ConcernShowPageProps['concern'] & { reporter_name?: string };
+    concern: ConcernShowPageProps['concern'] & { reporter_name?: string; reporter_photo_url?: string | null };
 };
 
 export default function Show({ concern }: Props) {
     const theme = useResidentTheme();
     const reporterName = concern.reporter_name ?? 'Verified Resident';
-    const firstInitial = reporterName.charAt(0).toUpperCase();
 
     const isPendingReview = ['submitted', 'ai_processed'].includes(concern.status);
 
@@ -56,9 +56,11 @@ export default function Show({ concern }: Props) {
                             <CardContent className="p-6 sm:p-8 space-y-6">
                                 <div className={`flex items-center justify-between pb-5 border-b ${theme.dividerColor}`}>
                                     <div className="flex items-center gap-3.5">
-                                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} font-black border shadow-2xs`}>
-                                            {firstInitial}
-                                        </div>
+                                        <UserAvatar
+                                            src={concern.reporter_photo_url}
+                                            name={reporterName}
+                                            className={`h-12 w-12 shrink-0 rounded-2xl border font-black shadow-2xs ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
+                                        />
                                         <div>
                                             <p className={`text-sm font-black ${theme.textMain}`}>{reporterName}</p>
                                             <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText} mt-0.5`}>{concern.category}</p>

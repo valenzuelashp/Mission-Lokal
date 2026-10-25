@@ -62,6 +62,7 @@ class ResidentController extends Controller
                 'id' => $user->id,
                 'account_id' => $user->account_id,
                 'full_name' => $fullName,
+                'profile_photo_url' => $user->profilePhotoUrl(),
                 'email' => $user->email ?? '—',
                 'mobile' => $user->mobile ?? '—',
                 'address' => $user->residentProfile?->address ?? $user->address ?? 'No address listed',

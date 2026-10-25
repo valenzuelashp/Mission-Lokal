@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, CalendarDays, ClipboardList, LogOut, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PropsWithChildren, useState } from 'react';
 import PersonnelTopBar from '@/Components/personnel/PersonnelTopBar';
+import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import { Badge } from '@/Components/ui/badge';
 import { useAuth } from '@/Hooks/usePageProps';
 import { useActivePath } from '@/Hooks/useActivePath';
@@ -58,21 +59,19 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
             {/* User Profile Pill */}
             {!collapsed && (
                 <div className="border-b border-blue-200/70 bg-white/70 px-6 py-4 backdrop-blur-md shrink-0">
-                    <div className="flex items-center gap-3.5">
-                        <div className="relative">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 border border-blue-300 font-black text-sm shadow-2xs">
-                                {user?.first_name?.[0] ?? 'P'}
-                            </div>
-                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-white animate-pulse" />
-                        </div>
-                        <div className="min-w-0 flex-1">
+                    <div className="space-y-2">
+                        <div className="min-w-0">
                             <p className="truncate text-sm font-black text-slate-900">
                                 {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Personnel'}
                             </p>
-                            <p className="font-mono text-[10px] tracking-wider text-blue-700 uppercase mt-0.5 font-bold">
+                            <p className="mt-0.5 truncate font-mono text-[10px] font-bold uppercase tracking-wider text-blue-700">
                                 {user?.account_id ?? 'PER-001'}
                             </p>
                         </div>
+                        <ProfilePhotoPicker
+                            fallback="P"
+                            avatarClassName="h-11 w-11 rounded-2xl border border-blue-300 bg-blue-100 text-sm font-black text-blue-700 shadow-2xs"
+                        />
                     </div>
                 </div>
             )}

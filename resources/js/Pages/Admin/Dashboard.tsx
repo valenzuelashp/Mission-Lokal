@@ -116,14 +116,14 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                     <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-1">
                         Primary Action Queues
                     </div>
-                    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
                         {/* 1. Report Queue */}
                         <Link 
                             href="/admin/reports" 
-                            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xs transition-all duration-200 hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:shadow-md sm:rounded-3xl sm:p-6"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="rounded-2xl bg-blue-50 p-3.5 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <div className="mb-2 flex items-center justify-between sm:mb-4">
+                                <div className="rounded-xl bg-blue-50 p-2 text-blue-700 sm:rounded-2xl sm:p-3.5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                     <FileText className="h-5 w-5" />
                                 </div>
                                 <span className="text-xs font-bold text-blue-600 hidden items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
@@ -131,19 +131,19 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                 </span>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-slate-900">{stats.total_reports}</p>
-                                <p className="mt-1 text-xs font-black uppercase tracking-wider text-slate-500">Report Queue</p>
-                                <p className="mt-1 text-xs text-slate-400 font-medium">Incoming resident concerns</p>
+                                <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.total_reports}</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Report Queue</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Incoming resident concerns</p>
                             </div>
                         </Link>
 
                         {/* 2. Mission Queue */}
                         <Link 
                             href="/admin/missions" 
-                            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xs transition-all duration-200 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-500 hover:shadow-md sm:rounded-3xl sm:p-6"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="rounded-2xl bg-indigo-50 p-3.5 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <div className="mb-2 flex items-center justify-between sm:mb-4">
+                                <div className="rounded-xl bg-indigo-50 p-2 text-indigo-700 sm:rounded-2xl sm:p-3.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                     <Sparkles className="h-5 w-5" />
                                 </div>
                                 <span className="text-xs font-bold text-indigo-600 hidden items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
@@ -151,9 +151,9 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                 </span>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-slate-900">{stats.ongoing_missions}</p>
-                                <p className="mt-1 text-xs font-black uppercase tracking-wider text-slate-500">Mission Queue</p>
-                                <p className="mt-1 text-xs text-slate-400 font-medium">
+                                <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.ongoing_missions}</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Mission Queue</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">
                                     {stats.high_priority ? `${stats.high_priority} high priority` : 'Field operations'}
                                 </p>
                             </div>
@@ -162,10 +162,10 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                         {/* 3. Verifications Queue */}
                         <Link 
                             href="/admin/verifications" 
-                            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xs transition-all duration-200 hover:border-sky-500 hover:shadow-md hover:-translate-y-0.5"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500 hover:shadow-md sm:rounded-3xl sm:p-6"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="rounded-2xl bg-sky-50 p-3.5 text-sky-700 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                            <div className="mb-2 flex items-center justify-between sm:mb-4">
+                                <div className="rounded-xl bg-sky-50 p-2 text-sky-700 sm:rounded-2xl sm:p-3.5 group-hover:bg-sky-600 group-hover:text-white transition-colors">
                                     <UserPlus className="h-5 w-5" />
                                 </div>
                                 <span className="text-xs font-bold text-sky-600 hidden items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
@@ -173,19 +173,19 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                 </span>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-slate-900">{stats.pending_registrations ?? 0}</p>
-                                <p className="mt-1 text-xs font-black uppercase tracking-wider text-slate-500">Verifications</p>
-                                <p className="mt-1 text-xs text-slate-400 font-medium">Self-registration queue</p>
+                                <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.pending_registrations ?? 0}</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Verifications</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Self-registration queue</p>
                             </div>
                         </Link>
 
                         {/* 4. Blotter Desk */}
                         <Link 
                             href="/admin/blotters" 
-                            className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xs transition-all duration-200 hover:border-rose-500 hover:shadow-md hover:-translate-y-0.5"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-500 hover:shadow-md sm:rounded-3xl sm:p-6"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="rounded-2xl bg-rose-50 p-3.5 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                            <div className="mb-2 flex items-center justify-between sm:mb-4">
+                                <div className="rounded-xl bg-rose-50 p-2 text-rose-600 sm:rounded-2xl sm:p-3.5 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                     <ShieldAlert className="h-5 w-5" />
                                 </div>
                                 <span className="text-xs font-bold text-rose-600 hidden items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
@@ -193,9 +193,9 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                 </span>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-slate-900">{stats.pending_blotters ?? 0}</p>
-                                <p className="mt-1 text-xs font-black uppercase tracking-wider text-slate-500">Blotter Desk</p>
-                                <p className="mt-1 text-xs text-slate-400 font-medium">Incident complaints review</p>
+                                <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.pending_blotters ?? 0}</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Blotter Desk</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Incident complaints review</p>
                             </div>
                         </Link>
                     </div>

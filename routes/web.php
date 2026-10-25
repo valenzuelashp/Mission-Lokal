@@ -28,7 +28,7 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     if (! auth()->check()) {
-        return redirect()->route('login');
+        return Inertia::render('Home');
     }
 
     $user = auth()->user();
@@ -172,6 +172,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::post('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'update'])->name('profile-photo.update');
+    Route::delete('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'destroy'])->name('profile-photo.destroy');
+});
 
 Route::middleware(['auth', 'role:resident'])->group(function () {
     Route::get('/verification/waiting', [AccountStatusController::class, 'waiting'])->name('verification.waiting');

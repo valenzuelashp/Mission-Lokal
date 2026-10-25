@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { BookOpen, CalendarDays, FileText, Home, Megaphone, ScrollText, User } from 'lucide-react';
 import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
+import UserAvatar from '@/Components/shared/UserAvatar';
 import { Card, CardContent } from '@/Components/ui/card';
 import { useAuth } from '@/Hooks/usePageProps';
 import { useActivePath } from '@/Hooks/useActivePath';
@@ -21,7 +22,6 @@ export default function ResidentShortcuts() {
     const theme = useResidentTheme();
     const { user } = useAuth();
     const { isActive } = useActivePath();
-    const initials = user?.first_name?.[0] ?? user?.account_id?.slice(0, 2) ?? 'R';
     const fullName = user ? `${user.first_name} ${user.last_name}` : 'Resident Account';
 
     return (
@@ -29,9 +29,12 @@ export default function ResidentShortcuts() {
             <Link href="/profile" className="block group">
                 <Card className={`border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md rounded-3xl overflow-hidden`}>
                     <CardContent className="flex items-center gap-4 p-5">
-                        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.primaryBg} text-xs font-black text-white shadow-2xl group-hover:scale-105 transition-transform`}>
-                            {initials}
-                        </span>
+                        <UserAvatar
+                            src={user?.profile_photo_url}
+                            name={user?.first_name}
+                            fallback="R"
+                            className={`h-12 w-12 shrink-0 rounded-2xl text-xs font-black text-white shadow-2xl transition-transform group-hover:scale-105 ${theme.primaryBg}`}
+                        />
                         <div className="min-w-0">
                             <p className={`truncate text-sm font-black ${theme.textMain} transition-colors`}>{fullName}</p>
                             <p className={`text-xs font-black ${theme.primaryText} mt-0.5`}>{user?.civic_xp ?? 0} Civic XP Earned</p>

@@ -3,6 +3,7 @@ import { Award, ChevronRight } from 'lucide-react';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
 import type { AdminResident, VerificationStatus } from '@/Types';
+import UserAvatar from '@/Components/shared/UserAvatar';
 import { cn } from '@/Lib/utils';
 
 const statusLabel: Record<VerificationStatus, string> = {
@@ -17,12 +18,6 @@ type Props = {
 };
 
 export default function ResidentCard({ resident }: Props) {
-    const initials = resident.full_name
-        .split(' ')
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join('');
-
     const isVerified = resident.verification_status === 'approved';
 
     return (
@@ -30,9 +25,11 @@ export default function ResidentCard({ resident }: Props) {
             <Card className="shadow-2xs transition-all duration-200 hover:shadow-md hover:border-blue-300 border-slate-200/80 bg-white rounded-3xl">
                 <CardContent className="space-y-4 p-5">
                     <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 font-black border border-blue-100 shadow-2xs">
-                            {initials}
-                        </div>
+                        <UserAvatar
+                            src={resident.profile_photo_url}
+                            name={resident.full_name}
+                            className="h-12 w-12 shrink-0 rounded-2xl border border-blue-100 bg-blue-50 font-black text-blue-700 shadow-2xs"
+                        />
                         <div className="min-w-0 flex-1">
                             <p className="font-extrabold leading-snug text-slate-900 group-hover:text-blue-700 transition-colors text-sm">{resident.full_name}</p>
                             <p className="text-xs font-mono font-bold text-blue-600 mt-0.5">{resident.account_id}</p>

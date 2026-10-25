@@ -3,6 +3,7 @@ import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2, X } from 'luci
 import { useEffect, useState } from 'react';
 import MapView from '@/Components/maps/MapView';
 import BufferedImage from '@/Components/shared/BufferedImage';
+import UserAvatar from '@/Components/shared/UserAvatar';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
@@ -23,7 +24,7 @@ const severityLabel: Record<Severity, string> = {
 };
 
 type Props = {
-    concern: PublicConcern & { reporter_name?: string };
+    concern: PublicConcern & { reporter_name?: string; reporter_photo_url?: string | null };
 };
 
 export default function ConcernCard({ concern }: Props) {
@@ -62,9 +63,12 @@ export default function ConcernCard({ concern }: Props) {
         <article className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md w-full`}>
             <div className={`flex items-center justify-between gap-3 p-4 sm:p-5 border-b ${theme.dividerColor}`}>
                 <div className="flex min-w-0 items-center gap-3.5">
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} font-black border shadow-2xs`}>
-                        {concern.reporter_name ? concern.reporter_name.charAt(0) : 'ML'}
-                    </div>
+                    <UserAvatar
+                        src={concern.reporter_photo_url}
+                        name={concern.reporter_name}
+                        fallback="ML"
+                        className={`h-11 w-11 shrink-0 rounded-2xl border font-black shadow-2xs ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
+                    />
                     <div className="min-w-0">
                         <p className={`truncate text-sm font-black ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
                         <p className={`truncate text-xs font-black uppercase tracking-wider ${theme.primaryText} mt-0.5`}>{concern.category}</p>

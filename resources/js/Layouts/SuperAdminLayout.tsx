@@ -1,5 +1,6 @@
 import { router, usePage, Link } from '@inertiajs/react';
 import { Building2, LayoutDashboard, LogOut, ShieldCheck, Globe, UserCircle, KeyRound, MessageSquareWarning } from 'lucide-react';
+import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import { PropsWithChildren } from 'react';
 
 export default function SuperAdminLayout({ children, title }: PropsWithChildren<{ title?: string }>) {
@@ -59,14 +60,15 @@ export default function SuperAdminLayout({ children, title }: PropsWithChildren<
                 </nav>
 
                 <div className="p-4 border-t border-slate-800/80 bg-slate-900/40">
-                    <div className="flex items-center gap-3 mb-3 px-2">
-                        <div className="h-9 w-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-blue-400 text-xs">
-                            {user?.first_name?.[0] || 'S'}
-                        </div>
+                    <div className="mb-3 space-y-2 px-2">
                         <div className="overflow-hidden">
-                            <p className="text-xs font-bold text-white truncate">{user?.first_name} {user?.last_name}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+                            <p className="truncate text-xs font-bold text-white">{user?.first_name} {user?.last_name}</p>
+                            <p className="truncate text-[10px] text-slate-400">{user?.email}</p>
                         </div>
+                        <ProfilePhotoPicker
+                            fallback="S"
+                            avatarClassName="h-9 w-9 rounded-xl border border-blue-500/30 bg-blue-600/20 text-xs font-bold text-blue-400"
+                        />
                     </div>
                     <button
                         type="button"

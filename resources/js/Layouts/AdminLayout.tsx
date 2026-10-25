@@ -1,7 +1,9 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
+import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
+import UserAvatar from '@/Components/shared/UserAvatar';
 import AdminTopBar from '@/Components/admin/AdminTopBar';
 import { Badge } from '@/Components/ui/badge';
 import { useAuth } from '@/Hooks/usePageProps';
@@ -214,29 +216,27 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                 !isMobile && collapsed ? "px-3 flex justify-center" : "px-5"
             )}>
                 {(!collapsed || isMobile) ? (
-                    <div className="flex items-center gap-3">
-                        <div className="relative shrink-0">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700 font-bold text-sm border border-sky-200/80 shadow-2xs">
-                                {user?.first_name?.[0] ?? 'A'}
-                            </div>
-                            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-                        </div>
-                        <div className="min-w-0 flex-1">
+                    <div className="space-y-2">
+                        <div className="min-w-0">
                             <p className="truncate text-xs font-bold text-slate-800">
                                 {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Administrator'}
                             </p>
-                            <p className="font-mono text-[10px] tracking-wider text-sky-700/70 uppercase truncate">
+                            <p className="truncate font-mono text-[10px] uppercase tracking-wider text-sky-700/70">
                                 {user?.account_id ?? 'CMD-001'}
                             </p>
                         </div>
+                        <ProfilePhotoPicker
+                            fallback="A"
+                            avatarClassName="h-9 w-9 rounded-lg border border-sky-200/80 bg-sky-100 text-sm font-bold text-sky-700 shadow-2xs"
+                        />
                     </div>
                 ) : (
-                    <div className="relative">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700 font-bold text-sm border border-sky-200/80 shadow-2xs">
-                            {user?.first_name?.[0] ?? 'A'}
-                        </div>
-                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-                    </div>
+                    <UserAvatar
+                        src={user?.profile_photo_url}
+                        name={user?.first_name}
+                        fallback="A"
+                        className="h-9 w-9 rounded-lg border border-sky-200/80 bg-sky-100 text-sm font-bold text-sky-700 shadow-2xs"
+                    />
                 )}
             </div>
 
@@ -449,8 +449,41 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                     onMenuClick={() => setMobileOpen(true)}
                     onNotificationsClick={openNotifications}
                 />
-                <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 bg-[#f8fafc]">{children}</main>
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8fafc] p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 md:px-6 md:pt-6 lg:p-8">{children}</main>
             </div>
+            <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-sky-100 bg-white/95 shadow-xl backdrop-blur-md lg:hidden">
+                <div className="flex items-stretch justify-around px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                    {[
+                        { href: '/admin', label: 'Home', icon: LayoutDashboard },
+                        { href: '/admin/reports', label: 'Reports', icon: FileText },
+                        { href: '/admin/missions', label: 'Missions', icon: ClipboardList },
+                        { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
+                    ].map(({ href, label, icon: Icon }) => {
+                        const current = isActive(href);
+                        return (
+                            <Link
+                                key={href}
+                                href={href}
+                                className={cn(
+                                    'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-[10px] font-black uppercase tracking-wider',
+                                    current ? 'bg-sky-50 text-sky-700' : 'text-slate-400',
+                                )}
+                            >
+                                <Icon className="h-5 w-5 shrink-0" />
+                                <span className="truncate">{label}</span>
+                            </Link>
+                        );
+                    })}
+                    <button
+                        type="button"
+                        onClick={() => setMobileOpen(true)}
+                        className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400"
+                    >
+                        <Menu className="h-5 w-5 shrink-0" />
+                        <span>Menu</span>
+                    </button>
+                </div>
+            </nav>
             <AdminNotificationDrawer
                 open={notificationsOpen}
                 onClose={() => setNotificationsOpen(false)}

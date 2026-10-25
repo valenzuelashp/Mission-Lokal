@@ -232,7 +232,7 @@ export default function CalendarMonthView({
     const selectedDayNumber = Number(selected.slice(-2));
     const agenda = (
         <div className={`flex min-h-0 flex-1 flex-col ${theme.cardBg}`}>
-            <div className={`flex items-end justify-between gap-3 border-b ${theme.dividerColor} px-6 py-5`}>
+            <div className={`flex items-end justify-between gap-3 border-b px-4 py-3 sm:px-6 sm:py-5 ${theme.dividerColor}`}>
                 <div>
                     <p className={`text-[10px] font-black uppercase tracking-widest ${theme.primaryText}`}>
                         {selected === today ? "Today's Schedule" : 'Selected Date'}
@@ -250,9 +250,9 @@ export default function CalendarMonthView({
                 </div>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto p-5 bg-slate-50/50">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-3 sm:p-5">
                 {selectedEvents.length === 0 ? (
-                    <div className={`flex min-h-36 flex-col items-center justify-center rounded-2xl border border-dashed ${theme.cardBorder} ${theme.cardBg} px-4 py-8 text-center shadow-2xs`}>
+                    <div className={`flex min-h-24 flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-5 text-center shadow-2xs sm:min-h-36 sm:py-8 ${theme.cardBorder} ${theme.cardBg}`}>
                         <CalendarDays className={`mb-2.5 h-8 w-8 ${theme.textMuted} opacity-40`} />
                         <p className={`text-xs font-bold ${theme.textMain}`}>No scheduled agenda items</p>
                         <p className={`mt-1 max-w-[16rem] text-[11px] ${theme.textMuted} font-medium`}>
@@ -281,54 +281,54 @@ export default function CalendarMonthView({
 
     return (
         <section className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-xl`}>
-            <div className={`relative overflow-hidden ${theme.primaryBg} px-6 py-7 text-white`}>
-                <div className="relative flex flex-col gap-5">
+            <div className={`relative overflow-hidden ${theme.primaryBg} px-4 py-4 text-white sm:px-6 sm:py-7`}>
+                <div className="relative flex flex-col gap-3 sm:gap-5">
                     {(heading || description) && (
                         <div>
-                            {heading && <h1 className="text-xl font-black tracking-tight sm:text-2xl">{heading}</h1>}
-                            {description && <p className="mt-1.5 max-w-xl text-xs font-medium opacity-90 leading-relaxed">{description}</p>}
+                            {heading && <h1 className="text-lg font-black tracking-tight sm:text-2xl">{heading}</h1>}
+                            {description && <p className="mt-1 hidden max-w-xl text-xs font-medium leading-relaxed opacity-90 sm:block">{description}</p>}
                         </div>
                     )}
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => goTo(prev)}
                                 aria-label="Previous month"
-                                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 text-white transition-all hover:bg-white/25 cursor-pointer shadow-2xs"
+                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-white/15 text-white shadow-2xs transition-all hover:bg-white/25 sm:h-10 sm:w-10 sm:rounded-2xl"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </button>
-                            <p className="min-w-[12rem] text-center text-base font-black tracking-wide">{month_label}</p>
+                            <p className="min-w-0 text-center text-sm font-black tracking-wide sm:min-w-[12rem] sm:text-base">{month_label}</p>
                             <button
                                 type="button"
                                 onClick={() => goTo(next)}
                                 aria-label="Next month"
-                                className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 text-white transition-all hover:bg-white/25 cursor-pointer shadow-2xs"
+                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-white/15 text-white shadow-2xs transition-all hover:bg-white/25 sm:h-10 sm:w-10 sm:rounded-2xl"
                             >
                                 <ChevronRight className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            <span className="rounded-2xl bg-white/15 px-3.5 py-2 text-xs font-black text-white border border-white/15">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-xl border border-white/15 bg-white/15 px-2.5 py-1.5 text-[11px] font-black text-white sm:rounded-2xl sm:px-3.5 sm:py-2 sm:text-xs">
                                 {monthEvents.length} items total
                             </span>
                             <Button
                                 type="button"
                                 size="sm"
                                 variant="secondary"
-                                className={`h-10 px-4 rounded-2xl ${theme.cardBg} ${theme.textMain} hover:opacity-95 font-black shadow-xs cursor-pointer`}
+                                className={`h-8 cursor-pointer rounded-xl px-3 font-black shadow-xs hover:opacity-95 sm:h-10 sm:rounded-2xl sm:px-4 ${theme.cardBg} ${theme.textMain}`}
                                 onClick={goToday}
                             >
                                 Today
                             </Button>
                         </div>
                     </div>
-                    <div className="flex flex-wrap gap-2.5 pt-1">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2.5 sm:pt-1">
                         {legend.map((type) => (
                             <span
                                 key={type}
-                                className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-3.5 py-1.5 text-xs font-black text-white border border-white/15 shadow-2xs"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/15 px-2 py-1 text-[10px] font-black text-white shadow-2xs sm:gap-2 sm:rounded-xl sm:px-3.5 sm:py-1.5 sm:text-xs"
                             >
                                 <span className={cn('h-2.5 w-2.5 rounded-full', typeStyles[type].dot)} />
                                 {typeStyles[type].label}
@@ -342,15 +342,15 @@ export default function CalendarMonthView({
             </div>
 
             <div className={cn(split ? `lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:divide-x ${theme.dividerColor}` : '')}>
-                <div className="p-5 sm:p-7 bg-slate-50/40">
-                    <div className={`grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase tracking-widest ${theme.textMuted} mb-3`}>
+                <div className="bg-slate-50/40 p-2 sm:p-7">
+                    <div className={`mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-widest sm:mb-3 sm:gap-2 ${theme.textMuted}`}>
                         {weekdayLabels.map((label, index) => (
                             <div key={label} className={cn('py-1', (index === 0 || index === 6) && 'text-rose-500 font-black')}>
                                 {label}
                             </div>
                         ))}
                     </div>
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
                         {cells.map((cell) => {
                             const dayEvents = cell.inMonth ? eventsByDate[cell.iso] ?? [] : [];
                             const isToday = cell.iso === today;
@@ -366,7 +366,7 @@ export default function CalendarMonthView({
                                         onSelectedDayChange?.(cell.iso);
                                     }}
                                     className={cn(
-                                        'flex min-h-[5rem] flex-col items-center rounded-2xl p-2 text-left transition-all sm:min-h-[6.5rem] sm:items-stretch sm:p-2.5 cursor-pointer border shadow-2xs',
+                                        'flex min-h-10 cursor-pointer flex-col items-center rounded-xl border p-1 text-left shadow-2xs transition-all sm:min-h-[6.5rem] sm:items-stretch sm:rounded-2xl sm:p-2.5',
                                         cell.inMonth && cell.weekend && !isSelected && 'bg-slate-100/60 border-slate-200/60',
                                         cell.inMonth && !cell.weekend && !isSelected && `${theme.cardBg} ${theme.cardBorder} hover:border-blue-400 hover:shadow-md`,
                                         !cell.inMonth && 'border-transparent bg-transparent opacity-25 cursor-default shadow-none',

@@ -101,7 +101,9 @@ class HandleInertiaRequests extends Middleware
             $userData = array_merge($user->toArray(), [
                 'is_minor' => $user->isMinor(),
                 'civic_xp' => $user->residentProfile?->civic_xp ?? 0,
+                'profile_photo_url' => $user->profilePhotoUrl(),
             ]);
+            unset($userData['profile_photo_path']);
 
             $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
             if ($roleValue === 'resident') {
