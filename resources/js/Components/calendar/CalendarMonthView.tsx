@@ -77,9 +77,16 @@ function EventCard({ event, compact = false }: { event: CalendarEvent; compact?:
             >
                 <Icon className="h-4 w-4" />
             </span>
-            <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                    <p className={`truncate text-xs font-bold ${theme.textMain}`}>{event.title}</p>
+            <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                        className={cn(
+                            'inline-flex rounded-lg px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset',
+                            typeStyles[event.type].chip,
+                        )}
+                    >
+                        {event.subtitle || typeStyles[event.type].label}
+                    </span>
                     {(event.time || compact) && (
                         <span className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-black ${theme.textMuted} bg-slate-100/70 border border-slate-200/60`}>
                             {compact
@@ -91,22 +98,16 @@ function EventCard({ event, compact = false }: { event: CalendarEvent; compact?:
                         </span>
                     )}
                 </div>
-                {event.subtitle && <p className={`mt-1 truncate text-[11px] ${theme.textMuted} font-medium`}>{event.subtitle}</p>}
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                    <span
-                        className={cn(
-                            'inline-flex rounded-lg px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset',
-                            typeStyles[event.type].chip,
-                        )}
-                    >
-                        {typeStyles[event.type].label}
-                    </span>
-                    {event.going && (
+
+                <p className={`text-xs font-black ${theme.textMain} leading-snug break-words`}>{event.title}</p>
+
+                {event.going && (
+                    <div>
                         <span className="inline-flex rounded-lg bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800 ring-1 ring-inset ring-emerald-200">
                             Going
                         </span>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </Link>
     );
@@ -230,6 +231,21 @@ export default function CalendarMonthView({
     };
 
     const selectedDayNumber = Number(selected.slice(-2));
+
+    // Split remaining events into strictly upcoming and past
+    const pastRestEvents = useMemo(() => restOfMonth.filter(e => isoDate(e.date) < today), [restOfMonth, today]);
+    const upcomingRestEvents = useMemo(() => restOfMonth.filter(e => isoDate(e.date) >= today), [restOfMonth, today]);
+
+    // Dynamic empty state text generator based on today's date
+    const emptyStateText = useMemo(() => {
+        if (monthEvents.length === 0) return 'No operational schedules recorded for this month.';
+        
+        const upcomingCount = monthEvents.filter((e) => isoDate(e.date) >= today).length;
+        if (upcomingCount === monthEvents.length) return `${monthEvents.length} items scheduled later this month.`;
+        if (upcomingCount === 0) return `${monthEvents.length} items were scheduled earlier this month.`;
+        return `${monthEvents.length} items scheduled this month.`;
+    }, [monthEvents, today]);
+
     const agenda = (
         <div className={`flex min-h-0 flex-1 flex-col ${theme.cardBg}`}>
             <div className={`flex items-end justify-between gap-3 border-b px-4 py-3 sm:px-6 sm:py-5 ${theme.dividerColor}`}>
@@ -256,23 +272,36 @@ export default function CalendarMonthView({
                         <CalendarDays className={`mb-2.5 h-8 w-8 ${theme.textMuted} opacity-40`} />
                         <p className={`text-xs font-bold ${theme.textMain}`}>No scheduled agenda items</p>
                         <p className={`mt-1 max-w-[16rem] text-[11px] ${theme.textMuted} font-medium`}>
-                            {monthEvents.length > 0
-                                ? `${monthEvents.length} items scheduled later this month.`
-                                : 'No operational schedules recorded for this month.'}
+                            {emptyStateText}
                         </p>
                     </div>
                 ) : (
                     selectedEvents.map((event) => <EventCard key={event.id} event={event} />)
                 )}
 
-                {split && restOfMonth.length > 0 && (
-                    <div className="space-y-3 pt-4 border-t border-slate-200/60">
-                        <p className={`px-1 text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>
-                            Upcoming in {month_label.split(' ')[0]} ({restOfMonth.length})
-                        </p>
-                        {restOfMonth.map((event) => (
-                            <EventCard key={`rest-${event.id}`} event={event} compact />
-                        ))}
+                {split && (pastRestEvents.length > 0 || upcomingRestEvents.length > 0) && (
+                    <div className="space-y-6 pt-5 border-t border-slate-200/60">
+                        {upcomingRestEvents.length > 0 && (
+                            <div className="space-y-3">
+                                <p className={`px-1 text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>
+                                    Upcoming in {month_label.split(' ')[0]} ({upcomingRestEvents.length})
+                                </p>
+                                {upcomingRestEvents.map((event) => (
+                                    <EventCard key={`rest-up-${event.id}`} event={event} compact />
+                                ))}
+                            </div>
+                        )}
+                        
+                        {pastRestEvents.length > 0 && (
+                            <div className="space-y-3">
+                                <p className={`px-1 text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>
+                                    Past events in {month_label.split(' ')[0]} ({pastRestEvents.length})
+                                </p>
+                                {pastRestEvents.map((event) => (
+                                    <EventCard key={`rest-past-${event.id}`} event={event} compact />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -341,7 +370,7 @@ export default function CalendarMonthView({
                 </div>
             </div>
 
-            <div className={cn(split ? `lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:divide-x ${theme.dividerColor}` : '')}>
+            <div className={cn(split ? `lg:grid lg:grid-cols-[minmax(0,2.6fr)_18rem] lg:divide-x ${theme.dividerColor}` : '')}>
                 <div className="bg-slate-50/40 p-2 sm:p-7">
                     <div className={`mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-widest sm:mb-3 sm:gap-2 ${theme.textMuted}`}>
                         {weekdayLabels.map((label, index) => (

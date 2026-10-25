@@ -18,9 +18,13 @@ class DocumentRenderer
         $resident->loadMissing(['residentProfile', 'barangay']);
         $profile = $resident->residentProfile;
         $address = trim((string) ($profile?->address ?: $profile?->house_street));
+        
+        $rawMiddle = trim((string) $resident->middle_name);
+        $cleanMiddle = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? $rawMiddle : null;
+
         $name = trim(implode(' ', array_filter([
             $resident->first_name,
-            $resident->middle_name,
+            $cleanMiddle,
             $resident->last_name,
             $resident->name_extension,
         ])));

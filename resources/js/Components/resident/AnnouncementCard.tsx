@@ -74,7 +74,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 <div className="min-w-0 flex-1">
                     <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</p>
                     {announcement.event_at ? (
-                        <p className={`text-xs font-black ${theme.badgeText} mt-0.5`}>Happening {announcement.event_at}</p>
+                        <p className={`text-xs font-black ${theme.badgeText} mt-0.5`}>Scheduled for {announcement.event_at}</p>
                     ) : (
                         <p className={`text-xs ${theme.textMuted} font-medium mt-0.5`}>{announcement.published_at}</p>
                     )}

@@ -42,7 +42,7 @@ export default function ResidentLayout({ children, wide = false }: Props) {
                 <ResidentHeader unreadCount={unread} onNotificationsClick={() => setNotificationsOpen(true)} />
                 <main
                     className={cn(
-                        'w-full px-3 py-4 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-5 md:px-6 md:py-6 lg:px-8 lg:pb-8 animate-fade-in',
+                        'w-full px-3 -mt-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-4 sm:-mt-3 md:px-6 md:-mt-3 lg:px-8 lg:pb-8 animate-fade-in',
                         !wide && 'mx-auto max-w-3xl md:max-w-4xl lg:max-w-6xl',
                     )}
                 >

@@ -45,10 +45,13 @@ class PersonnelController extends Controller
             ->latest()
             ->get()
             ->map(function ($p) {
+                $middle = trim($p->user?->middle_name ?? '');
+                $cleanMiddle = (!empty($middle) && strtoupper($middle) !== 'N/A') ? $middle : '';
+
                 $fullName = trim(sprintf(
                     '%s %s %s %s',
                     $p->user?->first_name ?? '',
-                    $p->user?->middle_name ?? '',
+                    $cleanMiddle,
                     $p->user?->last_name ?? '',
                     $p->user?->name_extension ?? ''
                 ));

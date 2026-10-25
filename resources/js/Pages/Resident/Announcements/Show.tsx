@@ -53,7 +53,7 @@ export default function Show({ announcement, announcementId }: Props) {
                         {item.event_at && (
                             <>
                                 <span>·</span>
-                                <span className={`font-black ${theme.badgeText} ${theme.badgeBg} px-3 py-1 rounded-xl border ${theme.badgeBorder} shadow-2xs`}>Happening {item.event_at}</span>
+                                <span className={`font-black ${theme.badgeText} ${theme.badgeBg} px-3 py-1 rounded-xl border ${theme.badgeBorder} shadow-2xs`}>Scheduled for {item.event_at}</span>
                             </>
                         )}
                         <span>·</span>

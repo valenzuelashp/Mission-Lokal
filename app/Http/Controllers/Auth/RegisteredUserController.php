@@ -30,12 +30,11 @@ class RegisteredUserController extends Controller
      */
     public function getLocationOptions(Request $request): JsonResponse
     {
-        $type = $request->query('type');
-        $province = $request->query('province');
-        $city = $request->query('city');
+        $type =$request->query('type');
+        $province =$request->query('province');
+        $city =$request->query('city');
 
-        if ($type === 'provinces') {
-            $provinces = Barangay::where('is_active', true)
+        if ($type === 'provinces') {$provinces = Barangay::where('is_active', true)
                 ->whereNotNull('province')
                 ->where('province', '!=', '')
                 ->distinct()
@@ -45,35 +44,33 @@ class RegisteredUserController extends Controller
             return response()->json($provinces);
         }
 
-        if ($type === 'cities') {
-            $query = Barangay::where('is_active', true)
+        if ($type === 'cities') {$query = Barangay::where('is_active', true)
                 ->whereNotNull('city')
                 ->where('city', '!=', '');
 
             if ($province) {
-                $query->where('province', $province);
+                $query->where('province',$province);
             }
 
-            $cities = $query->distinct()
+            $cities =$query->distinct()
                 ->orderBy('city', 'asc')
                 ->pluck('city');
 
             return response()->json($cities);
         }
 
-        if ($type === 'barangays') {
-            $query = Barangay::where('is_active', true)
+        if ($type === 'barangays') {$query = Barangay::where('is_active', true)
                 ->whereNotNull('name')
                 ->where('name', '!=', '');
 
             if ($province) {
-                $query->where('province', $province);
+                $query->where('province',$province);
             }
             if ($city) {
-                $query->where('city', $city);
+                $query->where('city',$city);
             }
 
-            $barangays = $query->orderBy('name', 'asc')
+            $barangays =$query->orderBy('name', 'asc')
                 ->get(['id', 'name', 'code']);
 
             return response()->json($barangays);
@@ -84,8 +81,7 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        if ($request->boolean('no_middle_name')) {
-            $request->merge(['middle_name' => 'N/A']);
+        if ($request->boolean('no_middle_name')) {$request->merge(['middle_name' => 'N/A']);
         }
 
         $request->merge([
@@ -101,6 +97,8 @@ class RegisteredUserController extends Controller
             'email' => strtolower(trim((string) $request->email)),
         ]);
 
+        $minDate = Carbon::now()->subYears(12)->format('Y-m-d');
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -111,7 +109,7 @@ class RegisteredUserController extends Controller
             'barangay_name' => 'required|string|max:100',
             'city' => 'required|string|max:100',
             'province' => 'required|string|max:100',
-            'birthday' => 'required|date',
+            'birthday' => ['required', 'date', 'before_or_equal:' . $minDate],
             'email' => 'required|string|email|max:255|unique:resident_registrations,email|unique:users,email',
             'mobile' => 'required|string|max:20',
             'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
@@ -119,9 +117,8 @@ class RegisteredUserController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                function ($attribute, $value, $fail) use ($request) {
-                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {
-                        $fail('The parent or guardian name is required for minors (under 18 years old).');
+                function ($attribute,$value, $fail) use ($request) {
+                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {$fail('The parent or guardian name is required for minors (under 18 years old).');
                     }
                 },
             ],
@@ -129,15 +126,15 @@ class RegisteredUserController extends Controller
                 'nullable',
                 'string',
                 'max:20',
-                function ($attribute, $value, $fail) use ($request) {
-                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {
-                        $fail('The parent or guardian contact number is required for minors (under 18 years old).');
+                function ($attribute,$value, $fail) use ($request) {
+                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {$fail('The parent or guardian contact number is required for minors (under 18 years old).');
                     }
                 },
             ],
             'consent' => 'accepted', 
         ], [
             'consent.accepted' => 'You must accept the Privacy Policy and consent to data processing to register.',
+            'birthday.before_or_equal' => 'You must be at least 12 years old to register an account.',
         ]);
 
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
@@ -146,8 +143,7 @@ class RegisteredUserController extends Controller
         $lastName = strtolower(trim($request->last_name));
 
         $approvedUser = User::where('role', 'resident')
-            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {
-                $profileQuery->where('verification_status', 'approved')
+            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {$profileQuery->where('verification_status', 'approved')
                              ->whereDate('birthday', $parsedBirthday);
             })
             ->whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
@@ -182,17 +178,15 @@ class RegisteredUserController extends Controller
             ->where('province', $inputProvince)
             ->first();
 
-        $barangayId = $barangay?->id;
+        $barangayId =$barangay?->id;
 
-        $file = $request->file('government_id');
-        $extension = $file->getClientOriginalExtension();
+        $file =$request->file('government_id');
+        $extension =$file->getClientOriginalExtension();
         $cleanName = time() . '_' . Str::random(10) . '.' . $extension . '.enc';
-        $idPath = 'government_ids/' . $cleanName;
+        $idPath = 'government_ids/' .$cleanName;
 
-        $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath() ?: $file->getPathname()));
-        Storage::disk('local')->put($idPath, $encryptedContent);
-        
-        $registration = ResidentRegistration::create([
+        $encryptedContent = Crypt::encrypt(file_get_contents($file->getRealPath() ?:$file->getPathname()));
+        Storage::disk('local')->put($idPath, $encryptedContent);$registration = ResidentRegistration::create([
             'barangay_id' => $barangayId,
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
@@ -232,8 +226,7 @@ class RegisteredUserController extends Controller
             'address' => "{$request->house_street}, {$request->barangay_name}, {$request->city}, {$request->province}",
         ]);
 
-        if ($barangayId) {
-            $fullName = trim($request->first_name.' '.$request->last_name);
+        if ($barangayId) {$fullName = trim($request->first_name.' '.$request->last_name);
             Notification::notifyBarangayAdmins(
                 $barangayId,
                 'resident_registration',
@@ -243,7 +236,8 @@ class RegisteredUserController extends Controller
             );
         }
 
-        return redirect()->route('login')->with('success', 'Registration submitted successfully! Admin will verify your details against physical barangay records.');
+        // Return back to the same registration page with the success flash message
+        return back()->with('success', 'Registration submitted successfully! Admin will verify your details against physical barangay records.');
     }
 
     private function upperCase(?string $value): ?string

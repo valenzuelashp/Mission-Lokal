@@ -55,7 +55,7 @@ export default function AccountStatus({ searchResult, query }: Props) {
                     <form onSubmit={handleSearch} className="space-y-4 mb-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Full Name or Reference ID
+                                Enter Name (Full Name or First Name + Last Name)
                             </label>
                             <div className="flex gap-2">
                                 <Input 
