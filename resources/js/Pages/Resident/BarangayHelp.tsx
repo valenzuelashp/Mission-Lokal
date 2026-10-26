@@ -25,7 +25,7 @@ export default function BarangayHelp({ question, answer }: Props) {
         <ResidentLayout wide>
             <Head title="Barangay AI Help" />
 
-            <div className="w-full max-w-3xl mx-auto space-y-6 pb-16">
+            <div className="w-full max-w-3xl mx-auto space-y-6 pb-2 pt-8 sm:pt-10">
                 <div>
                     <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>Mission-Lokal RAG Assistant</p>
                     <h1 className={`mt-1 text-2xl sm:text-3xl font-black tracking-tight ${theme.textMain}`}>Barangay Knowledge Assistant</h1>

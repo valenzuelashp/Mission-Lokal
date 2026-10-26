@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class ProfileController extends Controller
@@ -22,11 +23,12 @@ class ProfileController extends Controller
         $reportCount = Concern::where('reporter_id', $user->id)->count();
 
         $firstName = $user->first_name ?? '';
-        $middleName = $user->middle_name ?? '';
+        $rawMiddle = trim($user->middle_name ?? '');
+        $cleanMiddleName = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? $rawMiddle : '';
         $lastName = $user->last_name ?? '';
         $extension = $user->name_extension ?? '';
 
-        $fullName = trim("{$firstName} " . (!empty($middleName) ? "{$middleName} " : "") . "{$lastName}" . (!empty($extension) ? " {$extension}" : ""));
+        $fullName = trim("{$firstName} " . ($cleanMiddleName !== '' ? "{$cleanMiddleName} " : "") . "{$lastName}" . (!empty($extension) ? " {$extension}" : ""));
         
         if (empty($fullName)) {
             $fullName = $user->account_id ?? 'Verified Resident';
@@ -149,12 +151,14 @@ class ProfileController extends Controller
 
         $user->load(['barangay', 'residentProfile']);
 
+        $minDate = Carbon::now()->subYears(12)->format('Y-m-d');
+
         $rules = [
             'first_name'    => 'required|string|max:255',
             'middle_name'   => 'nullable|string|max:255',
             'last_name'     => 'required|string|max:255',
             'name_extension'=> 'nullable|string|max:20',
-            'birthday'      => 'required|date',
+            'birthday'      => ['required', 'date', 'before_or_equal:' . $minDate],
             'house_street'  => 'required|string|max:150',
             'barangay_name' => 'required|string|max:100',
             'city'          => 'required|string|max:100',
@@ -163,12 +167,22 @@ class ProfileController extends Controller
             'mobile'        => 'required|string|max:20',
         ];
 
-        if ($user->isMinor()) {
+        // Check if the NEW requested birthday makes them a minor, instead of their old birthday
+        $isMinor = false;
+        if ($request->filled('birthday')) {
+            $isMinor = Carbon::parse($request->birthday)->age < 18;
+        }
+
+        if ($isMinor) {
             $rules['parent_name'] = 'required|string|max:255';
             $rules['parent_contact'] = 'required|string|max:20';
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'birthday.before_or_equal' => 'You must be at least 12 years old.',
+            'parent_name.required' => 'Parent/Guardian name is required since you are updating your age to a minor.',
+            'parent_contact.required' => 'Parent/Guardian contact is required since you are updating your age to a minor.',
+        ]);
 
         $profile = $user->residentProfile;
         $changes = [];
@@ -186,7 +200,7 @@ class ProfileController extends Controller
         if (trim($validated['city']) !== trim($profile?->city ?? '')) $changes['city'] = $validated['city'];
         if (trim($validated['province']) !== trim($profile?->province ?? '')) $changes['province'] = $validated['province'];
 
-        if ($user->isMinor()) {
+        if ($isMinor) {
             if (trim($validated['parent_name'] ?? '') !== trim($user->parent_name ?? '')) {
                 $changes['parent_name'] = $validated['parent_name'];
             }

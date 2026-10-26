@@ -76,7 +76,7 @@ export default function MapView({
                 </MapContainer>
                 {interactive && <MapBasemapToggle value={basemap} onChange={setBasemap} />}
                 {showLegend && (
-                    <div className={`pointer-events-none absolute bottom-3 left-3 z-[400] rounded-xl border ${theme.cardBorder} ${theme.cardBg}/95 px-3 py-2 text-[10px] shadow-md backdrop-blur-xs`}>
+                    <div className={`pointer-events-none absolute bottom-3 left-3 z-[400] rounded-xl border ${theme.cardBorder} ${theme.cardBg} px-3 py-2 text-[10px] shadow-md backdrop-blur-xs`}>
                         <p className={`mb-1.5 font-black uppercase tracking-wider ${theme.textMuted}`}>Severity</p>
                         <div className="flex flex-wrap gap-x-3 gap-y-1.5">
                             {legendLevels.map((level) => (

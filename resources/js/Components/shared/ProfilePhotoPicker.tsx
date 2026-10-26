@@ -3,16 +3,19 @@ import { Camera } from 'lucide-react';
 import { ChangeEvent, useRef, useState } from 'react';
 import UserAvatar from '@/Components/shared/UserAvatar';
 import { useAuth } from '@/Hooks/usePageProps';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
 
 type Props = {
     className?: string;
     avatarClassName?: string;
     fallback?: string;
+    layout?: 'inline' | 'stacked';
 };
 
-export default function ProfilePhotoPicker({ className, avatarClassName, fallback = '?' }: Props) {
+export default function ProfilePhotoPicker({ className, avatarClassName, fallback = '?', layout = 'inline' }: Props) {
     const { user } = useAuth();
+    const theme = useResidentTheme();
     const inputRef = useRef<HTMLInputElement>(null);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
@@ -48,7 +51,7 @@ export default function ProfilePhotoPicker({ className, avatarClassName, fallbac
     };
 
     return (
-        <div className={cn('flex min-w-0 items-center gap-3', className)}>
+        <div className={cn('flex min-w-0 gap-3', layout === 'stacked' ? 'flex-col items-center text-center' : 'items-center', className)}>
             <button
                 type="button"
                 onClick={choose}
@@ -62,8 +65,14 @@ export default function ProfilePhotoPicker({ className, avatarClassName, fallbac
                     fallback={fallback}
                     className={avatarClassName}
                 />
-                <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-slate-900 text-white">
-                    <Camera className="h-3 w-3" />
+                <span className={cn(
+                    'absolute flex items-center justify-center border border-white text-white',
+                    layout === 'stacked'
+                        ? 'h-8 w-8 -bottom-1 -right-1 rounded-xl border-2 shadow-md'
+                        : 'h-5 w-5 -bottom-1 -right-1 rounded-md',
+                    theme.primaryBg,
+                )}>
+                    <Camera className={layout === 'stacked' ? 'h-4 w-4' : 'h-3 w-3'} />
                 </span>
             </button>
             <div className="min-w-0">
@@ -71,7 +80,7 @@ export default function ProfilePhotoPicker({ className, avatarClassName, fallbac
                     type="button"
                     onClick={choose}
                     disabled={busy}
-                    className="block truncate text-left text-xs font-black text-sky-700 hover:underline disabled:cursor-wait"
+                    className={cn('block truncate text-xs font-black hover:underline disabled:cursor-wait', theme.primaryText, layout === 'stacked' ? 'text-center' : 'text-left')}
                 >
                     {busy ? 'Saving…' : photoUrl ? 'Change profile picture' : 'Add profile picture'}
                 </button>
@@ -80,7 +89,7 @@ export default function ProfilePhotoPicker({ className, avatarClassName, fallbac
                         type="button"
                         onClick={remove}
                         disabled={busy}
-                        className="mt-0.5 block text-left text-[11px] font-semibold text-slate-500 hover:text-rose-600 disabled:cursor-wait"
+                        className={cn('mt-0.5 block text-[11px] font-semibold hover:text-rose-600 disabled:cursor-wait', theme.textMuted, layout === 'stacked' ? 'text-center' : 'text-left')}
                     >
                         Remove
                     </button>

@@ -38,8 +38,12 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center justify-between gap-2">
-                            <span className={`text-[10px] font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</span>
-                            <span className={`text-[10px] ${theme.textMuted} font-medium`}>{announcement.published_at}</span>
+                            <span className={`rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wider ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}>
+                                {kindLabel}
+                            </span>
+                            <span className={`rounded-lg border px-2 py-1 text-[10px] font-medium ${theme.accentSurface} ${theme.cardBorder} ${theme.textMuted}`}>
+                                {announcement.event_at ?? announcement.published_at}
+                            </span>
                         </div>
                         <Link
                             href={`/announcements/${announcement.id}`}
@@ -52,7 +56,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 </div>
 
                 {announcement.image_url && (
-                    <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-100 border-t border-slate-100">
+                    <Link href={`/announcements/${announcement.id}`} className={`block overflow-hidden ${theme.inputBg} border-t ${theme.dividerColor}`}>
                         <BufferedImage
                             src={announcement.image_url}
                             alt={announcement.title}
@@ -74,7 +78,9 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
                 <div className="min-w-0 flex-1">
                     <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>{kindLabel}</p>
                     {announcement.event_at ? (
-                        <p className={`text-xs font-black ${theme.badgeText} mt-0.5`}>Happening {announcement.event_at}</p>
+                        <p className={`mt-1 inline-flex rounded-lg border px-2.5 py-1 text-xs font-black ${theme.badgeText} ${theme.badgeBg} ${theme.badgeBorder}`}>
+                            Scheduled for {announcement.event_at}
+                        </p>
                     ) : (
                         <p className={`text-xs ${theme.textMuted} font-medium mt-0.5`}>{announcement.published_at}</p>
                     )}
@@ -82,7 +88,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             </div>
 
             {announcement.image_url && (
-                <Link href={`/announcements/${announcement.id}`} className="block overflow-hidden bg-slate-100">
+                <Link href={`/announcements/${announcement.id}`} className={`block overflow-hidden ${theme.inputBg}`}>
                     <BufferedImage
                         src={announcement.image_url}
                         alt={announcement.title}
@@ -111,7 +117,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             </div>
 
             {kind === 'volunteer' && (
-                <div className={`border-t ${theme.dividerColor} px-6 py-4 ${theme.badgeBg}/40`}>
+                <div className={`border-t ${theme.dividerColor} px-6 py-4 ${theme.accentSurface}`}>
                     <VolunteerJoinButton
                         announcementId={announcement.id}
                         hasJoined={announcement.has_joined}
@@ -121,11 +127,11 @@ export default function AnnouncementCard({ announcement, compact = false }: Prop
             )}
 
             {announcement.author_name && (
-                <div className={`border-t ${theme.dividerColor} ${theme.badgeBg}/20 px-6 py-3 text-xs ${theme.textMuted} font-semibold`}>
+                <div className={`border-t ${theme.dividerColor} ${theme.accentSurface} px-6 py-3 text-xs ${theme.textMuted} font-semibold`}>
                     Posted by <span className={`font-black ${theme.textMain}`}>{announcement.author_name}</span>
                 </div>
             )}
-            <div className={`grid grid-cols-2 gap-2 border-t ${theme.dividerColor} ${theme.badgeBg}/20 p-2`}>
+            <div className={`grid grid-cols-2 gap-2 border-t ${theme.dividerColor} ${theme.accentSurface} p-2`}>
                 <Button variant="ghost" size="sm" className={`gap-2 font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer rounded-2xl h-10`} disabled>
                     <ThumbsUp className="h-4 w-4" />
                     Acknowledge

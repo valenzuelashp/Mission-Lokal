@@ -39,7 +39,7 @@ export default function Notifications({ notifications }: Props) {
                             title="No alerts"
                             description="Your inbox is caught up."
                         >
-                            <Bell className="mx-auto mt-4 h-8 w-8 text-slate-300" />
+                            <Bell className={`mx-auto mt-4 h-8 w-8 ${theme.primaryText}`} />
                         </EmptyState>
                     </div>
                 ) : (
@@ -58,8 +58,8 @@ export default function Notifications({ notifications }: Props) {
                                         className={cn(
                                             'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
                                             !notif.read
-                                                ? 'border-sky-500 bg-sky-600 text-white'
-                                                : 'border-slate-200 bg-slate-100 text-slate-600',
+                                                ? `${theme.badgeBorder} ${theme.primaryBg}`
+                                                : `${theme.badgeBorder} ${theme.badgeBg} ${theme.badgeText}`,
                                         )}
                                     >
                                         <Icon className="h-4 w-4" />
@@ -82,7 +82,7 @@ export default function Notifications({ notifications }: Props) {
 
                             const className = cn(
                                 'block w-full rounded-2xl border px-3 py-3 text-left transition-colors',
-                                notif.read ? `${theme.cardBorder} ${theme.cardBg}` : 'border-sky-200 bg-sky-50/70',
+                                notif.read ? `${theme.cardBorder} ${theme.cardBg}` : `${theme.badgeBorder} ${theme.accentSurface}`,
                             );
 
                             return (

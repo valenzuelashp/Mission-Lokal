@@ -77,7 +77,6 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::delete('/concerns/{concern}', [ConcernController::class, 'destroy'])->name('concerns.destroy');
     
     Route::get('/documents', [ResidentDocumentRequestController::class, 'index'])->name('documents.index');
-    Route::get('/documents/new/{template}', [ResidentDocumentRequestController::class, 'create'])->name('documents.create');
     Route::post('/documents/{template}', [ResidentDocumentRequestController::class, 'store'])->name('documents.store');
     Route::get('/documents/{documentRequest}', [ResidentDocumentRequestController::class, 'show'])->name('documents.show');
 

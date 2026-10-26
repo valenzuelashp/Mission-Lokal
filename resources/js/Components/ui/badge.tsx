@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { cn } from '@/Lib/utils';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 const badgeVariants = cva(
     'inline-flex items-center rounded-xl border px-3 py-1 text-xs font-black transition-colors shadow-2xs',
@@ -24,7 +25,13 @@ const badgeVariants = cva(
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-    return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+    const theme = useResidentTheme();
+    const paletteClasses = {
+        default: `${theme.primaryBg}`,
+        secondary: `${theme.badgeBg} ${theme.textMain} ${theme.badgeBorder}`,
+        outline: `${theme.cardBorder} ${theme.cardBg} ${theme.textMain}`,
+    }[variant ?? 'default'];
+    return <div className={cn(badgeVariants({ variant }), paletteClasses, className)} {...props} />;
 }
 
 export { Badge, badgeVariants };

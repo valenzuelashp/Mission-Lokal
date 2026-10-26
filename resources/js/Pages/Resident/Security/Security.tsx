@@ -34,7 +34,7 @@ export default function Security() {
         <ResidentLayout wide>
             <Head title="Security Settings" />
             
-            <div className="w-full space-y-6 pb-16">
+            <div className="w-full space-y-6 pb-2">
                 <Button variant="ghost" className={`text-xs font-bold ${theme.textMuted} hover:opacity-100 cursor-pointer`} asChild>
                     <Link href="/profile">
                         <ArrowLeft className="mr-2 h-4 w-4" />

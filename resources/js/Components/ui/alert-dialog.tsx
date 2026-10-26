@@ -111,29 +111,36 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Action
-    ref={ref}
-    className={cn(buttonVariants(), "rounded-2xl font-bold cursor-pointer shadow-sm h-11 px-5", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const theme = useResidentTheme();
+  return (
+    <AlertDialogPrimitive.Action
+      ref={ref}
+      className={cn(buttonVariants(), `${theme.primaryBg} ${theme.primaryHover}`, "rounded-2xl font-bold cursor-pointer shadow-sm h-11 px-5", className)}
+      {...props}
+    />
+  );
+});
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Cancel
-    ref={ref}
-    className={cn(
-      buttonVariants({ variant: "outline" }),
-      "mt-2 sm:mt-0 rounded-2xl font-bold cursor-pointer h-11 px-5",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const theme = useResidentTheme();
+  return (
+    <AlertDialogPrimitive.Cancel
+      ref={ref}
+      className={cn(
+        buttonVariants({ variant: "outline" }),
+        `${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg}`,
+        "mt-2 sm:mt-0 rounded-2xl font-bold cursor-pointer h-11 px-5",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {

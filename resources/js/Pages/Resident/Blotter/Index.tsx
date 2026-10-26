@@ -25,7 +25,7 @@ export default function Index({ blotters }: { blotters: ResidentBlotter[] }) {
         <ResidentLayout wide>
             <Head title="My Blotter Records" />
             
-            <div className="w-full space-y-6 pb-16">
+            <div className="w-full space-y-6 pb-2 pt-8 sm:pt-10">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <PageHeader 
                         title="My Blotter Records" 
@@ -49,7 +49,7 @@ export default function Index({ blotters }: { blotters: ResidentBlotter[] }) {
                         </Card>
                     ) : (
                         blotters.map((blotter) => (
-                            <Card key={blotter.id} className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl transition-all hover:shadow-md hover:border-blue-400`}>
+                            <Card key={blotter.id} className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} ${theme.cardHoverBorder} rounded-3xl transition-all hover:shadow-md`}>
                                 <CardContent className="p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-3">

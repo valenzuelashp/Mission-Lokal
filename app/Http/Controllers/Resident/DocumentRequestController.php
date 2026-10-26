@@ -18,12 +18,23 @@ class DocumentRequestController extends Controller
     {
         $user = $request->user();
         DocumentCatalog::ensureForBarangay($user->barangay_id);
+        $labels = DocumentCatalog::fields();
 
         $templates = DocumentTemplate::query()
             ->where('barangay_id', $user->barangay_id)
             ->where('is_enabled', true)
             ->orderBy('sort_order')
-            ->get(['id', 'name', 'resident_fields']);
+            ->get(['id', 'name', 'resident_fields'])
+            ->map(fn (DocumentTemplate $template) => [
+                'id' => $template->id,
+                'name' => $template->name,
+                'fields' => collect($template->resident_fields ?? [])
+                    ->map(fn (string $key) => [
+                        'key' => $key,
+                        'label' => $labels[$key] ?? $key,
+                    ])
+                    ->values(),
+            ]);
 
         $requests = DocumentRequestModel::query()
             ->where('user_id', $user->id)
@@ -41,25 +52,6 @@ class DocumentRequestController extends Controller
         return Inertia::render('Resident/Documents/Index', [
             'templates' => $templates,
             'requests' => $requests,
-        ]);
-    }
-
-    public function create(Request $request, DocumentTemplate $template): Response
-    {
-        $this->availableTemplate($request, $template);
-        $labels = DocumentCatalog::fields();
-
-        return Inertia::render('Resident/Documents/Create', [
-            'template' => [
-                'id' => $template->id,
-                'name' => $template->name,
-                'fields' => collect($template->resident_fields ?? [])
-                    ->map(fn (string $key) => [
-                        'key' => $key,
-                        'label' => $labels[$key] ?? $key,
-                    ])
-                    ->values(),
-            ],
         ]);
     }
 

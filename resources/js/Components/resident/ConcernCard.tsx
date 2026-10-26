@@ -2,7 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import MapView from '@/Components/maps/MapView';
-import BufferedImage from '@/Components/shared/BufferedImage';
+import ConcernPhotoGallery from '@/Components/resident/ConcernPhotoGallery';
 import UserAvatar from '@/Components/shared/UserAvatar';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
@@ -84,7 +84,7 @@ export default function ConcernCard({ concern }: Props) {
                                 title="Post options"
                                 aria-label="Post options"
                                 aria-expanded={menuOpen}
-                                className={`rounded-2xl p-2.5 ${theme.textMuted} hover:opacity-100 hover:${theme.badgeBg} cursor-pointer transition-colors`}
+                                className={`rounded-2xl p-2.5 ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 cursor-pointer transition-colors`}
                             >
                                 <MoreHorizontal className="h-5 w-5" />
                             </button>
@@ -95,7 +95,7 @@ export default function ConcernCard({ concern }: Props) {
                                             <button
                                                 type="button"
                                                 onClick={() => setPrivacyEditorOpen((open) => !open)}
-                                                className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold ${theme.textMain} hover:${theme.badgeBg} cursor-pointer transition-colors`}
+                                                className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold ${theme.textMain} ${theme.hoverBg} cursor-pointer transition-colors`}
                                             >
                                                 Edit Privacy
                                             </button>
@@ -128,7 +128,7 @@ export default function ConcernCard({ concern }: Props) {
                             )}
                         </div>
                     ) : (
-                        <span className={`text-xs font-bold ${theme.textMuted} bg-slate-100/70 px-3.5 py-1 rounded-xl border ${theme.cardBorder}`}>
+                        <span className={`text-xs font-bold ${theme.textMuted} ${theme.inputBg} px-3.5 py-1 rounded-xl border ${theme.cardBorder}`}>
                             Public View
                         </span>
                     )}
@@ -179,7 +179,7 @@ export default function ConcernCard({ concern }: Props) {
                                 type="button"
                                 onClick={() => setMapOpen(false)}
                                 aria-label="Close map"
-                                className={`rounded-xl p-2 ${theme.textMuted} hover:${theme.badgeBg} cursor-pointer`}
+                                className={`rounded-xl p-2 ${theme.textMuted} ${theme.hoverBg} cursor-pointer`}
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -201,21 +201,12 @@ export default function ConcernCard({ concern }: Props) {
             )}
 
             {concern.images && concern.images.length > 0 && (
-                <div className="bg-slate-100/50 overflow-hidden px-5 pb-3">
-                    <div className="flex gap-3 overflow-x-auto pb-2">
-                        {concern.images.map((url: string, idx: number) => (
-                            <BufferedImage
-                                key={idx}
-                                src={url}
-                                alt="Concern attachment"
-                                className={`h-56 w-full sm:h-72 shrink-0 rounded-2xl border ${theme.cardBorder} shadow-2xl object-cover`}
-                            />
-                        ))}
-                    </div>
+                <div className={`${theme.inputBg} overflow-hidden px-5 py-4 sm:px-8`}>
+                    <ConcernPhotoGallery images={concern.images} title={concern.title} />
                 </div>
             )}
 
-            <div className={`flex flex-wrap items-center justify-between gap-4 border-t ${theme.dividerColor} px-6 py-4 ${theme.badgeBg}/20`}>
+            <div className={`flex flex-wrap items-center justify-between gap-4 border-t ${theme.dividerColor} px-6 py-4 ${theme.accentSurface}`}>
                 <ConcernVoteButtons
                     concernId={concern.id}
                     upvotes={concern.upvotes}
@@ -232,7 +223,7 @@ export default function ConcernCard({ concern }: Props) {
             </div>
 
             {concern.latest_update && (
-            <div className={`border-t ${theme.dividerColor} p-4 ${theme.badgeBg}/10`}>
+            <div className={`border-t ${theme.dividerColor} p-4 ${theme.accentSurface}`}>
                 <Link
                     href={`/concerns/${concern.id}`}
                     className={`flex items-start gap-3.5 rounded-2xl ${theme.cardBg} p-3.5 border ${theme.cardBorder} shadow-2xs`}

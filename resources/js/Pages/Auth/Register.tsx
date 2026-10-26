@@ -1,8 +1,8 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { ShieldAlert, Search, ChevronDown, FileText } from 'lucide-react';
+import { ShieldAlert, Search, ChevronDown, FileText, CheckCircle2 } from 'lucide-react';
 
 function toUpperCase(value: string) {
     return value.toUpperCase();
@@ -118,7 +118,7 @@ function SearchableSelect({
 }
 
 export default function Register() {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         first_name: '',
         middle_name: '',
         no_middle_name: false,
@@ -139,6 +139,16 @@ export default function Register() {
 
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
+    
+    // Catch flash messages from the backend
+    const { flash } = usePage().props as any;
+
+    // Determine the absolute max date available (12 years ago from today)
+    const [maxDateString] = useState(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 12);
+        return d.toISOString().split('T')[0];
+    });
     
     // Cascading DB Data States
     const [provinces, setProvinces] = useState<string[]>([]);
@@ -195,7 +205,10 @@ export default function Register() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/register');
+        // Upon success, reset the form so it is ready for another submission if needed.
+        post('/register', {
+            onSuccess: () => reset()
+        });
     };
 
     return (
@@ -222,6 +235,14 @@ export default function Register() {
                         Sign in instead
                     </Link>
                 </div>
+
+                {/* Display Success Flash Message */}
+                {flash?.success && (
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-xs text-green-700 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                        <span>{flash.success}</span>
+                    </div>
+                )}
 
                 {formErrors.general && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 flex items-center gap-2">
@@ -254,23 +275,20 @@ export default function Register() {
                                         disabled={data.no_middle_name}
                                         placeholder="SANTOS"
                                     />
+                                    <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 font-medium mt-1.5">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.no_middle_name}
+                                            onChange={(e) => {
+                                                const noMiddleName = e.target.checked;
+                                                setData('no_middle_name', noMiddleName);
+                                                setData('middle_name', noMiddleName ? 'N/A' : '');
+                                            }}
+                                            className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                                        />
+                                        No middle name
+                                    </label>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 font-medium">
-                                    <input
-                                        type="checkbox"
-                                        checked={data.no_middle_name}
-                                        onChange={(e) => {
-                                            const noMiddleName = e.target.checked;
-                                            setData('no_middle_name', noMiddleName);
-                                            setData('middle_name', noMiddleName ? 'N/A' : '');
-                                        }}
-                                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
-                                    />
-                                    No middle name
-                                </label>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
@@ -287,9 +305,10 @@ export default function Register() {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Birthday *</label>
+                                    <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Birthday (Must be 12+) *</label>
                                     <Input 
                                         type="date" 
+                                        max={maxDateString}
                                         value={data.birthday} 
                                         onChange={e => setData('birthday', e.target.value)} 
                                         required 
@@ -302,8 +321,15 @@ export default function Register() {
                                     <Input 
                                         placeholder="09123456789" 
                                         value={data.mobile} 
-                                        onChange={e => setData('mobile', e.target.value)} 
-                                        required 
+                                        onChange={e => {
+                                            // Ensure only numbers are inputted and limit to 11 digits
+                                            const numericValue = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                            setData('mobile', numericValue);
+                                        }} 
+                                        required
+                                        pattern="^09[0-9]{9}$"
+                                        title="Phone number must start with 09 and be exactly 11 digits long."
+                                        maxLength={11}
                                         className="bg-slate-50/50 border-slate-200 text-xs h-9 font-medium"
                                     />
                                     {errors.mobile && <p className="text-[10px] text-red-600 mt-0.5">{errors.mobile}</p>}
@@ -311,13 +337,15 @@ export default function Register() {
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Email Address *</label>
+                                <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Gmail Address *</label>
                                 <Input 
                                     type="email" 
                                     value={data.email} 
                                     onChange={e => setData('email', e.target.value)} 
                                     required 
-                                    placeholder="name@example.com"
+                                    pattern=".*@gmail\.com$"
+                                    title="Please provide a valid @gmail.com address."
+                                    placeholder="name@gmail.com"
                                     className="bg-slate-50/50 border-slate-200 text-xs h-9 font-medium"
                                 />
                                 {errors.email && <p className="text-[10px] text-red-600 mt-0.5">{errors.email}</p>}
@@ -328,7 +356,19 @@ export default function Register() {
                                     <p className="text-[10px] text-amber-900 font-semibold">Minor detected (under 18). Guardian details required:</p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <CapsInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="GUARDIAN NAME" />
-                                        <Input placeholder="09123456789" value={data.parent_contact} onChange={e => setData('parent_contact', e.target.value)} required={isMinor} className="bg-white text-xs h-9" />
+                                        <Input 
+                                            placeholder="09123456789" 
+                                            value={data.parent_contact} 
+                                            onChange={e => {
+                                                const numericValue = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                                setData('parent_contact', numericValue);
+                                            }} 
+                                            required={isMinor} 
+                                            pattern="^09[0-9]{9}$"
+                                            title="Phone number must start with 09 and be exactly 11 digits long."
+                                            maxLength={11}
+                                            className="bg-white text-xs h-9" 
+                                        />
                                     </div>
                                 </div>
                             )}

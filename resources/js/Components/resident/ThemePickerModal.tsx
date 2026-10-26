@@ -19,8 +19,6 @@ export default function ThemePickerModal() {
         setResidentTheme(id);
         setCurrentTheme(id);
         setIsOpen(false);
-        // Performs a clean browser refresh to guarantee 100% component sync across the portal
-        window.location.reload();
     };
 
     return (
@@ -29,7 +27,7 @@ export default function ThemePickerModal() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`rounded-2xl h-11 w-11 ${theme.textMuted} hover:${theme.badgeBg} hover:opacity-100 transition-colors cursor-pointer`}
+                className={`rounded-2xl h-10 w-10 sm:h-11 sm:w-11 ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 transition-colors cursor-pointer`}
                 title="Customize Portal Color Palette"
             >
                 <Palette className="h-5 w-5" />
@@ -51,8 +49,8 @@ export default function ThemePickerModal() {
                                     onClick={() => selectTheme(t.id)}
                                     className={`flex w-full items-center justify-between rounded-2xl p-3 text-xs font-black transition-all cursor-pointer border ${
                                         currentTheme === t.id 
-                                            ? `${theme.badgeBg} ${theme.primaryText}${theme.badgeBorder} shadow-2xs` 
-                                            : `${theme.cardBg}${theme.textMuted} hover:${theme.badgeBg}${theme.cardBorder}`
+                                            ? `${t.badgeBg} ${t.primaryText} ${t.badgeBorder} shadow-2xs`
+                                            : `${theme.cardBg} ${theme.textMuted} ${theme.cardBorder} ${theme.hoverBg}`
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">

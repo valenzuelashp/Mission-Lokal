@@ -58,7 +58,7 @@ export default function ResidentShortcuts() {
                                     'flex items-center gap-3.5 rounded-2xl px-4 py-3 text-xs font-black transition-all',
                                     active 
                                         ? `${theme.primaryBg} text-white shadow-md translate-x-1` 
-                                        : `${theme.textMuted} hover:${theme.badgeBg} hover:opacity-100`,
+                                        : `${theme.textMuted} ${theme.hoverBg} hover:opacity-100`,
                                 )}
                             >
                                 <item.icon className={cn('h-4 w-4 shrink-0', active ? 'text-white' : 'opacity-60')} />

@@ -16,13 +16,14 @@ type FeedPageProps = PageProps & {
     concerns: any[];
     resolutionPosts?: any[];
     announcements: any[];
+    search?: string;
     userStats: {
         total_reports: number;
         active_reports: number;
     };
 };
 
-export default function Feed({ concerns, resolutionPosts = [], announcements = [], userStats }: FeedPageProps) {
+function FeedContent({ concerns, resolutionPosts = [], announcements = [], search = '', userStats }: FeedPageProps) {
     const theme = useResidentTheme();
     const { user } = useAuth();
     const { flash } = usePage<PageProps>().props;
@@ -53,7 +54,7 @@ export default function Feed({ concerns, resolutionPosts = [], announcements = [
                     </div>
                     <div className={`flex items-center justify-between border-t ${theme.dividerColor} pt-3.5`}>
                         <span className={`flex items-center gap-2.5 ${theme.textMuted} font-medium`}>
-                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <AlertCircle className={`h-4 w-4 ${theme.primaryText}`} />
                             Active Reports
                         </span>
                         <span className={`font-bold ${theme.textMain}`}>{activeReports}</span>
@@ -82,10 +83,10 @@ export default function Feed({ concerns, resolutionPosts = [], announcements = [
     );
 
     return (
-        <ResidentLayout wide>
+        <>
             <Head title="Community Feed" />
             
-            <div className="w-full space-y-6 pb-16">
+            <div className="w-full space-y-6 pb-2">
                 {flash.success && (
                     <div className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
                         <AlertCircle className="h-5 w-5 shrink-0 text-emerald-600" />
@@ -100,24 +101,52 @@ export default function Feed({ concerns, resolutionPosts = [], announcements = [
 
                         {concerns.length === 0 ? (
                             <div className={`rounded-3xl border border-dashed ${theme.cardBorder} ${theme.cardBg} px-6 py-16 text-center shadow-2xs`}>
-                                <h3 className={`font-black text-base ${theme.textMain}`}>No public concerns reported yet</h3>
+                                <h3 className={`font-black text-base ${theme.textMain}`}>
+                                    {search ? `No results for “${search}”` : 'No public concerns reported yet'}
+                                </h3>
                                 <p className={`mt-1.5 text-xs font-semibold ${theme.textMuted} max-w-sm mx-auto leading-relaxed`}>
-                                    Be the first neighbor to report a community issue and help municipal staff triage operations.
+                                    {search
+                                        ? 'Try a different keyword or clear your search to see all concerns.'
+                                        : 'Be the first neighbor to report a community issue and help municipal staff triage operations.'}
                                 </p>
                                 <div className="mt-6">
-                                    <Button asChild className={`${theme.primaryBg} ${theme.primaryHover} text-white font-black text-xs shadow-sm cursor-pointer rounded-2xl h-11 px-6`}>
-                                        <Link href="/concerns/new">Post a Community Concern</Link>
-                                    </Button>
+                                    {search ? (
+                                        <Link href="/feed" className={`text-xs font-black ${theme.primaryText} hover:underline`}>
+                                            Clear search
+                                        </Link>
+                                    ) : (
+                                        <Button asChild className={`${theme.primaryBg} ${theme.primaryHover} text-white font-black text-xs shadow-sm cursor-pointer rounded-2xl h-11 px-6`}>
+                                            <Link href="/concerns/new">Post a Community Concern</Link>
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
+                                {search && (
+                                    <div className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${theme.cardBorder} ${theme.accentSurface}`}>
+                                        <span className={`font-semibold ${theme.textMuted}`}>
+                                            {concerns.length} result{concerns.length === 1 ? '' : 's'} for <strong className={theme.textMain}>{search}</strong>
+                                        </span>
+                                        <Link href="/feed" className={`shrink-0 font-black ${theme.primaryText} hover:underline`}>
+                                            Clear
+                                        </Link>
+                                    </div>
+                                )}
                                 {concerns.map((concern) => <ConcernCard key={concern.id} concern={concern} />)}
                             </div>
                         )}
                     </div>
                 </ResidentSocialShell>
             </div>
+        </>
+    );
+}
+
+export default function Feed(props: FeedPageProps) {
+    return (
+        <ResidentLayout wide>
+            <FeedContent {...props} />
         </ResidentLayout>
     );
 }

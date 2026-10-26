@@ -53,7 +53,10 @@ class ProfileEditController extends Controller
                     }
                 }
 
-                $currentFullName = trim(($edit->first_name ?? '') . ' ' . ($edit->middle_name ? $edit->middle_name . ' ' : '') . ($edit->last_name ?? '') . ($edit->name_extension ? ' ' . $edit->name_extension : ''));
+                $middle = trim($edit->middle_name ?? '');
+                $cleanMiddle = (!empty($middle) && strtoupper($middle) !== 'N/A') ? $middle : '';
+
+                $currentFullName = trim(($edit->first_name ?? '') . ' ' . ($cleanMiddle ? $cleanMiddle . ' ' : '') . ($edit->last_name ?? '') . ($edit->name_extension ? ' ' . $edit->name_extension : ''));
                 
                 return [
                     'id' => $edit->id,

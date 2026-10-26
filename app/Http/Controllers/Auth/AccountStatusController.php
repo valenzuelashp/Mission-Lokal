@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Carbon\Carbon;
 
 class AccountStatusController extends Controller
 {
@@ -151,11 +152,16 @@ class AccountStatusController extends Controller
 
     public function storeResubmit(Request $request, string $id): RedirectResponse
     {
+        $minDate = Carbon::now()->subYears(12)->format('Y-m-d');
+        
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email',
+            'birthday' => ['required', 'date', 'before_or_equal:' . $minDate],
             'government_id' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+        ], [
+            'birthday.before_or_equal' => 'You must be at least 12 years old to register.',
         ]);
 
         $user = User::where('id', $id)
@@ -175,6 +181,7 @@ class AccountStatusController extends Controller
         $user->residentProfile()->update([
             'verification_status' => 'pending',
             'rejection_reason' => null,
+            'birthday' => Carbon::parse($request->birthday)->format('Y-m-d'),
         ]);
 
         $registration = ResidentRegistration::create([
@@ -189,7 +196,7 @@ class AccountStatusController extends Controller
             'barangay_name' => $request->barangay_name ?? 'Barangay',
             'city' => $request->city ?? 'City',
             'province' => $request->province ?? 'Province',
-            'birthday' => $request->birthday ?? now(),
+            'birthday' => Carbon::parse($request->birthday)->format('Y-m-d'),
             'government_id_path' => $path,
         ]);
 
