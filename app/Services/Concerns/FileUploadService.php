@@ -32,10 +32,21 @@ class FileUploadService
         $extension = $file->getClientOriginalExtension();
         $cleanName = time() . '_' . Str::random(10) . '.' . $extension;
 
-        // FIX: Route ID documents to the unlinked private 'local' disk instead of 'public'
-        $disk = ($type === 'document') ? 'local' : 'public';
+        $source = $file->getRealPath() ?: $file->getPathname();
+        $bytes = ($source !== '' && $source !== false) ? file_get_contents($source) : false;
+        if ($bytes === false) {
+            throw new \InvalidArgumentException('The uploaded file could not be read.');
+        }
 
-        return $file->storeAs($folder, $cleanName, $disk);
+        // ID documents stay on the private local disk. Photos stay on the public disk.
+        $disk = ($type === 'document') ? 'local' : 'public';
+        $path = trim($folder.'/'.$cleanName, '/');
+
+        if (! Storage::disk($disk)->put($path, $bytes)) {
+            throw new \RuntimeException('The uploaded file could not be saved.');
+        }
+
+        return $path;
     }
 
     /**

@@ -145,7 +145,7 @@ class ProcessConcernWithAi implements ShouldQueue
                 'body' => mb_substr($response->body(), 0, 1000),
             ]);
             $this->applyHeuristicAnalysis();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('AI Processing Exception.', [
                 'concern_id' => $this->concern->id,
                 'message' => $e->getMessage(),

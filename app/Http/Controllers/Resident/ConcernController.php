@@ -325,7 +325,13 @@ class ConcernController extends Controller
                 $uploadService = app(FileUploadService::class);
 
                 foreach ($request->file('images') as $index => $file) {
-                    $path = $uploadService->upload($file, 'concerns', 'image');
+                    try {
+                        $path = $uploadService->upload($file, 'concerns', 'image');
+                    } catch (\Throwable $e) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'images' => 'One of the photos could not be saved. Use a JPG, PNG, or WebP under 4 MB.',
+                        ]);
+                    }
 
                     $createdConcern->media()->create([
                         'id' => \Illuminate\Support\Str::uuid()->toString(),
