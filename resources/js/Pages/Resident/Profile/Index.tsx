@@ -1,7 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Award, FileText, Lock, Pencil, Shield, AlertCircle, History, TrendingUp, TrendingDown } from 'lucide-react';
 import DigitalIdCard from '@/Components/resident/DigitalIdCard';
-import ResidentLogoutButton from '@/Components/resident/ResidentLogoutButton';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import StatCard from '@/Components/shared/StatCard';
@@ -81,9 +80,6 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                             Security Password Settings
                         </Link>
                     </Button>
-                    <div className={`pt-3 border-t ${theme.dividerColor}`}>
-                        <ResidentLogoutButton variant="outline" className="w-full text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 rounded-2xl h-11" />
-                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -93,7 +89,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
         <ResidentLayout wide>
             <Head title="Resident Profile" />
 
-            <div className="w-full space-y-6 pb-16">
+            <div className="w-full space-y-6 pb-2 pt-4 sm:pt-6">
                 {isPendingEdit && (
                     <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-xs font-bold text-amber-900 shadow-2xs animate-pulse">
                         <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
@@ -106,15 +102,19 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                 <ResidentSocialShell right={rightAside}>
                     <div className="space-y-6 w-full">
                         <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
-                            <CardContent className="space-y-5 p-6 sm:p-8">
+                            <CardContent className="grid gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-8 sm:p-8">
+                                <div className="min-w-0">
+                                    <h1 className={`text-2xl sm:text-3xl font-black ${theme.textMain} tracking-tight`}>Resident Profile Dashboard</h1>
+                                    <p className={`mt-2 text-xs sm:text-sm font-medium ${theme.textMuted} leading-relaxed`}>
+                                        Official municipal account details, cryptographic digital ID, and civic participation metrics.
+                                    </p>
+                                </div>
                                 <ProfilePhotoPicker
                                     fallback="R"
-                                    avatarClassName={`h-16 w-16 rounded-2xl text-lg font-black text-white ${theme.primaryBg}`}
+                                    layout="stacked"
+                                    className="justify-self-center sm:justify-self-end"
+                                    avatarClassName={`h-28 w-28 sm:h-32 sm:w-32 rounded-3xl text-3xl font-black text-white shadow-md ${theme.primaryBg}`}
                                 />
-                                <h1 className={`text-2xl sm:text-3xl font-black ${theme.textMain} tracking-tight`}>Resident Profile Dashboard</h1>
-                                <p className={`mt-2 text-xs sm:text-sm font-medium ${theme.textMuted} leading-relaxed`}>
-                                    Official municipal account details, cryptographic digital ID, and civic participation metrics.
-                                </p>
                             </CardContent>
                         </Card>
 
@@ -189,7 +189,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                         <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
                             <CardHeader className={`pb-4 border-b ${theme.dividerColor}`}>
                                 <CardTitle className={`flex items-center gap-2 text-sm font-black uppercase tracking-wider ${theme.textMain}`}>
-                                    <History className="h-4 w-4 text-blue-600" />
+                                    <History className={`h-4 w-4 ${theme.primaryText}`} />
                                     Civic XP History
                                 </CardTitle>
                             </CardHeader>
@@ -201,7 +201,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                                 ) : (
                                     <div className={`divide-y ${theme.dividerColor}`}>
                                         {xp_history.map((record: any) => (
-                                            <div key={record.id} className={`flex items-center justify-between p-4 sm:p-6 hover:${theme.hoverBg} transition-colors`}>
+                                            <div key={record.id} className={`flex items-center justify-between p-4 sm:p-6 ${theme.hoverBg} transition-colors`}>
                                                 <div className="flex items-center gap-4">
                                                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${record.is_positive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
                                                         {record.is_positive ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}

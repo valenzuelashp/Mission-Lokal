@@ -59,7 +59,7 @@ export default function TypeSelect() {
                             const Icon = icons[item.type as keyof typeof icons] || Scale;
                             return (
                                 <Link key={item.type} href={`/blotter/new/${item.type}`} className="block group">
-                                    <Card className={`h-full shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl transition-all hover:border-blue-400 hover:shadow-md p-2`}>
+                                    <Card className={`h-full shadow-2xs ${theme.cardBorder} ${theme.cardBg} ${theme.cardHoverBorder} rounded-3xl transition-all hover:shadow-md p-2`}>
                                         <CardHeader className="pb-4 pt-6 px-6">
                                             <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border group-hover:scale-105 transition-transform shadow-2xs`}>
                                                 <Icon className="h-7 w-7" />
@@ -68,7 +68,7 @@ export default function TypeSelect() {
                                             <p className={`text-xs leading-relaxed font-semibold mt-1.5 ${theme.textMuted}`}>{item.description}</p>
                                         </CardHeader>
                                         <CardContent className="px-6 pb-6 pt-0">
-                                            <p className={`text-[11px] font-bold ${theme.textMuted} bg-slate-50/70 p-3 rounded-2xl border ${theme.dividerColor}`}>Examples: {item.examples}</p>
+                                            <p className={`text-[11px] font-bold ${theme.textMuted} ${theme.inputBg} p-3 rounded-2xl border ${theme.dividerColor}`}>Examples: {item.examples}</p>
                                         </CardContent>
                                     </Card>
                                 </Link>

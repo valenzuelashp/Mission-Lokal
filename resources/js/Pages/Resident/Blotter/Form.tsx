@@ -127,7 +127,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                         id="complainant_name"
                                         value={data.complainant_name}
                                         disabled
-                                        className="bg-slate-50 text-slate-500 cursor-not-allowed font-bold rounded-2xl h-11 text-xs"
+                                        className={`${theme.inputBg} ${theme.textMuted} cursor-not-allowed font-bold rounded-2xl h-11 text-xs`}
                                     />
                                 </div>
                                 {isTwoParty && (
@@ -154,7 +154,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                 <CardTitle className="text-sm font-black uppercase tracking-wider">Incident Details</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-5 p-6 sm:p-8">
-                                <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="grid gap-5 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="incident_date">Date of Incident</Label>
                                         <Input
@@ -231,7 +231,7 @@ export default function Form({ blotterType = 'two-party' }: Props) {
                                     checked={data.acknowledged}
                                     onChange={(e) => setData('acknowledged', e.target.checked)}
                                     disabled={isMinor}
-                                    className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                    className={`mt-0.5 rounded ${theme.inputBorder} ${theme.primaryText} focus:ring-2 ${theme.focusRing} h-4 w-4 cursor-pointer`}
                                 />
                                 <span className={`leading-relaxed ${theme.textMain}`}>
                                     I certify under oath that all facts stated herein are true and correct, and understand this enters official municipal files as a formal barangay blotter record.

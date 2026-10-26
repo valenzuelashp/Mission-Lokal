@@ -70,6 +70,34 @@
     scrollbar-color: #38bdf8 rgba(224, 242, 254, 0.45);
 }
 
+:root[data-resident-theme],
+:root[data-resident-theme] * {
+    scrollbar-color: var(--resident-scrollbar-thumb) var(--resident-scrollbar-track);
+}
+
+:root[data-resident-theme]::-webkit-scrollbar,
+:root[data-resident-theme] *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+:root[data-resident-theme]::-webkit-scrollbar-track,
+:root[data-resident-theme] *::-webkit-scrollbar-track {
+    background: var(--resident-scrollbar-track);
+    border-radius: 9999px;
+}
+
+:root[data-resident-theme]::-webkit-scrollbar-thumb,
+:root[data-resident-theme] *::-webkit-scrollbar-thumb {
+    background: var(--resident-scrollbar-thumb);
+    border-radius: 9999px;
+}
+
+:root[data-resident-theme]::-webkit-scrollbar-thumb:hover,
+:root[data-resident-theme] *::-webkit-scrollbar-thumb:hover {
+    background: var(--resident-scrollbar-thumb-hover);
+}
+
 /* ==========================================================================
    CUSTOM UTILITIES & ANIMATIONS
    ========================================================================== */

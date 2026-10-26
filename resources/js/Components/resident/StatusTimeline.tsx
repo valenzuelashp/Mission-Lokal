@@ -26,7 +26,7 @@ export default function StatusTimeline({ steps }: Props) {
     }
 
     return (
-        <ol className="space-y-0 relative before:absolute before:bottom-4 before:top-4 before:left-3 before:w-0.5 before:bg-slate-200">
+        <ol className={`space-y-0 relative before:absolute before:bottom-4 before:top-4 before:left-3 before:w-0.5 before:content-[''] ${theme.timelineLineBg}`}>
             {steps.map((step) => (
                 <li key={step.key} className="flex gap-4 relative pb-8 last:pb-0">
                     <div className="flex flex-col items-center">
@@ -35,7 +35,7 @@ export default function StatusTimeline({ steps }: Props) {
                                 <CheckCircle2 className="h-4 w-4" />
                             </span>
                         ) : step.state === 'current' ? (
-                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${theme.primaryBg} text-white shadow-md ring-4 ring-blue-100 z-10 animate-pulse`}>
+                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${theme.primaryBg} text-white shadow-md ring-4 ${theme.softRing} z-10 animate-pulse`}>
                                 <Circle className="h-3 w-3 fill-current" />
                             </span>
                         ) : (

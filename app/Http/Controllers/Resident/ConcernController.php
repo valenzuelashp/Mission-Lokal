@@ -29,6 +29,7 @@ class ConcernController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 100);
 
         $userTotalReports = Concern::where('reporter_id', $user->id)->count();
         $userActiveReports = Concern::where('reporter_id', $user->id)
@@ -42,6 +43,15 @@ class ConcernController extends Controller
             ->where(function ($query) use ($user) {
                 $query->where('visibility', 'public')
                       ->orWhere('reporter_id', $user->id);
+            })
+            ->when($search !== '', function (Builder $query) use ($search) {
+                $term = '%'.$search.'%';
+                $query->where(function (Builder $matches) use ($term) {
+                    $matches->where('concerns.title', 'like', $term)
+                        ->orWhere('concerns.description', 'like', $term)
+                        ->orWhere('concerns.address_text', 'like', $term)
+                        ->orWhereHas('category', fn (Builder $category) => $category->where('name', 'like', $term));
+                });
             })
             ->with([
                 'reporter',
@@ -119,7 +129,11 @@ class ConcernController extends Controller
                     'is_owner' => $item->reporter_id === auth()->id(),
                     'visibility' => $item->visibility,
                     'privacy_locked' => (bool) $item->is_blotter_candidate,
-                    'images' => $item->media->take(1)->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
+                    'images' => $item->media
+                        ->sortBy('sort_order')
+                        ->map(fn ($media) => asset('storage/'.$media->storage_key))
+                        ->values()
+                        ->all(),
                     'latest_update' => $latestResidentUpdate ? [
                         'label' => ConcernStatusUpdate::label($latestUpdateStatus),
                         'message' => ConcernStatusUpdate::message(
@@ -164,6 +178,7 @@ class ConcernController extends Controller
             'concerns' => $concerns,
             'announcements' => $announcements,
             'resolutionPosts' => $resolutionPosts,
+            'search' => $search,
             'userStats' => [
                 'total_reports' => $userTotalReports,
                 'active_reports' => $userActiveReports,

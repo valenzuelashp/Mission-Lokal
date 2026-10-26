@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { Bell, FileText, ShieldAlert, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/Lib/utils';
+import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 type ResidentNotification = {
     id: string;
@@ -31,13 +32,14 @@ function destination(notification: ResidentNotification): string | null {
 }
 
 function NotificationIcon({ notification, unread }: { notification: ResidentNotification; unread: boolean }) {
+    const theme = useResidentTheme();
     const Icon = notification.concern_id ? FileText : notification.blotter_id ? ShieldAlert : Bell;
 
     return (
         <span
             className={cn(
                 'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
-                unread ? 'border-sky-500 bg-sky-600 text-white' : 'border-slate-200 bg-slate-100 text-slate-600',
+                unread ? `${theme.badgeBorder} ${theme.primaryBg}` : `${theme.badgeBorder} ${theme.badgeBg} ${theme.badgeText}`,
             )}
         >
             <Icon className="h-4 w-4" />
@@ -46,6 +48,7 @@ function NotificationIcon({ notification, unread }: { notification: ResidentNoti
 }
 
 export default function ResidentNotificationDrawer({ open, onClose, onLoaded }: Props) {
+    const theme = useResidentTheme();
     const [items, setItems] = useState<ResidentNotification[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -127,21 +130,21 @@ export default function ResidentNotificationDrawer({ open, onClose, onLoaded }: 
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="resident-notification-title"
-                className="absolute inset-y-0 right-0 flex w-[min(24rem,92vw)] flex-col border-l border-slate-200 bg-white shadow-2xl"
+                className={`absolute inset-y-0 right-0 flex w-[min(24rem,92vw)] flex-col border-l ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} shadow-2xl`}
             >
-                <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <div className={`flex items-start justify-between gap-3 border-b ${theme.dividerColor} px-5 py-4`}>
                     <div>
-                        <h2 id="resident-notification-title" className="text-sm font-black text-slate-900">
+                        <h2 id="resident-notification-title" className={`text-sm font-black ${theme.textMain}`}>
                             Notifications
                         </h2>
-                        <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                        <p className={`mt-0.5 text-[11px] font-semibold ${theme.textMuted}`}>
                             Concern updates, blotter cases, and barangay notices.
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl ${theme.textMuted} ${theme.hoverBg}`}
                         aria-label="Close"
                     >
                         <X className="h-4 w-4" />
@@ -150,16 +153,16 @@ export default function ResidentNotificationDrawer({ open, onClose, onLoaded }: 
 
                 <div className="flex-1 overflow-y-auto px-3 py-3">
                     {loading && (
-                        <p className="px-2 py-8 text-center text-xs font-semibold text-slate-500">Loading alerts…</p>
+                        <p className={`px-2 py-8 text-center text-xs font-semibold ${theme.textMuted}`}>Loading alerts…</p>
                     )}
                     {!loading && error && (
                         <p className="px-2 py-8 text-center text-xs font-semibold text-rose-600">{error}</p>
                     )}
                     {!loading && !error && items.length === 0 && (
                         <div className="px-4 py-12 text-center">
-                            <Bell className="mx-auto h-8 w-8 text-slate-300" />
-                            <p className="mt-3 text-sm font-black text-slate-800">No alerts</p>
-                            <p className="mt-1 text-xs font-semibold text-slate-500">Your inbox is caught up.</p>
+                            <Bell className={`mx-auto h-8 w-8 ${theme.primaryText}`} />
+                            <p className={`mt-3 text-sm font-black ${theme.textMain}`}>No alerts</p>
+                            <p className={`mt-1 text-xs font-semibold ${theme.textMuted}`}>Your inbox is caught up.</p>
                         </div>
                     )}
                     {!loading && !error && items.length > 0 && (
@@ -171,12 +174,12 @@ export default function ResidentNotificationDrawer({ open, onClose, onLoaded }: 
                                         <NotificationIcon notification={notification} unread={!notification.read} />
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-start justify-between gap-2">
-                                                <span className={cn('text-xs font-black', notification.read ? 'text-slate-700' : 'text-slate-900')}>
+                                                <span className={cn('text-xs font-black', notification.read ? theme.textMuted : theme.textMain)}>
                                                     {notification.title}
                                                 </span>
-                                                <span className="shrink-0 text-[10px] font-semibold text-slate-400">{notification.sent_at}</span>
+                                                <span className={`shrink-0 text-[10px] font-semibold ${theme.textMuted}`}>{notification.sent_at}</span>
                                             </span>
-                                            <span className="mt-1 block text-[11px] font-medium leading-relaxed text-slate-500">
+                                            <span className={`mt-1 block text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
                                                 {notification.body}
                                             </span>
                                         </span>
@@ -186,8 +189,8 @@ export default function ResidentNotificationDrawer({ open, onClose, onLoaded }: 
                                 const className = cn(
                                     'block w-full rounded-2xl border px-3 py-3 text-left transition-colors',
                                     notification.read
-                                        ? 'border-slate-200 bg-white hover:border-sky-200'
-                                        : 'border-sky-200 bg-sky-50/70 hover:border-sky-300',
+                                        ? `${theme.cardBorder} ${theme.cardBg} ${theme.hoverBg}`
+                                        : `${theme.badgeBorder} ${theme.accentSurface} ${theme.hoverBg}`,
                                 );
 
                                 return (

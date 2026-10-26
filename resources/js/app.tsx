@@ -2,6 +2,8 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { type ComponentType } from 'react';
+import { ResidentThemeProvider } from '@/Layouts/ResidentThemeContext';
 import axios from 'axios';
 
 // --- CRITICAL FIX: Allow cookies and XSRF tokens to be sent with requests ---
@@ -40,11 +42,23 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 createInertiaApp({
     title: (title) => (title ? `${title} — ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent(
+    resolve: async (name) => {
+        const page = await resolvePageComponent(
             `./Pages/${name}.tsx`,
             import.meta.glob('./Pages/**/*.tsx'),
-        ),
+        );
+        if (!name.startsWith('Resident/')) return page;
+
+        const ResidentPage = page.default as ComponentType<any>;
+        return {
+            ...page,
+            default: (pageProps: Record<string, unknown>) => (
+                <ResidentThemeProvider>
+                    <ResidentPage {...pageProps} />
+                </ResidentThemeProvider>
+            ),
+        };
+    },
     setup({ el, App, props }) {
         createRoot(el).render(<App {...props} />);
     },

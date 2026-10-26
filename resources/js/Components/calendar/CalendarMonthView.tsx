@@ -10,21 +10,13 @@ const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const typeStyles: Record<
     CalendarEventType,
-    { dot: string; chip: string; bar: string; wash: string; label: string; icon: typeof Megaphone }
+    { label: string; icon: typeof Megaphone }
 > = {
     announcement: {
-        dot: 'bg-blue-500',
-        chip: 'bg-blue-50 text-blue-800 ring-blue-100',
-        bar: 'bg-blue-600',
-        wash: 'bg-blue-50 text-blue-800',
         label: 'Advisory',
         icon: Megaphone,
     },
     mission: {
-        dot: 'bg-red-500',
-        chip: 'bg-red-50 text-red-800 ring-red-100',
-        bar: 'bg-red-600',
-        wash: 'bg-red-50 text-red-800',
         label: 'Mission',
         icon: ClipboardList,
     },
@@ -68,11 +60,12 @@ function EventCard({ event, compact = false }: { event: CalendarEvent; compact?:
             href={event.href}
             className={cn('group relative flex gap-3.5 overflow-hidden rounded-2xl border shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md p-4', theme.cardBorder, theme.cardBg)}
         >
-            <span className={cn('absolute inset-y-0 left-0 w-1.5', event.going ? 'bg-emerald-500' : typeStyles[event.type].bar)} />
+            <span className={cn('absolute inset-y-0 left-0 w-1.5', event.going ? 'bg-emerald-500' : theme.primaryBg)} />
             <span
                 className={cn(
                     'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold shadow-2xs',
-                    typeStyles[event.type].wash,
+                    theme.badgeBg,
+                    theme.badgeText,
                 )}
             >
                 <Icon className="h-4 w-4" />
@@ -81,14 +74,16 @@ function EventCard({ event, compact = false }: { event: CalendarEvent; compact?:
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <span
                         className={cn(
-                            'inline-flex rounded-lg px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ring-1 ring-inset',
-                            typeStyles[event.type].chip,
+                            'inline-flex rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider',
+                            theme.badgeBg,
+                            theme.badgeText,
+                            theme.badgeBorder,
                         )}
                     >
                         {event.subtitle || typeStyles[event.type].label}
                     </span>
                     {(event.time || compact) && (
-                        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-black ${theme.textMuted} bg-slate-100/70 border border-slate-200/60`}>
+                        <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[10px] font-black ${theme.textMuted} ${theme.inputBg} ${theme.cardBorder}`}>
                             {compact
                                 ? new Date(`${isoDate(event.date)}T00:00:00`).toLocaleDateString('en-PH', {
                                       month: 'short',
@@ -266,7 +261,7 @@ export default function CalendarMonthView({
                 </div>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-3 sm:p-5">
+            <div className={`flex-1 space-y-3 overflow-y-auto p-3 sm:p-5 ${theme.inputBg}`}>
                 {selectedEvents.length === 0 ? (
                     <div className={`flex min-h-24 flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-5 text-center shadow-2xs sm:min-h-36 sm:py-8 ${theme.cardBorder} ${theme.cardBg}`}>
                         <CalendarDays className={`mb-2.5 h-8 w-8 ${theme.textMuted} opacity-40`} />
@@ -280,7 +275,7 @@ export default function CalendarMonthView({
                 )}
 
                 {split && (pastRestEvents.length > 0 || upcomingRestEvents.length > 0) && (
-                    <div className="space-y-6 pt-5 border-t border-slate-200/60">
+                    <div className={`space-y-6 border-t pt-5 ${theme.dividerColor}`}>
                         {upcomingRestEvents.length > 0 && (
                             <div className="space-y-3">
                                 <p className={`px-1 text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>
@@ -359,7 +354,7 @@ export default function CalendarMonthView({
                                 key={type}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/15 px-2 py-1 text-[10px] font-black text-white shadow-2xs sm:gap-2 sm:rounded-xl sm:px-3.5 sm:py-1.5 sm:text-xs"
                             >
-                                <span className={cn('h-2.5 w-2.5 rounded-full', typeStyles[type].dot)} />
+                                <span className={cn('h-2.5 w-2.5 rounded-full', theme.primaryBg)} />
                                 {typeStyles[type].label}
                                 <span className="rounded-lg bg-white/25 px-2 py-0.5 text-[10px] font-black ml-1">
                                     {countsByType[type]}
@@ -370,11 +365,11 @@ export default function CalendarMonthView({
                 </div>
             </div>
 
-            <div className={cn(split ? `lg:grid lg:grid-cols-[minmax(0,2.6fr)_18rem] lg:divide-x ${theme.dividerColor}` : '')}>
-                <div className="bg-slate-50/40 p-2 sm:p-7">
+            <div className={cn(split ? `2xl:grid 2xl:grid-cols-[minmax(0,2.6fr)_18rem] 2xl:divide-x ${theme.dividerColor}` : '')}>
+                <div className={`p-2 sm:p-7 ${theme.inputBg}`}>
                     <div className={`mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-widest sm:mb-3 sm:gap-2 ${theme.textMuted}`}>
                         {weekdayLabels.map((label, index) => (
-                            <div key={label} className={cn('py-1', (index === 0 || index === 6) && 'text-rose-500 font-black')}>
+                            <div key={label} className={cn('py-1', (index === 0 || index === 6) && `${theme.primaryText} font-black`)}>
                                 {label}
                             </div>
                         ))}
@@ -390,20 +385,21 @@ export default function CalendarMonthView({
                                     key={cell.key}
                                     type="button"
                                     disabled={!cell.inMonth}
+                                    aria-label={`${prettyDate(cell.iso)}${dayEvents.length > 0 ? `, ${dayEvents.length} events` : ''}`}
                                     onClick={() => {
                                         setSelected(cell.iso);
                                         onSelectedDayChange?.(cell.iso);
                                     }}
                                     className={cn(
-                                        'flex min-h-10 cursor-pointer flex-col items-center rounded-xl border p-1 text-left shadow-2xs transition-all sm:min-h-[6.5rem] sm:items-stretch sm:rounded-2xl sm:p-2.5',
-                                        cell.inMonth && cell.weekend && !isSelected && 'bg-slate-100/60 border-slate-200/60',
-                                        cell.inMonth && !cell.weekend && !isSelected && `${theme.cardBg} ${theme.cardBorder} hover:border-blue-400 hover:shadow-md`,
+                                        'flex min-h-14 cursor-pointer flex-col items-center rounded-xl border p-1 text-left shadow-2xs transition-all sm:min-h-[6.5rem] sm:rounded-2xl sm:p-2.5',
+                                        cell.inMonth && cell.weekend && !isSelected && `${theme.accentSurface} ${theme.cardBorder}`,
+                                        cell.inMonth && !cell.weekend && !isSelected && `${theme.cardBg} ${theme.cardBorder} ${theme.cardHoverBorder} hover:shadow-md`,
                                         !cell.inMonth && 'border-transparent bg-transparent opacity-25 cursor-default shadow-none',
-                                        isSelected && cell.inMonth && `bg-blue-50/80 shadow-md ${theme.cardBorder} ring-2 ring-blue-600/30`,
-                                        isToday && !isSelected && cell.inMonth && 'border-blue-400 bg-blue-50/30',
+                                        isSelected && cell.inMonth && `${theme.accentSurface} shadow-md ${theme.cardBorder} ring-2 ${theme.softRing}`,
+                                        isToday && !isSelected && cell.inMonth && `${theme.primaryBorder} ${theme.accentSurface}`,
                                     )}
                                 >
-                                    <span className="flex w-full items-center justify-center sm:justify-between">
+                                    <span className="flex w-full items-center justify-center">
                                         <span
                                             className={cn(
                                                 'flex h-7 w-7 items-center justify-center rounded-xl text-xs font-black transition-colors',
@@ -414,44 +410,18 @@ export default function CalendarMonthView({
                                         >
                                             {cell.day}
                                         </span>
-                                        {dayEvents.length > 0 && (
-                                            <span className={`hidden h-5 min-w-5 items-center justify-center rounded-lg ${theme.primaryBg} px-1.5 text-[10px] font-black text-white sm:inline-flex shadow-2xs`}>
-                                                {dayEvents.length}
-                                            </span>
-                                        )}
                                     </span>
-                                    <span className="mt-2 flex min-h-2.5 w-full flex-wrap justify-center gap-1 sm:hidden">
-                                        {dayEvents.slice(0, 3).map((event) => (
-                                            <span
-                                                key={event.id}
-                                                className={cn('h-2 w-2 rounded-full', event.going ? 'bg-emerald-500' : typeStyles[event.type].dot)}
-                                            />
-                                        ))}
-                                    </span>
-                                    <span className="mt-2 hidden space-y-1 sm:block">
-                                        {dayEvents.slice(0, 2).map((event) => (
-                                            <span
-                                                key={event.id}
-                                                className={cn(
-                                                    'block truncate rounded-lg px-2 py-1 text-[10px] font-black leading-tight shadow-2xs border',
-                                                    event.going ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : typeStyles[event.type].wash,
-                                                )}
-                                            >
-                                                {event.title}
-                                            </span>
-                                        ))}
-                                        {dayEvents.length > 2 && (
-                                            <span className={`px-1 text-[10px] font-bold ${theme.textMuted}`}>
-                                                +{dayEvents.length - 2} more
-                                            </span>
-                                        )}
-                                    </span>
+                                    {dayEvents.length > 0 && (
+                                        <span className={`mt-1.5 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-black text-white shadow-2xs ${theme.primaryBg}`}>
+                                            {dayEvents.length}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
                     </div>
                 </div>
-                <div className={cn(split ? `border-t ${theme.dividerColor} lg:border-t-0` : `border-t ${theme.dividerColor}`)}>
+                <div className={cn(split ? `border-t ${theme.dividerColor} 2xl:border-t-0` : `border-t ${theme.dividerColor}`)}>
                     {agenda}
                 </div>
             </div>

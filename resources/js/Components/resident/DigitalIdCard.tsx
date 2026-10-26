@@ -37,7 +37,7 @@ export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memb
                                 className="h-20 w-20 rounded object-contain"
                             />
                         ) : (
-                            <div className="flex h-20 w-20 items-center justify-center bg-slate-100 text-[10px] text-slate-500 text-center p-1 font-bold rounded">
+                            <div className={`flex h-20 w-20 items-center justify-center ${theme.accentSurface} ${theme.textMuted} text-[10px] text-center p-1 font-bold rounded`}>
                                 Pending ID
                             </div>
                         )}

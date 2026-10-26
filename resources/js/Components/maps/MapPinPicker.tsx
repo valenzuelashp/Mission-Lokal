@@ -129,7 +129,7 @@ export default function MapPinPicker({
 
     return (
         <div className={className}>
-            <div className={`h-full min-h-[18rem] overflow-hidden rounded-2xl border ${theme.cardBorder} relative bg-slate-100 shadow-md`}>
+            <div className={`h-full min-h-[18rem] overflow-hidden rounded-2xl border ${theme.cardBorder} relative ${theme.inputBg} shadow-md`}>
                 <MapContainer 
                     bounds={leafletBounds}
                     scrollWheelZoom 

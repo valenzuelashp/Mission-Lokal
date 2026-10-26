@@ -69,7 +69,7 @@ export function MapBasemapToggle({ value, onChange, className }: ToggleProps) {
     return (
         <div
             className={cn(
-                `absolute z-[500] flex max-w-[calc(100%-8rem)] flex-wrap rounded-2xl border ${theme.cardBorder} bg-white/95 shadow-lg backdrop-blur-md p-1.5 gap-1`,
+                `absolute z-[500] flex max-w-[calc(100%-8rem)] flex-wrap rounded-2xl border ${theme.cardBorder} ${theme.cardBg} shadow-lg backdrop-blur-md p-1.5 gap-1`,
                 className,
             )}
             role="group"
@@ -84,7 +84,7 @@ export function MapBasemapToggle({ value, onChange, className }: ToggleProps) {
                         'rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer shadow-2xs',
                         value === layer.id
                             ? `${theme.primaryBg} text-white shadow-sm`
-                            : `${theme.textMuted} hover:opacity-100 bg-slate-50`,
+                            : `${theme.textMuted} ${theme.hoverBg}`,
                     )}
                 >
                     {layer.label}

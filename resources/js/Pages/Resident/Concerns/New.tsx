@@ -42,7 +42,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
         <ResidentLayout wide>
             <Head title="Post Concern" />
             
-            <div className="w-full space-y-6 pb-16">
+            <div className="w-full space-y-6 pb-2 pt-8 sm:pt-10">
                 <PageHeader
                     title="Post a Community Concern"
                     description="Pinpoint the exact incident location and provide details. Our AI engine will automatically triage, categorize, and route your report."
@@ -57,7 +57,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                     </div>
                 )}
 
-                <form onSubmit={submit} className="grid gap-6 lg:grid-cols-2" noValidate>
+                <form onSubmit={submit} className="grid gap-6 2xl:grid-cols-2" noValidate>
                     <Card className={`shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
                         <CardHeader className={`border-b ${theme.dividerColor} pb-5`}>
                             <CardTitle className="text-sm font-black uppercase tracking-wider" id="details-heading">Incident Details</CardTitle>
@@ -82,7 +82,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                     id="category_id"
                                     value={data.category_id}
                                     onChange={(e) => setData('category_id', e.target.value)}
-                                    className={`flex h-11 w-full rounded-2xl border ${theme.cardBorder} ${theme.inputBg} px-4 py-2.5 text-xs font-bold shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer`}
+                                    className={`flex h-11 w-full rounded-2xl border ${theme.cardBorder} ${theme.inputBg} px-4 py-2.5 text-xs font-bold shadow-2xs focus-visible:outline-none focus-visible:ring-2 ${theme.focusRing} cursor-pointer`}
                                     required
                                 >
                                     <option value="">Select concern category</option>
@@ -130,7 +130,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                     accept="image/*"
                                     multiple
                                     onChange={(e) => setData('images', Array.from(e.target.files ?? []))}
-                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 cursor-pointer`}
+                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-transparent file:text-current cursor-pointer`}
                                 />
                             </div>
                         </CardContent>
