@@ -2,7 +2,6 @@
 
 namespace App\Services\Geocoding;
 
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +39,7 @@ class ReverseGeocoder
                     'zoom' => 18,
                     'addressdetails' => 1,
                 ]);
-        } catch (ConnectionException $exception) {
+        } catch (\Throwable $exception) {
             Log::warning('Reverse geocoding service could not be reached.', [
                 'exception' => $exception->getMessage(),
             ]);
