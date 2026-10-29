@@ -22,7 +22,7 @@ class SendMissionAssignmentSms implements ShouldQueue
     ) {
     }
 
-    public function handle(SmsGatewayInterface $smsGateway): void
+    public function handle(SmsGatewayInterface $smsGateway): bool
     {
         try {
             $mission = Mission::with(['concern', 'barangay', 'personnel.user'])->find($this->missionId);
@@ -30,18 +30,18 @@ class SendMissionAssignmentSms implements ShouldQueue
 
             if (!$mission || !$personnel) {
                 Log::warning("Could not send SMS for Mission {$this->missionId}: Personnel {$this->personnelId} is no longer assigned.");
-                return;
+                return false;
             }
 
             if (!$personnel->sms_enabled) {
                 Log::info("Skipping mission SMS for Personnel {$this->personnelId}: SMS is disabled.");
-                return;
+                return false;
             }
 
             $mobile = $personnel->user?->mobile;
             if (!$mobile) {
                 Log::warning("Could not send SMS for Mission {$this->missionId}: Personnel {$this->personnelId} has no mobile number.");
-                return;
+                return false;
             }
 
             $location = $mission->concern?->locationLabel() ?? $mission->barangay?->name ?? 'the barangay';
@@ -52,17 +52,23 @@ class SendMissionAssignmentSms implements ShouldQueue
             $greeting = $firstName !== '' ? "Hi {$firstName},\n" : '';
             $message = "{$greeting}Mission-Lokal: New assignment\nLocation: {$location}\nIssue: {$title}\nDue: {$dueDate}.";
 
-            if ($smsGateway->send($mobile, $message)) {
-                MissionAssignment::where('mission_id', $mission->id)
-                    ->where('personnel_id', $personnel->user_id)
-                    ->whereNull('unassigned_at')
-                    ->latest('assigned_at')
-                    ->first()
-                    ?->update(['sms_sent_at' => now()]);
+            if (!$smsGateway->send($mobile, $message)) {
+                return false;
             }
+
+            MissionAssignment::where('mission_id', $mission->id)
+                ->where('personnel_id', $personnel->user_id)
+                ->whereNull('unassigned_at')
+                ->latest('assigned_at')
+                ->first()
+                ?->update(['sms_sent_at' => now()]);
+
+            return true;
         } catch (\Throwable $e) {
             // Log the SMS error without crashing the dispatch request or admin workflow
             Log::error("SMS notification failed for Mission {$this->missionId} / Personnel {$this->personnelId}: " . $e->getMessage());
+
+            return false;
         }
     }
 }

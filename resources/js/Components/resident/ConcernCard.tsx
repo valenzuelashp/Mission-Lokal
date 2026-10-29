@@ -76,6 +76,13 @@ export default function ConcernCard({ concern }: Props) {
                 </div>
                 <div className="flex items-center gap-2.5">
                     <Badge variant={severityVariant[concern.severity]} className="font-black px-3 py-1 rounded-xl">{severityLabel[concern.severity]}</Badge>
+                    <span className={`text-xs font-bold px-3.5 py-1 rounded-xl border ${
+                        concern.visibility === 'private'
+                            ? 'border-purple-200 bg-purple-50 text-purple-700'
+                            : `${theme.textMuted} bg-slate-100/70 ${theme.cardBorder}`
+                    }`}>
+                        {concern.visibility === 'private' ? 'Private View' : 'Public View'}
+                    </span>
                     {concern.is_owner ? (
                         <div className="relative">
                             <button
@@ -127,11 +134,7 @@ export default function ConcernCard({ concern }: Props) {
                                 </div>
                             )}
                         </div>
-                    ) : (
-                        <span className={`text-xs font-bold ${theme.textMuted} ${theme.inputBg} px-3.5 py-1 rounded-xl border ${theme.cardBorder}`}>
-                            Public View
-                        </span>
-                    )}
+                    ) : null}
                 </div>
             </div>
 

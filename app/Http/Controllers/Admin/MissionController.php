@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Enums\MissionStatus;
 use App\Enums\ConcernStatus;
 use App\Jobs\SendMissionAssignmentSms;
+use App\Services\Sms\SmsGatewayInterface;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Services\Missions\MissionLifecycleService;
 use App\Services\Missions\MissionResolutionPostBuilder;
@@ -308,6 +309,24 @@ class MissionController extends Controller
                 'is_overdue' => (bool)$mission->is_overdue,
                 'brief' => $concern->description,
                 'assignee' => $assigneeNames,
+                'assigned_personnel' => $mission->personnel->map(fn ($personnel) => [
+                    'id' => $personnel->id,
+                    'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                    'sms_enabled' => (bool) $personnel->sms_enabled,
+                    'has_mobile' => filled($personnel->user?->mobile),
+                ])->values(),
+                'available_personnel' => Personnel::with('user')
+                    ->whereNotIn('id', $mission->personnel->pluck('id'))
+                    ->whereHas('user', fn ($query) => $query
+                        ->where('barangay_id', $barangayId)
+                        ->where('role', 'personnel')
+                        ->where('is_active', true))
+                    ->get()
+                    ->map(fn ($personnel) => [
+                        'id' => $personnel->id,
+                        'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                        'category' => $personnel->category?->label() ?? 'Category not set',
+                    ])->values(),
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,
                 'proof_photos' => $proofPhotos,
@@ -332,6 +351,118 @@ class MissionController extends Controller
                 'merged_duplicates' => $mergedDuplicates,
             ],
         ]);
+    }
+
+    public function addPersonnel(Request $request, string $missionId): RedirectResponse
+    {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot modify mission assignments.');
+        }
+
+        $validated = $request->validate([
+            'personnel_ids' => ['required', 'array', 'min:1'],
+            'personnel_ids.*' => ['required', 'string', 'exists:personnel,id'],
+        ]);
+
+        $mission = Mission::where('barangay_id', $request->user()->barangay_id)
+            ->with('personnel')
+            ->findOrFail($missionId);
+        $status = $mission->status->value ?? $mission->status;
+        if (in_array($status, ['completed', 'verified', 'cancelled'], true)) {
+            return back()->with('error', 'Closed missions cannot receive additional personnel.');
+        }
+
+        $personnelIds = array_values(array_unique($validated['personnel_ids']));
+        $lifecycle = app(MissionLifecycleService::class);
+        if (! $lifecycle->areActivePersonnelInBarangay($personnelIds, $request->user()->barangay_id)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        }
+
+        $currentlyAssignedIds = $mission->personnel->pluck('id')->all();
+        $newPersonnelIds = array_values(array_diff($personnelIds, $currentlyAssignedIds));
+        if ($newPersonnelIds === []) {
+            return back()->withErrors(['personnel_ids' => 'Select at least one person who is not already assigned.']);
+        }
+
+        DB::transaction(function () use ($mission, $newPersonnelIds, $request, $lifecycle) {
+            $syncData = [];
+            foreach ($newPersonnelIds as $personnelId) {
+                $syncData[$personnelId] = [
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'assigned_by' => $request->user()->id,
+                    'status' => 'assigned',
+                ];
+            }
+            $mission->personnel()->syncWithoutDetaching($syncData);
+
+            $newPersonnel = Personnel::with('user')->whereIn('id', $newPersonnelIds)->get();
+            foreach ($newPersonnel as $personnel) {
+                if ($personnel->user_id) {
+                    Notification::create([
+                        'user_id' => $personnel->user_id,
+                        'barangay_id' => $mission->barangay_id,
+                        'channel' => 'in_app',
+                        'event_type' => 'new_mission_assigned',
+                        'title' => 'New mission assigned',
+                        'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $mission->concern->title . ' — due ' . ($mission->due_date?->format('M d, Y') ?? 'soon') . '.',
+                        'payload' => ['mission_id' => $mission->id],
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            $lifecycle->recordAssignmentChanges($mission, [], $request->user()->id);
+            DB::table('audit_logs')->insert([
+                'barangay_id' => $mission->barangay_id,
+                'actor_id' => $request->user()->id,
+                'action' => 'ADD_MISSION_PERSONNEL',
+                'entity_type' => 'Mission',
+                'entity_id' => $mission->id,
+                'metadata' => json_encode(['personnel_ids' => $newPersonnelIds]),
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        });
+
+        foreach ($newPersonnelIds as $personnelId) {
+            SendMissionAssignmentSms::dispatch($mission->id, $personnelId);
+        }
+
+        return back()->with('success', 'Personnel added to the mission. SMS notifications were attempted.');
+    }
+
+    public function resendAssignmentSms(
+        Request $request,
+        string $missionId,
+        string $personnelId,
+        SmsGatewayInterface $smsGateway,
+    ): RedirectResponse {
+        if (! $request->user()->canModifySystem()) {
+            return back()->with('error', 'Your account has view-only access and cannot send mission notifications.');
+        }
+
+        $mission = Mission::where('barangay_id', $request->user()->barangay_id)
+            ->with(['personnel.user'])
+            ->findOrFail($missionId);
+        $personnel = $mission->personnel->firstWhere('id', $personnelId);
+
+        if (! $personnel) {
+            abort(404);
+        }
+
+        if (! $personnel->sms_enabled) {
+            return back()->with('error', 'SMS is disabled for this personnel account.');
+        }
+
+        if (! $personnel->user?->mobile) {
+            return back()->with('error', 'This personnel account does not have a mobile number.');
+        }
+
+        $sent = (new SendMissionAssignmentSms($mission->id, $personnel->id))->handle($smsGateway);
+
+        return $sent
+            ? back()->with('success', 'IPROG accepted the SMS resend request.')
+            : back()->with('error', 'SMS could not be sent. Check the application log for the provider response.');
     }
 
     public function verifyMission(Request $request, string $id): RedirectResponse

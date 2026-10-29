@@ -228,7 +228,19 @@ class ReportController extends Controller
                 ];
             });
 
-        $assignedPersonnelIds = $record->mission?->personnel?->pluck('id')->values()->toArray() ?? [];
+        $existingMission = $record->mission;
+        $assignedPersonnelIds = $existingMission?->personnel?->pluck('id')->values()->toArray() ?? [];
+        $assignedPersonnel = $existingMission?->personnel?->map(function ($personnel) {
+            $category = $personnel->category;
+
+            return [
+                'id' => $personnel->id,
+                'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                'category' => is_object($category) && method_exists($category, 'label')
+                    ? $category->label()
+                    : (is_string($category) ? ucfirst($category) : 'General'),
+            ];
+        })->values()->toArray() ?? [];
 
         $masterCandidates = Concern::where('barangay_id', $barangayId)
             ->where('id', '!=', $id)
@@ -309,7 +321,15 @@ class ReportController extends Controller
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
-                'assigned_personnel_ids' => !empty($assignedPersonnelIds) ? $assignedPersonnelIds : ($aiAnalysis?->suggested_personnel_ids ?? []),
+                'assigned_personnel_ids' => $existingMission
+                    ? $assignedPersonnelIds
+                    : ($aiAnalysis?->suggested_personnel_ids ?? []),
+                'mission' => $existingMission ? [
+                    'id' => $existingMission->id,
+                    'status' => $existingMission->status->value ?? $existingMission->status,
+                    'due_date' => $existingMission->due_date?->format('M d, Y'),
+                ] : null,
+                'assigned_personnel' => $assignedPersonnel,
                 'ai_recommended_action' => $recommendedAction,
                 'ai_action_reason' => $actionReason,
                 'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
@@ -449,6 +469,10 @@ class ReportController extends Controller
         ]);
 
         $action = $validated['confirmed_action'];
+
+        if ($concern->mission()->exists()) {
+            return back()->with('error', 'A mission already exists for this report. Manage its personnel from the mission detail page.');
+        }
 
         if ($action === 'escalate') {
             if ($validated['personnel_ids'] === []) {

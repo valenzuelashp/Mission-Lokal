@@ -47,6 +47,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/mission-board', [MissionController::class, 'index'])->name('missions.board');
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
+    Route::post('/missions/{mission}/personnel', [MissionController::class, 'addPersonnel'])->name('missions.personnel.add');
+    Route::post('/missions/{mission}/personnel/{personnel}/resend-sms', [MissionController::class, 'resendAssignmentSms'])->name('missions.personnel.resend-sms');
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
     Route::post('/missions/{mission}/resolution-post', [MissionController::class, 'publishResolutionPost'])->name('missions.resolution-post.publish');
     

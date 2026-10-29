@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle, Clock, GitMerge, User, Phone, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, GitMerge, User, Phone, MapPin, ShieldCheck, Sparkles, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import StatusTimeline, { TimelineStep } from '@/Components/resident/StatusTimeline';
 import { Badge } from '@/Components/ui/badge';
@@ -14,11 +14,28 @@ export default function Show({ mission }: any) {
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
     const canModify = auth.user?.can_modify_system ?? true;
     const [resolutionComposerOpen, setResolutionComposerOpen] = useState(false);
+    const [resendingPersonnelId, setResendingPersonnelId] = useState<string | null>(null);
+    const [personnelCategoryFilter, setPersonnelCategoryFilter] = useState('all');
+    const availablePersonnel = mission.available_personnel ?? [];
+    const personnelCategories = [...new Set(availablePersonnel.map((personnel: { category: string }) => personnel.category))]
+        .filter(Boolean)
+        .sort((left, right) => left.localeCompare(right));
+    const filteredPersonnel = personnelCategoryFilter === 'all'
+        ? availablePersonnel
+        : availablePersonnel.filter((personnel: { category: string }) => personnel.category === personnelCategoryFilter);
     const { data, setData, post, processing, errors } = useForm({
         title: mission.resolution_post?.title ?? '',
         body: mission.resolution_post?.body ?? '',
         media_ids: mission.resolution_post?.media_ids ?? [] as string[],
     });
+    const {
+        data: personnelData,
+        setData: setPersonnelData,
+        post: postPersonnel,
+        processing: addingPersonnel,
+        errors: personnelErrors,
+        reset: resetPersonnel,
+    } = useForm({ personnel_ids: [] as string[] });
 
     useEffect(() => {
         if (mission.resolution_post?.id) {
@@ -35,6 +52,29 @@ export default function Show({ mission }: any) {
         if (confirm('Verify this completed work? This will officially close the mission and mark the parent concern (along with any merged resident reports) as resolved.')) {
             router.post(`/admin/missions/${mission.id}/verify`);
         }
+    };
+
+    const handleResendSms = (personnelId: string) => {
+        router.post(`/admin/missions/${mission.id}/personnel/${personnelId}/resend-sms`, {}, {
+            preserveScroll: true,
+            onStart: () => setResendingPersonnelId(personnelId),
+            onFinish: () => setResendingPersonnelId(null),
+        });
+    };
+
+    const togglePersonnelSelection = (personnelId: string) => {
+        const currentIds = personnelData.personnel_ids;
+        setPersonnelData('personnel_ids', currentIds.includes(personnelId)
+            ? currentIds.filter((id) => id !== personnelId)
+            : [...currentIds, personnelId]);
+    };
+
+    const handleAddPersonnel = (event: React.FormEvent) => {
+        event.preventDefault();
+        postPersonnel(`/admin/missions/${mission.id}/personnel`, {
+            preserveScroll: true,
+            onSuccess: () => resetPersonnel(),
+        });
     };
 
     const toggleResolutionImage = (mediaId: string) => {
@@ -260,6 +300,99 @@ export default function Show({ mission }: any) {
                                         </div>
                                     )}
                                 </dl>
+                                {canModify && !['completed', 'verified', 'cancelled'].includes(mission.status) && (
+                                    <form onSubmit={handleAddPersonnel} className="space-y-3 border-t border-slate-100 pt-4">
+                                        <div>
+                                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Add Personnel</h4>
+                                            <p className="mt-1 text-[11px] text-slate-500">Newly added personnel keep current assignees and receive an SMS notification.</p>
+                                        </div>
+                                        {availablePersonnel.length === 0 ? (
+                                            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">No additional active personnel available.</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-[11px] font-semibold text-slate-500">
+                                                        {personnelData.personnel_ids.length} selected
+                                                    </span>
+                                                    <select
+                                                        aria-label="Filter personnel by field"
+                                                        value={personnelCategoryFilter}
+                                                        onChange={(event) => setPersonnelCategoryFilter(event.target.value)}
+                                                        className="h-8 max-w-40 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
+                                                    >
+                                                        <option value="all">All fields</option>
+                                                        {personnelCategories.map((category: string) => (
+                                                            <option key={category} value={category}>{category}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+                                                    {filteredPersonnel.length === 0 ? (
+                                                        <p className="px-2 py-4 text-center text-xs text-slate-500">No additional personnel in this field.</p>
+                                                    ) : filteredPersonnel.map((personnel: { id: string; name: string; category: string }) => (
+                                                        <label key={personnel.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-xs text-slate-800 hover:bg-blue-50">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={personnelData.personnel_ids.includes(personnel.id)}
+                                                                onChange={() => togglePersonnelSelection(personnel.id)}
+                                                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                            <span className="min-w-0 flex-1 truncate font-semibold">{personnel.name}</span>
+                                                            <span className="shrink-0 text-[11px] text-slate-500">{personnel.category}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {personnelErrors.personnel_ids && <p className="text-xs font-semibold text-red-600">{personnelErrors.personnel_ids}</p>}
+                                        <Button
+                                            type="submit"
+                                            size="sm"
+                                            disabled={addingPersonnel || personnelData.personnel_ids.length === 0}
+                                            className="h-9 text-xs font-bold"
+                                        >
+                                            {addingPersonnel ? 'Adding...' : 'Add Selected Personnel'}
+                                        </Button>
+                                    </form>
+                                )}
+                                <div className="space-y-3 border-t border-slate-100 pt-4">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Personnel SMS</h4>
+                                    {(mission.assigned_personnel ?? []).length === 0 ? (
+                                        <p className="text-xs text-slate-500">No personnel are assigned to this mission.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {mission.assigned_personnel.map((personnel: { id: string; name: string; sms_enabled: boolean; has_mobile: boolean }) => {
+                                                const disabledReason = !personnel.sms_enabled
+                                                    ? 'SMS disabled'
+                                                    : !personnel.has_mobile
+                                                        ? 'No mobile number'
+                                                        : null;
+
+                                                return (
+                                                    <div key={personnel.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-800">{personnel.name || 'Personnel'}</p>
+                                                            {disabledReason && <p className="mt-0.5 text-[11px] text-amber-700">{disabledReason}</p>}
+                                                        </div>
+                                                        {canModify && (
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                disabled={Boolean(disabledReason) || resendingPersonnelId === personnel.id}
+                                                                onClick={() => handleResendSms(personnel.id)}
+                                                                className="h-8 gap-1.5 text-xs font-bold"
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5" />
+                                                                {resendingPersonnelId === personnel.id ? 'Sending...' : 'Resend SMS'}
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
 
