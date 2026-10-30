@@ -8,6 +8,29 @@ function toUpperCase(value: string) {
     return value.toUpperCase();
 }
 
+function formatDateInputForPH(date: Date) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(date);
+    const values = Object.fromEntries(
+        parts
+            .filter((part) => part.type !== 'literal')
+            .map((part) => [part.type, part.value]),
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function parseDateOnly(value: string) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+}
+
 function CapsInput({
     value,
     onChange,
@@ -147,7 +170,7 @@ export default function Register() {
     const [maxDateString] = useState(() => {
         const d = new Date();
         d.setFullYear(d.getFullYear() - 12);
-        return d.toISOString().split('T')[0];
+        return formatDateInputForPH(d);
     });
     
     // Cascading DB Data States
@@ -190,7 +213,7 @@ export default function Register() {
 
     useEffect(() => {
         if (data.birthday) {
-            const birthDate = new Date(data.birthday);
+            const birthDate = parseDateOnly(data.birthday);
             const today = new Date();
             let age = today.getFullYear() - birthDate.getFullYear();
             const m = today.getMonth() - birthDate.getMonth();

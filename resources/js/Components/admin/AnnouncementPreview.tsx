@@ -21,10 +21,11 @@ function formatEventAt(value: string): string {
         return value;
     }
 
-    return date.toLocaleString('en-PH', {
+    return new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila',
         dateStyle: 'medium',
         timeStyle: 'short',
-    });
+    }).format(date);
 }
 
 const kindIcons: Record<AnnouncementKind, LucideIcon> = {

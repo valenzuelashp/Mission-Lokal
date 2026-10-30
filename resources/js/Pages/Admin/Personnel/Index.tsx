@@ -25,6 +25,29 @@ interface PersonnelMember {
     created_at: string;
 }
 
+function formatDateInputForPH(date: Date) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(date);
+    const values = Object.fromEntries(
+        parts
+            .filter((part) => part.type !== 'literal')
+            .map((part) => [part.type, part.value]),
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function parseDateOnly(value: string) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+}
+
 export default function PersonnelIndex({ personnel = [], next_account_id }: { personnel: PersonnelMember[], next_account_id: string }) {
     const { flash } = usePage<PageProps>().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -116,7 +139,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id }: { pe
         clearInformationErrors();
         setInformationData({
             category: member.category_value ?? '',
-            birthday: member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : '',
+            birthday: member.birthday ? formatDateInputForPH(parseDateOnly(member.birthday)) : '',
             email: member.email ?? '',
             mobile: member.mobile ?? '',
             status: member.is_active ? 'active' : 'inactive',

@@ -44,11 +44,12 @@ function isoDate(value: string): string {
 }
 
 function prettyDate(iso: string): string {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString('en-PH', {
+    return new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila',
         weekday: 'long',
         month: 'long',
         day: 'numeric',
-    });
+    }).format(new Date(`${iso}T00:00:00`));
 }
 
 function EventCard({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
@@ -85,10 +86,11 @@ function EventCard({ event, compact = false }: { event: CalendarEvent; compact?:
                     {(event.time || compact) && (
                         <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[10px] font-black ${theme.textMuted} ${theme.inputBg} ${theme.cardBorder}`}>
                             {compact
-                                ? new Date(`${isoDate(event.date)}T00:00:00`).toLocaleDateString('en-PH', {
+                                ? new Intl.DateTimeFormat('en-PH', {
+                                      timeZone: 'Asia/Manila',
                                       month: 'short',
                                       day: 'numeric',
-                                  })
+                                  }).format(new Date(`${isoDate(event.date)}T00:00:00`))
                                 : event.time}
                         </span>
                     )}

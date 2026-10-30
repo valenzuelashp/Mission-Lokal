@@ -22,6 +22,19 @@ function statusLabel(status: string) {
     return status.replace('_', ' ');
 }
 
+function formatSubmittedAt(value: string | null) {
+    if (!value) return '—';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(date);
+}
+
 export default function Index({ queue = [] }: { queue: QueueItem[] }) {
     return (
         <AdminLayout title="Mission-Lokal Admin: Verification Queue">
@@ -87,7 +100,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                                 <div className="text-[11px] text-slate-400 font-medium">{person.mobile || 'Unknown'}</div>
                                             </td>
                                             <td className="px-5 py-4 text-xs font-medium text-slate-500">
-                                                {person.created_at ? new Date(person.created_at).toLocaleString() : '—'}
+                                                {formatSubmittedAt(person.created_at)}
                                             </td>
                                             <td className="px-5 py-4">
                                                 <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl border inline-block shadow-2xs ${

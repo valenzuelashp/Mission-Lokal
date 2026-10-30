@@ -10,6 +10,29 @@ import { useAuth } from '@/Hooks/usePageProps';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
+function formatDateInputForPH(date: Date) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(date);
+    const values = Object.fromEntries(
+        parts
+            .filter((part) => part.type !== 'literal')
+            .map((part) => [part.type, part.value]),
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function parseDateOnly(value: string) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+}
+
 export default function ProfileEdit({ profile }: { profile: any }) {
     const theme = useResidentTheme();
     const { user } = useAuth();
@@ -18,7 +41,7 @@ export default function ProfileEdit({ profile }: { profile: any }) {
     const [maxDateString] = useState(() => {
         const d = new Date();
         d.setFullYear(d.getFullYear() - 12);
-        return d.toISOString().split('T')[0];
+        return formatDateInputForPH(d);
     });
 
     const { data, setData, post, processing, errors } = useForm({
@@ -40,10 +63,17 @@ export default function ProfileEdit({ profile }: { profile: any }) {
     // Dynamically calculate if the selected birthday makes them a minor (under 18)
     const isMinor = useMemo(() => {
         if (!data.birthday) return false;
-        const bday = new Date(data.birthday);
-        const ageDifMs = Date.now() - bday.getTime();
-        const ageDate = new Date(ageDifMs);
-        return Math.abs(ageDate.getUTCFullYear() - 1970) < 18;
+
+        const bday = parseDateOnly(data.birthday);
+        const today = new Date();
+        let age = today.getFullYear() - bday.getFullYear();
+        const monthDifference = today.getMonth() - bday.getMonth();
+
+        if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < bday.getDate())) {
+            age -= 1;
+        }
+
+        return age < 18;
     }, [data.birthday]);
 
     const submit = (e: React.FormEvent) => {
