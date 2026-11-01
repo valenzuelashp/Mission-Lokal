@@ -40,6 +40,11 @@ export default function MissionQueueCard({ mission }: Props) {
                     </div>
                     
                     <p className="font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors text-sm">{mission.concern_title}</p>
+                    {mission.department_label && (
+                        <Badge variant="outline" className="w-fit border-slate-200 bg-slate-50 text-slate-700 text-[10px] font-bold">
+                            {mission.department_label}
+                        </Badge>
+                    )}
                     
                     <p className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                         <MapPin className="h-4 w-4 shrink-0 text-blue-600" />

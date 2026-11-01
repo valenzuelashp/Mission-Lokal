@@ -37,7 +37,7 @@ Resident reports
 | Role | Access scope | Primary actions |
 | --- | --- | --- |
 | **Resident** | Own data, public feed, library, announcements | Report, vote, blotter, chatbot, profile |
-| **Personnel** | Assigned missions only | Acknowledge, update status, upload proof |
+| **Personnel** | Department mission queue; VAWC limited to VAW Desk | Review department missions; assigned staff acknowledge, update status, upload proof |
 | **Administrative Staff** | Full barangay operations | Verify users, confirm AI, assign missions, blotters, content, analytics |
 | **System (AI)** | Backend service | Classify, route, severity, duplicates, hotspots, prescriptive steps, scheduling suggestions |
 | **Super Admin** *(optional, platform-level)* | Multi-barangay | Onboard barangays, global config |
@@ -47,8 +47,8 @@ Resident reports
 | Resource | Resident | Personnel | Admin Staff |
 | --- | --- | --- | --- |
 | Public concerns | Create, read, vote | Read (if linked to mission) | Full |
-| Private concerns | Own only | If assigned | Full |
-| Missions | — | Assigned only | Full |
+| Private concerns | Own only | Department queue, except VAWC is VAW Desk only | Full |
+| Missions | — | Department members can review; assigned staff can update | Full |
 | Blotters | Own submissions | — | Full |
 | Verification queue | Submit | — | Approve/reject |
 | Dashboard / heat map | — | — | Full |
@@ -403,8 +403,8 @@ Playbooks live in `category_playbooks` table; AI selects and personalizes.
 | # | Screen | Route | Key elements |
 | --- | --- | --- | --- |
 | P1 | Login | `/personnel/login` | |
-| P2 | My Missions | `/personnel/missions` | assigned list, filters |
-| P3 | Mission Detail | `/personnel/missions/:id` | brief, map, checklist, reporter contact if private |
+| P2 | Department Missions | `/personnel/missions` | shared department queue, filters |
+| P3 | Mission Detail | `/personnel/missions/:id` | brief, map, checklist; read-only for non-assignees |
 | P4 | Proof Upload | `/personnel/missions/:id/proof` | photos, notes |
 | P5 | Notifications | `/personnel/notifications` | SMS mirror in-app |
 
@@ -586,7 +586,9 @@ Base: `/api/v1`
 | Authentication | Role-based JWT; personnel/admin separate login URLs optional |
 | Authorization | Row-level: residents see only own private data |
 | PII | Encrypt government ID at rest; restrict access to verification admins |
-| VAWC / domestic | Force private; never on public feed; minimal personnel disclosure |
+| VAWC / domestic | Force private through AI triage; never on public feed; media is served only through authenticated, role-checked routes; minimal personnel disclosure |
+| Personnel departments | Every mission belongs to one department; team members can review its queue, while direct assignees retain execution controls |
+| VAWC staff access | VAWC mission details and notifications are visible only to Peace & Order VAW Desk personnel |
 | Audit | All admin actions on concerns, missions, verifications, blotters |
 | Data retention | Configurable archive after N years |
 | DPA (Philippines) | Consent on registration; privacy policy; purpose limitation |

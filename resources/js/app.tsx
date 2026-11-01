@@ -45,7 +45,7 @@ createInertiaApp({
     resolve: async (name) => {
         const page = await resolvePageComponent(
             `./Pages/${name}.tsx`,
-            import.meta.glob('./Pages/**/*.tsx'),
+            import.meta.glob<{ default: ComponentType }>('./Pages/**/*.tsx'),
         );
         if (!name.startsWith('Resident/')) return page;
 

@@ -17,6 +17,7 @@ class FeedController extends Controller
 
         $concerns = Concern::with([
                 'category', 
+                'subcategory',
                 'media', 
                 'votes' => function ($query) use ($user) {
                     $query->where('user_id', $user->id);
@@ -28,11 +29,12 @@ class FeedController extends Controller
             ])
             ->when($user->barangay_id, fn($q) => $q->where('barangay_id', $user->barangay_id))
             ->where('visibility', 'public')
+            ->whereNotVawc()
             ->latest()
             ->get()
             ->map(function ($concern) use ($user) {
-                $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
-                    return asset('storage/' . $media->storage_key);
+                $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) use ($concern) {
+                    return app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media);
                 })->values()->toArray(); 
 
                 $userVoteRecord = $concern->votes->first();

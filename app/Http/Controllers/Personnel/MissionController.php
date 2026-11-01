@@ -11,6 +11,7 @@ use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
 use App\Services\Missions\MissionLifecycleService;
+use App\Services\Missions\DepartmentMissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -43,8 +44,8 @@ class MissionController extends Controller
             ]);
         }
 
-        // Retrieve missions assigned to this personnel via the many-to-many pivot table
-        $missionsQuery = Mission::with(['concern.media', 'proof'])
+        $access = app(DepartmentMissionAccess::class);
+        $missionsQuery = $access->departmentQueue($personnel)
             ->select('missions.*')
             ->addSelect([
                 'lat' => \App\Models\Concern::selectRaw('ST_X(location)')
@@ -54,17 +55,16 @@ class MissionController extends Controller
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
-            ->whereHas('personnel', function ($query) use ($personnel) {
-                $query->where('personnel.id', $personnel->id);
-            })
             ->latest()
             ->get();
 
-        $missions = $missionsQuery->map(function ($mission) {
+        $missions = $missionsQuery
+            ->filter(fn (Mission $mission) => $access->canView($personnel, $mission))
+            ->map(function ($mission) use ($personnel) {
             $concern = $mission->concern;
             
             $concernImages = $concern && $concern->media 
-                ? $concern->media->sortBy('sort_order')->map(fn($media) => asset('storage/' . $media->storage_key))->toArray() 
+                ? $concern->media->sortBy('sort_order')->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray() 
                 : [];
 
             $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
@@ -88,6 +88,7 @@ class MissionController extends Controller
                 'reporter_phone' => null,
                 'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
                 'proof_submitted' => $mission->proof !== null,
+                'is_assigned' => $mission->personnel->contains('id', $personnel->id),
             ];
         });
 
@@ -113,7 +114,7 @@ class MissionController extends Controller
             abort(403, 'Unauthorized personnel account context.');
         }
 
-        $mission = Mission::with(['concern.media', 'proof.media', 'checklistItems', 'personnel'])
+        $mission = Mission::with(['concern.media', 'concern.subcategory', 'proof.media', 'checklistItems', 'personnel'])
             ->select('missions.*') 
             ->addSelect([
                 'lat' => \App\Models\Concern::selectRaw('ST_X(location)')
@@ -123,12 +124,13 @@ class MissionController extends Controller
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
-            ->whereHas('personnel', function ($query) use ($personnel) {
-                $query->where('personnel.id', $personnel->id);
-            })
             ->findOrFail($id);
+        app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
-        app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
+        $isAssigned = $mission->personnel->contains('id', $personnel->id);
+        if ($isAssigned) {
+            app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
+        }
         $mission->load('checklistItems');
 
         $concern = $mission->concern;
@@ -137,14 +139,14 @@ class MissionController extends Controller
         $concernImages = [];
         if ($concern && $concern->media) {
             $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
-                return asset('storage/' . $media->storage_key);
+                return app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media);
             })->toArray();
         }
 
         $proofPhotos = [];
         if ($proof && $proof->media) {
             $proofPhotos = $proof->media->sortBy('sort_order')->map(function ($media) {
-                return asset('storage/' . $media->storage_key);
+                return app(\App\Support\SensitiveMediaUrl::class)->forProof($mission, $media);
             })->toArray();
         }
 
@@ -192,6 +194,7 @@ class MissionController extends Controller
             'proof_submitted' => $proof !== null,
             'proof_notes' => $proof?->notes,
             'proof_photos' => $proofPhotos,
+            'is_assigned' => $isAssigned,
         ];
 
         return Inertia::render('Personnel/Missions/Show', [
@@ -210,6 +213,7 @@ class MissionController extends Controller
         $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
+        app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:acknowledged,in_progress'],
@@ -290,6 +294,7 @@ class MissionController extends Controller
         $mission = Mission::whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
+        app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
         $assignment = MissionAssignment::query()
             ->where('mission_id', $mission->id)
@@ -342,6 +347,7 @@ class MissionController extends Controller
         $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
+        app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
         $concern = $mission->concern;
 
@@ -369,6 +375,7 @@ class MissionController extends Controller
         $mission = Mission::with('concern')->whereHas('personnel', function ($query) use ($personnel) {
             $query->where('personnel.id', $personnel->id);
         })->findOrFail($id);
+        app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
         app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
         $checklistItems = $mission->checklistItems()->get();
@@ -401,7 +408,7 @@ class MissionController extends Controller
             ]);
 
             foreach ($request->file('photos') as $photo) {
-                $filePath = $photo->store('proofs', 'public');
+                $filePath = $photo->store('proofs', 'local');
 
                 MissionProofMedia::create([
                     'proof_id' => $proof->id,

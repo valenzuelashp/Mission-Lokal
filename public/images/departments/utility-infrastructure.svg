@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" fill="none">
+  <defs>
+    <linearGradient id="citysky" x1="600" y1="0" x2="600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#075985"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#citysky)" d="M0 0h1200v560H0z"/>
+  <circle cx="956" cy="112" r="63" fill="#E0F2FE" fill-opacity=".82"/>
+  <path fill="#BAE6FD" fill-opacity=".55" d="M0 324c188-91 343-94 527 4 216-121 434-97 673-6v238H0V324Z"/>
+  <path fill="#0C4A6E" fill-opacity=".82" d="M89 301h156v259H89z"/>
+  <path fill="#075985" d="M279 245h187v315H279z"/>
+  <path fill="#0C4A6E" d="M493 331h144v229H493z"/>
+  <path fill="#075985" d="M685 205h205v355H685z"/>
+  <path fill="#0C4A6E" d="M927 281h183v279H927z"/>
+  <path fill="#E0F2FE" fill-opacity=".72" d="M111 330h35v42h-35zm66 0h35v42h-35zm-66 71h35v42h-35zm66 0h35v42h-35zM307 281h39v46h-39zm72 0h39v46h-39zm-72 77h39v46h-39zm72 0h39v46h-39zM720 246h40v48h-40zm72 0h40v48h-40zm-72 76h40v48h-40zm72 0h40v48h-40zm-72 77h40v48h-40zm72 0h40v48h-40z"/>
+  <path stroke="#E0F2FE" stroke-linecap="round" stroke-width="8" d="M0 466h1200"/>
+  <path stroke="#F0F9FF" stroke-linecap="round" stroke-width="9" d="M40 497h190m94 0h180m90 0h171m93 0h270"/>
+  <path fill="#E0F2FE" fill-opacity=".75" d="m571 430 35-61 36 61h-71Z"/>
+</svg>

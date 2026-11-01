@@ -59,7 +59,7 @@ class DashboardController extends Controller
         ];
 
         // 2. Grab the latest 5 active missions for the Dashboard Queue Table
-        $incidents = Mission::with(['concern', 'proof.media'])
+        $incidents = Mission::with(['concern.subcategory', 'proof.media'])
             ->whereHas('concern', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId);
             })
@@ -72,8 +72,8 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(function ($mission) {
-                $proofPhotos = $mission->proof ? $mission->proof->media->map(function ($m) {
-                    return asset('storage/'.$m->storage_key);
+                $proofPhotos = $mission->proof ? $mission->proof->media->map(function ($m) use ($mission) {
+                    return app(\App\Support\SensitiveMediaUrl::class)->forProof($mission, $m);
                 })->toArray() : [];
 
                 $severity = $mission->concern->severity ?? 'medium';

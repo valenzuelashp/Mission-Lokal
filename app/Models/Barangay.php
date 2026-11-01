@@ -45,6 +45,11 @@ class Barangay extends Model
         return $this->hasMany(Concern::class);
     }
 
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
     public function settings(): HasOne
     {
         return $this->hasOne(BarangaySetting::class);

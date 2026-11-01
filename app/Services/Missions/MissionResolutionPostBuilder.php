@@ -2,6 +2,7 @@
 
 namespace App\Services\Missions;
 
+use App\Enums\PersonnelRole;
 use App\Models\Concern;
 use App\Models\Mission;
 
@@ -11,12 +12,14 @@ class MissionResolutionPostBuilder
     {
         $personnel = $mission->personnel->map(function ($member) {
             $name = trim(($member->user?->first_name ?? '').' '.($member->user?->last_name ?? ''));
-            $category = $member->category;
-            $categoryLabel = is_object($category) && method_exists($category, 'label')
-                ? $category->label()
-                : (is_string($category) ? ucwords(str_replace('_', ' ', $category)) : null);
+            $role = $member->role;
+            $roleLabel = $role instanceof PersonnelRole
+                ? $role->label()
+                : (is_string($role)
+                    ? (PersonnelRole::tryFrom($role)?->label() ?? ucwords(str_replace('_', ' ', $role)))
+                    : null);
 
-            return trim($name.($categoryLabel ? ' ('.$categoryLabel.')' : ''));
+            return trim($name.($roleLabel ? ' ('.$roleLabel.')' : ''));
         })->filter()->implode(', ');
 
         $steps = $mission->checklistItems

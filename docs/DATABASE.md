@@ -12,6 +12,7 @@ UUIDs are `CHAR(36)`. Timestamps use `DATETIME(3)` UTC. Lookup tables replace ri
 erDiagram
     barangays ||--o{ users : has
     barangays ||--o{ concerns : has
+    barangays ||--o{ departments : defines
     barangays ||--o{ preloaded_residents : imports
     users ||--o| resident_profiles : has
     users ||--o| personnel_profiles : has
@@ -166,18 +167,35 @@ CSV roster before first login.
 
 ### `personnel_profiles`
 
-Personnel zone / last known location for nearby SMS.
+Personnel department, role, zone, and last known location for nearby SMS.
 
 | Column | Type | Constraints |
 | --- | --- | --- |
 | `user_id` | `CHAR(36)` | PK, FK → `users.id` |
 | `display_name` | `VARCHAR(255)` | NOT NULL |
+| `department` | `VARCHAR(50)` | Traffic, environmental, peace/order, utility/infrastructure, animal response, or maintenance |
+| `role` | `VARCHAR(50)` | Personnel role/position within its department (e.g. Tanod, Lupon, VAW Desk) |
 | `registered_zone` | `POINT` | SRID 4326 |
 | `last_known_location` | `POINT` | SRID 4326 |
 | `location_updated_at` | `DATETIME(3)` | |
 | `sms_enabled` | `TINYINT(1)` | NOT NULL DEFAULT 1 |
 
 **Indexes:** `SPATIAL INDEX spx_personnel_zone (registered_zone)`, `SPATIAL INDEX spx_personnel_last (last_known_location)`
+
+---
+
+### `departments`
+
+Barangay-specific department names, including departments that do not yet have personnel.
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | `CHAR(36)` | PK |
+| `barangay_id` | `CHAR(36)` | FK → `barangays.id`, cascade on delete |
+| `name` | `VARCHAR(50)` | NOT NULL |
+| `created_at`, `updated_at` | `DATETIME(3)` | |
+
+**Indexes:** `UNIQUE (barangay_id, name)`
 
 ---
 
@@ -362,6 +380,8 @@ Staff actions: merge, link, dismiss.
 
 **Indexes:** `INDEX idx_concern_media (concern_id, sort_order)`
 
+Concern and mission-proof media are kept on the private local disk and delivered through authenticated authorization routes. The security migration moves all referenced legacy case media out of the public disk.
+
 ---
 
 ### `concern_votes`
@@ -406,6 +426,7 @@ Audit trail for concern state machine (§5.1).
 | `id` | `CHAR(36)` | PK |
 | `barangay_id` | `CHAR(36)` | FK → `barangays.id` |
 | `concern_id` | `CHAR(36)` | FK → `concerns.id`, UNIQUE |
+| `department` | `VARCHAR(50)` | Department responsible for the shared mission queue |
 | `assigned_to` | `CHAR(36)` | FK → `users.id`, current personnel |
 | `playbook_id` | `CHAR(36)` | FK → `category_playbooks.id` |
 | `due_date` | `DATE` | |
@@ -960,7 +981,7 @@ CREATE TABLE missions (
 
 ## 16. Migration order
 
-1. `barangays`, `barangay_settings`
+1. `barangays`, `barangay_settings`, `departments`
 2. `users`, `resident_profiles`, `personnel_profiles`, `preloaded_residents`
 3. `concern_categories`, `concern_subcategories`, `category_playbooks`
 4. `concerns`, `concern_ai_analysis`, `concern_media`, `concern_votes`, `concern_duplicate_links`, `concern_status_history`
@@ -974,9 +995,9 @@ CREATE TABLE missions (
 
 ---
 
-## 17. Table inventory (37 tables)
+## 17. Table inventory (39 tables)
 
-`barangays`, `barangay_settings`, `preloaded_residents`, `users`, `resident_profiles`, `personnel_profiles`, `profile_edit_requests`, `refresh_tokens`, `password_reset_tokens`, `concern_categories`, `concern_subcategories`, `category_playbooks`, `concerns`, `concern_ai_analysis`, `concern_duplicate_links`, `concern_media`, `concern_votes`, `concern_status_history`, `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`, `mission_resolution_posts`, `blotters`, `blotter_media`, `announcements`, `library_items`, `badges`, `user_badges`, `civic_xp_events`, `hotspots`, `notifications`, `notification_outbox`, `push_subscriptions`, `audit_logs`, `background_jobs`
+`barangays`, `barangay_settings`, `departments`, `preloaded_residents`, `users`, `resident_profiles`, `personnel_profiles`, `profile_edit_requests`, `refresh_tokens`, `password_reset_tokens`, `concern_categories`, `concern_subcategories`, `category_playbooks`, `concerns`, `concern_ai_analysis`, `concern_duplicate_links`, `concern_media`, `concern_votes`, `concern_status_history`, `missions`, `mission_assignments`, `mission_checklist_items`, `mission_status_history`, `mission_proof`, `mission_proof_media`, `mission_resolution_posts`, `blotters`, `blotter_media`, `announcements`, `library_items`, `badges`, `user_badges`, `civic_xp_events`, `hotspots`, `notifications`, `notification_outbox`, `push_subscriptions`, `audit_logs`, `background_jobs`
 
 ---
 

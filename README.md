@@ -12,8 +12,10 @@ Barangay concern and response management platform for residents, field personnel
 - Profile management, security settings, and ID verification onboarding
 
 ### Personnel
-- View assigned missions and update status
-- Submit proof of completion
+- Work from a department-wide mission queue, including missions assigned to teammates
+- Acknowledge, update, and submit proof for missions assigned directly to the member
+- Use department-specific portal branding for Traffic Management / Clearing, Environmental, Peace & Order, Utility & Infrastructure, Tambo Animal Response, or Maintenance
+- Keep VAWC case details restricted to Peace & Order VAW Desk personnel
 - In-app notifications
 
 ### Administrators
@@ -39,11 +41,13 @@ Barangay concern and response management platform for residents, field personnel
 | Role | Access |
 |------|--------|
 | `resident` | Feed, concerns, blotter, library, announcements, profile |
-| `personnel` | Mission list, mission detail, proof upload, notifications |
+| `personnel` | Department mission queue, read-only teammate mission detail, assigned mission actions, proof upload, notifications |
 | `admin` | Full admin panel — reports, missions, residents, audit, settings |
 | `super_admin` | Reserved for elevated system access |
 
 Route access is enforced by the `role` middleware (`EnsureUserHasRole`).
+
+Personnel accounts have a department and a role within that department. Admin dispatch assigns each mission to one department and one or more members of that team. Department members can review the shared queue, while only directly assigned members can change status, checklist, or proof. VAWC missions are visible only to members with the Peace & Order VAW Desk role.
 
 ## Project Structure
 
@@ -96,6 +100,17 @@ Then run two terminals: `php artisan serve` and `npm run dev` → [http://localh
 | Admin | `ADMIN001` | `/login` |
 | Personnel | `PER001` | `/personnel/login` |
 | Resident | `RES001` | `/login` |
+
+Department portal demos (all use password `password`):
+
+| Department | Account ID |
+|------------|------------|
+| Peace & Order | `TAMBO_PER_0001` |
+| Utility & Infrastructure | `TAMBO_PER_0999` |
+| Environmental | `TAMBO_PER_1003` |
+| Traffic Management / Clearing | `TAMBO_PER_1004` |
+| Tambo Animal Response Team | `TAMBO_PER_1005` |
+| Maintenance | `TAMBO_PER_1006` |
 
 ## Getting Started (manual)
 

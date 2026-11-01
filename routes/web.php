@@ -175,6 +175,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 Route::middleware('auth')->group(function () {
     Route::post('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'update'])->name('profile-photo.update');
     Route::delete('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'destroy'])->name('profile-photo.destroy');
+    Route::get('/private-media/concerns/{media}', [\App\Http\Controllers\PrivateMediaController::class, 'concern'])->name('private-media.concern');
+    Route::get('/private-media/proofs/{media}', [\App\Http\Controllers\PrivateMediaController::class, 'proof'])->name('private-media.proof');
 });
 
 Route::middleware(['auth', 'role:resident'])->group(function () {

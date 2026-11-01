@@ -43,7 +43,7 @@ const navSections: NavSection[] = [
         title: 'Users',
         icon: Users,
         items: [
-            { href: '/admin/personnel', label: 'Personnel', icon: Users },
+            { href: '/admin/departments', label: 'Departments', icon: Users },
             { href: '/admin/residents', label: 'Residents', icon: Users },
             { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
             { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },
@@ -75,7 +75,7 @@ type Props = PropsWithChildren<{
 }>;
 
 export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Dashboard' }: Props) {
-    const { isActive } = useActivePath();
+    const { isActive, path } = useActivePath();
     const { user } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
@@ -120,6 +120,9 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
 
     const active = (href: string, exact?: boolean) => {
         if (exact) return isActive('/admin') && href === '/admin';
+        if (href === '/admin/departments') {
+            return isActive('/admin/departments') || isActive('/admin/personnel');
+        }
         return isActive(href);
     };
 
@@ -133,8 +136,8 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                 initialOpenState[section.id] = true;
             }
         });
-        setOpenSections(prev => ({ ...initialOpenState, ...prev }));
-    }, []);
+        setOpenSections(prev => ({ ...prev, ...initialOpenState }));
+    }, [path]);
 
     const toggleSection = (id: string) => {
         setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));

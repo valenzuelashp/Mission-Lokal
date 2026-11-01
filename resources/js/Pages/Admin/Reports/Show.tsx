@@ -8,6 +8,7 @@ import MapView from '@/Components/maps/MapView';
 import { Badge } from '@/Components/ui/badge';
 import { TAMBO_CENTER } from '@/Lib/mapUtils';
 import { cn } from '@/Lib/utils';
+import { personnelDepartmentOptions, type PersonnelDepartmentKey } from '@/Lib/personnelDepartments';
 
 function formatStep(step: unknown): string {
     if (typeof step === 'string') return step;
@@ -22,7 +23,15 @@ function formatStep(step: unknown): string {
 interface Props {
     report: any;
     masterCandidates?: { id: string; label: string }[];
-    personnel?: { id: string; name: string; category: string; subcategories: string[] }[];
+    personnel?: {
+        id: string;
+        name: string;
+        role: string;
+        role_value?: string;
+        department?: PersonnelDepartmentKey;
+        department_label?: string;
+        subcategories?: string[];
+    }[];
 }
 
 export default function Show({ report, personnel = [] }: Props) {
@@ -31,7 +40,8 @@ export default function Show({ report, personnel = [] }: Props) {
 
     const { data, setData, post, processing, errors } = useForm({
         concern_id: report?.id ?? '',
-        personnel_ids: report?.assigned_personnel_ids ?? [] as string[],
+        personnel_ids: (report?.assigned_personnel_ids ?? []) as string[],
+        department: report?.department ?? '',
         confirmed_action: report?.ai_recommended_action ?? 'escalate',
         rejection_reason: report?.ai_dismissal_reason ?? '',
         master_concern_id: report?.ai_duplicate_id ?? '',
@@ -40,7 +50,8 @@ export default function Show({ report, personnel = [] }: Props) {
 
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
     const hasMission = Boolean(report?.mission);
-    const assignedPersonnel = report?.assigned_personnel ?? [];
+    const assignedPersonnel: { id: string; name: string; role: string }[] = report?.assigned_personnel ?? [];
+    const departmentPersonnel = personnel.filter((member) => member.department === data.department);
     const safeLat = report?.lat ? Number(report.lat) : TAMBO_CENTER[0];
     const safeLng = report?.lng ? Number(report.lng) : TAMBO_CENTER[1];
 
@@ -356,7 +367,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                         <p className="text-[11px] font-black uppercase tracking-wider text-emerald-900">Assigned Personnel</p>
                                         {assignedPersonnel.length > 0 ? assignedPersonnel.map((person) => (
                                             <p key={person.id} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-xs font-semibold text-slate-800">
-                                                {person.name} <span className="font-medium text-slate-500">· {person.category}</span>
+                                                {person.name} <span className="font-medium text-slate-500">· {person.role}</span>
                                             </p>
                                         )) : (
                                             <p className="rounded-lg border border-emerald-100 bg-white px-3 py-2 text-xs text-slate-600">No personnel are currently assigned.</p>
@@ -393,14 +404,39 @@ export default function Show({ report, personnel = [] }: Props) {
 
                                             <div className="space-y-2.5">
                                                 <div className="flex justify-between items-center">
-                                                    <label className="text-xs font-black uppercase tracking-wider text-slate-700">Matched Personnel Units</label>
+                                                    <label htmlFor="mission-department" className="text-xs font-black uppercase tracking-wider text-slate-700">Assign to Department</label>
                                                     <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">AI Recommended</span>
                                                 </div>
+                                                <select
+                                                    id="mission-department"
+                                                    value={data.department}
+                                                    onChange={(event) => {
+                                                        setData({
+                                                            ...data,
+                                                            department: event.target.value,
+                                                            personnel_ids: [],
+                                                        });
+                                                    }}
+                                                    required
+                                                    className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-900 shadow-2xs"
+                                                >
+                                                    <option value="">Select a department</option>
+                                                    {personnelDepartmentOptions.map((department) => (
+                                                        <option key={department.value} value={department.value}>{department.label}</option>
+                                                    ))}
+                                                </select>
+                                                {report?.is_vawc && (
+                                                    <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-800">
+                                                        VAWC concerns are confidential and can only be assigned to VAW Desk personnel.
+                                                    </p>
+                                                )}
                                                 <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-200 p-3 space-y-2 bg-white shadow-2xs">
-                                                    {personnel.length === 0 ? (
-                                                        <p className="text-xs text-muted-foreground p-4 text-center">No active personnel available online.</p>
+                                                    {!data.department ? (
+                                                        <p className="text-xs text-muted-foreground p-4 text-center">Choose a department to see its active personnel.</p>
+                                                    ) : departmentPersonnel.length === 0 ? (
+                                                        <p className="text-xs text-muted-foreground p-4 text-center">No active personnel are available in this department.</p>
                                                     ) : (
-                                                        personnel.map(p => {
+                                                        departmentPersonnel.map(p => {
                                                             const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
                                                             return (
                                                                 <label key={p.id} className={cn(
@@ -418,7 +454,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                                                         />
                                                                         <div>
                                                                             <span className="font-bold text-slate-900">{p.name}</span>
-                                                                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.category}</p>
+                                                                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.role}</p>
                                                                         </div>
                                                                     </div>
                                                                     {isAiSuggested && (

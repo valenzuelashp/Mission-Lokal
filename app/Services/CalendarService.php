@@ -8,6 +8,7 @@ use App\Models\Announcement;
 use App\Models\Mission;
 use App\Models\Personnel;
 use App\Models\User;
+use App\Services\Missions\DepartmentMissionAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -91,7 +92,7 @@ class CalendarService
         }
 
         return $announcements->concat(
-            $this->missionEvents($user->barangay_id, $start, $end, $personnel->id, 'personnel')
+            $this->missionEvents($user->barangay_id, $start, $end, $personnel, 'personnel')
         );
     }
 
@@ -143,7 +144,7 @@ class CalendarService
                     'admin' => '/admin/announcements/'.$item->id.'/edit',
                     default => '/announcements/'.$item->id,
                 },
-                subtitle: $going ? 'You are going' : $kind->calendarSubtitle((bool) $item->is_published),
+                subtitle: $going ? 'You are going' : $kind->calendarSubtitle((bool)$item->is_published),
                 going: $going,
             );
         })->filter()->values();
@@ -153,21 +154,30 @@ class CalendarService
         ?string $barangayId,
         CarbonImmutable $start,
         CarbonImmutable $end,
-        ?string $personnelId,
+        ?Personnel $personnel,
         string $audience
     ): Collection {
+        $departmentAccess = app(DepartmentMissionAccess::class);
+        $departmentAliases = $personnel
+            ? $departmentAccess->departmentAliases($personnel->department)
+            : [];
+
         $items = Mission::query()
-            ->with('concern')
+            ->with('concern.subcategory')
             ->where('barangay_id', $barangayId)
             ->whereNotNull('due_date')
-            ->whereBetween('due_date', [$start->toDateString(), $end->toDateString()])
-            ->when($personnelId, function ($query) use ($personnelId) {
-                $query->whereHas('personnel', fn ($personnel) => $personnel->where('personnel.id', $personnelId));
+            ->whereBetween('due_date', [$start->toDateString(),$end->toDateString()])
+            ->when($personnel, function ($query) use ($departmentAliases) {
+                $query->whereIn('department', $departmentAliases);
             })
             ->get();
 
+        if ($personnel) {
+            $items = $items->filter(fn (Mission $item) => $departmentAccess->canView($personnel, $item));
+        }
+
         return $items->map(function (Mission $item) use ($audience) {
-            $title = $item->concern?->title ?? 'Mission due';
+            $title =$item->concern?->title ?? 'Mission due';
 
             return $this->event(
                 id: 'mission-'.$item->id,

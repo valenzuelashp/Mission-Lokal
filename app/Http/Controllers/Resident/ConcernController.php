@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Resident;
 use App\Services\Concerns\FileUploadService;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
+use App\Models\ConcernSubcategory;
 use App\Models\ConcernStatusHistory;
 use App\Models\Announcement;
 use App\Support\ConcernStatusUpdate;
@@ -41,7 +42,9 @@ class ConcernController extends Controller
             ->selectRaw('ST_Y(concerns.location) as map_lat, ST_X(concerns.location) as map_lng')
             ->where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($user) {
-                $query->where('visibility', 'public')
+                $query->where(function ($public) {
+                    $public->where('visibility', 'public')->whereNotVawc();
+                })
                       ->orWhere('reporter_id', $user->id);
             })
             ->when($search !== '', function (Builder $query) use ($search) {
@@ -57,6 +60,7 @@ class ConcernController extends Controller
                 'reporter',
                 'category',
                 'media',
+                'subcategory',
                 'mission',
                 'statusHistory' => fn ($query) => $query
                     ->whereIn('to_status', ['submitted', 'active', 'rejected', 'spam', 'resolved', 'closed'])
@@ -131,7 +135,7 @@ class ConcernController extends Controller
                     'privacy_locked' => (bool) $item->is_blotter_candidate,
                     'images' => $item->media
                         ->sortBy('sort_order')
-                        ->map(fn ($media) => asset('storage/'.$media->storage_key))
+                        ->map(fn ($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($item, $media))
                         ->values()
                         ->all(),
                     'latest_update' => $latestResidentUpdate ? [
@@ -241,7 +245,7 @@ class ConcernController extends Controller
         $proofMedia = $mission?->proof?->media ?? collect();
         $photos = $proofMedia
             ->whereIn('id', $post->media_ids ?? [])
-            ->map(fn ($media) => asset('storage/'.$media->storage_key))
+            ->map(fn ($media) => app(\App\Support\SensitiveMediaUrl::class)->forProof($post->mission, $media))
             ->values()
             ->all();
 
@@ -297,6 +301,11 @@ class ConcernController extends Controller
             }
         }
 
+        $isVawcConcern = Concern::isVawcReport(
+            $request->category_id,
+            $request->title,
+            $request->description,
+        );
         $categoryMap = [
             'infrastructure' => 1,
             'light' => 1,     
@@ -304,15 +313,14 @@ class ConcernController extends Controller
             'waste' => 2,     
             'noise' => 3,     
             'fire' => 1,      
-            'vawc' => 4,      
+            'vawc' => 3,
         ];
 
-        $categoryIdInt = $categoryMap[$request->category_id] ?? 1;
-        $forcePrivate = Concern::shouldForcePrivate(
-            $request->category_id,
-            $request->title ?? '',
-            $request->description ?? ''
-        );
+        $categoryIdInt = $isVawcConcern ? 3 : ($categoryMap[$request->category_id] ?? 1);
+        $subcategoryId = $isVawcConcern
+            ? ConcernSubcategory::query()->where('code', 'VAWC')->value('id')
+            : null;
+        $forcePrivate = Concern::shouldForcePrivate($request->category_id, $request->title, $request->description);
         $visibility = $forcePrivate ? 'private' : 'public';
         $lat = (float) $request->lat;
         $lng = (float) $request->lng;
@@ -321,13 +329,15 @@ class ConcernController extends Controller
             : app(ReverseGeocoder::class)->label($lat, $lng);
         $addressText ??= "Coordinates: {$lat}, {$lng}";
         
-        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $visibility, $forcePrivate, $lat, $lng, $addressText) {
+        $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $subcategoryId, $isVawcConcern, $visibility, $forcePrivate, $lat, $lng, $addressText) {
             $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
                 'reporter_id' => $user->id,
                 'title' => $request->title,
                 'description' => $request->description,
                 'category_id' => $categoryIdInt,
+                'subcategory_id' => $subcategoryId,
+                'is_vawc' => $isVawcConcern,
                 'visibility' => $visibility, 
                 'status' => ConcernStatus::Submitted, 
                 'location' => MapHelpers::pointFromLatLng($lat, $lng),
@@ -341,7 +351,7 @@ class ConcernController extends Controller
 
                 foreach ($request->file('images') as $index => $file) {
                     try {
-                        $path = $uploadService->upload($file, 'concerns', 'image');
+                        $path = $uploadService->upload($file, 'concerns', 'image', true);
                     } catch (\Throwable $e) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
                             'images' => 'One of the photos could not be saved. Use a JPG, PNG, or WebP under 4 MB.',
@@ -468,7 +478,7 @@ class ConcernController extends Controller
                 'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
                 'reporter_photo_url' => $concern->reporter?->profilePhotoUrl(),
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
-                'images' => $concern->media->map(fn($m) => asset('storage/' . $m->storage_key))->toArray(),
+                'images' => $concern->media->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray(),
                 'timeline' => $timeline,
                 'response_plan' => $responsePlan,
             ]
@@ -550,7 +560,7 @@ class ConcernController extends Controller
 
         DB::transaction(function () use ($concern) {
             foreach ($concern->media as $mediaItem) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($mediaItem->storage_key);
+                \Illuminate\Support\Facades\Storage::disk('local')->delete($mediaItem->storage_key);
             }
             $concern->delete();
         });

@@ -19,6 +19,7 @@ class Mission extends Model
     protected $fillable = [
         'barangay_id',
         'concern_id',
+        'department',
         'playbook_id',
         'due_date',
         'estimated_duration_hours',

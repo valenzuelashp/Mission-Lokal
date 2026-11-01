@@ -19,7 +19,7 @@ class MissionResolutionPostBuilderTest extends TestCase
 {
     public function test_it_prefills_the_public_update_with_work_details_and_proof_media(): void
     {
-        $member = new Personnel(['category' => 'public_works']);
+        $member = new Personnel(['role' => 'public_works']);
         $member->setRelation('user', new User(['first_name' => 'Alex', 'last_name' => 'Rivera']));
 
         $assignment = new MissionAssignment();
@@ -46,7 +46,7 @@ class MissionResolutionPostBuilderTest extends TestCase
         $template = app(MissionResolutionPostBuilder::class)->build($mission, $concern);
 
         $this->assertSame('Resolved: Blocked Drainage', $template['title']);
-        $this->assertStringContainsString('Alex Rivera (Public works)', $template['body']);
+        $this->assertStringContainsString('Alex Rivera (Utility & infrastructure)', $template['body']);
         $this->assertStringContainsString('Cleared the blocked drainage inlet.', $template['body']);
         $this->assertStringContainsString('1 hour 30 minutes', $template['body']);
         $this->assertStringContainsString('Location: Zone 2', $template['body']);

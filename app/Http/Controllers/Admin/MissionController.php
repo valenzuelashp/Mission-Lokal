@@ -16,6 +16,7 @@ use App\Jobs\SendMissionAssignmentSms;
 use App\Services\Sms\SmsGatewayInterface;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Services\Missions\MissionLifecycleService;
+use App\Services\Missions\MissionDepartmentAssignment;
 use App\Services\Missions\MissionResolutionPostBuilder;
 use App\Support\ConcernStatusUpdate;
 use Illuminate\Http\Request;
@@ -75,6 +76,8 @@ class MissionController extends Controller
                 'location' => $concern->locationLabel(),
                 'assignee' => $assigneeNames,
                 'personnel_ids' => $personnelIds,
+                'department' => $mission?->department, // Safely returns string
+                'department_label' => $mission?->department, // Safely returns string
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
                 'priority_score' => $priorityScore,
                 'status' => $statusStr,
@@ -122,7 +125,10 @@ class MissionController extends Controller
                 return [
                     'id' => $personnel->id,
                     'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
-                    'category' => $personnel->category?->label() ?? 'Category not set',
+                    'role' => $personnel->role ?? 'Role not set',
+                    'role_value' => $personnel->role,
+                    'department' => $personnel->department,
+                    'department_label' => $personnel->department,
                 ];
             });
 
@@ -153,6 +159,7 @@ class MissionController extends Controller
         if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
             return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
         }
+        $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 
         $maxDueDate = $deadlinePolicy->deadlineFor($concern)->toDateString();
         $validated['due_date'] = $request->validate([
@@ -170,7 +177,7 @@ class MissionController extends Controller
         $newlyAssignedPersonnelIds = [];
         $missionId = null;
 
-        DB::transaction(function () use ($validated, $concern, $request, $barangayId, $deadlinePolicy, $lifecycle, $existingMission, &$newlyAssignedPersonnelIds, &$missionId) {
+        DB::transaction(function () use ($validated, $concern, $request, $barangayId, $deadlinePolicy, $lifecycle, $existingMission, $department, &$newlyAssignedPersonnelIds, &$missionId) {
             $previousStatus = $existingMission
                 ? ($existingMission->status->value ?? $existingMission->status)
                 : null;
@@ -178,6 +185,7 @@ class MissionController extends Controller
                 ['concern_id' => $concern->id],
                 [
                     'barangay_id' => $concern->barangay_id,
+                    'department' => $department,
                     'status' => $previousStatus ?? 'assigned',
                     'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
                     'acknowledged_at' => $existingMission?->acknowledged_at,
@@ -205,20 +213,20 @@ class MissionController extends Controller
                     'created_at' => $existingPivot ? $existingPivot->created_at : now(),
                     'updated_at' => now(),
                 ];
+            }
 
-                $personnelRecord = Personnel::with('user')->find($personnelId);
-                if ($personnelRecord && $personnelRecord->user_id) {
-                    Notification::create([
-                        'user_id' => $personnelRecord->user_id,
-                        'barangay_id' => $barangayId,
-                        'channel' => 'in_app',
-                        'event_type' => 'new_mission_assigned',
-                        'title' => 'New mission assigned',
-                        'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
-                        'payload' => ['mission_id' => $mission->id],
-                        'is_read' => false,
-                    ]);
-                }
+            $personnelRecord = Personnel::with('user')->find($personnelId);
+            if ($personnelRecord && $personnelRecord->user_id) {
+                Notification::create([
+                    'user_id' => $personnelRecord->user_id,
+                    'barangay_id' => $barangayId,
+                    'channel' => 'in_app',
+                    'event_type' => 'new_mission_assigned',
+                    'title' => 'New mission assigned',
+                    'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
+                    'payload' => ['mission_id' => $mission->id],
+                    'is_read' => false,
+                ]);
             }
 
             $assignmentChanges = $mission->personnel()->sync($syncData);
@@ -268,9 +276,11 @@ class MissionController extends Controller
 
         $mission = Mission::where('barangay_id', $barangayId)
             ->with([
-                'concern.media', 
-                'concern.duplicates.reporter', 
+                'concern.media',
+                'concern.subcategory',
+                'concern.duplicates.reporter',
                 'concern.duplicates.media',
+                'concern.duplicates.subcategory',
                 'proof.media', 
                 'personnel.user',
                 'resolutionPost',
@@ -278,8 +288,8 @@ class MissionController extends Controller
             ->findOrFail($id);
 
         $concern = $mission->concern;
-        $concernImages = $concern->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
-        $proofPhotos = $mission->proof?->media?->map(fn($m) => asset('storage/'.$m->storage_key))->toArray() ?? [];
+        $concernImages = $concern->media?->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray() ?? [];
+        $proofPhotos = $mission->proof?->media?->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forProof($mission, $media))->toArray() ?? [];
 
         $assigneeNames = $mission->personnel->map(function($p) {
             return trim(($p->user?->first_name ?? '') . ' ' . ($p->user?->last_name ?? ''));
@@ -293,7 +303,7 @@ class MissionController extends Controller
                 'reporter_name' => trim(($dup->reporter?->first_name ?? '') . ' ' . ($dup->reporter?->last_name ?? '')),
                 'reporter_mobile' => $dup->reporter?->mobile,
                 'submitted_at' => $dup->created_at->format('M d, Y g:i A'),
-                'images' => $dup->media->map(fn($m) => asset('storage/'.$m->storage_key))->values()->toArray(),
+                'images' => $dup->media->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($dup, $media))->values()->toArray(),
             ];
         });
 
@@ -305,6 +315,8 @@ class MissionController extends Controller
                 'location' => $concern->locationLabel(),
                 'priority' => $concern->severity === 'critical' ? 'high' : 'med',
                 'status' => $mission->status->value ?? $mission->status,
+                'department' => $mission->department, // Safe string
+                'department_label' => $mission->department, // Safe string
                 'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : null,
                 'is_overdue' => (bool)$mission->is_overdue,
                 'brief' => $concern->description,
@@ -312,11 +324,15 @@ class MissionController extends Controller
                 'assigned_personnel' => $mission->personnel->map(fn ($personnel) => [
                     'id' => $personnel->id,
                     'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                    'role' => $personnel->role ?? 'Role not set',
                     'sms_enabled' => (bool) $personnel->sms_enabled,
                     'has_mobile' => filled($personnel->user?->mobile),
                 ])->values(),
                 'available_personnel' => Personnel::with('user')
                     ->whereNotIn('id', $mission->personnel->pluck('id'))
+                    ->whereNotNull('department')
+                    ->where('department', $mission->department)
+                    ->when($concern->isSensitiveConcern(), fn ($query) => $query->whereIn('role', ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']))
                     ->whereHas('user', fn ($query) => $query
                         ->where('barangay_id', $barangayId)
                         ->where('role', 'personnel')
@@ -325,7 +341,9 @@ class MissionController extends Controller
                     ->map(fn ($personnel) => [
                         'id' => $personnel->id,
                         'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
-                        'category' => $personnel->category?->label() ?? 'Category not set',
+                        'role' => $personnel->role ?? 'Role not set',
+                        'department' => $personnel->department,
+                        'department_label' => $personnel->department,
                     ])->values(),
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,
@@ -342,7 +360,7 @@ class MissionController extends Controller
                         ->whereIn('id', $mission->resolutionPost->media_ids ?? [])
                         ->map(fn ($media) => [
                             'id' => $media->id,
-                            'url' => asset('storage/'.$media->storage_key),
+                            'url' => app(\App\Support\SensitiveMediaUrl::class)->forProof($mission, $media),
                         ])
                         ->values()
                         ->all() ?? [],
@@ -373,9 +391,14 @@ class MissionController extends Controller
         }
 
         $personnelIds = array_values(array_unique($validated['personnel_ids']));
+        $mission->loadMissing('concern.subcategory');
         $lifecycle = app(MissionLifecycleService::class);
         if (! $lifecycle->areActivePersonnelInBarangay($personnelIds, $request->user()->barangay_id)) {
             return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        }
+        $department = app(MissionDepartmentAssignment::class)->departmentFor($mission->concern, $personnelIds);
+        if ($department !== $mission->department) {
+            return back()->withErrors(['personnel_ids' => 'Additional personnel must belong to this mission department.']);
         }
 
         $currentlyAssignedIds = $mission->personnel->pluck('id')->all();
@@ -509,7 +532,7 @@ class MissionController extends Controller
                     );
                 }
 
-                if ($concern->visibility === 'public' && !$concern->is_blotter_candidate && $mission->proof) {
+                if ($concern->visibility === 'public' && !$concern->is_blotter_candidate && !$concern->isVawcConcern() && $mission->proof) {
                     $existingPost = $mission->resolutionPost;
                     if (!$existingPost?->is_published) {
                         $existingPost ??= new MissionResolutionPost(['mission_id' => $mission->id]);
@@ -586,6 +609,7 @@ class MissionController extends Controller
             ($mission->status->value ?? $mission->status) !== 'verified'
             || $mission->concern?->visibility !== 'public'
             || $mission->concern?->is_blotter_candidate
+            || $mission->concern?->isVawcConcern()
         ) {
             return back()->withErrors(['resolution_post' => 'Only verified missions for public reports can be posted to the community feed.']);
         }

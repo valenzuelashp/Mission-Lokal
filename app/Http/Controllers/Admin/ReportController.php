@@ -22,6 +22,8 @@ use App\Support\MapHelpers;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Support\ConcernStatusUpdate;
 use App\Services\Missions\MissionLifecycleService;
+use App\Services\Missions\MissionDepartmentAssignment;
+use App\Services\Missions\MissionResolutionPostBuilder;
 
 class ReportController extends Controller
 {
@@ -39,29 +41,22 @@ class ReportController extends Controller
         return isset($map[$current]) && in_array($next, $map[$current]);
     }
 
-    /**
-     * Helper method to assign specific Civic XP points based on Concern Category.
-     */
     private function calculateCategoryXp(Concern $concern, string $barangayId): int
     {
         $concern->loadMissing('category');
         $categoryName = $concern->category ? $concern->category->name : 'Unknown';
 
-        // Custom criteria: Define how many points each category gives.
-        // You can change these numbers anytime!
         $pointsMap = [
-            'Public Safety & Order'      => 20, // High priority/risk
+            'Public Safety & Order'      => 20, 
             'Infrastructure & Utilities' => 15,
             'Sanitation & Environment'   => 10,
-            'Katarungang Pambarangay'    => 5,  // Lower operational impact
+            'Katarungang Pambarangay'    => 5,  
         ];
 
-        // If the category exists in our map, give those points
         if (array_key_exists($categoryName, $pointsMap)) {
             return $pointsMap[$categoryName];
         }
 
-        // Fallback to the default settings (usually 10) if category isn't mapped
         $settings = BarangaySetting::find($barangayId);
         return $settings ? $settings->civic_xp_per_valid_report : 10;
     }
@@ -106,7 +101,7 @@ class ReportController extends Controller
                 'priority_reason' => $priority['reason'],
                 'upvotes_count' => $c->votes->where('vote', 1)->count(),
                 'visibility' => $c->visibility,
-                'images' => $c->media->sortBy('sort_order')->map(fn ($m) => asset('storage/' . $m->storage_key))->values()->all(),
+                'images' => $c->media->sortBy('sort_order')->map(fn ($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($c, $m))->values()->all(),
                 'status' => $status,
                 'queue_status' => match($status) {
                     'submitted', 'ai_processed' => 'ai_processed',
@@ -219,26 +214,28 @@ class ReportController extends Controller
             ->get()
             ->map(function ($personnel) {
                 $fullName = trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? ''));
-                $cat = $personnel->category;
-                $catName = is_object($cat) && method_exists($cat, 'label') ? $cat->label() : (is_string($cat) ? ucfirst($cat) : 'General');
+                $role = $personnel->role;
+                $roleName = is_string($role) ? ucfirst(str_replace('_', ' ', $role)) : (empty($role) ? 'General' : (string) $role);
+                
                 return [
                     'id' => $personnel->id,
                     'name' => $fullName ?: 'Unnamed Personnel',
-                    'category' => $catName,
+                    'role' => $roleName,
+                    'role_value' => $personnel->role,
+                    'department' => $personnel->department,
+                    'department_label' => $personnel->department,
                 ];
             });
 
         $existingMission = $record->mission;
         $assignedPersonnelIds = $existingMission?->personnel?->pluck('id')->values()->toArray() ?? [];
         $assignedPersonnel = $existingMission?->personnel?->map(function ($personnel) {
-            $category = $personnel->category;
+            $role = $personnel->role;
 
             return [
                 'id' => $personnel->id,
                 'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
-                'category' => is_object($category) && method_exists($category, 'label')
-                    ? $category->label()
-                    : (is_string($category) ? ucfirst($category) : 'General'),
+                'role' => is_string($role) ? ucfirst(str_replace('_', ' ', $role)) : (empty($role) ? 'General' : (string) $role),
             ];
         })->values()->toArray() ?? [];
 
@@ -282,7 +279,7 @@ class ReportController extends Controller
                 'reporter_mobile' => $dup->reporter?->mobile,
                 'status' => $dup->status->value ?? $dup->status,
                 'submitted_at' => $dup->created_at->format('M d, Y g:i A'),
-                'images' => $dup->media->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+                'images' => $dup->media->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($dup, $m))->values()->toArray(),
             ];
         });
 
@@ -305,6 +302,22 @@ class ReportController extends Controller
         if (!$suggestedDueDate || $suggestedDueDate > $maxDueDate) {
             $suggestedDueDate = $maxDueDate;
         }
+        
+        // Use the string department safely (No ->value calls)
+        $missionDepartment = $existingMission?->department ?? $record->suggestedPersonnelDepartment();
+        $isVawcConcern = $record->isSensitiveConcern();
+        
+        $suggestedPersonnelIds = $existingMission
+            ? $assignedPersonnelIds
+            : ($aiAnalysis?->suggested_personnel_ids ?? []);
+            
+        $suggestedPersonnelIds = $personnelList
+            ->whereIn('id', $suggestedPersonnelIds)
+            ->filter(fn ($person) => $person['department'] === $missionDepartment
+                && (! $isVawcConcern || in_array($person['role_value'], ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases'])))
+            ->pluck('id')
+            ->values()
+            ->all();
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
@@ -317,13 +330,13 @@ class ReportController extends Controller
                 'deadline_days' => $deadlinePolicy->workingDaysFor($record),
                 'max_due_date' => $maxDueDate,
                 'due_date' => $suggestedDueDate,
+                'department' => $missionDepartment,
+                'is_vawc' => $isVawcConcern,
                 'lat' => $locationData ? (float) $locationData->lat : 14.5173079,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
-                'images' => $record->media->sortBy('sort_order')->map(fn($m) => asset('storage/' . $m->storage_key))->values()->toArray(),
+                'images' => $record->media->sortBy('sort_order')->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($record, $m))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
-                'assigned_personnel_ids' => $existingMission
-                    ? $assignedPersonnelIds
-                    : ($aiAnalysis?->suggested_personnel_ids ?? []),
+                'assigned_personnel_ids' => $suggestedPersonnelIds,
                 'mission' => $existingMission ? [
                     'id' => $existingMission->id,
                     'status' => $existingMission->status->value ?? $existingMission->status,
@@ -376,7 +389,6 @@ class ReportController extends Controller
         if (in_array($validated['status'], ['rejected', 'spam'], true)) {
             $attributes['closed_summary'] = $validated['rejection_reason'];
             
-            // Deduct XP: -15 for spam, -10 for standard rejection
             $penalty = $validated['status'] === 'spam' ? 15 : 10;
             $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
             if ($reporterProfile) {
@@ -485,8 +497,9 @@ class ReportController extends Controller
             if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
                 return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
             }
+            $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 
-            DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+            DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, $department, &$newlyAssignedPersonnelIds, &$missionId) {
                 $previousConcernStatus = $concern->status->value ?? $concern->status;
                 $existingMission = Mission::where('concern_id', $concern->id)->first();
                 $previousStatus = $existingMission
@@ -496,6 +509,7 @@ class ReportController extends Controller
                     ['concern_id' => $concern->id],
                     [
                         'barangay_id' => $barangayId,
+                        'department' => $department,
                         'status' => $previousStatus ?? 'assigned',
                         'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
                         'acknowledged_at' => $existingMission?->acknowledged_at,
@@ -556,16 +570,12 @@ class ReportController extends Controller
                         'A response mission was assigned to this concern.',
                     );
 
-                    // ==========================================
-                    // DYNAMIC CATEGORY-BASED CIVIC XP
-                    // ==========================================
                     $points = $this->calculateCategoryXp($concern, $barangayId);
                     
                     $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
                     if ($reporterProfile) {
                         $reporterProfile->awardXp('valid_report', $points, 'concern', $concern->id, $barangayId);
                     }
-                    // ==========================================
                 }
 
                 DB::table('audit_logs')->insert([
@@ -875,8 +885,9 @@ class ReportController extends Controller
         if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
             return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
         }
+        $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 
-        DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, &$newlyAssignedPersonnelIds, &$missionId) {
+        DB::transaction(function () use ($concern, $validated, $barangayId, $request, $deadlinePolicy, $lifecycle, $department, &$newlyAssignedPersonnelIds, &$missionId) {
             $previousConcernStatus = $concern->status->value ?? $concern->status;
             $existingMission = Mission::where('concern_id', $concern->id)->first();
             $previousStatus = $existingMission
@@ -886,6 +897,7 @@ class ReportController extends Controller
                 ['concern_id' => $concern->id],
                 [
                     'barangay_id' => $barangayId,
+                    'department' => $department,
                     'status' => $previousStatus ?? 'assigned',
                     'due_date' => $validated['due_date'] ?? $deadlinePolicy->deadlineFor($concern)->toDateString(),
                     'acknowledged_at' => $existingMission?->acknowledged_at,

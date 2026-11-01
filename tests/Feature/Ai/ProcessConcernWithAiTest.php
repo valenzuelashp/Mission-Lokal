@@ -7,6 +7,7 @@ use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Tests\TestCase;
@@ -20,11 +21,13 @@ class ProcessConcernWithAiTest extends TestCase
         Schema::create('concerns', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->unsignedSmallInteger('category_id')->nullable();
+            $table->unsignedSmallInteger('subcategory_id')->nullable();
             $table->uuid('barangay_id')->nullable();
             $table->string('title');
             $table->text('description');
             $table->string('severity')->nullable();
             $table->string('visibility')->nullable();
+            $table->boolean('is_blotter_candidate')->default(false);
             $table->string('status')->default('submitted');
             $table->timestamp('ai_processed_at')->nullable();
             $table->timestamps();
@@ -182,5 +185,59 @@ class ProcessConcernWithAiTest extends TestCase
             'is_current' => 1,
         ]);
         $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
+    }
+
+    public function test_ai_cannot_make_a_vawc_concern_public(): void
+    {
+        DB::table('concern_categories')->insert([
+            'id' => 3,
+            'code' => 'SAFETY',
+            'name' => 'Safety',
+            'is_active' => true,
+        ]);
+        DB::table('concern_subcategories')->insert([
+            'id' => 6,
+            'category_id' => 3,
+            'code' => 'VAWC',
+            'name' => 'VAWC',
+            'is_active' => true,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => json_encode([
+                                'detected_language' => 'en',
+                                'suggested_visibility' => 'public',
+                                'suggested_severity' => 'high',
+                                'severity_confidence' => 0.95,
+                                'suggested_category_code' => 'SAFETY',
+                                'suggested_subcategory_code' => 'VAWC',
+                                'prescriptive_steps' => ['Refer to the VAW Desk'],
+                                'suggested_duration_hours' => 12,
+                            ]),
+                        ]],
+                    ],
+                ]],
+            ]),
+        ]);
+
+        $concern = Concern::create([
+            'category_id' => 3,
+            'subcategory_id' => 6,
+            'title' => 'Confidential report',
+            'description' => 'A resident requests confidential assistance.',
+            'visibility' => 'public',
+        ]);
+
+        (new ProcessConcernWithAi($concern))->handle();
+
+        $this->assertSame('private', $concern->fresh()->visibility);
+        $this->assertDatabaseHas('concern_ai_analysis', [
+            'concern_id' => $concern->id,
+            'suggested_visibility' => 'private',
+        ]);
     }
 }

@@ -85,6 +85,7 @@ export default function MissionQueueTable({ missions, onOpenAssign }: Props) {
                                         <Link href={`/admin/missions/${row.id}`} onClick={stopRowNav} className="font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors block text-xs">
                                             {row.concern_title}
                                         </Link>
+                                        {row.department_label && <span className="mt-1 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{row.department_label}</span>}
                                         <p className="text-xs text-slate-400 truncate max-w-[280px] font-medium mt-0.5">{row.location}</p>
                                     </td>
                                     <td className="px-6 py-4">

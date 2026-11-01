@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Builder;
 
 class Concern extends Model
 {
@@ -16,8 +17,6 @@ class Concern extends Model
 
     protected $table = 'concerns';
 
-    // The $fillable array acts as a security whitelist. 
-    // It prevents malicious users from injecting unexpected data into the database (Mass Assignment).
     protected $fillable = [
         'barangay_id',
         'reporter_id',
@@ -29,7 +28,7 @@ class Concern extends Model
         'severity',
         'severity_confirmed',
         'status',
-        'location', // Note: Geospatial data needs special handling when inserting, which we'll do in the controller
+        'location',
         'public_location',
         'address_text',
         'is_blotter_candidate',
@@ -40,21 +39,16 @@ class Concern extends Model
         'closed_summary',
     ];
 
-    // The $casts array automatically converts raw database values into useful PHP types.
     protected function casts(): array
     {
         return [
             'severity_confirmed' => 'boolean',
             'is_blotter_candidate' => 'boolean',
-            'status' => ConcernStatus::class, // Automatically converts the DB string into your existing PHP Enum
+            'status' => ConcernStatus::class,
             'ai_processed_at' => 'datetime',
             'staff_reviewed_at' => 'datetime',
         ];
     }
-
-    // --- Relationships ---
-    // These methods allow us to easily grab related data. 
-    // E.g., $concern->reporter->full_name
 
     public function locationLabel(): string
     {
@@ -75,6 +69,88 @@ class Concern extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ConcernCategory::class, 'category_id');
+    }
+
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(ConcernSubcategory::class, 'subcategory_id');
+    }
+
+    public function isVawcConcern(): bool
+    {
+        if ($this->subcategory?->code === 'VAWC') {
+            return true;
+        }
+
+        return self::isVawcReport(null, $this->title ?? '', $this->description ?? '');
+    }
+
+    public function isSensitiveConcern(): bool
+    {
+        return (bool) $this->is_blotter_candidate || $this->isVawcConcern();
+    }
+
+    public static function isVawcReport(?string $categoryKey, string $title = '', string $description = ''): bool
+    {
+        return $categoryKey === 'vawc' || preg_match(
+            '/\b(vawc|violence\s+against\s+women|domestic\s+(?:violence|dispute)|ra\s*9262)\b/i',
+            $title.' '.$description
+        ) === 1;
+    }
+
+    public function scopeWhereNotVawc(Builder $query): Builder
+    {
+        $query->where(function (Builder $privacy) {
+            $privacy->whereNull('is_blotter_candidate')
+                ->orWhere('is_blotter_candidate', false);
+        });
+        $query->whereDoesntHave('subcategory', fn (Builder $subcategory) => $subcategory->where('code', 'VAWC'));
+
+        foreach (['%vawc%', '%violence against women%', '%domestic%', '%ra%9262%'] as $pattern) {
+            $query->where(function (Builder $text) use ($pattern) {
+                $text->whereRaw('LOWER(title) NOT LIKE ?', [$pattern])
+                    ->whereRaw('LOWER(description) NOT LIKE ?', [$pattern]);
+            });
+        }
+
+        return $query;
+    }
+
+    public function suggestedPersonnelDepartment(): string
+    {
+        $subcategoryCode = strtoupper((string) $this->subcategory?->code);
+        $categoryCode = strtoupper((string) $this->category?->code);
+        $text = strtolower(($this->title ?? '').' '.($this->description ?? ''));
+
+        if ($this->isSensitiveConcern() || $categoryCode === 'SEC') {
+            return 'Peace & Order';
+        }
+
+        if (preg_match('/\b(dog|dogs|cat|cats|stray\s+animal|animal\s+rescue)\b/i', $text) === 1) {
+            return 'Animal Response Team';
+        }
+
+        if (
+            str_contains($subcategoryCode, 'TRAFFIC')
+            || str_contains($subcategoryCode, 'OBSTRUCTION')
+            || preg_match('/\b(traffic|road\s+obstruction|blocked\s+road|clearing)\b/i', $text) === 1
+        ) {
+            return 'Traffic Management';
+        }
+
+        if ($categoryCode === 'SANI') {
+            return 'Environmental';
+        }
+
+        if (
+            str_contains($subcategoryCode, 'DRAINAGE')
+            || str_contains($subcategoryCode, 'STREET_LIGHT')
+            || preg_match('/\b(electric|electrical|drainage|street\s+light|minor\s+repair|clogged\s+drain)\b/i', $text) === 1
+        ) {
+            return 'Maintenance';
+        }
+
+        return 'Utility & Infrastructure';
     }
 
     public function reporter(): BelongsTo
@@ -148,20 +224,16 @@ class Concern extends Model
             abort(403, 'Unauthorized access request outside geographic boundary.');
         }
 
-        if ($this->visibility === 'private' && $this->reporter_id !== $user->id) {
+        if (
+            ($this->visibility === 'private' || $this->isSensitiveConcern())
+            && $this->reporter_id !== $user->id
+        ) {
             abort(403, 'This concern is private and restricted to the original reporter.');
         }
     }
 
     public static function shouldForcePrivate(?string $categoryKey, string $title = '', string $description = ''): bool
     {
-        if ($categoryKey === 'vawc') {
-            return true;
-        }
-
-        return (bool) preg_match(
-            '/\b(vawc|domestic\s+violence|domestic\s+dispute|ra\s*9262)\b/i',
-            $title.' '.$description
-        );
+        return self::isVawcReport($categoryKey, $title, $description);
     }
 }

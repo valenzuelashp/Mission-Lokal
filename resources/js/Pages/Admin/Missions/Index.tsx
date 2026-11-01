@@ -7,6 +7,7 @@ import { Input } from '@/Components/ui/input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { demoMissions, missionCounts } from '@/Lib/adminDemo';
 import { cn } from '@/Lib/utils';
+import { personnelDepartments, personnelDepartmentOptions, type PersonnelDepartmentKey } from '@/Lib/personnelDepartments';
 import type { AdminMission as BaseAdminMission, AdminMissionQueuePageProps, PageProps } from '@/Types';
 
 type AdminMission = BaseAdminMission & {
@@ -33,7 +34,7 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'merged', label: 'Merged Concerns' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, category: string }[], counts?: Record<string, number> }>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, role: string, role_value?: string, department?: PersonnelDepartmentKey, department_label?: string }[], counts?: Record<string, number> }>) {
     const rawMissions = (props.missions ?? demoMissions) as AdminMission[];
     const personnel = props.personnel ?? [];
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
@@ -51,23 +52,15 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
         merged: missions.filter(m => Boolean(m.has_merged_duplicates || (m.merged_duplicates_count && m.merged_duplicates_count > 0))).length,
     };
 
-    const categories = ['Tanod', 'Lupon', 'Public works', 'Sanitation', 'VAW Desk'];
-
-    const groupedPersonnel = [
-        ...categories.map((category) => ({
-            category,
-            members: personnel.filter((member) => member.category === category),
-        })),
-    ];
-
     const [filter, setFilter] = useState<FilterKey>('all');
     const [search, setSearch] = useState('');
     const [selectedMission, setSelectedMission] = useState<AdminMission | null>(null);
-    const [personnelCategoryFilter, setPersonnelCategoryFilter] = useState('all');
+    const [personnelRoleFilter, setPersonnelRoleFilter] = useState('all');
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         concern_id: '',
         personnel_ids: [] as string[],
+        department: '',
         due_date: '',
     });
 
@@ -108,11 +101,12 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
         if (!canModify) return;
         reset();
         clearErrors();
-        setPersonnelCategoryFilter('all');
+        setPersonnelRoleFilter('all');
         setSelectedMission(mission);
         setData({
             concern_id: mission.concern_id,
             personnel_ids: mission.personnel_ids ?? [],
+            department: mission.department ?? '',
             due_date: mission.max_due_date ?? mission.due_date_iso ?? '',
         });
     };
@@ -253,35 +247,47 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
 
                             <div className="space-y-2">
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <label className="text-xs font-black uppercase tracking-wider text-slate-700">Select Units (Multiple allowed)</label>
+                                <label htmlFor="personnel-department" className="text-xs font-black uppercase tracking-wider text-slate-700">Department Team</label>
                                     <select
-                                        aria-label="Filter personnel by category"
-                                        value={personnelCategoryFilter}
-                                        onChange={(e) => setPersonnelCategoryFilter(e.target.value)}
-                                        className="h-8 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 cursor-pointer shadow-none"
-                                    >
-                                        <option value="all">All Categories</option>
-                                        {categories.map((category) => (
-                                            <option key={category} value={category}>{category}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                    id="personnel-department"
+                                    value={data.department}
+                                    onChange={(event) => {
+                                        setData({ ...data, department: event.target.value, personnel_ids: [] });
+                                    }}
+                                    required
+                                    className="h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700"
+                                >
+                                    <option value="">Select a department</option>
+                                    {personnelDepartmentOptions.map((department) => (
+                                        <option key={department.value} value={department.value}>{department.label}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    aria-label="Filter personnel by role"
+                                    value={personnelRoleFilter}
+                                    onChange={(e) => setPersonnelRoleFilter(e.target.value)}
+                                    className="h-8 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 cursor-pointer shadow-none"
+                                >
+                                    <option value="all">All roles</option>
+                                    {(data.department ? personnelDepartments[data.department as PersonnelDepartmentKey]?.roles ?? [] : []).map((role) => (
+                                        <option key={role.value} value={role.value}>{role.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                                 
-                                <div className="min-h-[7rem] max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-3 shadow-inner">
-                                    {personnel.length === 0 ? (
-                                        <p className="text-xs text-muted-foreground text-center py-6">No active municipal personnel found.</p>
-                                    ) : (
-                                        <>
-                                            {groupedPersonnel
-                                                .filter((group) => personnelCategoryFilter === 'all' || group.category === personnelCategoryFilter)
-                                                .map((group) => (
-                                                    <div key={group.category} className="space-y-1.5">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
-                                                            {group.category}
-                                                        </p>
-                                                        {group.members.length > 0 ? group.members.map((p) => (
-                                                            <label key={p.id} className={cn(
-                                                                "flex cursor-pointer items-center gap-3 rounded-xl p-2.5 text-xs font-bold transition-all border shadow-2xs",
+                            <div className="min-h-[7rem] max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-3 shadow-inner">
+                                {!data.department ? (
+                                    <p className="text-xs text-muted-foreground text-center py-6">Choose a department before selecting personnel.</p>
+                                ) : personnel.filter((member) => member.department === data.department).length === 0 ? (
+                                    <p className="text-xs text-muted-foreground text-center py-6">No active municipal personnel found.</p>
+                                ) : (
+                                    <>
+                                        {personnel
+                                            .filter((member) => member.department === data.department)
+                                            .filter((member) => personnelRoleFilter === 'all' || member.role_value === personnelRoleFilter)
+                                            .map((p) => (
+                                                        <label key={p.id} className={cn(
+                                                            "flex cursor-pointer items-center gap-3 rounded-xl p-2.5 text-xs font-bold transition-all border shadow-2xs",
                                                                 data.personnel_ids.includes(p.id)
                                                                     ? "bg-blue-50 border-blue-300 text-blue-950 shadow-xs"
                                                                     : "bg-white border-slate-200/80 text-slate-800 hover:border-slate-300"
@@ -292,12 +298,9 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                                                     onChange={() => togglePersonnelSelection(p.id)}
                                                                     className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                                 />
-                                                                <span>{p.name}</span>
+                                                                <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                                                                <span className="shrink-0 text-[10px] text-slate-500">{p.role}</span>
                                                             </label>
-                                                        )) : (
-                                                            <p className="text-[11px] text-muted-foreground italic pl-2">No active personnel in this unit.</p>
-                                                        )}
-                                                    </div>
                                                 ))}
                                         </>
                                     )}

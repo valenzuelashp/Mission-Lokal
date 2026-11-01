@@ -39,6 +39,12 @@ export interface PageProps {
         credentials?: any;
     };
     unread_count?: number;
+    personnel_department?: {
+        value: string | null;
+        label: string | null;
+        description: string | null;
+        role: string | null;
+    } | null;
     pending_reports_count?: number;
     pending_missions_count?: number;
     pending_registrations_count?: number;
@@ -299,6 +305,8 @@ export interface AdminMission {
     images?: string[];
     assignee: string | null;
     personnel_ids?: string[];
+    department?: string | null;
+    department_label?: string | null;
     priority: 'high' | 'med' | 'low';
     status: MissionStatus;
     proof_notes?: string | null;
@@ -344,6 +352,7 @@ export interface PersonnelMission {
     proof_notes?: string | null;
     proof_photos?: string[];
     proof_submitted?: boolean;
+    is_assigned?: boolean;
 }
 
 export interface PersonnelMissionsPageProps extends PageProps {

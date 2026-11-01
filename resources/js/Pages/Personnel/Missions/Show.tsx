@@ -27,6 +27,7 @@ const nextStatus: Partial<Record<MissionStatus, { label: string; status: Mission
 export default function Show(props: Partial<PersonnelMissionPageProps>) {
     const mission = props.mission ?? demoPersonnelMissions[0];
     const { flash } = usePage<PageProps>().props;
+    const isAssigned = mission.is_assigned !== false;
 
     const assignmentAcknowledged = mission.assignment_acknowledged
         ?? ['acknowledged', 'in_progress', 'completed', 'verified'].includes(mission.status);
@@ -34,7 +35,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
         ? { label: 'Acknowledge Assignment', status: 'acknowledged' as MissionStatus }
         : nextStatus[mission.status];
     const readonly = ['completed', 'verified', 'cancelled'].includes(mission.status);
-    const needsProof = mission.status === 'in_progress' && !mission.proof_submitted;
+    const needsProof = isAssigned && mission.status === 'in_progress' && !mission.proof_submitted;
     const checklist = mission.checklist ?? [];
     const checklistComplete = checklist.length > 0 && checklist.every((item) => item.done);
 
@@ -65,7 +66,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
     };
 
     return (
-        <PersonnelLayout title={`Mission-Lokal Personnel: ${mission.id}`}>
+        <PersonnelLayout title={`Department Mission: ${mission.id}`}>
             <Head title={`Mission ${mission.id}`} />
 
             {flash.success && (
@@ -85,7 +86,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 <Button variant="ghost" className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer p-0 h-auto" asChild>
                     <Link href="/personnel/missions">
                         <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                        Back to My Missions
+                        Back to Department Queue
                     </Link>
                 </Button>
                 <MissionStatusBadge status={mission.status} />
@@ -94,6 +95,12 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             <div>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{mission.id} · {mission.title}</h2>
             </div>
+
+            {!isAssigned && (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3.5 text-xs font-bold text-sky-900">
+                    Department view only. You can review this case, but mission actions are available to assigned personnel.
+                </div>
+            )}
 
             {mission.visibility === 'private' && (
                 <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3.5 text-xs font-bold text-amber-900">
@@ -215,7 +222,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                                 items={checklist}
                                 status={mission.status}
                                 assignmentAcknowledged={assignmentAcknowledged}
-                                readonly={readonly}
+                                readonly={readonly || !isAssigned}
                             />
                         </CardContent>
                     </Card>
@@ -223,7 +230,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             </div>
 
             <div className="flex flex-col gap-3.5 pt-4 sm:flex-row sm:flex-wrap">
-                {action && (
+                {isAssigned && action && (
                     <Button
                         className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs py-3.5 sm:w-auto shadow-sm cursor-pointer rounded-2xl px-8 h-12"
                         onClick={() => updateStatus(action.status)}
@@ -231,7 +238,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         {action.label}
                     </Button>
                 )}
-                {needsProof && checklistComplete && (
+                {isAssigned && needsProof && checklistComplete && (
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3.5 sm:w-auto shadow-sm cursor-pointer rounded-2xl px-8 h-12" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
                             <Camera className="mr-2 h-4 w-4" />
@@ -239,12 +246,12 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                         </Link>
                     </Button>
                 )}
-                {needsProof && !checklistComplete && (
+                {isAssigned && needsProof && !checklistComplete && (
                     <Button disabled className="w-full sm:w-auto font-bold text-xs py-3.5 rounded-2xl px-6 h-12">
                         Complete checklist to unlock proof submission
                     </Button>
                 )}
-                {!readonly && mission.status !== 'in_progress' && !mission.proof_submitted && (
+                {isAssigned && !readonly && mission.status !== 'in_progress' && !mission.proof_submitted && (
                     <Button variant="outline" className="w-full sm:w-auto font-black text-xs py-3.5 cursor-pointer rounded-2xl px-8 h-12 shadow-2xs" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
                             <Camera className="mr-2 h-4 w-4" />

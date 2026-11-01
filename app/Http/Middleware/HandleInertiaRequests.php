@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Enums\VerificationStatus;
 use App\Models\Notification;
+use App\Models\Personnel;
+use App\Services\Missions\DepartmentMissionAccess;
 use App\Models\ResidentRegistration;
 use App\Enums\UserRole;
 use Illuminate\Http\Request;
@@ -31,6 +33,7 @@ class HandleInertiaRequests extends Middleware
         $pendingBlotters = 0;
         $pendingProfileEdits = 0;
         $pendingMapAlerts = 0;
+        $personnelDepartment = null;
 
         if ($user) {
             $unreadCount = Notification::where('user_id', $user->id)
@@ -40,6 +43,24 @@ class HandleInertiaRequests extends Middleware
             $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
             if ($roleValue === 'resident') {
                 $user->load('residentProfile');
+            }
+
+            if ($roleValue === UserRole::Personnel->value) {
+                $personnel = Personnel::query()->where('user_id', $user->id)->first();
+                if ($personnel) {
+                    $personnelDepartment = [
+                        'value' => $personnel->department,
+                        'label' => $personnel->department,
+                        'description' => null,
+                        'role' => $personnel->role,
+                    ];
+                    $unreadCount = app(DepartmentMissionAccess::class)
+                        ->visibleNotifications(
+                            $personnel,
+                            Notification::query()->where('user_id', $user->id)->where('is_read', false)->get()
+                        )
+                        ->count();
+                }
             }
             
             if ($roleValue === 'admin' || $roleValue === 'super_admin' || $roleValue === UserRole::Admin) {
@@ -130,6 +151,7 @@ class HandleInertiaRequests extends Middleware
                 'new_view_only_credentials' => fn () => $request->session()->get('new_view_only_credentials'),
             ],
             'unread_count' => $unreadCount,
+            'personnel_department' => $personnelDepartment,
             'pending_registrations_count' => $pendingRegistrations,
             'pending_reports_count' => $pendingReports,
             'pending_missions_count' => $pendingMissions,

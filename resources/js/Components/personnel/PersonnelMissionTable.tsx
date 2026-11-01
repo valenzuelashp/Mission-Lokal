@@ -44,6 +44,7 @@ export default function PersonnelMissionTable({ missions }: Props) {
                     <tbody className="divide-y divide-slate-100 text-xs">
                         {missions.map((row) => {
                             const href = `/personnel/missions/${row.id}`;
+                            const assignedToMe = row.is_assigned !== false;
                             return (
                                 <tr
                                     key={row.id}
@@ -70,7 +71,10 @@ export default function PersonnelMissionTable({ missions }: Props) {
                                                 <div className="font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
                                                     {row.title}
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">ID: {row.concern_id}</div>
+                                                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+                                                    <span>ID: {row.concern_id}</span>
+                                                    {!assignedToMe && <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-sky-800">Team view</span>}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -98,7 +102,7 @@ export default function PersonnelMissionTable({ missions }: Props) {
                                     <td className="px-6 py-4 text-right">
                                         <Button size="sm" variant="outline" className="h-9 px-3.5 text-xs font-black bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-200 shadow-2xs cursor-pointer rounded-xl" asChild>
                                             <Link href={href} onClick={stopRowNav}>
-                                                Execute
+                                                {assignedToMe ? 'Execute' : 'Review'}
                                                 <ChevronRight className="ml-1 h-3.5 w-3.5" />
                                             </Link>
                                         </Button>

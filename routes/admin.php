@@ -19,24 +19,16 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\PersonnelController as AdminPersonnelController;
 
-/*
-|--------------------------------------------------------------------------
-| Admin routes (Blueprint §7.3)
-|--------------------------------------------------------------------------
-*/
-
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
     
-    // Explicit directory mappings matching Admin/Reports/Index & Show
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
     Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
     
-    // Core Operational Report Actions Pipeline (Task A4/A5 workflows)
     Route::post('/reports/{id}/confirm-ai', [ReportController::class, 'confirmAI'])->name('reports.confirm-ai');
     Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict');
     Route::post('/reports/{id}/merge', [ReportController::class, 'mergeDuplicate'])->name('reports.merge');
@@ -52,12 +44,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
     Route::post('/missions/{mission}/resolution-post', [MissionController::class, 'publishResolutionPost'])->name('missions.resolution-post.publish');
     
-    // Personnel Management Routes
+    Route::get('/departments', [AdminPersonnelController::class, 'departments'])->name('departments.index');
+    Route::post('/departments', [AdminPersonnelController::class, 'storeDepartment'])->name('departments.store');
+    
     Route::get('/personnel', [AdminPersonnelController::class, 'index'])->name('personnel.index');
     Route::post('/personnel', [AdminPersonnelController::class, 'store'])->name('personnel.store');
-    Route::patch('/personnel/{id}/category', [AdminPersonnelController::class, 'updateCategory'])->name('personnel.category.update');
+    Route::patch('/personnel/{id}/role', [AdminPersonnelController::class, 'updateRole'])->name('personnel.role.update');
     Route::patch('/personnel/{id}/information', [AdminPersonnelController::class, 'updateInformation'])->name('personnel.information.update');
-    Route::delete('/personnel/{id}', [AdminPersonnelController::class, 'destroy'])->name('personnel.destroy');
+    Route::patch('/personnel/{id}/archive', [AdminPersonnelController::class, 'archive'])->name('personnel.archive');
 
     Route::get('/view-id/{path}', [VerificationController::class, 'viewId'])
         ->where('path', '.*')
@@ -118,7 +112,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     
-    // NEW POST ROUTES FOR SECURITY MFA
     Route::post('/settings/security/request-otp', [SettingsController::class, 'sendOtp'])->name('settings.security.request_otp');
     Route::post('/settings/security/request-clearance', [SettingsController::class, 'requestClearanceKey'])->name('settings.security.request_clearance');
     

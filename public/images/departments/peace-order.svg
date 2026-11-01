@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" fill="none">
+  <defs>
+    <linearGradient id="night" x1="600" y1="0" x2="600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#475569"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="lantern" x1="756" y1="275" x2="756" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#night)" d="M0 0h1200v560H0z"/>
+  <circle cx="1000" cy="110" r="66" fill="#CBD5E1" fill-opacity=".72"/>
+  <path fill="#1E293B" d="M0 343h1200v217H0z"/>
+  <path fill="#334155" d="M134 326h321v234H134z"/>
+  <path fill="#64748B" d="M164 356h78v81h-78zm105 0h78v81h-78zm105 0h52v81h-52z"/>
+  <path fill="#1E293B" d="m91 327 204-136 203 136H91Z"/>
+  <path fill="#F8FAFC" fill-opacity=".12" d="M569 278h282v282H569z"/>
+  <path fill="#0F172A" d="m530 280 180-108 180 108H530Z"/>
+  <path fill="#F8FAFC" fill-opacity=".2" d="M602 308h216v19H602z"/>
+  <path fill="#F8FAFC" fill-opacity=".16" d="M624 352h171v12H624zM624 383h171v12H624z"/>
+  <path stroke="#F8FAFC" stroke-linecap="round" stroke-opacity=".32" stroke-width="5" d="M48 480h1104"/>
+  <path stroke="#FDE68A" stroke-linecap="round" stroke-width="10" d="M754 214v53"/>
+  <path fill="url(#lantern)" d="M719 271h70v99h-70z"/>
+  <path stroke="#FEF3C7" stroke-width="11" d="M702 271h104m-92-15h80"/>
+  <path fill="#F8FAFC" fill-opacity=".09" d="M754 370c-46 33-72 83-77 150h154c-5-67-31-117-77-150Z"/>
+</svg>

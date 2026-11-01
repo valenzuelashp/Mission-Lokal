@@ -294,7 +294,15 @@ class ProcessConcernWithAi implements ShouldQueue
             : 'medium';
 
         $visibility = $analysisData['suggested_visibility'] ?? $this->concern->visibility ?? 'public';
-        if (Concern::shouldForcePrivate(null, $this->concern->title ?? '', $this->concern->description ?? '')) {
+        $vawcSubcategory = $subcategoryId !== null
+            && ConcernSubcategory::query()->whereKey($subcategoryId)->where('code', 'VAWC')->exists();
+        if (
+            $this->concern->visibility === 'private'
+            || $this->concern->is_blotter_candidate
+            || $this->concern->isVawcConcern()
+            || $vawcSubcategory
+            || Concern::shouldForcePrivate(null, $this->concern->title ?? '', $this->concern->description ?? '')
+        ) {
             $visibility = 'private';
         }
 
@@ -388,9 +396,9 @@ class ProcessConcernWithAi implements ShouldQueue
                 ->orderBy('sort_order')
                 ->limit(5)
                 ->get()
-                ->filter(fn ($media) => Storage::disk('public')->exists($media->storage_key))
+                ->filter(fn ($media) => Storage::disk('local')->exists($media->storage_key))
                 ->map(function ($media) {
-                    $mimeType = $media->mime_type ?: Storage::disk('public')->mimeType($media->storage_key);
+                    $mimeType = $media->mime_type ?: Storage::disk('local')->mimeType($media->storage_key);
 
                     if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
                         return null;
@@ -398,7 +406,7 @@ class ProcessConcernWithAi implements ShouldQueue
 
                     return [
                         'mimeType' => $mimeType,
-                        'data' => base64_encode(Storage::disk('public')->get($media->storage_key)),
+                        'data' => base64_encode(Storage::disk('local')->get($media->storage_key)),
                     ];
                 })
                 ->filter()

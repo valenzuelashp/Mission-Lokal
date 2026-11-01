@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\ConcernStatus;
 use App\Enums\MissionStatus;
+use App\Enums\PersonnelRole;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use App\Models\Announcement;
@@ -239,7 +240,7 @@ class ComprehensiveSystemSeeder extends Seeder
                 'name_extension' => 'Jr.',
                 'email' => 'personnel@demo.local',
                 'mobile' => '09181234567',
-                'category' => 'tanod',
+                'role' => 'tanod',
                 'birthday' => '1987-03-12',
             ],
             [
@@ -251,7 +252,7 @@ class ComprehensiveSystemSeeder extends Seeder
                 'name_extension' => null,
                 'email' => 'personnel@missionlokal.test',
                 'mobile' => '09189999999',
-                'category' => 'public_works',
+                'role' => 'public_works',
                 'birthday' => '1991-08-22',
             ],
             [
@@ -263,7 +264,7 @@ class ComprehensiveSystemSeeder extends Seeder
                 'name_extension' => null,
                 'email' => 'eduardo.lupon@demo.local',
                 'mobile' => '09185551234',
-                'category' => 'lupon',
+                'role' => 'lupon',
                 'birthday' => '1979-11-05',
             ],
             [
@@ -275,7 +276,7 @@ class ComprehensiveSystemSeeder extends Seeder
                 'name_extension' => null,
                 'email' => 'elena.vaw@demo.local',
                 'mobile' => '09184449876',
-                'category' => 'vaw_desk',
+                'role' => 'vaw_desk',
                 'birthday' => '1984-06-19',
             ],
             [
@@ -287,8 +288,44 @@ class ComprehensiveSystemSeeder extends Seeder
                 'name_extension' => null,
                 'email' => 'rogelio.sanitation@demo.local',
                 'mobile' => '09183332211',
-                'category' => 'sanitation',
+                'role' => 'sanitation',
                 'birthday' => '1990-09-15',
+            ],
+            [
+                'id' => 'b4c00a01-77e2-467f-a58e-023e77f10104',
+                'account_id' => 'TAMBO_PER_1004',
+                'first_name' => 'Ramon',
+                'middle_name' => 'Reyes',
+                'last_name' => 'Traffic',
+                'name_extension' => null,
+                'email' => 'ramon.traffic@demo.local',
+                'mobile' => '09183334444',
+                'role' => 'traffic_control',
+                'birthday' => '1988-02-14',
+            ],
+            [
+                'id' => 'b4c00a02-77e2-467f-a58e-023e77f10105',
+                'account_id' => 'TAMBO_PER_1005',
+                'first_name' => 'Liza',
+                'middle_name' => 'Santos',
+                'last_name' => 'AnimalResponder',
+                'name_extension' => null,
+                'email' => 'liza.animals@demo.local',
+                'mobile' => '09183335555',
+                'role' => 'animal_response',
+                'birthday' => '1993-07-26',
+            ],
+            [
+                'id' => 'b4c00a03-77e2-467f-a58e-023e77f10106',
+                'account_id' => 'TAMBO_PER_1006',
+                'first_name' => 'Noel',
+                'middle_name' => 'Garcia',
+                'last_name' => 'Maintenance',
+                'name_extension' => null,
+                'email' => 'noel.maintenance@demo.local',
+                'mobile' => '09183336666',
+                'role' => 'maintenance',
+                'birthday' => '1985-11-09',
             ],
         ];
 
@@ -313,7 +350,8 @@ class ComprehensiveSystemSeeder extends Seeder
             $pProfile = Personnel::updateOrCreate(['user_id' => $u->id], [
                 'id' => (string) Str::uuid(),
                 'birthday' => $pu['birthday'],
-                'category' => $pu['category'],
+                'role' => $pu['role'],
+                'department' => PersonnelRole::from($pu['role'])->department(),
                 'registered_zone' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
                 'last_known_location' => MapHelpers::pointFromLatLng(14.517308, 120.993381),
                 'location_updated_at' => now(),
@@ -419,12 +457,13 @@ class ComprehensiveSystemSeeder extends Seeder
         }
 
         // Profile Edit Request
-        ProfileEditRequest::create([
-            'id' => (string) Str::uuid(),
+        ProfileEditRequest::firstOrCreate([
             'user_id' => $residentObjects[1]->id,
-            'requested_changes' => json_encode(['mobile' => '09198888888']),
             'status' => 'pending',
+        ], [
+            'requested_changes' => json_encode(['mobile' => '09198888888']),
             'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
         ]);
 
         // Resident Registration (Walk-in application)
@@ -449,7 +488,10 @@ class ComprehensiveSystemSeeder extends Seeder
         // 4. CONCERNS, DUPLICATES, & AI TRIAGE
         // =========================================================================
         // Concern 1 (Master / Active Pothole)
-        $masterConcern = Concern::updateOrCreate(['id' => '71478b56-9f7c-41e5-a5d9-ea0cc5f47fa4'], [
+        $masterConcern = Concern::updateOrCreate([
+            'title' => 'Severe pothole causing traffic hazards on curve',
+            'reporter_id' => $residentObjects[1]->id,
+        ], [
             'barangay_id' => $tambo->id,
             'reporter_id' => $residentObjects[1]->id,
             'title' => 'Severe pothole causing traffic hazards on curve',
@@ -472,8 +514,10 @@ class ComprehensiveSystemSeeder extends Seeder
         ]);
 
         // Concern 2 (Merged Duplicate of Concern 1)
-        $duplicateConcern = Concern::create([
-            'id' => (string) Str::uuid(),
+        $duplicateConcern = Concern::updateOrCreate([
+            'title' => 'Malalim na butas sa kalsada malapit sa court',
+            'reporter_id' => $residentObjects[2]->id,
+        ], [
             'barangay_id' => $tambo->id,
             'reporter_id' => $residentObjects[2]->id,
             'title' => 'Malalim na butas sa kalsada malapit sa court',
@@ -497,8 +541,10 @@ class ComprehensiveSystemSeeder extends Seeder
         ]);
 
         // Concern 3 (Standalone Active - Garbage Dump)
-        $garbageConcern = Concern::create([
-            'id' => (string) Str::uuid(),
+        $garbageConcern = Concern::updateOrCreate([
+            'title' => 'Uncollected garbage pile attracting stray dogs along Quirino',
+            'reporter_id' => $residentObjects[0]->id,
+        ], [
             'barangay_id' => $tambo->id,
             'reporter_id' => $residentObjects[0]->id,
             'title' => 'Uncollected garbage pile attracting stray dogs along Quirino',
@@ -521,8 +567,10 @@ class ComprehensiveSystemSeeder extends Seeder
         ]);
 
         // Concern 4 (Under Review - Night Videoke)
-        $noiseConcern = Concern::create([
-            'id' => (string) Str::uuid(),
+        $noiseConcern = Concern::updateOrCreate([
+            'title' => 'Excessive late-night videoke noise past curfew',
+            'reporter_id' => $residentObjects[3]->id,
+        ], [
             'barangay_id' => $tambo->id,
             'reporter_id' => $residentObjects[3]->id,
             'title' => 'Excessive late-night videoke noise past curfew',
@@ -543,18 +591,20 @@ class ComprehensiveSystemSeeder extends Seeder
         ]);
 
         // Concern Duplicate Link Audit
-        ConcernDuplicateLink::create([
-            'id' => (string) Str::uuid(),
+        ConcernDuplicateLink::updateOrCreate([
             'primary_concern_id' => $masterConcern->id,
             'linked_concern_id' => $duplicateConcern->id,
+        ], [
             'link_type' => 'merge',
             'created_by' => $admin1->id,
             'created_at' => now()->subHours(6),
         ]);
 
         // AI Analyses
-        ConcernAiAnalysis::create([
-            'id' => 'ed77bd24-b964-47a1-85b6-2bc255f4ba01',
+        ConcernAiAnalysis::updateOrCreate([
+            'concern_id' => $masterConcern->id,
+            'is_current' => 1,
+        ], [
             'concern_id' => $masterConcern->id,
             'is_current' => 1,
             'detected_language' => 'en',
@@ -573,8 +623,10 @@ class ComprehensiveSystemSeeder extends Seeder
             'processed_at' => now()->subHours(12),
         ]);
 
-        ConcernAiAnalysis::create([
-            'id' => (string) Str::uuid(),
+        ConcernAiAnalysis::updateOrCreate([
+            'concern_id' => $duplicateConcern->id,
+            'is_current' => 1,
+        ], [
             'concern_id' => $duplicateConcern->id,
             'is_current' => 1,
             'detected_language' => 'fil',
@@ -590,8 +642,10 @@ class ComprehensiveSystemSeeder extends Seeder
         ]);
 
         // Media & Votes
-        ConcernMedia::create([
-            'id' => '38a96731-6a54-4673-a63f-a95d1d8268c8',
+        ConcernMedia::updateOrCreate([
+            'concern_id' => $masterConcern->id,
+            'storage_key' => 'concerns/pothole_sample.jpg',
+        ], [
             'concern_id' => $masterConcern->id,
             'storage_key' => 'concerns/pothole_sample.jpg',
             'mime_type' => 'image/jpeg',
@@ -610,30 +664,33 @@ class ComprehensiveSystemSeeder extends Seeder
         );
 
         // Status Histories
-        ConcernStatusHistory::create([
+        ConcernStatusHistory::updateOrCreate([
             'concern_id' => $masterConcern->id,
-            'from_status' => 'submitted',
             'to_status' => 'active',
-            'actor_id' => $admin1->id,
             'note' => 'Admin verified incident and escalated to active mission.',
+        ], [
+            'from_status' => 'submitted',
+            'actor_id' => $admin1->id,
             'created_at' => now()->subHours(10),
         ]);
 
-        ConcernStatusHistory::create([
+        ConcernStatusHistory::updateOrCreate([
             'concern_id' => $duplicateConcern->id,
-            'from_status' => 'submitted',
             'to_status' => 'resolved',
-            'actor_id' => $admin1->id,
             'note' => 'Merged as duplicate into master ticket ' . $masterConcern->id,
+        ], [
+            'from_status' => 'submitted',
+            'actor_id' => $admin1->id,
             'created_at' => now()->subHours(6),
         ]);
 
         // =========================================================================
         // 5. MISSIONS, PROOFS, & ASSIGNMENTS
         // =========================================================================
-        $mission = Mission::updateOrCreate(['id' => '9b80b270-5cc0-4d8b-a477-c9e36d93e85d'], [
+        $mission = Mission::updateOrCreate(['concern_id' => $masterConcern->id], [
             'barangay_id' => $tambo->id,
             'concern_id' => $masterConcern->id,
+            'department' => 'utility_infrastructure',
             'playbook_id' => 'a2e442ee-ec92-43a6-b5ea-e5e91d17d48e',
             'due_date' => now()->addDays(2)->toDateString(),
             'estimated_duration_hours' => 24,
@@ -663,54 +720,62 @@ class ComprehensiveSystemSeeder extends Seeder
             ]
         );
 
-        MissionAssignment::create([
-            'id' => (string) Str::uuid(),
+        MissionAssignment::updateOrCreate([
+            'mission_id' => $mission->id,
+            'personnel_id' => $personnelUsers[1]['id'],
+            'assigned_by' => $admin1->id,
+        ], [
             'mission_id' => $mission->id,
             'personnel_id' => $personnelUsers[1]['id'],
             'assigned_by' => $admin1->id,
             'assigned_at' => now()->subHours(10),
         ]);
 
-        MissionChecklistItem::create([
-            'id' => (string) Str::uuid(),
+        MissionChecklistItem::updateOrCreate([
             'mission_id' => $mission->id,
             'step_order' => 1,
+        ], [
             'description' => 'Inspect reported location and measure dimensions.',
             'is_completed' => 1,
             'completed_at' => now()->subHours(8),
             'completed_by' => $personnelUsers[1]['id'],
         ]);
 
-        MissionChecklistItem::create([
-            'id' => (string) Str::uuid(),
+        MissionChecklistItem::updateOrCreate([
             'mission_id' => $mission->id,
             'step_order' => 2,
+        ], [
             'description' => 'Secure area with traffic cones and warning signs.',
             'is_completed' => 1,
             'completed_at' => now()->subHours(7),
             'completed_by' => $personnelUsers[1]['id'],
         ]);
 
-        MissionChecklistItem::create([
-            'id' => (string) Str::uuid(),
+        MissionChecklistItem::updateOrCreate([
             'mission_id' => $mission->id,
             'step_order' => 3,
+        ], [
             'description' => 'Apply asphalt patch or concrete sealant.',
             'is_completed' => 0,
             'completed_at' => null,
             'completed_by' => null,
         ]);
 
-        $proof = MissionProof::create([
-            'id' => (string) Str::uuid(),
+        $proof = MissionProof::updateOrCreate([
+            'mission_id' => $mission->id,
+            'submitted_by' => $personnelUsers[1]['id'],
+            'notes' => 'Traffic cones deployed. Asphalt mix being transported to site.',
+        ], [
             'mission_id' => $mission->id,
             'submitted_by' => $personnelUsers[1]['id'],
             'notes' => 'Traffic cones deployed. Asphalt mix being transported to site.',
             'submitted_at' => now()->subHours(7),
         ]);
 
-        MissionProofMedia::create([
-            'id' => (string) Str::uuid(),
+        MissionProofMedia::updateOrCreate([
+            'proof_id' => $proof->id,
+            'storage_key' => 'proofs/pothole_fixed.jpg',
+        ], [
             'proof_id' => $proof->id,
             'storage_key' => 'proofs/pothole_fixed.jpg',
             'mime_type' => 'image/jpeg',
@@ -718,20 +783,23 @@ class ComprehensiveSystemSeeder extends Seeder
             'created_at' => now()->subHours(7),
         ]);
 
-        MissionStatusHistory::create([
+        MissionStatusHistory::updateOrCreate([
             'mission_id' => $mission->id,
-            'from_status' => 'assigned',
             'to_status' => 'in_progress',
-            'actor_id' => $personnelUsers[1]['id'],
             'note' => 'Personnel arrived at Phase 1 curve.',
+        ], [
+            'from_status' => 'assigned',
+            'actor_id' => $personnelUsers[1]['id'],
             'created_at' => now()->subHours(9),
         ]);
 
         // =========================================================================
         // 6. BLOTTERS
         // =========================================================================
-        $blotter = Blotter::create([
-            'id' => '0738a753-af7e-4555-9d76-abea99013b53',
+        $blotter = Blotter::updateOrCreate([
+            'barangay_id' => $tambo->id,
+            'ticket_number' => 'TAMBO_BLT_9991',
+        ], [
             'barangay_id' => $tambo->id,
             'concern_id' => $noiseConcern->id,
             'type' => 'two_party',
@@ -756,8 +824,10 @@ class ComprehensiveSystemSeeder extends Seeder
         // =========================================================================
         // 7. ANNOUNCEMENTS & VOLUNTEERS
         // =========================================================================
-        $announcement1 = Announcement::create([
-            'id' => (string) Str::uuid(),
+        $announcement1 = Announcement::updateOrCreate([
+            'barangay_id' => $tambo->id,
+            'title' => 'Oplan Kalinisan: Community Drainage Clean-Up Drive',
+        ], [
             'barangay_id' => $tambo->id,
             'title' => 'Oplan Kalinisan: Community Drainage Clean-Up Drive',
             'body' => 'Join your fellow residents this Saturday 7:00 AM at the Barangay Covered Court as we declog waterways and clean our community streets before the monsoon season.',
@@ -771,8 +841,10 @@ class ComprehensiveSystemSeeder extends Seeder
             'updated_at' => now()->subDays(2),
         ]);
 
-        Announcement::create([
-            'id' => (string) Str::uuid(),
+        Announcement::updateOrCreate([
+            'barangay_id' => $tambo->id,
+            'title' => 'Scheduled Water Service Interruption Advisory',
+        ], [
             'barangay_id' => $tambo->id,
             'title' => 'Scheduled Water Service Interruption Advisory',
             'body' => 'Maynilad advisory: Temporary water service interruption on Wednesday 10:00 PM to Thursday 6:00 AM due to network pipe maintenance along Quirino Avenue.',
@@ -785,19 +857,23 @@ class ComprehensiveSystemSeeder extends Seeder
             'updated_at' => now()->subHours(6),
         ]);
 
-        DB::table('announcement_volunteers')->insert([
-            'id' => (string) Str::uuid(),
-            'announcement_id' => $announcement1->id,
-            'user_id' => $residentObjects[0]->id,
-            'created_at' => now()->subDay(),
-            'updated_at' => now()->subDay(),
-        ]);
+        DB::table('announcement_volunteers')->updateOrInsert(
+            ['announcement_id' => $announcement1->id, 'user_id' => $residentObjects[0]->id],
+            [
+                'id' => '0977bd24-b964-47a1-85b6-2bc255f4ba01',
+                'created_at' => now()->subDay(),
+                'updated_at' => now()->subDay(),
+            ]
+        );
 
         // =========================================================================
         // 8. NOTIFICATIONS & AUDIT LOGS
         // =========================================================================
-        Notification::create([
-            'id' => (string) Str::uuid(),
+        Notification::updateOrCreate([
+            'user_id' => $residentObjects[1]->id,
+            'event_type' => 'concern_active',
+            'title' => 'Concern Active: Field Unit Dispatched',
+        ], [
             'user_id' => $residentObjects[1]->id,
             'channel' => 'in_app',
             'event_type' => 'concern_active',
@@ -809,8 +885,11 @@ class ComprehensiveSystemSeeder extends Seeder
             'updated_at' => now()->subHours(10),
         ]);
 
-        Notification::create([
-            'id' => (string) Str::uuid(),
+        Notification::updateOrCreate([
+            'user_id' => $residentObjects[2]->id,
+            'event_type' => 'concern_merged',
+            'title' => 'Report Grouped with Ongoing Ticket',
+        ], [
             'user_id' => $residentObjects[2]->id,
             'channel' => 'in_app',
             'event_type' => 'concern_merged',
@@ -822,23 +901,25 @@ class ComprehensiveSystemSeeder extends Seeder
             'updated_at' => now()->subHours(6),
         ]);
 
-        DB::table('audit_logs')->insert([
-            'barangay_id' => $tambo->id,
+        DB::table('audit_logs')->updateOrInsert([
             'actor_id' => $admin1->id,
             'action' => 'CONFIRM_AI_ESCALATE',
             'entity_type' => 'Mission',
             'entity_id' => $mission->id,
+        ], [
+            'barangay_id' => $tambo->id,
             'metadata' => json_encode(['details' => 'Confirmed AI verdict: Escalated report into field mission']),
             'ip_address' => inet_pton('127.0.0.1'),
             'created_at' => now()->subHours(10),
         ]);
 
-        DB::table('audit_logs')->insert([
-            'barangay_id' => $tambo->id,
+        DB::table('audit_logs')->updateOrInsert([
             'actor_id' => $admin1->id,
             'action' => 'CONFIRM_AI_MERGE',
             'entity_type' => 'Concern',
             'entity_id' => $duplicateConcern->id,
+        ], [
+            'barangay_id' => $tambo->id,
             'metadata' => json_encode(['details' => 'Merged duplicate report into master ID ' . $masterConcern->id]),
             'ip_address' => inet_pton('127.0.0.1'),
             'created_at' => now()->subHours(6),

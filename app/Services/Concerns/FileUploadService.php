@@ -16,7 +16,7 @@ class FileUploadService
     /**
      * Execute structured media disk streaming.
      */
-    public function upload(UploadedFile $file, string $folder = 'general', string $type = 'image'): string
+    public function upload(UploadedFile $file, string $folder = 'general', string $type = 'image', bool $private = false): string
     {
         $mime = $file->getMimeType();
         $allowed = $this->allowedMimes[$type] ?? $this->allowedMimes['image'];
@@ -38,8 +38,7 @@ class FileUploadService
             throw new \InvalidArgumentException('The uploaded file could not be read.');
         }
 
-        // ID documents stay on the private local disk. Photos stay on the public disk.
-        $disk = ($type === 'document') ? 'local' : 'public';
+        $disk = ($type === 'document' || $private || $folder === 'concerns') ? 'local' : 'public';
         $path = trim($folder.'/'.$cleanName, '/');
 
         if (! Storage::disk($disk)->put($path, $bytes)) {
@@ -54,7 +53,11 @@ class FileUploadService
      */
     public function delete(?string $pathKey, string $type = 'image'): bool
     {
-        $disk = ($type === 'document') ? 'local' : 'public';
+        $disk = $type === 'document'
+            || str_starts_with((string) $pathKey, 'concerns/')
+            || str_starts_with((string) $pathKey, 'private/')
+            ? 'local'
+            : 'public';
         
         if ($pathKey && Storage::disk($disk)->exists($pathKey)) {
             return Storage::disk($disk)->delete($pathKey);

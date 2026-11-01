@@ -10,24 +10,38 @@ import { Textarea } from '@/Components/ui/textarea';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/Types';
 
+interface AvailablePersonnel {
+    id: string;
+    name: string;
+    role: string;
+    department?: string;
+    department_label?: string;
+}
+
 export default function Show({ mission }: any) {
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
     const canModify = auth.user?.can_modify_system ?? true;
     const [resolutionComposerOpen, setResolutionComposerOpen] = useState(false);
     const [resendingPersonnelId, setResendingPersonnelId] = useState<string | null>(null);
-    const [personnelCategoryFilter, setPersonnelCategoryFilter] = useState('all');
-    const availablePersonnel = mission.available_personnel ?? [];
-    const personnelCategories = [...new Set(availablePersonnel.map((personnel: { category: string }) => personnel.category))]
-        .filter(Boolean)
-        .sort((left, right) => left.localeCompare(right));
-    const filteredPersonnel = personnelCategoryFilter === 'all'
+    const [personnelRoleFilter, setPersonnelRoleFilter] = useState('all');
+    
+    // Explicitly type the personnel array to fix TS "unknown" errors
+    const availablePersonnel: AvailablePersonnel[] = mission.available_personnel ?? [];
+    
+    const personnelRoles = Array.from(
+        new Set<string>(availablePersonnel.map((p) => p.role).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b));
+    
+    const filteredPersonnel = personnelRoleFilter === 'all'
         ? availablePersonnel
-        : availablePersonnel.filter((personnel: { category: string }) => personnel.category === personnelCategoryFilter);
+        : availablePersonnel.filter((p) => p.role === personnelRoleFilter);
+
     const { data, setData, post, processing, errors } = useForm({
         title: mission.resolution_post?.title ?? '',
         body: mission.resolution_post?.body ?? '',
         media_ids: mission.resolution_post?.media_ids ?? [] as string[],
     });
+
     const {
         data: personnelData,
         setData: setPersonnelData,
@@ -315,21 +329,21 @@ export default function Show({ mission }: any) {
                                                         {personnelData.personnel_ids.length} selected
                                                     </span>
                                                     <select
-                                                        aria-label="Filter personnel by field"
-                                                        value={personnelCategoryFilter}
-                                                        onChange={(event) => setPersonnelCategoryFilter(event.target.value)}
+                                                        aria-label="Filter personnel by role"
+                                                        value={personnelRoleFilter}
+                                                        onChange={(event) => setPersonnelRoleFilter(event.target.value)}
                                                         className="h-8 max-w-40 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
                                                     >
-                                                        <option value="all">All fields</option>
-                                                        {personnelCategories.map((category: string) => (
-                                                            <option key={category} value={category}>{category}</option>
+                                                        <option value="all">All roles</option>
+                                                        {personnelRoles.map((role) => (
+                                                            <option key={role} value={role}>{role}</option>
                                                         ))}
                                                     </select>
                                                 </div>
                                                 <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
                                                     {filteredPersonnel.length === 0 ? (
                                                         <p className="px-2 py-4 text-center text-xs text-slate-500">No additional personnel in this field.</p>
-                                                    ) : filteredPersonnel.map((personnel: { id: string; name: string; category: string }) => (
+                                                    ) : filteredPersonnel.map((personnel) => (
                                                         <label key={personnel.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-xs text-slate-800 hover:bg-blue-50">
                                                             <input
                                                                 type="checkbox"
@@ -338,7 +352,7 @@ export default function Show({ mission }: any) {
                                                                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                                             />
                                                             <span className="min-w-0 flex-1 truncate font-semibold">{personnel.name}</span>
-                                                            <span className="shrink-0 text-[11px] text-slate-500">{personnel.category}</span>
+                                                            <span className="shrink-0 text-[11px] text-slate-500">{personnel.role}</span>
                                                         </label>
                                                     ))}
                                                 </div>
@@ -417,7 +431,7 @@ export default function Show({ mission }: any) {
                                 <ShieldCheck className="h-5 w-5 text-emerald-600" /> Review & Finalize Field Work
                             </h4>
                             <p className="text-xs text-emerald-800 leading-relaxed max-w-2xl font-medium">
-                                Personnel has submitted work proof. Verifying this task will automatically close the mission and mark the parent concern (plus all merged resident reports) as resolved.
+                                Personnel has submitted work proof. Verifying this task will automatically close the mission and mark the parent concern (along with any merged resident reports) as resolved.
                             </p>
                         </div>
                         <Button onClick={handleVerify} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-11 px-5 shrink-0 cursor-pointer shadow-sm rounded-2xl">

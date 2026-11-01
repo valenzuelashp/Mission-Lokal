@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PersonnelCategory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +17,8 @@ class Personnel extends Model
     protected $fillable = [
         'user_id',
         'birthday',
-        'category',
+        'role',
+        'department',
         'registered_zone',
         'last_known_location',
         'location_updated_at',
@@ -28,7 +28,6 @@ class Personnel extends Model
 
     protected $casts = [
         'birthday' => 'date',
-        'category' => PersonnelCategory::class,
         'is_active' => 'boolean',
         'sms_enabled' => 'boolean',
         'location_updated_at' => 'datetime',

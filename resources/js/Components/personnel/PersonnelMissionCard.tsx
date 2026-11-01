@@ -10,6 +10,8 @@ type Props = {
 };
 
 export default function PersonnelMissionCard({ mission }: Props) {
+    const assignedToMe = mission.is_assigned !== false;
+
     return (
         <Link href={`/personnel/missions/${mission.id}`} className="block group">
             <Card className="shadow-2xs transition-all duration-200 hover:shadow-md hover:border-emerald-300 border-slate-200/80 bg-white rounded-3xl overflow-hidden">
@@ -48,7 +50,7 @@ export default function PersonnelMissionCard({ mission }: Props) {
                         )}
                     </div>
                     <div className="flex items-center justify-end pt-1.5 text-xs font-black text-emerald-700 group-hover:underline">
-                        <span>Execute Mission</span>
+                        <span>{assignedToMe ? 'Open mission controls' : 'Review department mission'}</span>
                         <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                     </div>
                 </CardContent>

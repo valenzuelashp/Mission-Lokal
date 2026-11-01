@@ -126,6 +126,17 @@ After seeding, use these credentials (password for all: **`password`**):
 | Personnel | `PER001` | [/personnel/login](http://localhost:8000/personnel/login) |
 | Resident | `RES001` | [/login](http://localhost:8000/login) |
 
+Department portal demo logins (password for all: **`password`**):
+
+| Department | Account ID |
+|------------|------------|
+| Peace & Order | `TAMBO_PER_0001` |
+| Utility & Infrastructure | `TAMBO_PER_0999` |
+| Environmental | `TAMBO_PER_1003` |
+| Traffic Management / Clearing | `TAMBO_PER_1004` |
+| Tambo Animal Response Team | `TAMBO_PER_1005` |
+| Maintenance | `TAMBO_PER_1006` |
+
 ---
 
 ## Project structure
