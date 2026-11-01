@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelShift;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
@@ -114,14 +115,16 @@ class MissionController extends Controller
                 Personnel::firstOrCreate(['user_id' => $user->id]);
             });
 
+        $currentShift = PersonnelShift::current();
         $personnelList = Personnel::with('user')
+            ->where('shift', $currentShift->value)
             ->whereHas('user', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId)
                     ->where('role', 'personnel')
                     ->where('is_active', 1);
             })
             ->get()
-            ->map(function ($personnel) {
+            ->map(function ($personnel) use ($currentShift) {
                 return [
                     'id' => $personnel->id,
                     'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
@@ -129,6 +132,7 @@ class MissionController extends Controller
                     'role_value' => $personnel->role,
                     'department' => $personnel->department,
                     'department_label' => $personnel->department,
+                    'shift_label' => $currentShift->hours(),
                 ];
             });
 
@@ -136,6 +140,7 @@ class MissionController extends Controller
             'missions' => $missions->values(),
             'counts' => $counts,
             'personnel' => $personnelList,
+            'current_shift_label' => $currentShift->label(),
         ]);
     }
 
@@ -156,8 +161,8 @@ class MissionController extends Controller
 
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
         $lifecycle = app(MissionLifecycleService::class);
-        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
-            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        if (! $lifecycle->areOnShiftPersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel assigned to the current shift from this barangay only.']);
         }
         $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 
@@ -330,6 +335,7 @@ class MissionController extends Controller
                 ])->values(),
                 'available_personnel' => Personnel::with('user')
                     ->whereNotIn('id', $mission->personnel->pluck('id'))
+                    ->where('shift', PersonnelShift::current()->value)
                     ->whereNotNull('department')
                     ->where('department', $mission->department)
                     ->when($concern->isSensitiveConcern(), fn ($query) => $query->whereIn('role', ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']))
@@ -344,7 +350,9 @@ class MissionController extends Controller
                         'role' => $personnel->role ?? 'Role not set',
                         'department' => $personnel->department,
                         'department_label' => $personnel->department,
+                        'shift_label' => PersonnelShift::current()->hours(),
                     ])->values(),
+                'current_shift_label' => PersonnelShift::current()->label(),
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,
                 'proof_photos' => $proofPhotos,
@@ -393,8 +401,8 @@ class MissionController extends Controller
         $personnelIds = array_values(array_unique($validated['personnel_ids']));
         $mission->loadMissing('concern.subcategory');
         $lifecycle = app(MissionLifecycleService::class);
-        if (! $lifecycle->areActivePersonnelInBarangay($personnelIds, $request->user()->barangay_id)) {
-            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        if (! $lifecycle->areOnShiftPersonnelInBarangay($personnelIds, $request->user()->barangay_id)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel assigned to the current shift from this barangay only.']);
         }
         $department = app(MissionDepartmentAssignment::class)->departmentFor($mission->concern, $personnelIds);
         if ($department !== $mission->department) {

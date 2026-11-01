@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelShift;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\ConcernDuplicateLink;
@@ -205,14 +206,16 @@ class ReportController extends Controller
         
         $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$record->id]);
         
+        $currentShift = PersonnelShift::current();
         $personnelList = Personnel::with('user')
+            ->where('shift', $currentShift->value)
             ->whereHas('user', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId)
                     ->where('role', 'personnel')
                     ->where('is_active', 1);
             })
             ->get()
-            ->map(function ($personnel) {
+            ->map(function ($personnel) use ($currentShift) {
                 $fullName = trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? ''));
                 $role = $personnel->role;
                 $roleName = is_string($role) ? ucfirst(str_replace('_', ' ', $role)) : (empty($role) ? 'General' : (string) $role);
@@ -224,6 +227,7 @@ class ReportController extends Controller
                     'role_value' => $personnel->role,
                     'department' => $personnel->department,
                     'department_label' => $personnel->department,
+                    'shift_label' => $currentShift->hours(),
                 ];
             });
 
@@ -331,6 +335,7 @@ class ReportController extends Controller
                 'max_due_date' => $maxDueDate,
                 'due_date' => $suggestedDueDate,
                 'department' => $missionDepartment,
+                'current_shift_label' => $currentShift->label(),
                 'is_vawc' => $isVawcConcern,
                 'lat' => $locationData ? (float) $locationData->lat : 14.5173079,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
@@ -494,8 +499,8 @@ class ReportController extends Controller
             $newlyAssignedPersonnelIds = [];
             $missionId = null;
             $lifecycle = app(MissionLifecycleService::class);
-            if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
-                return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+            if (! $lifecycle->areOnShiftPersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+                return back()->withErrors(['personnel_ids' => 'Select active personnel assigned to the current shift from this barangay only.']);
             }
             $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 
@@ -882,8 +887,8 @@ class ReportController extends Controller
         $newlyAssignedPersonnelIds = [];
         $missionId = null;
         $lifecycle = app(MissionLifecycleService::class);
-        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
-            return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
+        if (! $lifecycle->areOnShiftPersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+            return back()->withErrors(['personnel_ids' => 'Select active personnel assigned to the current shift from this barangay only.']);
         }
         $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
 

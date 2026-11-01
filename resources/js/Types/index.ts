@@ -45,6 +45,12 @@ export interface PageProps {
         description: string | null;
         role: string | null;
     } | null;
+    personnel_shift?: {
+        value: 'morning' | 'evening' | 'overnight' | null;
+        label: string | null;
+        hours: string | null;
+        is_active: boolean;
+    } | null;
     pending_reports_count?: number;
     pending_missions_count?: number;
     pending_registrations_count?: number;

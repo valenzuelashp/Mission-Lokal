@@ -34,7 +34,7 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'merged', label: 'Merged Concerns' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, role: string, role_value?: string, department?: PersonnelDepartmentKey, department_label?: string }[], counts?: Record<string, number> }>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, role: string, role_value?: string, department?: PersonnelDepartmentKey, department_label?: string, shift_label?: string }[], counts?: Record<string, number>, current_shift_label?: string }>) {
     const rawMissions = (props.missions ?? demoMissions) as AdminMission[];
     const personnel = props.personnel ?? [];
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
@@ -279,9 +279,12 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 {!data.department ? (
                                     <p className="text-xs text-muted-foreground text-center py-6">Choose a department before selecting personnel.</p>
                                 ) : personnel.filter((member) => member.department === data.department).length === 0 ? (
-                                    <p className="text-xs text-muted-foreground text-center py-6">No active municipal personnel found.</p>
+                                    <p className="text-xs text-muted-foreground text-center py-6">No personnel on the current shift in this department.</p>
                                 ) : (
                                     <>
+                                        <p className="px-1 text-[11px] font-semibold text-slate-500">
+                                            Assignable now: {props.current_shift_label ?? 'current shift'}.
+                                        </p>
                                         {personnel
                                             .filter((member) => member.department === data.department)
                                             .filter((member) => personnelRoleFilter === 'all' || member.role_value === personnelRoleFilter)

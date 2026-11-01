@@ -8,6 +8,7 @@ use App\Models\Mission;
 use App\Models\MissionAssignment;
 use App\Models\MissionChecklistItem;
 use App\Models\Personnel;
+use App\Enums\PersonnelShift;
 use Illuminate\Support\Facades\DB;
 
 class MissionLifecycleService
@@ -19,6 +20,22 @@ class MissionLifecycleService
         return $personnelIds !== []
             && Personnel::query()
                 ->whereIn('id', $personnelIds)
+                ->whereHas('user', function ($query) use ($barangayId) {
+                    $query->where('barangay_id', $barangayId)
+                        ->where('role', 'personnel')
+                        ->where('is_active', true);
+                })
+                ->count() === count($personnelIds);
+    }
+
+    public function areOnShiftPersonnelInBarangay(array $personnelIds, string $barangayId): bool
+    {
+        $personnelIds = array_values(array_unique($personnelIds));
+
+        return $personnelIds !== []
+            && Personnel::query()
+                ->whereIn('id', $personnelIds)
+                ->where('shift', PersonnelShift::current()->value)
                 ->whereHas('user', function ($query) use ($barangayId) {
                     $query->where('barangay_id', $barangayId)
                         ->where('role', 'personnel')

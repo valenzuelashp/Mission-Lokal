@@ -167,7 +167,7 @@ CSV roster before first login.
 
 ### `personnel_profiles`
 
-Personnel department, role, zone, and last known location for nearby SMS.
+Personnel department, role, recurring daily shift, zone, and last known location for nearby SMS.
 
 | Column | Type | Constraints |
 | --- | --- | --- |
@@ -175,12 +175,15 @@ Personnel department, role, zone, and last known location for nearby SMS.
 | `display_name` | `VARCHAR(255)` | NOT NULL |
 | `department` | `VARCHAR(50)` | Traffic, environmental, peace/order, utility/infrastructure, animal response, or maintenance |
 | `role` | `VARCHAR(50)` | Personnel role/position within its department (e.g. Tanod, Lupon, VAW Desk) |
+| `shift` | `VARCHAR(20)` | Nullable until assigned; `morning` (8:00 AM-4:00 PM), `evening` (4:00 PM-12:00 AM), or `overnight` (12:00 AM-8:00 AM). Multiple personnel may share a shift. |
 | `registered_zone` | `POINT` | SRID 4326 |
 | `last_known_location` | `POINT` | SRID 4326 |
 | `location_updated_at` | `DATETIME(3)` | |
 | `sms_enabled` | `TINYINT(1)` | NOT NULL DEFAULT 1 |
 
 **Indexes:** `SPATIAL INDEX spx_personnel_zone (registered_zone)`, `SPATIAL INDEX spx_personnel_last (last_known_location)`
+
+The current shift is determined from the application timezone. Only active personnel assigned to that shift are eligible for new mission assignments.
 
 ---
 

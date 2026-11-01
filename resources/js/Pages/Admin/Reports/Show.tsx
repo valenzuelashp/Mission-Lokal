@@ -30,6 +30,7 @@ interface Props {
         role_value?: string;
         department?: PersonnelDepartmentKey;
         department_label?: string;
+        shift_label?: string;
         subcategories?: string[];
     }[];
 }
@@ -434,9 +435,11 @@ export default function Show({ report, personnel = [] }: Props) {
                                                     {!data.department ? (
                                                         <p className="text-xs text-muted-foreground p-4 text-center">Choose a department to see its active personnel.</p>
                                                     ) : departmentPersonnel.length === 0 ? (
-                                                        <p className="text-xs text-muted-foreground p-4 text-center">No active personnel are available in this department.</p>
+                                                        <p className="text-xs text-muted-foreground p-4 text-center">No personnel on the current shift are available in this department.</p>
                                                     ) : (
-                                                        departmentPersonnel.map(p => {
+                                                        <>
+                                                        <p className="px-1 text-[11px] font-semibold text-slate-500">Assignable now: {report?.current_shift_label ?? 'current shift'}.</p>
+                                                        {departmentPersonnel.map(p => {
                                                             const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
                                                             return (
                                                                 <label key={p.id} className={cn(
@@ -464,7 +467,8 @@ export default function Show({ report, personnel = [] }: Props) {
                                                                     )}
                                                                 </label>
                                                             );
-                                                        })
+                                                        })}
+                                                        </>
                                                     )}
                                                 </div>
                                                 {errors.personnel_ids && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.personnel_ids}</p>}

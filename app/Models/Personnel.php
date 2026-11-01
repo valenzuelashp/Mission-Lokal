@@ -19,6 +19,7 @@ class Personnel extends Model
         'birthday',
         'role',
         'department',
+        'shift',
         'registered_zone',
         'last_known_location',
         'location_updated_at',

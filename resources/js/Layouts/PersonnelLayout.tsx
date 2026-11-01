@@ -1,6 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bell, CalendarDays, ClipboardList, LogOut, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
-import { PropsWithChildren, useState } from 'react';
+import { Bell, CalendarDays, ClipboardList, Clock3, LogOut, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PropsWithChildren, useEffect, useState } from 'react';
 import PersonnelTopBar from '@/Components/personnel/PersonnelTopBar';
 import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import { Badge } from '@/Components/ui/badge';
@@ -24,7 +24,7 @@ type Props = PropsWithChildren<{
 export default function PersonnelLayout({ children, title = 'Mission-Lokal Personnel: Missions' }: Props) {
     const { isActive } = useActivePath();
     const { user } = useAuth();
-    const { unread_count, personnel_department: personnelDepartment } = usePage<PageProps & { unread_count?: number }>().props;
+    const { unread_count, personnel_department: personnelDepartment, personnel_shift: personnelShift } = usePage<PageProps & { unread_count?: number }>().props;
     const departmentTheme = personnelDepartment?.value
         ? personnelDepartments[personnelDepartment.value as PersonnelDepartmentKey]
         : null;
@@ -36,6 +36,47 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
     const unread = unread_count ?? 0;
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+    useEffect(() => {
+        const updateTime = () => setCurrentTime(new Date());
+        updateTime();
+        const interval = window.setInterval(updateTime, 1000);
+
+        return () => window.clearInterval(interval);
+    }, []);
+
+    const timeParts = currentTime
+        ? new Intl.DateTimeFormat('en-PH', {
+            timeZone: 'Asia/Manila',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+        }).formatToParts(currentTime)
+        : [];
+    const hour = Number(timeParts.find((part) => part.type === 'hour')?.value);
+    const minute = Number(timeParts.find((part) => part.type === 'minute')?.value);
+    const minutes = currentTime ? hour * 60 + minute : null;
+    const currentShift = minutes === null
+        ? null
+        : minutes >= 8 * 60 && minutes < 16 * 60
+            ? 'morning'
+            : minutes >= 16 * 60
+                ? 'evening'
+                : 'overnight';
+    const isOnShift = Boolean(
+        personnelShift?.is_active &&
+        personnelShift.value &&
+        personnelShift.value === currentShift,
+    );
+    const timeLabel = currentTime
+        ? new Intl.DateTimeFormat('en-PH', {
+            timeZone: 'Asia/Manila',
+            hour: 'numeric',
+            minute: '2-digit',
+            hourCycle: 'h12',
+        }).format(currentTime)
+        : '--:--';
 
     const sidebar = (
         <div className={cn(
@@ -192,35 +233,59 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                                         <span className={cn('h-2 w-2 rounded-full shadow-[0_0_12px_currentColor]', departmentTheme?.heroAccent)} />
                                         Department operations
                                     </div>
-                                    <div className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:flex">
-                                        <DepartmentIcon className="h-7 w-7" />
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="text-right">
+                                            <p className="flex items-center justify-end gap-2 text-sm font-black text-white sm:text-lg">
+                                                <Clock3 className="h-4 w-4 shrink-0 text-white/80 sm:h-5 sm:w-5" />
+                                                <span>Shift: {personnelShift?.hours ?? 'Not assigned'}</span>
+                                            </p>
+                                            {personnelShift?.value && (
+                                                <p className={cn(
+                                                    'mt-1 text-[10px] font-bold sm:text-xs',
+                                                    isOnShift ? 'text-emerald-300' : 'text-white/55',
+                                                )}>
+                                                    {isOnShift ? 'On shift' : 'Off shift'}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="hidden h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md sm:flex">
+                                            <DepartmentIcon className="h-7 w-7" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="max-w-2xl">
-                                    <p className={cn('text-[11px] font-black uppercase tracking-[0.22em]', departmentTheme?.heroAccent)}>
-                                        {departmentTheme?.heroEyebrow}
-                                    </p>
-                                    <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                                        {personnelDepartment.label}
-                                    </h1>
-                                    <p className="mt-3 max-w-xl text-sm font-medium leading-relaxed text-white/80 sm:text-base">
-                                        {personnelDepartment.description}
-                                    </p>
-                                    <div className="mt-5 flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/45 px-3 py-2 text-[11px] font-bold text-white/90 backdrop-blur-sm">
-                                            <DepartmentIcon className="h-3.5 w-3.5" />
-                                            {personnelDepartment.role ?? 'Department member'}
-                                        </span>
-                                        <span className="rounded-xl border border-white/15 bg-slate-950/45 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-sm">
-                                            Barangay Tambo response network
-                                        </span>
-                                    </div>
-                                    {personnelDepartment.value === 'peace_order' && (
-                                        <p className="mt-4 inline-flex max-w-xl items-center gap-2 rounded-xl border border-rose-200/30 bg-rose-950/55 px-3 py-2 text-[11px] font-bold text-rose-100 backdrop-blur-sm">
-                                            <Shield className="h-4 w-4 shrink-0" />
-                                            VAWC details are confidential and visible only to authorized VAW Desk personnel.
+                                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="max-w-2xl">
+                                        <p className={cn('text-[11px] font-black uppercase tracking-[0.22em]', departmentTheme?.heroAccent)}>
+                                            {departmentTheme?.heroEyebrow}
                                         </p>
-                                    )}
+                                        <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+                                            {personnelDepartment.label}
+                                        </h1>
+                                        <p className="mt-3 max-w-xl text-sm font-medium leading-relaxed text-white/80 sm:text-base">
+                                            {personnelDepartment.description}
+                                        </p>
+                                        <div className="mt-5 flex flex-wrap items-center gap-2">
+                                            <span className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/45 px-3 py-2 text-[11px] font-bold text-white/90 backdrop-blur-sm">
+                                                <DepartmentIcon className="h-3.5 w-3.5" />
+                                                {personnelDepartment.role ?? 'Department member'}
+                                            </span>
+                                            <span className="rounded-xl border border-white/15 bg-slate-950/45 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-sm">
+                                                Barangay Tambo response network
+                                            </span>
+                                        </div>
+                                        {personnelDepartment.value === 'peace_order' && (
+                                            <p className="mt-4 inline-flex max-w-xl items-center gap-2 rounded-xl border border-rose-200/30 bg-rose-950/55 px-3 py-2 text-[11px] font-bold text-rose-100 backdrop-blur-sm">
+                                                <Shield className="h-4 w-4 shrink-0" />
+                                                VAWC details are confidential and visible only to authorized VAW Desk personnel.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <time
+                                        className="shrink-0 self-end pb-1 text-5xl font-black leading-none tracking-tight text-white sm:text-6xl lg:text-7xl"
+                                        aria-label={`Current Philippines time ${timeLabel}`}
+                                    >
+                                        {timeLabel}
+                                    </time>
                                 </div>
                             </div>
                         </section>

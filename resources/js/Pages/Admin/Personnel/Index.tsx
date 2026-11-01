@@ -1,5 +1,5 @@
 import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
-import { Pencil, ArchiveRestore, UserPlus, X, AlertCircle, ArrowLeft, Search, Mail, Phone, Building2, BriefcaseBusiness, IdCard, ShieldCheck, UserRound, UsersRound } from 'lucide-react';
+import { Pencil, ArchiveRestore, UserPlus, X, AlertCircle, ArrowLeft, Search, Mail, Phone, Building2, BriefcaseBusiness, IdCard, ShieldCheck, UserRound, UsersRound, Clock } from 'lucide-react';
 import { useState, FormEvent, useEffect, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -22,7 +22,15 @@ interface PersonnelMember {
     email: string | null;
     mobile: string | null;
     is_active: boolean;
+    shift: string | null;
+    shift_label: string | null;
+    is_on_shift: boolean;
     created_at: string;
+}
+
+interface ShiftOption {
+    value: string;
+    label: string;
 }
 
 function formatDateInputForPH(date: Date) {
@@ -42,8 +50,9 @@ function formatDateInputForPH(date: Date) {
 }
 
 
-export default function PersonnelIndex({ personnel = [], next_account_id, departments = [], department_roles = {}, current_department }: { personnel: PersonnelMember[], next_account_id: string, departments: string[], department_roles: Record<string, PersonnelRoleOption[]>, current_department: string | null }) {
+export default function PersonnelIndex({ personnel = [], next_account_id, departments = [], department_roles = {}, current_department, shift_options = [], current_shift = 'morning' }: { personnel: PersonnelMember[], next_account_id: string, departments: string[], department_roles: Record<string, PersonnelRoleOption[]>, current_department: string | null, shift_options: ShiftOption[], current_shift: string }) {
     const { flash } = usePage<PageProps>().props;
+    const currentShiftLabel = shift_options.find((shift) => shift.value === current_shift)?.label ?? 'Current shift unavailable';
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPersonnel, setEditingPersonnel] = useState<PersonnelMember | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -51,7 +60,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
         const query = searchTerm.trim().toLowerCase();
         if (!query) return personnel;
         return personnel.filter((member) =>
-            [member.name, member.account_id, member.department, member.role, member.email, member.mobile]
+            [member.name, member.account_id, member.department, member.role, member.email, member.mobile, member.shift_label]
                 .some((value) => value?.toLowerCase().includes(query)),
         );
     }, [personnel, searchTerm]);
@@ -68,6 +77,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
         password: `${next_account_id}!${''}`,
         department: current_department || '',
         role: '',
+        shift: current_shift,
     });
 
     const {
@@ -83,6 +93,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
         birthday: '',
         email: '',
         mobile: '',
+        shift: '',
         status: 'active',
     });
 
@@ -110,6 +121,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
             password: `${next_account_id}!`,
             department: current_department || '',
             role: '',
+            shift: current_shift,
         });
         setIsModalOpen(true);
     };
@@ -144,6 +156,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
             birthday: formattedBirthday,
             email: member.email ?? '',
             mobile: member.mobile ?? '',
+            shift: member.shift ?? '',
             status: member.is_active ? 'active' : 'inactive',
         });
         setEditingPersonnel(member);
@@ -223,7 +236,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                     <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
                         <div>
                             <h2 className="text-base font-black tracking-tight text-slate-900">Personnel directory</h2>
-                            <p className="mt-1 text-xs font-medium text-slate-500">Search by name, account ID, department, role, or contact.</p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">Search by name, account ID, department, role, or contact. Current shift: {currentShiftLabel}.</p>
                         </div>
                         <label className="relative block w-full sm:max-w-sm">
                             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -244,6 +257,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                     <th className="px-5 py-4">Department / Role</th>
                                     <th className="px-5 py-4">Contact</th>
                                     <th className="px-5 py-4">Status</th>
+                                    <th className="px-5 py-4">Current shift</th>
                                     <th className="px-7 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -278,6 +292,17 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                                 <span className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} /> {p.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
+                                        <td className="px-5 py-4">
+                                            <p className="text-xs font-bold text-slate-700">{p.shift_label ?? 'No shift assigned'}</p>
+                                            {p.shift && (
+                                                <span className={p.is_on_shift
+                                                    ? 'mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800'
+                                                    : 'mt-1 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-slate-600'}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full ${p.is_on_shift ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                                    {p.is_on_shift ? 'On shift now' : 'Off shift'}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-7 py-4 text-right">
                                             <div className="inline-flex justify-end gap-2">
                                                 <Button variant="outline" size="icon" title="Edit Information" aria-label={`Edit ${p.name}`} className="h-9 w-9 rounded-xl border-slate-200 text-sky-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50" onClick={() => openInformationEditor(p)}>
@@ -292,7 +317,7 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                 ))}
                                 {filteredPersonnel.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-16 text-center">
+                                        <td colSpan={6} className="px-6 py-16 text-center">
                                             <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400"><Search className="h-5 w-5" /></div>
                                             <p className="mt-4 text-sm font-bold text-slate-700">{searchTerm ? 'No matching personnel' : 'No personnel in this roster yet'}</p>
                                             <p className="mt-1 text-xs text-slate-500">{searchTerm ? 'Try another name, role, or account ID.' : 'Add a team member to get started.'}</p>
@@ -333,6 +358,20 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                         <p className="truncate text-[11px] font-semibold text-slate-600"><Phone className="mr-1 inline h-3 w-3 text-slate-400" />{p.mobile || 'No mobile'}</p>
                                         <p className="truncate text-[11px] text-slate-500"><Mail className="mr-1 inline h-3 w-3 text-slate-400" />{p.email || 'No email'}</p>
                                     </div>
+                                </div>
+                                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Assigned shift</p>
+                                        <p className="mt-1 text-xs font-bold text-slate-700">{p.shift_label ?? 'No shift assigned'}</p>
+                                    </div>
+                                    {p.shift && (
+                                        <span className={p.is_on_shift
+                                            ? 'inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800'
+                                            : 'inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-slate-600'}>
+                                            <span className={`h-1.5 w-1.5 rounded-full ${p.is_on_shift ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                            {p.is_on_shift ? 'On shift now' : 'Off shift'}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="mt-3 flex items-center justify-between">
                                     <p className="text-[10px] text-slate-400">{p.birthday ? `Birthday ${p.birthday}` : 'Birthday not set'}</p>
@@ -426,6 +465,21 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                             ))}
                                         </select>
                                         {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
+                                    </div>
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Daily shift</Label>
+                                        <select
+                                            value={data.shift}
+                                            onChange={(e) => setData('shift', e.target.value)}
+                                            required
+                                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                                        >
+                                            <option value="">Select a shift</option>
+                                            {shift_options.map((shift) => (
+                                                <option key={shift.value} value={shift.value}>{shift.label}</option>
+                                            ))}
+                                        </select>
+                                        {errors.shift && <p className="text-xs text-red-600">{errors.shift}</p>}
                                     </div>
                                 </div>
                                 </div>
@@ -563,6 +617,24 @@ export default function PersonnelIndex({ personnel = [], next_account_id, depart
                                     {infoErrors.role && <p className="text-xs text-red-600">{infoErrors.role}</p>}
                                 </div>
                                 </div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                                <div className="mb-4 flex items-center gap-3">
+                                    <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-700"><Clock className="h-4 w-4" /></span>
+                                    <div><h4 className="text-sm font-extrabold text-slate-900">Daily shift</h4><p className="text-[11px] text-slate-500">The assigned shift repeats every day. Multiple personnel can share a shift.</p></div>
+                                </div>
+                                <select
+                                    value={infoData.shift}
+                                    onChange={(e) => setInfoData('shift', e.target.value)}
+                                    required
+                                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                                >
+                                    <option value="">Select a shift</option>
+                                    {shift_options.map((shift) => (
+                                        <option key={shift.value} value={shift.value}>{shift.label}</option>
+                                    ))}
+                                </select>
+                                {infoErrors.shift && <p className="mt-1 text-xs text-red-600">{infoErrors.shift}</p>}
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                                 <div className="mb-4 flex items-center gap-3">

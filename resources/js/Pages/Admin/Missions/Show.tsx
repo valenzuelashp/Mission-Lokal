@@ -16,6 +16,7 @@ interface AvailablePersonnel {
     role: string;
     department?: string;
     department_label?: string;
+    shift_label?: string;
 }
 
 export default function Show({ mission }: any) {
@@ -319,9 +320,10 @@ export default function Show({ mission }: any) {
                                         <div>
                                             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Add Personnel</h4>
                                             <p className="mt-1 text-[11px] text-slate-500">Newly added personnel keep current assignees and receive an SMS notification.</p>
+                                            <p className="mt-1 text-[11px] font-semibold text-sky-700">Only personnel on the current shift ({mission.current_shift_label}) can be added.</p>
                                         </div>
                                         {availablePersonnel.length === 0 ? (
-                                            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">No additional active personnel available.</p>
+                                            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">No additional personnel on the current shift are available.</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between gap-3">
