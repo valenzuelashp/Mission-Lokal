@@ -1,10 +1,10 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { ClipboardPlus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ReportQueueTable from '@/Components/admin/ReportQueueTable';
 import { Input } from '@/Components/ui/input';
+import { Button } from '@/Components/ui/button';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { demoReports, reportCounts } from '@/Lib/adminDemo';
 import { cn } from '@/Lib/utils';
 import type { AdminReportQueuePageProps } from '@/Types';
 
@@ -22,7 +22,7 @@ const tabs: { key: FilterKey; label: string }[] = [
 ];
 
 export default function Index(props: Partial<AdminReportQueuePageProps & { counts?: Record<string, number> }>) {
-    const rawReports = props.reports ?? demoReports;
+    const rawReports = props.reports ?? [];
     
     const reports = useMemo(() => {
         return rawReports.map((r, idx) => ({
@@ -32,9 +32,13 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
     }, [rawReports]);
 
     const counts: Record<string, number> = props.counts ?? {
-        ...reportCounts(reports),
+        all: reports.length,
+        ai_processed: reports.filter((r: any) => r.queue_status === 'ai_processed').length,
+        under_review: reports.filter((r: any) => r.queue_status === 'under_review').length,
+        active: reports.filter((r: any) => r.queue_status === 'active').length,
         candidates: reports.filter((r: any) => Boolean(r.has_duplicate_candidate && !r.is_duplicate)).length,
         merged: reports.filter((r: any) => Boolean(r.is_duplicate)).length,
+        rejected: reports.filter((r: any) => r.queue_status === 'rejected').length,
     };
 
     const [filter, setFilter] = useState<FilterKey>('all');
