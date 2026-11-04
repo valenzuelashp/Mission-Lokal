@@ -57,10 +57,22 @@ class LibraryController extends Controller
                 ];
             })->values();
 
-        // 4. Render directly to your established view using matching property keys
+        $faqs = $rawItems->filter(fn ($item) => $item->type === 'faq')
+            ->map(function ($item) {
+                $meta = is_array($item->metadata) ? $item->metadata : [];
+
+                return [
+                    'id' => $item->id,
+                    'title' => $item->title,
+                    'subtitle' => $meta['subtitle'] ?? 'Frequently asked question',
+                    'body' => $item->content ?? '',
+                ];
+            })->values();
+
         return Inertia::render('Resident/Library', [
             'manuals' => $manuals,
             'contacts' => $contacts,
+            'faqs' => $faqs,
         ]);
     }
 }

@@ -25,7 +25,7 @@ export default function RespondersDirectory({ contacts }: Props) {
     return (
         <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
             <CardHeader className={`flex flex-row items-center justify-between pb-3 border-b ${theme.dividerColor}`}>
-                <CardTitle className="text-sm font-black uppercase tracking-wider">Verified Emergency Hotlines</CardTitle>
+                <CardTitle className="text-sm font-black uppercase tracking-wider">Emergency & Barangay Hotlines</CardTitle>
                 {contacts.length > 4 && (
                     <button
                         type="button"
@@ -64,7 +64,7 @@ export default function RespondersDirectory({ contacts }: Props) {
                                 </button>
                             </div>
                             <a
-                                href={`tel:${contact.phone}`}
+                                href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`}
                                 className={cn(
                                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-xs transition-transform hover:scale-105 active:scale-95',
                                     `${theme.primaryBg} ${theme.primaryHover}`,

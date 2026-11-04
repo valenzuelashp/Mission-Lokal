@@ -30,7 +30,7 @@ export default function BarangayHelp({ question, answer }: Props) {
                     <p className={`text-xs font-black uppercase tracking-wider ${theme.primaryText}`}>Mission-Lokal RAG Assistant</p>
                     <h1 className={`mt-1 text-2xl sm:text-3xl font-black tracking-tight ${theme.textMain}`}>Barangay Knowledge Assistant</h1>
                     <p className={`mt-1.5 text-xs sm:text-sm font-medium ${theme.textMuted} leading-relaxed`}>
-                        Get instant answers derived from published barangay FAQs, municipal services, and emergency handbooks.
+                        Ask about barangay services, document requirements, and verified emergency hotlines.
                     </p>
                 </div>
 

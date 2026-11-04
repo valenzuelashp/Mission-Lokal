@@ -10,11 +10,6 @@ import axios from 'axios';
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-const token = document.head.querySelector('meta[name="csrf-token"]');
-if (token) {
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = (token as HTMLMetaElement).content;
-}
-
 // --- AUTOMATIC 419 ERROR RECOVERY INTERCEPTOR ---
 axios.interceptors.response.use(
     (response) => response,

@@ -208,9 +208,17 @@ export interface LibraryContact {
     emergency?: boolean;
 }
 
+export interface LibraryFaq {
+    id: string;
+    title: string;
+    subtitle: string;
+    body: string;
+}
+
 export interface LibraryPageProps extends PageProps {
     manuals: LibraryManual[];
     contacts: LibraryContact[];
+    faqs: LibraryFaq[];
 }
 
 export interface ConcernDetail extends PublicConcern {
