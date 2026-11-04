@@ -16,6 +16,7 @@ interface AvailablePersonnel {
     role: string;
     department?: string;
     department_label?: string;
+    shift_label?: string;
 }
 
 export default function Show({ mission }: any) {
@@ -319,9 +320,10 @@ export default function Show({ mission }: any) {
                                         <div>
                                             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Add Personnel</h4>
                                             <p className="mt-1 text-[11px] text-slate-500">Newly added personnel keep current assignees and receive an SMS notification.</p>
+                                            <p className="mt-1 text-[11px] font-semibold text-sky-700">Personnel may be assigned regardless of their scheduled shift.</p>
                                         </div>
                                         {availablePersonnel.length === 0 ? (
-                                            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">No additional active personnel available.</p>
+                                            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">No additional active personnel are available.</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between gap-3">
@@ -352,7 +354,10 @@ export default function Show({ mission }: any) {
                                                                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                                             />
                                                             <span className="min-w-0 flex-1 truncate font-semibold">{personnel.name}</span>
-                                                            <span className="shrink-0 text-[11px] text-slate-500">{personnel.role}</span>
+                                                            <span className="shrink-0 text-right text-[11px] text-slate-500">
+                                                                {personnel.role}
+                                                                {personnel.shift_label && <span className="block">{personnel.shift_label}</span>}
+                                                            </span>
                                                         </label>
                                                     ))}
                                                 </div>

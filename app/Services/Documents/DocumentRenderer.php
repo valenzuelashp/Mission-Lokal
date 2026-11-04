@@ -19,19 +19,20 @@ class DocumentRenderer
         $profile = $resident->residentProfile;
         $address = trim((string) ($profile?->address ?: $profile?->house_street));
         
-        $rawMiddle = trim((string) $resident->middle_name);
+        $rawMiddle = trim((string) ($answers['middle_name'] ?? $resident->middle_name));
         $cleanMiddle = (!empty($rawMiddle) && strtoupper($rawMiddle) !== 'N/A') ? $rawMiddle : null;
 
+        $submittedName = trim((string) ($answers['name'] ?? ''));
         $name = trim(implode(' ', array_filter([
-            $resident->first_name,
+            $submittedName !== '' ? $submittedName : ($answers['first_name'] ?? $resident->first_name),
             $cleanMiddle,
-            $resident->last_name,
-            $resident->name_extension,
+            $answers['last_name'] ?? $answers['surname'] ?? $resident->last_name,
+            $submittedName !== '' ? null : $resident->name_extension,
         ])));
 
         $replacements = [
             'resident_name' => $name !== '' ? mb_strtoupper($name) : 'THE REQUESTING RESIDENT',
-            'address' => $address !== '' ? $address : 'the address on record',
+            'address' => trim((string) ($answers['address'] ?? $address)) ?: 'the address on record',
             'barangay_name' => $resident->barangay?->name ?: 'this barangay',
             'date' => ($issuedOn ?? now())->timezone(config('app.timezone'))->format('F j, Y'),
             'signatory_name' => trim((string) $template->signatory_name) !== '' ? $template->signatory_name : '________________',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Enums\PersonnelRole;
+use App\Enums\PersonnelShift;
 use App\Models\Department;
 use App\Models\Personnel;
 use App\Models\User;
@@ -206,9 +207,13 @@ class PersonnelController extends Controller
             $query->where('department',$request->department);
         }
 
-        $personnel = $query->latest()->get()->map(function ($p) {
+        $currentShift = PersonnelShift::current();
+        $personnel = $query->latest()->get()->map(function ($p) use ($currentShift) {
             $middle = trim($p->user?->middle_name ?? '');
             $cleanMiddle = (!empty($middle) && strtoupper($middle) !== 'N/A') ? $middle : '';$fullName = trim(sprintf('%s %s %s %s', $p->user?->first_name ?? '', $cleanMiddle, $p->user?->last_name ?? '', $p->user?->name_extension ?? ''));
+            $isActive = (bool) ($p->user?->is_active ?? $p->is_active);
+            $hasShiftSchedule = $p->hasShiftSchedule();
+            $shift = $hasShiftSchedule ? PersonnelShift::tryFrom($p->shift ?? '') : null;
 
             return [
                 'id' => $p->id,
@@ -223,7 +228,10 @@ class PersonnelController extends Controller
                 'birthday' => $p->birthday?->format('M d, Y'),
                 'email' => $p->user?->email,
                 'mobile' => $p->user?->mobile,
-                'is_active' => (bool)($p->user?->is_active ?? $p->is_active),
+                'is_active' => $isActive,
+                'shift' => $hasShiftSchedule ? $p->shift : null,
+                'shift_label' => $shift?->hours(),
+                'is_on_shift' => $hasShiftSchedule && $isActive && $p->shift === $currentShift->value,
                 'created_at' => $p->user?->created_at?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
             ];
         });
@@ -234,6 +242,8 @@ class PersonnelController extends Controller
             'personnel' => $personnel,
             'departments' => $departments,
             'department_roles' => $this->getDepartmentRoleOptions($barangayId),
+            'shift_options' => PersonnelShift::options(),
+            'current_shift' => PersonnelShift::current()->value,
             'next_account_id' => $nextAccountId,
             'current_department' => $request->department
         ]);
@@ -257,6 +267,7 @@ class PersonnelController extends Controller
             'password' => ['required', 'string', 'min:6'],
             'department' => ['required', 'string', 'max:50'],
             'role' => ['required', 'string', 'max:255'],
+            'shift' => ['nullable', Rule::enum(PersonnelShift::class), 'required_if:role,tanod'],
         ]);
         $validated['department'] = preg_replace('/\s+/', ' ', trim($validated['department']));
         $validated['role'] = trim($validated['role']);
@@ -287,6 +298,10 @@ class PersonnelController extends Controller
                 'birthday' => $validated['birthday'] ?? null,
                 'role' => $validated['role'],
                 'department' => $validated['department'],
+                'shift' => $validated['role'] === 'tanod'
+                    && in_array(strtolower($validated['department']), ['peace_order', 'peace & order'], true)
+                        ? $validated['shift']
+                        : null,
                 'is_active' => 1,
             ]);
             Department::firstOrCreate([
@@ -345,6 +360,10 @@ class PersonnelController extends Controller
         $personnel->update([
             'role' => $validated['role'],
             'department' => $validated['department'],
+            'shift' => $validated['role'] === 'tanod'
+                && in_array(strtolower(trim($validated['department'])), ['peace_order', 'peace & order'], true)
+                    ? $personnel->shift
+                    : null,
         ]);
 
         return back()->with('success', 'Personnel role updated successfully.');
@@ -359,6 +378,7 @@ class PersonnelController extends Controller
         $validated =$request->validate([
             'department' => ['required', 'string', 'max:50'],
             'role' => ['required', 'string', 'max:255'],
+            'shift' => ['nullable', Rule::enum(PersonnelShift::class), 'required_if:role,tanod'],
             'birthday' => ['nullable', 'date'],
             'email' => ['nullable', 'email', 'max:255'],
             'mobile' => ['nullable', 'string', 'max:20'],
@@ -366,6 +386,10 @@ class PersonnelController extends Controller
         ]);
         $validated['department'] = preg_replace('/\s+/', ' ', trim($validated['department']));
         $validated['role'] = trim($validated['role']);
+        $shift = $validated['role'] === 'tanod'
+            && in_array(strtolower($validated['department']), ['peace_order', 'peace & order'], true)
+                ? $validated['shift']
+                : null;
 
         $personnel = Personnel::with('user')->findOrFail($id);
 
@@ -387,7 +411,7 @@ class PersonnelController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($personnel, $validated) {
+        DB::transaction(function () use ($personnel, $validated, $shift) {
             Department::firstOrCreate([
                 'barangay_id' => $personnel->user->barangay_id,
                 'name' => trim(preg_replace('/\s+/', ' ', $validated['department'])),
@@ -396,6 +420,7 @@ class PersonnelController extends Controller
             $personnel->update([
                 'role' => $validated['role'],
                 'department' => $validated['department'],
+                'shift' => $shift,
                 'birthday' => $validated['birthday'] ?? null,
                 'is_active' => $validated['status'] === 'active',
             ]);

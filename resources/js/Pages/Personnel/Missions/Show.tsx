@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { AlertCircle, ArrowLeft, Camera, CircleAlert, Phone, Shield } from 'lucide-react';
 import CompactMissionStatus from '@/Components/personnel/CompactMissionStatus';
 import MissionChecklist from '@/Components/personnel/MissionChecklist';
@@ -27,6 +27,13 @@ const nextStatus: Partial<Record<MissionStatus, { label: string; status: Mission
 export default function Show(props: Partial<PersonnelMissionPageProps>) {
     const mission = props.mission ?? demoPersonnelMissions[0];
     const { flash } = usePage<PageProps>().props;
+    const {
+        data: turnoverData,
+        setData: setTurnoverData,
+        post: postTurnover,
+        processing: turnoverProcessing,
+        errors: turnoverErrors,
+    } = useForm({ personnel_id: '' });
     const isAssigned = mission.is_assigned !== false;
 
     const assignmentAcknowledged = mission.assignment_acknowledged
@@ -226,6 +233,48 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                             />
                         </CardContent>
                     </Card>
+                    {isAssigned && mission.can_turnover && !readonly && (
+                        <Card className="border-sky-200 bg-sky-50/60 shadow-2xs rounded-3xl overflow-hidden">
+                            <CardHeader className="py-4 px-6 border-b border-sky-100">
+                                <CardTitle className="text-xs font-black uppercase tracking-wider text-sky-900">Shift turnover</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3 p-6">
+                                <p className="text-xs leading-relaxed text-slate-700">
+                                    Hand this mission to a Peace &amp; Order Tanod on the next shift ({mission.next_shift_label}).
+                                </p>
+                                {mission.turnover_candidates?.length ? (
+                                    <>
+                                        <select
+                                            aria-label="Next-shift Tanod"
+                                            value={turnoverData.personnel_id}
+                                            onChange={(event) => setTurnoverData('personnel_id', event.target.value)}
+                                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800"
+                                        >
+                                            <option value="">Select a Tanod</option>
+                                            {mission.turnover_candidates.map((candidate) => (
+                                                <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
+                                            ))}
+                                        </select>
+                                        {turnoverErrors.personnel_id && (
+                                            <p role="alert" className="text-xs font-semibold text-red-600">{turnoverErrors.personnel_id}</p>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            disabled={!turnoverData.personnel_id || turnoverProcessing}
+                                            onClick={() => postTurnover(`/personnel/missions/${mission.id}/turnover`, { preserveScroll: true })}
+                                            className="w-full rounded-xl bg-sky-700 font-bold text-white hover:bg-sky-800"
+                                        >
+                                            {turnoverProcessing ? 'Turning over mission...' : 'Turn over mission'}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <p className="rounded-xl border border-sky-100 bg-white px-3 py-2 text-xs text-slate-600">
+                                        No active Tanods are assigned to the next shift yet.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\VerificationStatus;
+use App\Enums\PersonnelShift;
 use App\Models\Notification;
 use App\Models\Personnel;
 use App\Services\Missions\DepartmentMissionAccess;
@@ -34,6 +35,7 @@ class HandleInertiaRequests extends Middleware
         $pendingProfileEdits = 0;
         $pendingMapAlerts = 0;
         $personnelDepartment = null;
+        $personnelShift = null;
 
         if ($user) {
             $unreadCount = Notification::where('user_id', $user->id)
@@ -48,11 +50,20 @@ class HandleInertiaRequests extends Middleware
             if ($roleValue === UserRole::Personnel->value) {
                 $personnel = Personnel::query()->where('user_id', $user->id)->first();
                 if ($personnel) {
+                    $shift = $personnel->hasShiftSchedule()
+                        ? PersonnelShift::tryFrom($personnel->shift ?? '')
+                        : null;
                     $personnelDepartment = [
                         'value' => $personnel->department,
                         'label' => $personnel->department,
                         'description' => null,
                         'role' => $personnel->role,
+                    ];
+                    $personnelShift = [
+                        'value' => $shift?->value,
+                        'label' => $shift?->label(),
+                        'hours' => $shift?->hours(),
+                        'is_active' => (bool) ($user->is_active && $personnel->is_active),
                     ];
                     $unreadCount = app(DepartmentMissionAccess::class)
                         ->visibleNotifications(
@@ -152,6 +163,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'unread_count' => $unreadCount,
             'personnel_department' => $personnelDepartment,
+            'personnel_shift' => $personnelShift,
             'pending_registrations_count' => $pendingRegistrations,
             'pending_reports_count' => $pendingReports,
             'pending_missions_count' => $pendingMissions,

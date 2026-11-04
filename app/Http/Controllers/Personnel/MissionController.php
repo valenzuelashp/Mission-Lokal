@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Personnel;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelShift;
+use App\Jobs\SendMissionAssignmentSms;
 use App\Models\Notification;
 use App\Models\Mission;
 use App\Models\MissionAssignment;
@@ -15,6 +17,8 @@ use App\Services\Missions\DepartmentMissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -159,6 +163,33 @@ class MissionController extends Controller
         })->values()->toArray();
 
         $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+        $nextShift = $personnel->hasShiftSchedule()
+            ? PersonnelShift::tryFrom($personnel->shift ?? '')?->next()
+            : null;
+        $canTurnover = $isAssigned
+            && $nextShift !== null
+            && $personnel->is_active
+            && ! in_array($statusValue, ['completed', 'verified', 'cancelled'], true);
+        $turnoverCandidates = $canTurnover
+            ? Personnel::with('user')
+                ->where('role', 'tanod')
+                ->whereIn('department', ['peace_order', 'Peace & Order'])
+                ->where('shift', $nextShift->value)
+                ->where('is_active', true)
+                ->where('id', '!=', $personnel->id)
+                ->whereDoesntHave('missions', fn ($query) => $query->where('missions.id', $mission->id))
+                ->whereHas('user', fn ($query) => $query
+                    ->where('barangay_id', $request->user()->barangay_id)
+                    ->where('role', 'personnel')
+                    ->where('is_active', true))
+                ->get()
+                ->map(fn (Personnel $candidate) => [
+                    'id' => $candidate->id,
+                    'name' => trim(($candidate->user?->first_name ?? '') . ' ' . ($candidate->user?->last_name ?? '')),
+                ])
+                ->values()
+            : collect();
+
         $assignmentAcknowledged = $mission->assignments()
             ->where('personnel_id', $request->user()->id)
             ->whereNull('unassigned_at')
@@ -195,11 +226,146 @@ class MissionController extends Controller
             'proof_notes' => $proof?->notes,
             'proof_photos' => $proofPhotos,
             'is_assigned' => $isAssigned,
+            'can_turnover' => $canTurnover,
+            'next_shift_label' => $nextShift?->label(),
+            'turnover_candidates' => $turnoverCandidates,
         ];
 
         return Inertia::render('Personnel/Missions/Show', [
             'mission' => $formattedMission,
         ]);
+    }
+
+    public function turnover(Request $request, string $id): RedirectResponse
+    {
+        $personnel = $this->getPersonnelRecord($request);
+        if (! $personnel) {
+            abort(403, 'Unauthorized personnel account context.');
+        }
+
+        $validated = $request->validate([
+            'personnel_id' => ['required', 'string', 'exists:personnel,id'],
+        ]);
+
+        $missionId = $id;
+        $barangayId = $request->user()->barangay_id;
+        $recipientId = null;
+
+        DB::transaction(function () use ($request, $personnel, $validated, $missionId, $barangayId, &$recipientId) {
+            $mission = Mission::where('barangay_id', $barangayId)
+                ->lockForUpdate()
+                ->findOrFail($missionId);
+            $mission->load('concern.subcategory');
+
+            app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
+
+            $currentPersonnel = Personnel::with('user')->lockForUpdate()->findOrFail($personnel->id);
+            if (! $currentPersonnel->hasShiftSchedule() || ! $currentPersonnel->is_active) {
+                abort(403, 'Only active Peace & Order Tanods can turn over missions.');
+            }
+
+            $currentShift = PersonnelShift::tryFrom($currentPersonnel->shift ?? '');
+            if (! $currentShift) {
+                throw ValidationException::withMessages([
+                    'personnel_id' => 'Assign this Tanod to a shift before turning over a mission.',
+                ]);
+            }
+
+            $missionStatus = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+            if (in_array($missionStatus, ['completed', 'verified', 'cancelled'], true)) {
+                throw ValidationException::withMessages([
+                    'personnel_id' => 'Closed missions cannot be turned over.',
+                ]);
+            }
+
+            $currentAssignment = DB::table('mission_personnel')
+                ->where('mission_id', $mission->id)
+                ->where('personnel_id', $currentPersonnel->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $currentAssignment) {
+                abort(403, 'Only a Tanod currently assigned to this mission can turn it over.');
+            }
+
+            $recipient = Personnel::with('user')
+                ->whereKey($validated['personnel_id'])
+                ->where('role', 'tanod')
+                ->whereIn('department', ['peace_order', 'Peace & Order'])
+                ->where('shift', $currentShift->next()->value)
+                ->where('is_active', true)
+                ->where('id', '!=', $currentPersonnel->id)
+                ->whereDoesntHave('missions', fn ($query) => $query->where('missions.id', $mission->id))
+                ->whereHas('user', fn ($query) => $query
+                    ->where('barangay_id', $barangayId)
+                    ->where('role', 'personnel')
+                    ->where('is_active', true))
+                ->lockForUpdate()
+                ->first();
+
+            if (! $recipient || ! $recipient->user) {
+                throw ValidationException::withMessages([
+                    'personnel_id' => 'Choose an active Peace & Order Tanod assigned to the next shift.',
+                ]);
+            }
+
+            DB::table('mission_personnel')
+                ->where('mission_id', $mission->id)
+                ->where('personnel_id', $currentPersonnel->id)
+                ->delete();
+
+            DB::table('mission_personnel')->insert([
+                'id' => (string) Str::uuid(),
+                'mission_id' => $mission->id,
+                'personnel_id' => $recipient->id,
+                'assigned_by' => $request->user()->id,
+                'status' => 'assigned',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $mission->unsetRelation('personnel');
+            app(MissionLifecycleService::class)->recordAssignmentChanges(
+                $mission,
+                [$currentPersonnel->id],
+                $request->user()->id,
+            );
+
+            $missionLabel = 'MS-' . strtoupper(substr($mission->id, 0, 4));
+            $concernTitle = $mission->concern?->title ?? 'Mission';
+            $currentName = trim(($currentPersonnel->user->first_name ?? '') . ' ' . ($currentPersonnel->user->last_name ?? ''));
+            $recipientName = trim(($recipient->user->first_name ?? '') . ' ' . ($recipient->user->last_name ?? ''));
+
+            Notification::create([
+                'user_id' => $currentPersonnel->user_id,
+                'channel' => 'in_app',
+                'event_type' => 'mission_turned_over',
+                'title' => 'Mission handed over',
+                'body' => "{$missionLabel} {$concernTitle} was handed over to {$recipientName} for the next shift.",
+                'payload' => ['mission_id' => $mission->id],
+                'is_read' => false,
+                'sent_at' => now(),
+            ]);
+
+            Notification::create([
+                'user_id' => $recipient->user_id,
+                'channel' => 'in_app',
+                'event_type' => 'mission_turnover_assigned',
+                'title' => 'Mission received for your shift',
+                'body' => "{$missionLabel} {$concernTitle} was handed over by {$currentName} for your " . $currentShift->next()->label() . '.',
+                'payload' => ['mission_id' => $mission->id],
+                'is_read' => false,
+                'sent_at' => now(),
+            ]);
+
+            $recipientId = $recipient->id;
+        });
+
+        if ($recipientId) {
+            SendMissionAssignmentSms::dispatch($missionId, $recipientId);
+        }
+
+        return back()->with('success', 'Mission successfully turned over to the next-shift Tanod.');
     }
 
     public function updateStatus(Request $request, string $id): RedirectResponse

@@ -34,7 +34,7 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'merged', label: 'Merged Concerns' },
 ];
 
-export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, role: string, role_value?: string, department?: PersonnelDepartmentKey, department_label?: string }[], counts?: Record<string, number> }>) {
+export default function Index(props: Partial<AdminMissionQueuePageProps & { personnel: { id: string, name: string, role: string, role_value?: string, department?: PersonnelDepartmentKey, department_label?: string, shift_label?: string | null }[], counts?: Record<string, number> }>) {
     const rawMissions = (props.missions ?? demoMissions) as AdminMission[];
     const personnel = props.personnel ?? [];
     const { auth } = usePage<PageProps & { auth: { user: any } }>().props;
@@ -279,7 +279,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 {!data.department ? (
                                     <p className="text-xs text-muted-foreground text-center py-6">Choose a department before selecting personnel.</p>
                                 ) : personnel.filter((member) => member.department === data.department).length === 0 ? (
-                                    <p className="text-xs text-muted-foreground text-center py-6">No active municipal personnel found.</p>
+                                    <p className="text-xs text-muted-foreground text-center py-6">No active personnel are available in this department.</p>
                                 ) : (
                                     <>
                                         {personnel
@@ -299,7 +299,10 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                                                     className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                                 />
                                                                 <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                                                                <span className="shrink-0 text-[10px] text-slate-500">{p.role}</span>
+                                                                <span className="shrink-0 text-right text-[10px] text-slate-500">
+                                                                    {p.role}
+                                                                    {p.shift_label && <span className="block">{p.shift_label}</span>}
+                                                                </span>
                                                             </label>
                                                 ))}
                                         </>

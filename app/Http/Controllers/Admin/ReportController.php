@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelShift;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\ConcernDuplicateLink;
@@ -224,6 +225,9 @@ class ReportController extends Controller
                     'role_value' => $personnel->role,
                     'department' => $personnel->department,
                     'department_label' => $personnel->department,
+                    'shift_label' => $personnel->hasShiftSchedule()
+                        ? PersonnelShift::tryFrom($personnel->shift ?? '')?->hours()
+                        : null,
                 ];
             });
 
@@ -494,7 +498,7 @@ class ReportController extends Controller
             $newlyAssignedPersonnelIds = [];
             $missionId = null;
             $lifecycle = app(MissionLifecycleService::class);
-            if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+            if (! $lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
                 return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
             }
             $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
@@ -882,7 +886,7 @@ class ReportController extends Controller
         $newlyAssignedPersonnelIds = [];
         $missionId = null;
         $lifecycle = app(MissionLifecycleService::class);
-        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+        if (! $lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
             return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
         }
         $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);

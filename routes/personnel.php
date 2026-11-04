@@ -15,6 +15,7 @@ Route::prefix('personnel')->name('personnel.')->middleware(['auth', 'role:person
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
     Route::get('/missions/{mission}', [MissionController::class, 'show'])->name('missions.show');
+    Route::post('/missions/{mission}/turnover', [MissionController::class, 'turnover'])->name('missions.turnover');
     Route::patch('/missions/{mission}/status', [MissionController::class, 'updateStatus'])->name('missions.status');
     Route::patch('/missions/{mission}/checklist', [MissionController::class, 'toggleChecklist'])->name('missions.checklist');
     Route::get('/missions/{mission}/proof', [MissionController::class, 'proofForm'])->name('missions.proof');

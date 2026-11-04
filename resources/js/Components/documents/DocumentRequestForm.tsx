@@ -25,7 +25,7 @@ export default function DocumentRequestForm({ template, onCancel }: Props) {
     return (
         <form onSubmit={submit} className="space-y-5">
             <p className={`text-xs font-medium leading-relaxed ${theme.textMuted}`}>
-                Your name and address come from your profile. Fill in the remaining details.
+                Fill in the requested details. Check the Resource Library for the information required for each document.
             </p>
             {template.fields.map((field) => (
                 <label key={field.key} className="block space-y-1.5">

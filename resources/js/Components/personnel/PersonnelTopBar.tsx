@@ -24,7 +24,7 @@ export default function PersonnelTopBar({ title, onMenuClick }: Props) {
                         <span className="sm:hidden">{shortTitle}</span>
                         <span className="hidden sm:inline">{title}</span>
                     </h1>
-                    <p className="text-[11px] font-bold text-slate-500 hidden sm:block mt-0.5">Field Unit Command & Execution Portal</p>
+                    <p className="mt-0.5 hidden text-[11px] font-bold text-slate-500 sm:block">Field Unit Command & Execution Portal</p>
                 </div>
             </div>
 

@@ -28,10 +28,17 @@ interface Props {
         name: string;
         role: string;
         role_value?: string;
-        department?: PersonnelDepartmentKey;
+        department?: string;
         department_label?: string;
+        shift_label?: string | null;
         subcategories?: string[];
     }[];
+}
+
+function departmentKey(department?: string | null): PersonnelDepartmentKey | undefined {
+    return personnelDepartmentOptions.find(
+        (option) => option.value === department || option.label === department,
+    )?.value;
 }
 
 export default function Show({ report, personnel = [] }: Props) {
@@ -51,7 +58,10 @@ export default function Show({ report, personnel = [] }: Props) {
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
     const hasMission = Boolean(report?.mission);
     const assignedPersonnel: { id: string; name: string; role: string }[] = report?.assigned_personnel ?? [];
-    const departmentPersonnel = personnel.filter((member) => member.department === data.department);
+    const selectedDepartment = departmentKey(data.department);
+    const departmentPersonnel = personnel.filter(
+        (member) => departmentKey(member.department) === selectedDepartment,
+    );
     const safeLat = report?.lat ? Number(report.lat) : TAMBO_CENTER[0];
     const safeLng = report?.lng ? Number(report.lng) : TAMBO_CENTER[1];
 
@@ -409,7 +419,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                                 </div>
                                                 <select
                                                     id="mission-department"
-                                                    value={data.department}
+                                                    value={selectedDepartment ?? ''}
                                                     onChange={(event) => {
                                                         setData({
                                                             ...data,
@@ -436,7 +446,8 @@ export default function Show({ report, personnel = [] }: Props) {
                                                     ) : departmentPersonnel.length === 0 ? (
                                                         <p className="text-xs text-muted-foreground p-4 text-center">No active personnel are available in this department.</p>
                                                     ) : (
-                                                        departmentPersonnel.map(p => {
+                                                        <>
+                                                        {departmentPersonnel.map(p => {
                                                             const isAiSuggested = report?.assigned_personnel_ids?.includes(p.id);
                                                             return (
                                                                 <label key={p.id} className={cn(
@@ -454,7 +465,9 @@ export default function Show({ report, personnel = [] }: Props) {
                                                                         />
                                                                         <div>
                                                                             <span className="font-bold text-slate-900">{p.name}</span>
-                                                                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{p.role}</p>
+                                                                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                                                                {p.role}{p.shift_label ? ` · ${p.shift_label}` : ''}
+                                                                            </p>
                                                                         </div>
                                                                     </div>
                                                                     {isAiSuggested && (
@@ -464,7 +477,8 @@ export default function Show({ report, personnel = [] }: Props) {
                                                                     )}
                                                                 </label>
                                                             );
-                                                        })
+                                                        })}
+                                                        </>
                                                     )}
                                                 </div>
                                                 {errors.personnel_ids && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.personnel_ids}</p>}

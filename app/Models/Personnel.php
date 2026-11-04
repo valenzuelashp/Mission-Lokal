@@ -19,6 +19,7 @@ class Personnel extends Model
         'birthday',
         'role',
         'department',
+        'shift',
         'registered_zone',
         'last_known_location',
         'location_updated_at',
@@ -41,6 +42,12 @@ class Personnel extends Model
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class, 'barangay_id')->through('user');
+    }
+
+    public function hasShiftSchedule(): bool
+    {
+        return $this->role === 'tanod'
+            && in_array(strtolower(trim((string) $this->department)), ['peace_order', 'peace & order'], true);
     }
 
     public function missions(): BelongsToMany

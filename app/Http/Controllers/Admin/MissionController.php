@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\PersonnelShift;
 use App\Models\Notification;
 use App\Models\Concern;
 use App\Models\Mission;
@@ -129,6 +130,9 @@ class MissionController extends Controller
                     'role_value' => $personnel->role,
                     'department' => $personnel->department,
                     'department_label' => $personnel->department,
+                    'shift_label' => $personnel->hasShiftSchedule()
+                        ? PersonnelShift::tryFrom($personnel->shift ?? '')?->hours()
+                        : null,
                 ];
             });
 
@@ -156,7 +160,7 @@ class MissionController extends Controller
 
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
         $lifecycle = app(MissionLifecycleService::class);
-        if (!$lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
+        if (! $lifecycle->areActivePersonnelInBarangay($validated['personnel_ids'], $barangayId)) {
             return back()->withErrors(['personnel_ids' => 'Select active personnel from this barangay only.']);
         }
         $department = app(MissionDepartmentAssignment::class)->departmentFor($concern, $validated['personnel_ids']);
@@ -344,6 +348,9 @@ class MissionController extends Controller
                         'role' => $personnel->role ?? 'Role not set',
                         'department' => $personnel->department,
                         'department_label' => $personnel->department,
+                        'shift_label' => $personnel->hasShiftSchedule()
+                            ? PersonnelShift::tryFrom($personnel->shift ?? '')?->hours()
+                            : null,
                     ])->values(),
                 'images' => $concernImages,
                 'proof_notes' => $mission->proof?->notes,

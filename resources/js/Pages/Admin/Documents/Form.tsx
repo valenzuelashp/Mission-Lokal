@@ -38,6 +38,23 @@ const sample: Record<string, string> = {
     business_nature: 'retail goods',
     business_address: '124 Quirino Avenue',
     years_of_residency: '10 years',
+    first_name: 'Maria',
+    middle_name: 'Clara',
+    last_name: 'Dela Cruz',
+    surname: 'Dela Cruz',
+    age: '25',
+    length_of_stay: '10 years',
+    education_attainment: 'College graduate',
+    contact_number: '0917-000-0000',
+    facebook_account: 'Maria Dela Cruz',
+    birthday: 'January 1, 2001',
+    birthplace: 'Paranaque City',
+    alias: 'N/A',
+    gender: 'Female',
+    civil_status: 'Single',
+    citizenship: 'Filipino',
+    name: 'Maria',
+    position: 'Staff',
 };
 
 const defaultBody = 'This is to certify that this document is hereby granted and issued to {{resident_name}}, a resident of {{address}}, {{barangay_name}}.\n\nThis certification is being issued upon the request of {{resident_name}} for {{purpose}}.';

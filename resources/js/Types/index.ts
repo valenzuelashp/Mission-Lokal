@@ -45,6 +45,12 @@ export interface PageProps {
         description: string | null;
         role: string | null;
     } | null;
+    personnel_shift?: {
+        value: 'morning' | 'evening' | 'overnight' | null;
+        label: string | null;
+        hours: string | null;
+        is_active: boolean;
+    } | null;
     pending_reports_count?: number;
     pending_missions_count?: number;
     pending_registrations_count?: number;
@@ -202,9 +208,17 @@ export interface LibraryContact {
     emergency?: boolean;
 }
 
+export interface LibraryFaq {
+    id: string;
+    title: string;
+    subtitle: string;
+    body: string;
+}
+
 export interface LibraryPageProps extends PageProps {
     manuals: LibraryManual[];
     contacts: LibraryContact[];
+    faqs: LibraryFaq[];
 }
 
 export interface ConcernDetail extends PublicConcern {
@@ -353,6 +367,9 @@ export interface PersonnelMission {
     proof_photos?: string[];
     proof_submitted?: boolean;
     is_assigned?: boolean;
+    can_turnover?: boolean;
+    next_shift_label?: string | null;
+    turnover_candidates?: { id: string; name: string }[];
 }
 
 export interface PersonnelMissionsPageProps extends PageProps {

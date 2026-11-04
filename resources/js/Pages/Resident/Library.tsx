@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { BookOpen, FolderOpen } from 'lucide-react';
+import { BookOpen, FolderOpen, HelpCircle } from 'lucide-react';
 import PreparednessManuals from '@/Components/resident/library/PreparednessManuals';
 import RespondersDirectory from '@/Components/resident/library/RespondersDirectory';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
@@ -9,17 +9,17 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { LibraryPageProps } from '@/Types';
 
-export default function Library({ manuals = [], contacts = [] }: LibraryPageProps) {
+export default function Library({ manuals = [], contacts = [], faqs = [] }: LibraryPageProps) {
     const theme = useResidentTheme();
 
     useEffect(() => {
         try {
             window.localStorage.setItem(
                 'mission-lokal-library-v1',
-                JSON.stringify({ manuals, contacts, savedAt: new Date().toISOString() }),
+                JSON.stringify({ manuals, contacts, faqs, savedAt: new Date().toISOString() }),
             );
         } catch {}
-    }, [manuals, contacts]);
+    }, [manuals, contacts, faqs]);
 
     const rightAside = (
         <div className="space-y-6">
@@ -46,7 +46,7 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
         </div>
     );
 
-    const hasData = manuals.length > 0 || contacts.length > 0;
+    const hasData = manuals.length > 0 || contacts.length > 0 || faqs.length > 0;
 
     return (
         <ResidentLayout wide>
@@ -72,6 +72,23 @@ export default function Library({ manuals = [], contacts = [] }: LibraryPageProp
                         <div className="space-y-6">
                             {manuals.length > 0 && <PreparednessManuals manuals={manuals} />}
                             {contacts.length > 0 && <RespondersDirectory contacts={contacts} />}
+                            {faqs.length > 0 && (
+                                <Card className={`shadow-xs ${theme.cardBorder} ${theme.cardBg} rounded-2xl`}>
+                                    <CardContent className="space-y-4 p-5 sm:p-6">
+                                        <div className={`flex items-center gap-2 border-b ${theme.dividerColor} pb-3`}>
+                                            <HelpCircle className={`h-5 w-5 ${theme.primaryText}`} />
+                                            <h2 className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Forms & Frequently Asked Questions</h2>
+                                        </div>
+                                        {faqs.map((faq) => (
+                                            <details key={faq.id} className={`rounded-xl border ${theme.cardBorder} p-4`}>
+                                                <summary className={`cursor-pointer text-sm font-bold ${theme.textMain}`}>{faq.title}</summary>
+                                                <p className={`mt-2 text-xs font-medium ${theme.textMuted}`}>{faq.subtitle}</p>
+                                                <p className={`mt-3 whitespace-pre-wrap text-xs leading-relaxed ${theme.textMain}`}>{faq.body}</p>
+                                            </details>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
                     ) : (
                         <div className={`rounded-3xl border border-dashed ${theme.cardBorder} ${theme.cardBg} p-20 text-center shadow-2xs`}>
