@@ -10,6 +10,7 @@ export interface User {
     id: string;
     account_id: string;
     role: UserRole;
+    admin_type?: 'general' | 'radio_room' | null;
     first_name?: string;
     middle_name?: string;
     last_name?: string;
@@ -281,6 +282,7 @@ export interface AdminReport extends AdminIncident {
     priority_reason?: string;
     upvotes_count?: number;
     visibility: 'public' | 'private';
+    intake_channel?: 'resident_portal' | 'phone' | 'walk_in';
     queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;
     images?: string[];

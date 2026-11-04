@@ -29,6 +29,10 @@ class FeedController extends Controller
             ])
             ->when($user->barangay_id, fn($q) => $q->where('barangay_id', $user->barangay_id))
             ->where('visibility', 'public')
+            ->where(function ($privacy) {
+                $privacy->whereNull('is_blotter_candidate')
+                    ->orWhere('is_blotter_candidate', false);
+            })
             ->whereNotVawc()
             ->latest()
             ->get()

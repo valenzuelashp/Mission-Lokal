@@ -19,7 +19,9 @@ class PrimaryAdminCredentials extends Mailable
 
     public function build()
     {
-        return $this->subject('Mission-Lokal - Primary Administrator Credentials')
+        $adminType = $this->adminData['admin_type_label'] ?? 'Primary Administrator';
+
+        return $this->subject('Mission-Lokal - '.$adminType.' Credentials')
                     ->view('emails.admin_credentials');
     }
 }

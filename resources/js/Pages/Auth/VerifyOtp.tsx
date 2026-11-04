@@ -1,9 +1,9 @@
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
+import OtpInput from '@/Components/shared/OtpInput';
 
 interface Props { email: string; }
 
@@ -31,18 +31,7 @@ export default function VerifyOtp({ email }: Props) {
                     <form onSubmit={submit} className="space-y-4">
                         <input type="hidden" value={data.email} />
                         <div>
-                            <Label htmlFor="otp">Verification Code</Label>
-                            <Input 
-                                id="otp" 
-                                type="text" 
-                                maxLength={6}
-                                placeholder="000000"
-                                value={data.otp} 
-                                onChange={e => setData('otp', e.target.value)} 
-                                className="mt-1 text-center font-mono text-xl tracking-widest"
-                                required 
-                            />
-                            {errors.otp && <p className="text-sm text-red-500 mt-1">{errors.otp}</p>}
+                            <OtpInput value={data.otp} onChange={(otp) => setData('otp', otp)} error={errors.otp} />
                         </div>
                         <Button className="w-full" type="submit" disabled={processing}>
                             {processing ? 'Verifying...' : 'Verify Code'}

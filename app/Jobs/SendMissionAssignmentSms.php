@@ -47,10 +47,14 @@ class SendMissionAssignmentSms implements ShouldQueue
             $location = $mission->concern?->locationLabel() ?? $mission->barangay?->name ?? 'the barangay';
             $title = $mission->concern?->title ?? 'a reported issue';
             $dueDate = $mission->due_date ? $mission->due_date->format('M d, Y') : 'ASAP';
+            $isConfidential = $mission->concern
+                && ($mission->concern->visibility === 'private' || $mission->concern->isSensitiveConcern());
 
             $firstName = trim((string) $personnel->user?->first_name);
             $greeting = $firstName !== '' ? "Hi {$firstName},\n" : '';
-            $message = "{$greeting}Mission-Lokal: New assignment\nLocation: {$location}\nIssue: {$title}\nDue: {$dueDate}.";
+            $message = $isConfidential
+                ? "{$greeting}Mission-Lokal: A confidential assignment is ready. Sign in to view details."
+                : "{$greeting}Mission-Lokal: New assignment\nLocation: {$location}\nIssue: {$title}\nDue: {$dueDate}.";
 
             if (!$smsGateway->send($mobile, $message)) {
                 return false;

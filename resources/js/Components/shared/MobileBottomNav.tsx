@@ -49,7 +49,7 @@ export default function MobileBottomNav() {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="resident-mobile-more-title"
-                        className={`fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[51] mx-auto max-h-[min(65vh,28rem)] max-w-xl overflow-y-auto rounded-3xl border p-4 shadow-2xl ${theme.cardBorder} ${theme.cardBg}`}
+                        className={`glass-panel fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[51] mx-auto max-h-[min(65vh,28rem)] max-w-xl overflow-y-auto rounded-3xl border p-4 shadow-2xl ${theme.cardBorder} ${theme.cardBg}`}
                     >
                         <div className={`mb-2 flex items-center justify-between border-b pb-3 ${theme.dividerColor}`}>
                             <h2 id="resident-mobile-more-title" className={`text-xs font-black uppercase tracking-wider ${theme.textMain}`}>More</h2>
@@ -79,7 +79,7 @@ export default function MobileBottomNav() {
                 </>
             )}
 
-            <nav aria-label="Resident navigation" className={`fixed bottom-0 left-0 right-0 z-50 border-t ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md xl:hidden shadow-xl`}>
+            <nav aria-label="Resident navigation" className={`glass-panel fixed bottom-0 left-0 right-0 z-50 border-t ${theme.cardBorder} ${theme.cardBg}/95 backdrop-blur-md xl:hidden shadow-xl`}>
             <div className="mx-auto flex max-w-lg items-stretch justify-around gap-1 px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:max-w-xl sm:px-4">
                 {items.map(({ href, label, ariaLabel, icon: Icon }) => {
                     const active = isActive(href);

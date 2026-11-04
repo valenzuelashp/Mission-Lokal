@@ -20,6 +20,12 @@ class Concern extends Model
     protected $fillable = [
         'barangay_id',
         'reporter_id',
+        'intake_logged_by',
+        'intake_channel',
+        'intake_reporter_name',
+        'intake_reporter_phone',
+        'intake_reporter_address',
+        'incident_occurred_at',
         'title',
         'description',
         'category_id',
@@ -47,6 +53,10 @@ class Concern extends Model
             'status' => ConcernStatus::class,
             'ai_processed_at' => 'datetime',
             'staff_reviewed_at' => 'datetime',
+            'incident_occurred_at' => 'datetime',
+            'intake_reporter_name' => 'encrypted',
+            'intake_reporter_phone' => 'encrypted',
+            'intake_reporter_address' => 'encrypted',
         ];
     }
 
@@ -82,31 +92,69 @@ class Concern extends Model
             return true;
         }
 
+        if ($this->aiSuggestedSubcategory()?->code === 'VAWC') {
+            return true;
+        }
+
         return self::isVawcReport(null, $this->title ?? '', $this->description ?? '');
     }
 
     public function isSensitiveConcern(): bool
     {
-        return (bool) $this->is_blotter_candidate || $this->isVawcConcern();
+        return (bool) $this->is_blotter_candidate
+            || (bool) $this->subcategory?->force_private
+            || (bool) $this->aiSuggestedSubcategory()?->force_private
+            || $this->isVawcConcern();
+    }
+
+    public function scopePubliclyDiscoverable(Builder $query): Builder
+    {
+        return $query
+            ->where('visibility', 'public')
+            ->where('status', '!=', ConcernStatus::Submitted->value)
+            ->where(function (Builder $privacy) {
+                $privacy->whereNull('is_blotter_candidate')
+                    ->orWhere('is_blotter_candidate', false);
+            })
+            ->whereDoesntHave('subcategory', fn (Builder $subcategory) => $subcategory->where('force_private', true))
+            ->whereDoesntHave('currentAiAnalysis.suggestedSubcategory', fn (Builder $subcategory) => $subcategory->where('force_private', true))
+            ->whereNotVawc();
     }
 
     public static function isVawcReport(?string $categoryKey, string $title = '', string $description = ''): bool
     {
         return $categoryKey === 'vawc' || preg_match(
-            '/\b(vawc|violence\s+against\s+women|domestic\s+(?:violence|dispute)|ra\s*9262)\b/i',
+            '/\b(vawc|violence\s+against\s+women|domestic\s+(?:violence|dispute|conflict|abuse)|family\s+violence|spousal\s+abuse|sexual\s+(?:abuse|violence|assault)|child\s+abuse|rape|ra\s*9262|pang[-\s]?aabuso|inaabuso|binubugbog|bugbog|sinaktan|pananakit)\b/i',
             $title.' '.$description
         ) === 1;
     }
 
+    private function aiSuggestedSubcategory(): ?ConcernSubcategory
+    {
+        if (! $this->relationLoaded('currentAiAnalysis')) {
+            $this->setRelation(
+                'currentAiAnalysis',
+                $this->exists ? $this->currentAiAnalysis()->with('suggestedSubcategory')->first() : null,
+            );
+        }
+
+        $analysis = $this->getRelation('currentAiAnalysis');
+
+        if (! $analysis) {
+            return null;
+        }
+
+        $analysis->loadMissing('suggestedSubcategory');
+
+        return $analysis->suggestedSubcategory;
+    }
+
     public function scopeWhereNotVawc(Builder $query): Builder
     {
-        $query->where(function (Builder $privacy) {
-            $privacy->whereNull('is_blotter_candidate')
-                ->orWhere('is_blotter_candidate', false);
-        });
         $query->whereDoesntHave('subcategory', fn (Builder $subcategory) => $subcategory->where('code', 'VAWC'));
+        $query->whereDoesntHave('currentAiAnalysis.suggestedSubcategory', fn (Builder $subcategory) => $subcategory->where('code', 'VAWC'));
 
-        foreach (['%vawc%', '%violence against women%', '%domestic%', '%ra%9262%'] as $pattern) {
+        foreach (['%vawc%', '%violence against women%', '%domestic violence%', '%domestic dispute%', '%ra 9262%', '%ra9262%'] as $pattern) {
             $query->where(function (Builder $text) use ($pattern) {
                 $text->whereRaw('LOWER(title) NOT LIKE ?', [$pattern])
                     ->whereRaw('LOWER(description) NOT LIKE ?', [$pattern]);
@@ -156,6 +204,11 @@ class Concern extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reporter_id');
+    }
+
+    public function intakeLogger(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'intake_logged_by');
     }
 
     public function duplicateOf(): BelongsTo

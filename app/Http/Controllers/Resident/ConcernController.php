@@ -42,9 +42,7 @@ class ConcernController extends Controller
             ->selectRaw('ST_Y(concerns.location) as map_lat, ST_X(concerns.location) as map_lng')
             ->where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($user) {
-                $query->where(function ($public) {
-                    $public->where('visibility', 'public')->whereNotVawc();
-                })
+                $query->where(fn ($public) => $public->publiclyDiscoverable())
                       ->orWhere('reporter_id', $user->id);
             })
             ->when($search !== '', function (Builder $query) use ($search) {
@@ -66,7 +64,7 @@ class ConcernController extends Controller
                     ->whereIn('to_status', ['submitted', 'active', 'rejected', 'spam', 'resolved', 'closed'])
                     ->orderBy('created_at')
                     ->orderBy('id'),
-                'currentAiAnalysis',
+                'currentAiAnalysis.suggestedSubcategory',
                 'votes' => fn ($query) => $query->where('user_id', $user->id),
             ])
             ->withCount([
@@ -128,11 +126,13 @@ class ConcernController extends Controller
                     'lat' => $point['lat'],
                     'lng' => $point['lng'],
                     'created_at' => $item->created_at ? $item->created_at->format('M d, Y · g:i A') : 'Just now',
-                    'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
+                    'reporter_name' => $reporterName !== ''
+                        ? $reporterName
+                        : ($item->intake_channel !== 'resident_portal' ? 'Barangay Desk' : 'Verified Resident'),
                     'reporter_photo_url' => $item->reporter?->profilePhotoUrl(),
                     'is_owner' => $item->reporter_id === auth()->id(),
                     'visibility' => $item->visibility,
-                    'privacy_locked' => (bool) $item->is_blotter_candidate,
+                    'privacy_locked' => $item->isSensitiveConcern(),
                     'images' => $item->media
                         ->sortBy('sort_order')
                         ->map(fn ($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($item, $media))
@@ -317,10 +317,15 @@ class ConcernController extends Controller
         ];
 
         $categoryIdInt = $isVawcConcern ? 3 : ($categoryMap[$request->category_id] ?? 1);
-        $subcategoryId = $isVawcConcern
-            ? ConcernSubcategory::query()->where('code', 'VAWC')->value('id')
+        $subcategoryCode = $isVawcConcern
+            ? 'VAWC'
+            : ($request->category_id === 'noise' ? 'NOISE' : null);
+        $subcategory = $subcategoryCode
+            ? ConcernSubcategory::query()->where('code', $subcategoryCode)->first()
             : null;
-        $forcePrivate = Concern::shouldForcePrivate($request->category_id, $request->title, $request->description);
+        $subcategoryId = $subcategory?->id;
+        $forcePrivate = Concern::shouldForcePrivate($request->category_id, $request->title, $request->description)
+            || (bool) $subcategory?->force_private;
         $visibility = $forcePrivate ? 'private' : 'public';
         $lat = (float) $request->lat;
         $lng = (float) $request->lng;
@@ -394,6 +399,9 @@ class ConcernController extends Controller
 
         $concern->load('reporter', 'category', 'currentAiAnalysis');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
+        if ($reporterName === '' && $concern->intake_channel !== 'resident_portal') {
+            $reporterName = 'Barangay Desk';
+        }
 
         $locationData = DB::selectOne("SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?", [$concern->id]);
         $lat = 14.5173079;
@@ -539,7 +547,7 @@ class ConcernController extends Controller
             'visibility' => ['required', 'in:public,private'],
         ]);
 
-        if ($concern->is_blotter_candidate && $validated['visibility'] !== 'private') {
+        if ($concern->isSensitiveConcern() && $validated['visibility'] !== 'private') {
             return back()->with('error', 'This concern was marked private for safety and cannot be made public.');
         }
 

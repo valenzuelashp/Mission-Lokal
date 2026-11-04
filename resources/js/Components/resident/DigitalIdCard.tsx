@@ -20,13 +20,13 @@ export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memb
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}&color=000000`;
 
     return (
-        <Card className={`overflow-hidden border ${theme.cardBorder} ${theme.primaryBg} text-white shadow-xl rounded-3xl`}>
+        <Card className={`digital-id-card overflow-hidden border ${theme.cardBorder} ${theme.primaryBg} text-white shadow-xl rounded-3xl`}>
             <CardContent className="p-7 space-y-6">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-85">Official Municipal Digital ID</p>
-                        <p className="mt-2 break-words text-xl font-black tracking-tight">{fullName}</p>
-                        <p className="truncate font-mono text-xs font-bold opacity-90 mt-1">{accountId}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white opacity-100">Official Municipal Digital ID</p>
+                        <p className="mt-2 break-words text-xl font-black tracking-tight text-white">{fullName}</p>
+                        <p className="truncate font-mono text-xs font-bold text-white opacity-100 mt-1">{accountId}</p>
                     </div>
 
                     <div className="shrink-0 bg-white p-3 rounded-2xl border border-white/25 shadow-md">
@@ -46,11 +46,11 @@ export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memb
 
                 <div className="space-y-2.5 border-t border-white/20 pt-5 text-xs font-medium">
                     <div className="flex justify-between gap-2">
-                        <span className="shrink-0 opacity-85">Secure Digital Hash Code</span>
+                        <span className="shrink-0 text-white opacity-100">Secure Digital Hash Code</span>
                         <span className="truncate font-mono font-black text-white">{digitalIdCode ?? 'Pending Verification'}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="opacity-85">Member Since</span>
+                        <span className="text-white opacity-100">Member Since</span>
                         <span className="font-black text-white">{memberSince}</span>
                     </div>
                 </div>

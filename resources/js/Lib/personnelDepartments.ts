@@ -44,7 +44,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
         heroAccent: 'text-amber-200',
         roles: [{ value: 'traffic_control', label: 'Traffic control' }],
         theme: {
-            sidebar: 'bg-amber-950 text-amber-50 border-amber-900',
+            sidebar: 'bg-amber-50 text-amber-950 border-amber-200',
             accent: 'bg-amber-600',
             accentHover: 'hover:bg-amber-700',
             soft: 'bg-amber-50',
@@ -63,7 +63,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
         heroAccent: 'text-emerald-200',
         roles: [{ value: 'sanitation', label: 'Sanitation' }],
         theme: {
-            sidebar: 'bg-emerald-950 text-emerald-50 border-emerald-900',
+            sidebar: 'bg-emerald-50 text-emerald-950 border-emerald-200',
             accent: 'bg-emerald-700',
             accentHover: 'hover:bg-emerald-800',
             soft: 'bg-emerald-50',
@@ -86,7 +86,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
             { value: 'vaw_desk', label: 'VAW Desk · Confidential cases' },
         ],
         theme: {
-            sidebar: 'bg-slate-950 text-slate-50 border-slate-800',
+            sidebar: 'bg-slate-50 text-slate-900 border-slate-200',
             accent: 'bg-slate-800',
             accentHover: 'hover:bg-slate-900',
             soft: 'bg-slate-100',
@@ -105,7 +105,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
         heroAccent: 'text-sky-200',
         roles: [{ value: 'public_works', label: 'Utility & infrastructure' }],
         theme: {
-            sidebar: 'bg-sky-950 text-sky-50 border-sky-900',
+            sidebar: 'bg-sky-50 text-sky-950 border-sky-200',
             accent: 'bg-sky-700',
             accentHover: 'hover:bg-sky-800',
             soft: 'bg-sky-50',
@@ -124,7 +124,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
         heroAccent: 'text-violet-200',
         roles: [{ value: 'animal_response', label: 'Animal responder' }],
         theme: {
-            sidebar: 'bg-violet-950 text-violet-50 border-violet-900',
+            sidebar: 'bg-violet-50 text-violet-950 border-violet-200',
             accent: 'bg-violet-700',
             accentHover: 'hover:bg-violet-800',
             soft: 'bg-violet-50',
@@ -143,7 +143,7 @@ export const personnelDepartments: Record<PersonnelDepartmentKey, {
         heroAccent: 'text-orange-200',
         roles: [{ value: 'maintenance', label: 'Maintenance technician' }],
         theme: {
-            sidebar: 'bg-orange-950 text-orange-50 border-orange-900',
+            sidebar: 'bg-orange-50 text-orange-950 border-orange-200',
             accent: 'bg-orange-700',
             accentHover: 'hover:bg-orange-800',
             soft: 'bg-orange-50',

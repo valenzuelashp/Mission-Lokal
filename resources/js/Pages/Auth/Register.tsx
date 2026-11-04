@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ShieldAlert, Search, ChevronDown, FileText, CheckCircle2 } from 'lucide-react';
+import FormProgress from '@/Components/shared/FormProgress';
 
 function toUpperCase(value: string) {
     return value.toUpperCase();
@@ -162,6 +163,7 @@ export default function Register() {
 
     const formErrors = errors as Record<string, string | undefined>;
     const [isMinor, setIsMinor] = useState(false);
+    const [registrationStep, setRegistrationStep] = useState<1 | 2>(1);
     
     // Catch flash messages from the backend
     const { flash } = usePage().props as any;
@@ -235,10 +237,11 @@ export default function Register() {
     };
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/60 px-6 sm:px-10 py-6 flex items-center justify-center">
+        <div className="relative w-full min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/60 px-6 sm:px-10 py-6 flex items-center justify-center">
             <Head title="Resident Registration" />
 
-            <div className="w-full rounded-2xl border border-blue-100/80 bg-white/95 backdrop-blur-md p-6 sm:p-8 shadow-xl shadow-blue-950/5 space-y-5">
+            <div aria-hidden="true" className="progressive-blur-background pointer-events-none absolute inset-x-0 top-1/4 h-72 bg-blue-200/20" />
+            <div className="glass-card relative w-full rounded-2xl border border-blue-100/80 bg-white/95 p-6 sm:p-8 shadow-xl shadow-blue-950/5 space-y-5">
                 
                 {/* Header Banner */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -276,10 +279,11 @@ export default function Register() {
 
                 {/* Form Body in 2 Columns */}
                 <form onSubmit={submit} className="space-y-4">
+                    <FormProgress current={registrationStep} total={2} labels={['Identity', 'Address & Verification']} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         
                         {/* COLUMN 1: Personal Info & Contacts */}
-                        <div className="space-y-3">
+                        <div className={`space-y-3 md:col-span-2 ${registrationStep === 1 ? 'block' : 'hidden'}`}>
                             <div className="text-xs font-bold uppercase tracking-wider text-blue-900 border-b pb-1">
                                 1. Personal & Contact Details
                             </div>
@@ -398,7 +402,7 @@ export default function Register() {
                         </div>
 
                         {/* COLUMN 2: Address & Identity Verification */}
-                        <div className="space-y-3">
+                        <div className={`space-y-3 md:col-span-2 ${registrationStep === 2 ? 'block' : 'hidden'}`}>
                             <div className="text-xs font-bold uppercase tracking-wider text-blue-900 border-b pb-1">
                                 2. Address & Verification
                             </div>
@@ -486,16 +490,25 @@ export default function Register() {
 
                     {/* Footer Actions */}
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <Link href="/login" className="text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors">
-                            &larr; Back to Login
-                        </Link>
-                        <Button 
+                        <button type="button" onClick={() => registrationStep === 2 ? setRegistrationStep(1) : window.history.back()} className="text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors">
+                            &larr; {registrationStep === 2 ? 'Previous' : 'Back to Login'}
+                        </button>
+                        {registrationStep === 1 ? (
+                            <Button type="button" onClick={() => setRegistrationStep(2)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 text-xs h-9">
+                                Continue to Address
+                            </Button>
+                        ) : (
+                            <div className="flex gap-2">
+                                <Button type="button" variant="outline" onClick={() => setRegistrationStep(1)} className="rounded-xl text-xs font-bold">Previous</Button>
+                                <Button 
                             type="submit" 
                             disabled={processing} 
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 transition-all text-xs tracking-wide h-9"
                         >
                             {processing ? 'Submitting...' : 'Submit Registration'}
                         </Button>
+                            </div>
+                        )}
                     </div>
                 </form>
             </div>

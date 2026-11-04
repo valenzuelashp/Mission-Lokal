@@ -20,6 +20,15 @@ function formatStep(step: unknown): string {
     return JSON.stringify(step);
 }
 
+function imageRelevanceLabel(relevance?: string): string {
+    return ({
+        relevant: 'Relevant',
+        partially_relevant: 'Partly relevant',
+        unrelated: 'Unrelated',
+        unclear: 'Unclear',
+    } as Record<string, string>)[relevance ?? ''] ?? 'Needs review';
+}
+
 interface Props {
     report: any;
     masterCandidates?: { id: string; label: string }[];
@@ -189,19 +198,70 @@ export default function Show({ report, personnel = [] }: Props) {
                                 </p>
                             </div>
 
+                            {report?.intake && (
+                                <div className="space-y-3 rounded-xl border border-cyan-200 bg-cyan-50/70 p-4">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h4 className="text-xs font-black uppercase tracking-wide text-cyan-950">Restricted desk intake details</h4>
+                                        <Badge className="border border-cyan-200 bg-white text-cyan-900">{report.intake.channel === 'walk_in' ? 'Walk-in' : 'Phone'}</Badge>
+                                    </div>
+                                    <div className="grid gap-3 text-xs sm:grid-cols-2">
+                                        <div><p className="text-[10px] font-bold uppercase text-slate-500">Resident name</p><p className="font-semibold text-slate-900">{report.intake.caller_name || 'Not provided'}</p></div>
+                                        <div><p className="text-[10px] font-bold uppercase text-slate-500">Phone</p><p className="font-semibold text-slate-900">{report.intake.caller_phone || 'Not provided'}</p></div>
+                                        <div><p className="text-[10px] font-bold uppercase text-slate-500">Resident address / callback details</p><p className="font-semibold text-slate-900">{report.intake.caller_address || 'Not provided'}</p></div>
+                                        <div><p className="text-[10px] font-bold uppercase text-slate-500">Logged by</p><p className="font-semibold text-slate-900">{report.intake.logged_by || 'Admin account'}</p></div>
+                                        {report.intake.incident_occurred_at && <div><p className="text-[10px] font-bold uppercase text-slate-500">Incident time</p><p className="font-semibold text-slate-900">{report.intake.incident_occurred_at}</p></div>}
+                                    </div>
+                                </div>
+                            )}
+
                             {report?.images && report.images.length > 0 && (
                                 <div className="space-y-3 pt-2">
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Attached Evidence Photos</h4>
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Attached Evidence Photos</h4>
+                                        {report.image_review_needed && (
+                                            <Badge className="border border-amber-300 bg-amber-100 text-amber-900">Manual review needed</Badge>
+                                        )}
+                                    </div>
+                                    {report.image_review_needed && (
+                                        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                            At least one image is unrelated, unclear, only partly relevant, or was not analyzed. Verify it against the report; this is not proof of misuse.
+                                        </p>
+                                    )}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {report.images.map((url: string, idx: number) => (
-                                            <div key={idx} className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-2xs">
-                                                <img 
-                                                    src={url} 
-                                                    alt="Evidence Attachment" 
-                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
-                                            </div>
-                                        ))}
+                                        {report.images.map((url: string, idx: number) => {
+                                            const imageNumber = idx + 1;
+                                            const assessment = report.image_assessments?.find((item: any) => item.image_number === imageNumber);
+                                            const wasAnalyzed = Array.isArray(report.images_analyzed_numbers)
+                                                ? report.images_analyzed_numbers.includes(imageNumber)
+                                                : imageNumber <= (report.images_analyzed_count ?? 0);
+
+                                            return (
+                                                <div key={idx} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
+                                                    <div className="aspect-square bg-slate-100">
+                                                        <img src={url} alt={`Evidence attachment ${imageNumber}`} className="h-full w-full object-cover" />
+                                                    </div>
+                                                    <div className="space-y-1.5 p-3">
+                                                        <p className="text-[10px] font-black uppercase text-slate-500">Image {imageNumber}</p>
+                                                        {assessment ? (
+                                                            <>
+                                                                <p className={cn(
+                                                                    'text-xs font-bold',
+                                                                    assessment.relevance === 'relevant' ? 'text-emerald-700' : 'text-amber-800',
+                                                                )}>
+                                                                    AI assessment: {imageRelevanceLabel(assessment.relevance)}
+                                                                </p>
+                                                                {assessment.observation && <p className="text-[11px] leading-relaxed text-slate-600">{assessment.observation}</p>}
+                                                                {assessment.reason && <p className="text-[11px] leading-relaxed text-slate-500">{assessment.reason}</p>}
+                                                            </>
+                                                        ) : (
+                                                            <p className="text-[11px] leading-relaxed text-amber-800">
+                                                                {wasAnalyzed ? 'No assessment returned; verify manually.' : 'Not analyzed by AI; verify manually.'}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -437,7 +497,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                                 </select>
                                                 {report?.is_vawc && (
                                                     <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-800">
-                                                        VAWC concerns are confidential and can only be assigned to VAW Desk personnel.
+                                                        VAWC-classified concerns are confidential and can only be assigned to Peace &amp; Order VAW Desk personnel.
                                                     </p>
                                                 )}
                                                 <div className="max-h-60 overflow-y-auto rounded-2xl border border-slate-200 p-3 space-y-2 bg-white shadow-2xs">

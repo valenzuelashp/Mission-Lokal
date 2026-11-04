@@ -33,7 +33,7 @@ export default function ResidentHeader({ unreadCount, onNotificationsClick }: Pr
     };
 
     return (
-        <header className={`sticky top-0 z-50 border-b ${theme.cardBorder} ${theme.cardBg} backdrop-blur-md shadow-2xs w-full`}>
+        <header className={`glass-panel sticky top-0 z-50 border-b ${theme.cardBorder} ${theme.cardBg} backdrop-blur-md shadow-2xs w-full`}>
             <div className="flex h-16 w-full min-w-0 items-center gap-1 px-3 sm:gap-4 sm:px-6 xl:px-10">
                 <Link href="/feed" className="flex shrink-0 items-center gap-3 group">
                     <img

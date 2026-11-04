@@ -18,6 +18,7 @@ Route::prefix('super-admin')->name('super_admin.')->middleware(['auth', EnsureSu
     Route::get('/dashboard', [BarangayManagementController::class, 'dashboard'])->name('dashboard');
     Route::get('/barangays', [BarangayManagementController::class, 'index'])->name('barangays.index');
     Route::post('/barangays', [BarangayManagementController::class, 'store'])->name('barangays.store');
+    Route::post('/barangays/radio-room-admin', [BarangayManagementController::class, 'storeRadioRoomAdmin'])->name('barangays.radio_room_admin');
     Route::post('/barangays/view-only-admin', [BarangayManagementController::class, 'storeViewOnlyAdmin'])->name('barangays.view_only');
     Route::put('/barangays/{barangay}', [BarangayManagementController::class, 'update'])->name('barangays.update');
 

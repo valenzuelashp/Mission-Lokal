@@ -45,7 +45,7 @@ class DepartmentMissionAccess
                 fn (Builder $query) => $query->whereHas('concern', fn (Builder $concern) => $concern->whereNotVawc())
             )
             ->whereHas('concern')
-            ->with(['concern.subcategory', 'concern.media', 'proof', 'personnel']);
+            ->with(['concern.subcategory', 'concern.currentAiAnalysis.suggestedSubcategory', 'concern.media', 'proof', 'personnel']);
     }
 
     public function canView(Personnel $personnel, Mission $mission): bool
@@ -63,8 +63,12 @@ class DepartmentMissionAccess
 
         if (! $mission->relationLoaded('concern')) {
             $mission->load('concern.subcategory');
-        } elseif ($mission->concern && ! $mission->concern->relationLoaded('subcategory')) {
-            $mission->concern->load('subcategory');
+        } elseif ($mission->concern) {
+            $mission->concern->loadMissing('subcategory');
+        }
+
+        if ($mission->concern?->exists) {
+            $mission->concern->loadMissing('currentAiAnalysis.suggestedSubcategory');
         }
 
         if ($mission->concern && ! $this->canViewSensitiveConcern($personnel, $mission->concern)) {
@@ -76,7 +80,7 @@ class DepartmentMissionAccess
 
     public function canViewSensitiveConcern(Personnel $personnel, Concern $concern): bool
     {
-        if (! $concern->isSensitiveConcern()) {
+        if (! $concern->isVawcConcern()) {
             return true;
         }
 
@@ -136,13 +140,13 @@ class DepartmentMissionAccess
         }
 
         $missions = Mission::query()
-            ->with('concern.subcategory')
+            ->with(['concern.subcategory', 'concern.currentAiAnalysis.suggestedSubcategory'])
             ->whereIn('id', $missionIds)
             ->get()
             ->keyBy('id');
 
         $concerns = Concern::query()
-            ->with('subcategory')
+            ->with(['subcategory', 'currentAiAnalysis.suggestedSubcategory'])
             ->whereIn('id', $concernIds)
             ->get()
             ->keyBy('id');

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { ClipboardPlus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ReportQueueTable from '@/Components/admin/ReportQueueTable';
 import { Input } from '@/Components/ui/input';
@@ -91,13 +91,16 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
 
             <div className="w-full space-y-6 pb-12">
                 {/* Header Section */}
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/60 pb-5">
+                <div className="flex flex-col gap-3 border-b border-slate-200/60 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">AI Triage & Report Queue</h2>
                         <p className="mt-1 text-sm font-medium text-slate-500 max-w-3xl">
                             Reports are prioritized by AI severity, safety keywords, and waiting time. Review potential matches and merge reports seamlessly.
                         </p>
                     </div>
+                    <Button asChild className="shrink-0 bg-cyan-800 text-white hover:bg-cyan-900">
+                        <Link href="/admin/reports/intake"><ClipboardPlus className="mr-2 h-4 w-4" />Log desk concern</Link>
+                    </Button>
                 </div>
 
                 {/* Filter and Search Controls */}

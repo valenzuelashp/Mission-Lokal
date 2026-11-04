@@ -1,6 +1,8 @@
 import { Head, useForm, Link } from '@inertiajs/react';
 import React, { useState } from 'react';
 import { PasswordInput } from '@/Components/ui/password-input';
+import OtpInput from '@/Components/shared/OtpInput';
+import FormProgress from '@/Components/shared/FormProgress';
 
 // Tell TypeScript about Ziggy's route function
 declare function route(name: string): string;
@@ -61,6 +63,9 @@ export default function ForgotPassword() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                    <div className="mb-6">
+                        <FormProgress current={step} total={3} labels={['Email', 'Verify', 'Password']} />
+                    </div>
                     
                     {/* ============================== */}
                     {/* STEP 1: EMAIL REQUEST FORM     */}
@@ -100,16 +105,7 @@ export default function ForgotPassword() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 text-center">6-Digit Code</label>
                                 <div className="mt-1">
-                                    <input
-                                        type="text"
-                                        maxLength={6}
-                                        value={data.otp}
-                                        onChange={e => setData('otp', e.target.value)}
-                                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-lg text-center tracking-widest font-bold"
-                                        placeholder="••••••"
-                                        required
-                                    />
-                                    {errors.otp && <p className="mt-2 text-sm text-center text-red-600">{errors.otp}</p>}
+                                    <OtpInput value={data.otp} onChange={(otp) => setData('otp', otp)} error={errors.otp} />
                                 </div>
                             </div>
                             <div className="flex flex-col space-y-3">

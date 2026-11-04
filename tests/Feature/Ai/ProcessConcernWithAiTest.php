@@ -9,7 +9,9 @@ use App\Models\ConcernAiAnalysis;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProcessConcernWithAiTest extends TestCase
@@ -56,6 +58,7 @@ class ProcessConcernWithAiTest extends TestCase
             $table->unsignedSmallInteger('category_id');
             $table->string('code');
             $table->string('name');
+            $table->boolean('force_private')->default(false);
             $table->boolean('is_active')->default(true);
         });
 
@@ -187,6 +190,79 @@ class ProcessConcernWithAiTest extends TestCase
         $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
     }
 
+    public function test_it_sends_numbered_uploaded_images_and_persists_their_relevance_assessment(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('concerns/evidence.jpg', 'fake-image-bytes');
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => json_encode([
+                                'detected_language' => 'en',
+                                'suggested_visibility' => 'public',
+                                'suggested_severity' => 'medium',
+                                'severity_confidence' => 0.9,
+                                'suggested_category_code' => null,
+                                'suggested_subcategory_code' => null,
+                                'prescriptive_steps' => ['Inspect the reported location.'],
+                                'suggested_duration_hours' => 72,
+                                'suggested_due_date' => '2026-11-09',
+                                'evidence_summary' => ['The report describes a blocked drain.'],
+                                'image_assessments' => [
+                                    [
+                                        'image_number' => 1,
+                                        'relevance' => 'unrelated',
+                                        'observation' => 'A dog indoors.',
+                                        'reason' => 'The image does not show a drain or flooding.',
+                                    ],
+                                    [
+                                        'image_number' => 9,
+                                        'relevance' => 'relevant',
+                                        'observation' => 'Invalid image index.',
+                                        'reason' => 'This assessment should be discarded.',
+                                    ],
+                                ],
+                                'uncertainties' => [],
+                            ]),
+                        ]],
+                    ],
+                ]],
+            ]),
+        ]);
+
+        $concern = Concern::create([
+            'title' => 'Blocked drainage',
+            'description' => 'Water is pooling on the street because the drain is blocked.',
+        ]);
+        DB::table('concern_media')->insert([
+            'id' => (string) Str::uuid(),
+            'concern_id' => $concern->id,
+            'storage_key' => 'concerns/evidence.jpg',
+            'mime_type' => 'image/jpeg',
+            'sort_order' => 0,
+            'created_at' => now(),
+        ]);
+
+        (new ProcessConcernWithAi($concern))->handle();
+
+        Http::assertSent(function ($request) {
+            $parts = data_get($request->data(), 'contents.0.parts', []);
+            $imagePart = collect($parts)->first(fn ($part) => isset($part['inlineData']));
+
+            return str_contains($parts[0]['text'] ?? '', 'Compare EACH image separately')
+                && collect($parts)->contains(fn ($part) => ($part['text'] ?? '') === 'Resident attachment image 1. Assess this image against the report narrative.')
+                && base64_decode($imagePart['inlineData']['data'] ?? '', true) === 'fake-image-bytes';
+        });
+
+        $analysis = ConcernAiAnalysis::where('concern_id', $concern->id)->firstOrFail();
+        $this->assertSame(1, $analysis->raw_model_output['images_analyzed_count']);
+        $this->assertCount(1, $analysis->raw_model_output['image_assessments']);
+        $this->assertSame('unrelated', $analysis->raw_model_output['image_assessments'][0]['relevance']);
+        $this->assertSame(1, $analysis->raw_model_output['image_assessments'][0]['image_number']);
+    }
+
     public function test_ai_cannot_make_a_vawc_concern_public(): void
     {
         DB::table('concern_categories')->insert([
@@ -239,5 +315,78 @@ class ProcessConcernWithAiTest extends TestCase
             'concern_id' => $concern->id,
             'suggested_visibility' => 'private',
         ]);
+    }
+
+    public function test_sensitive_concerns_use_local_analysis_without_sending_data_to_gemini(): void
+    {
+        Http::fake();
+
+        $concern = Concern::create([
+            'title' => 'Domestic violence report',
+            'description' => 'A resident requests confidential assistance.',
+            'visibility' => 'private',
+            'is_blotter_candidate' => true,
+        ]);
+
+        (new ProcessConcernWithAi($concern))->handle();
+
+        Http::assertNothingSent();
+        $this->assertSame('private', $concern->fresh()->visibility);
+        $analysis = ConcernAiAnalysis::where('concern_id', $concern->id)->firstOrFail();
+        $this->assertStringContainsString('VAW Desk', implode(' ', $analysis->prescriptive_steps));
+        $this->assertStringNotContainsString('Domestic violence report', json_encode($analysis->raw_model_output));
+    }
+
+    public function test_ai_cannot_make_a_force_private_noise_concern_public(): void
+    {
+        DB::table('concern_categories')->insert([
+            'id' => 3,
+            'code' => 'SAFETY',
+            'name' => 'Safety',
+            'is_active' => true,
+        ]);
+        DB::table('concern_subcategories')->insert([
+            'id' => 3,
+            'category_id' => 3,
+            'code' => 'NOISE',
+            'name' => 'Noise complaint',
+            'force_private' => true,
+            'is_active' => true,
+        ]);
+
+        Http::fake([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [[
+                            'text' => json_encode([
+                                'detected_language' => 'en',
+                                'suggested_visibility' => 'public',
+                                'suggested_severity' => 'low',
+                                'severity_confidence' => 0.95,
+                                'suggested_category_code' => 'SAFETY',
+                                'suggested_subcategory_code' => 'NOISE',
+                                'prescriptive_steps' => ['Refer to Peace & Order'],
+                                'suggested_duration_hours' => 12,
+                            ]),
+                        ]],
+                    ],
+                ]],
+            ]),
+        ]);
+
+        $concern = Concern::create([
+            'category_id' => 3,
+            'title' => 'Late-night noise complaint',
+            'description' => 'Loud music continues after curfew.',
+            'visibility' => 'public',
+        ]);
+
+        (new ProcessConcernWithAi($concern))->handle();
+
+        $freshConcern = $concern->fresh();
+        $this->assertSame('private', $freshConcern->visibility);
+        $this->assertTrue($freshConcern->isSensitiveConcern());
+        $this->assertFalse($freshConcern->isVawcConcern());
     }
 }

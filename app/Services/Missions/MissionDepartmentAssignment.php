@@ -53,13 +53,13 @@ class MissionDepartmentAssignment
         }
 
         $department = $departments->first();
-        if ($concern->isSensitiveConcern()) {
+        if ($concern->isVawcConcern()) {
             $onlyVawDesk = $this->departmentEnum($department) === PersonnelDepartment::PeaceOrder
                 && $personnel->every(fn (Personnel $member) => $this->isVawDeskRole($member->role));
 
             if (! $onlyVawDesk) {
                 throw ValidationException::withMessages([
-                    'personnel_ids' => 'VAWC concerns can only be assigned to Peace & Order VAW Desk personnel.',
+                    'personnel_ids' => 'VAWC-classified concerns can only be assigned to Peace & Order VAW Desk personnel.',
                 ]);
             }
         }

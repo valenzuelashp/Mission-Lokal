@@ -2,6 +2,8 @@ import { router, usePage, Link } from '@inertiajs/react';
 import { Building2, LayoutDashboard, LogOut, ShieldCheck, Globe, UserCircle, KeyRound, MessageSquareWarning } from 'lucide-react';
 import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
 import { PropsWithChildren } from 'react';
+import ThemeToggle from '@/Components/shared/ThemeToggle';
+import FlashToasts from '@/Components/shared/FlashToasts';
 
 export default function SuperAdminLayout({ children, title }: PropsWithChildren<{ title?: string }>) {
     const { auth } = usePage().props as any;
@@ -81,12 +83,16 @@ export default function SuperAdminLayout({ children, title }: PropsWithChildren<
                 </div>
             </aside>
 
-            <div className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] text-slate-900">
-                <header className="h-16 bg-white/80 border-b border-slate-200/80 px-8 flex items-center justify-between backdrop-blur-md sticky top-0 z-30">
+            <FlashToasts />
+            <div className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+                <header className="glass-panel progressive-blur-background h-16 bg-white/80 border-b border-slate-200/80 px-8 flex items-center justify-between backdrop-blur-md sticky top-0 z-30">
                     <h2 className="text-base font-extrabold text-slate-900">{title || 'Global Management Portal'}</h2>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                        <Globe className="h-3.5 w-3.5 text-blue-600 animate-spin-slow" /> Master Infrastructure Node
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <Globe className="h-3.5 w-3.5 text-blue-600 animate-spin-slow" /> Master Infrastructure Node
+                        </span>
+                    </div>
                 </header>
                 <main className="p-8 flex-1 overflow-y-auto">
                     {children}

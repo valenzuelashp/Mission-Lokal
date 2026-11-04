@@ -114,6 +114,11 @@ export default function ReportQueueCard({ report, scoreDisplay, maxUpvotes }: Pr
                                 {report.visibility === 'private' ? '🔒 Private' : '🌐 Public'}
                             </Badge>
                         </div>
+                        {report.intake_channel && report.intake_channel !== 'resident_portal' && (
+                            <Badge className="border border-cyan-100 bg-cyan-50 text-[10px] text-cyan-800">
+                                {report.intake_channel === 'walk_in' ? 'Walk-in intake' : 'Phone intake'}
+                            </Badge>
+                        )}
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 max-w-[200px]">
                                 {scoreDisplay === 'severity' ? (

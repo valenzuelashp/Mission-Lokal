@@ -59,7 +59,7 @@ class ConcernStatusUpdateTest extends TestCase
 
         $this->assertSame([
             'prescriptive_steps' => ['Inspect the site.', 'Repair the damaged section.'],
-            'estimated_duration' => 'about 3 days (72 hours)',
+            'estimated_duration' => 'about 3 working days',
             'estimated_completion' => 'Oct 24, 2026',
         ], ConcernStatusUpdate::plan($analysis));
     }

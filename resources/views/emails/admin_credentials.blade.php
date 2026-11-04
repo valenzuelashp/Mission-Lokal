@@ -2,11 +2,11 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Primary Administrator Credentials</title>
+    <title>{{ $adminData['admin_type_label'] ?? 'Primary Administrator' }} Credentials</title>
 </head>
 <body style="font-family: sans-serif; background-color: #f8fafc; padding: 20px;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; border: 1px solid #e2e8f0;">
-        <h2 style="color: #1e3a8a; margin-top: 0;">Mission-Lokal Primary Administrator Account</h2>
+        <h2 style="color: #1e3a8a; margin-top: 0;">Mission-Lokal {{ $adminData['admin_type_label'] ?? 'Primary Administrator' }} Account</h2>
         <p>Hello <strong>{{ $adminData['name'] }}</strong>,</p>
         <p>Your barangay node has been successfully provisioned. Below are your secure login credentials:</p>
         

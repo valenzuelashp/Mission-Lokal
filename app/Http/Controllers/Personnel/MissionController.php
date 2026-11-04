@@ -333,6 +333,8 @@ class MissionController extends Controller
 
             $missionLabel = 'MS-' . strtoupper(substr($mission->id, 0, 4));
             $concernTitle = $mission->concern?->title ?? 'Mission';
+            $isConfidential = $mission->concern
+                && ($mission->concern->visibility === 'private' || $mission->concern->isSensitiveConcern());
             $currentName = trim(($currentPersonnel->user->first_name ?? '') . ' ' . ($currentPersonnel->user->last_name ?? ''));
             $recipientName = trim(($recipient->user->first_name ?? '') . ' ' . ($recipient->user->last_name ?? ''));
 
@@ -341,7 +343,9 @@ class MissionController extends Controller
                 'channel' => 'in_app',
                 'event_type' => 'mission_turned_over',
                 'title' => 'Mission handed over',
-                'body' => "{$missionLabel} {$concernTitle} was handed over to {$recipientName} for the next shift.",
+                'body' => $isConfidential
+                    ? 'A confidential mission was handed over to the next shift.'
+                    : "{$missionLabel} {$concernTitle} was handed over to {$recipientName} for the next shift.",
                 'payload' => ['mission_id' => $mission->id],
                 'is_read' => false,
                 'sent_at' => now(),
@@ -352,7 +356,9 @@ class MissionController extends Controller
                 'channel' => 'in_app',
                 'event_type' => 'mission_turnover_assigned',
                 'title' => 'Mission received for your shift',
-                'body' => "{$missionLabel} {$concernTitle} was handed over by {$currentName} for your " . $currentShift->next()->label() . '.',
+                'body' => $isConfidential
+                    ? 'A confidential mission is ready for your shift. Sign in to view details.'
+                    : "{$missionLabel} {$concernTitle} was handed over by {$currentName} for your " . $currentShift->next()->label() . '.',
                 'payload' => ['mission_id' => $mission->id],
                 'is_read' => false,
                 'sent_at' => now(),

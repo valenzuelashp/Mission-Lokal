@@ -112,6 +112,11 @@ export default function ReportQueueTable({ reports, scoreDisplay, maxUpvotes }: 
                                                             Private
                                                         </span>
                                                     )}
+                                                    {row.intake_channel && row.intake_channel !== 'resident_portal' && (
+                                                        <span className="rounded-md border border-cyan-100 bg-cyan-50 px-2 py-0.5 text-[10px] font-bold text-cyan-800">
+                                                            {row.intake_channel === 'walk_in' ? 'Walk-in' : 'Phone'}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

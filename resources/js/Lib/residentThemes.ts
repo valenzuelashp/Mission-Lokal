@@ -1,4 +1,4 @@
-export type ResidentThemeId = 'sapphire' | 'emerald' | 'obsidian' | 'sunset' | 'amethyst' | 'crimson';
+export type ResidentThemeId = 'sapphire' | 'emerald' | 'calm-cyan' | 'sunset' | 'amethyst' | 'crimson';
 
 export interface ResidentTheme {
     id: ResidentThemeId;
@@ -103,23 +103,23 @@ export const RESIDENT_THEMES: Record<ResidentThemeId, ResidentTheme> = {
         scrollbarTrack: '#d1fae5',
         scrollbarThumbHover: '#047857',
     },
-    obsidian: {
-        id: 'obsidian',
-        name: 'Soft Slate (Calm Cyan)',
-        bgMain: 'bg-slate-100 text-slate-900',
-        textMain: 'text-slate-800',
+    'calm-cyan': {
+        id: 'calm-cyan',
+        name: 'Calm Cyan (Soft Light)',
+        bgMain: 'bg-[#edf7f8] text-slate-900',
+        textMain: 'text-slate-950',
         textMuted: 'text-slate-600',
-        cardBg: 'bg-white text-slate-800 shadow-sm',
+        cardBg: 'bg-white text-slate-900 shadow-sm',
         accentSurface: 'bg-cyan-50/70',
-        cardBorder: 'border-slate-300',
+        cardBorder: 'border-cyan-200/90',
         cardHoverBorder: 'hover:border-cyan-400',
         cardGlow: 'hover:shadow-cyan-700/10 hover:shadow-md',
         primaryBg: 'bg-cyan-700 text-white',
         primaryHover: 'hover:bg-cyan-800',
         primaryText: 'text-cyan-800',
         primaryBorder: 'border-cyan-300',
-        inputBg: 'bg-slate-50 focus:bg-white',
-        inputBorder: 'border-slate-300',
+        inputBg: 'bg-cyan-50/50 focus:bg-white',
+        inputBorder: 'border-cyan-200',
         inputText: 'text-slate-900',
         focusRing: 'focus:ring-cyan-600 focus-visible:ring-cyan-600',
         softRing: 'ring-cyan-100',
@@ -128,9 +128,9 @@ export const RESIDENT_THEMES: Record<ResidentThemeId, ResidentTheme> = {
         badgeText: 'text-cyan-950',
         badgeBorder: 'border-cyan-300',
         iconColor: 'text-cyan-700',
-        dividerColor: 'border-slate-200',
-        hoverBg: 'hover:bg-cyan-50',
-        previewColor: '#0e7490',
+        dividerColor: 'border-cyan-200/70',
+        hoverBg: 'hover:bg-cyan-50/80',
+        previewColor: '#0891b2',
         logoFilter: 'hue-rotate(-35deg) saturate(0.9)',
         scrollbarThumb: '#0891b2',
         scrollbarTrack: '#cffafe',
@@ -242,7 +242,11 @@ const STORAGE_KEY = 'mission-lokal-resident-theme';
 export function getResidentTheme(): ResidentTheme {
     if (typeof window === 'undefined') return RESIDENT_THEMES.sapphire;
     try {
-        const saved = window.localStorage.getItem(STORAGE_KEY) as ResidentThemeId;
+        const saved = window.localStorage.getItem(STORAGE_KEY) as ResidentThemeId | 'obsidian';
+        if (saved === 'obsidian') {
+            window.localStorage.setItem(STORAGE_KEY, 'calm-cyan');
+            return RESIDENT_THEMES['calm-cyan'];
+        }
         if (saved && saved in RESIDENT_THEMES) {
             return RESIDENT_THEMES[saved];
         }

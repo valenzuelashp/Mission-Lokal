@@ -62,6 +62,24 @@ class ReportController extends Controller
         return $settings ? $settings->civic_xp_per_valid_report : 10;
     }
 
+    private function notifyReporter(Concern $concern, string $eventType, string $title, string $body, array $payload = []): void
+    {
+        if (! $concern->reporter_id) {
+            return;
+        }
+
+        Notification::create([
+            'user_id' => $concern->reporter_id,
+            'barangay_id' => $concern->barangay_id,
+            'channel' => 'in_app',
+            'event_type' => $eventType,
+            'title' => $title,
+            'body' => $body,
+            'payload' => $payload ?: ['concern_id' => $concern->id],
+            'is_read' => false,
+        ]);
+    }
+
     public function index(Request $request): Response
     {
         $barangayId = $request->user()->barangay_id;
@@ -103,6 +121,7 @@ class ReportController extends Controller
                 'upvotes_count' => $c->votes->where('vote', 1)->count(),
                 'visibility' => $c->visibility,
                 'images' => $c->media->sortBy('sort_order')->map(fn ($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($c, $m))->values()->all(),
+                'intake_channel' => $c->intake_channel,
                 'status' => $status,
                 'queue_status' => match($status) {
                     'submitted', 'ai_processed' => 'ai_processed',
@@ -177,6 +196,7 @@ class ReportController extends Controller
                 'currentAiAnalysis.duplicateCandidate.reporter', 
                 'mission.personnel.user',
                 'reporter',
+                'intakeLogger',
                 'duplicateOf.reporter',
                 'duplicates.reporter',
                 'duplicates.media',
@@ -255,7 +275,10 @@ class ReportController extends Controller
             ]);
 
         $record->refresh();
-        $aiAnalysis = $record->currentAiAnalysis()->with('duplicateCandidate.reporter')->first();
+        $aiAnalysis = $record->currentAiAnalysis()
+            ->with(['duplicateCandidate.reporter', 'suggestedSubcategory'])
+            ->first();
+        $record->setRelation('currentAiAnalysis', $aiAnalysis);
         $duplicateCandidate = $aiAnalysis?->duplicateCandidate;
         $duplicateReporterCount = $duplicateCandidate
             ? DB::table('concerns')
@@ -309,7 +332,7 @@ class ReportController extends Controller
         
         // Use the string department safely (No ->value calls)
         $missionDepartment = $existingMission?->department ?? $record->suggestedPersonnelDepartment();
-        $isVawcConcern = $record->isSensitiveConcern();
+        $isVawcConcern = $record->isVawcConcern();
         
         $suggestedPersonnelIds = $existingMission
             ? $assignedPersonnelIds
@@ -323,11 +346,37 @@ class ReportController extends Controller
             ->values()
             ->all();
 
+        $rawAiOutput = is_array($aiAnalysis?->raw_model_output) ? $aiAnalysis->raw_model_output : [];
+        $imageAssessments = is_array($rawAiOutput['image_assessments'] ?? null)
+            ? $rawAiOutput['image_assessments']
+            : [];
+        $imagesAnalyzedCount = max(0, (int) ($rawAiOutput['images_analyzed_count'] ?? 0));
+        $imagesAnalyzedNumbers = is_array($rawAiOutput['images_analyzed_numbers'] ?? null)
+            ? array_values(array_unique(array_map('intval', $rawAiOutput['images_analyzed_numbers'])))
+            : ($imagesAnalyzedCount > 0 ? range(1, $imagesAnalyzedCount) : []);
+        $assessedImageNumbers = collect($imageAssessments)
+            ->pluck('image_number')
+            ->map(fn ($number) => (int) $number)
+            ->all();
+        $imageReviewNeeded = $record->media->isNotEmpty() && (
+            count($imagesAnalyzedNumbers) < $record->media->count()
+            || collect($imagesAnalyzedNumbers)->contains(fn ($number) => ! in_array($number, $assessedImageNumbers, true))
+            || collect($imageAssessments)->contains(fn ($assessment) => ($assessment['relevance'] ?? null) !== 'relevant')
+        );
+
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
                 'id' => $record->id,
                 'title' => $record->title,
                 'description' => $record->description,
+                'intake' => $record->intake_channel && $record->intake_channel !== 'resident_portal' ? [
+                    'channel' => $record->intake_channel,
+                    'caller_name' => $record->intake_reporter_name,
+                    'caller_phone' => $record->intake_reporter_phone,
+                    'caller_address' => $record->intake_reporter_address,
+                    'incident_occurred_at' => $record->incident_occurred_at?->format('M d, Y g:i A'),
+                    'logged_by' => trim(($record->intakeLogger?->first_name ?? '') . ' ' . ($record->intakeLogger?->last_name ?? '')),
+                ] : null,
                 'status' => $record->status->value ?? $record->status,
                 'location_label' => $record->locationLabel(),
                 'severity' => $record->severity ?? 'medium',
@@ -341,6 +390,10 @@ class ReportController extends Controller
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($record, $m))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
                 'assigned_personnel_ids' => $suggestedPersonnelIds,
+                'image_assessments' => $imageAssessments,
+                'images_analyzed_count' => $imagesAnalyzedCount,
+                'images_analyzed_numbers' => $imagesAnalyzedNumbers,
+                'image_review_needed' => $imageReviewNeeded,
                 'mission' => $existingMission ? [
                     'id' => $existingMission->id,
                     'status' => $existingMission->status->value ?? $existingMission->status,
@@ -598,15 +651,12 @@ class ReportController extends Controller
                 SendMissionAssignmentSms::dispatch($missionId, $personnelId);
             }
 
-            Notification::create([
-                'user_id' => $concern->reporter_id,
-                'barangay_id' => $barangayId,
-                'channel' => 'in_app',
-                'event_type' => 'concern_active',
-                'title' => 'Concern Active',
-                'body' => 'A mission has been deployed to address your report based on AI triage confirmation.',
-                'payload' => ['concern_id' => $concern->id],
-            ]);
+            $this->notifyReporter(
+                $concern,
+                'concern_active',
+                'Concern Active',
+                'A mission has been deployed to address your report based on AI triage confirmation.',
+            );
 
             return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Mission deployed.');
         } 
@@ -664,18 +714,16 @@ class ReportController extends Controller
                     'created_at' => now(),
                 ]);
 
-                Notification::create([
-                    'user_id' => $concern->reporter_id,
-                    'barangay_id' => $barangayId,
-                    'channel' => 'in_app',
-                    'event_type' => 'concern_merged',
-                    'title' => 'Report Grouped with Existing Concern',
-                    'body' => 'Your report has been verified and combined with an ongoing community ticket: "' . $masterConcern->title . '". You will receive updates as resolution proceeds.',
-                    'payload' => [
+                $this->notifyReporter(
+                    $concern,
+                    'concern_merged',
+                    'Report Grouped with Existing Concern',
+                    'Your report has been verified and combined with an ongoing community ticket: "' . $masterConcern->title . '". You will receive updates as resolution proceeds.',
+                    [
                         'concern_id' => $concern->id,
                         'master_concern_id' => $masterConcern->id,
                     ],
-                ]);
+                );
             });
 
             return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Duplicate report successfully merged into master concern.');
@@ -716,15 +764,7 @@ class ReportController extends Controller
                 'created_at' => now(),
             ]);
 
-            Notification::create([
-                'user_id' => $concern->reporter_id,
-                'barangay_id' => $barangayId,
-                'channel' => 'in_app',
-                'event_type' => 'concern_rejected',
-                'title' => 'Concern Rejected',
-                'body' => 'Your report was dismissed: ' . $reason,
-                'payload' => ['concern_id' => $concern->id],
-            ]);
+            $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was dismissed: ' . $reason);
 
             return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Report dismissed.');
         }
@@ -792,18 +832,16 @@ class ReportController extends Controller
                 'created_at' => now(),
             ]);
 
-            Notification::create([
-                'user_id' => $concern->reporter_id,
-                'barangay_id' => $barangayId,
-                'channel' => 'in_app',
-                'event_type' => 'concern_merged',
-                'title' => 'Report Grouped with Existing Concern',
-                'body' => 'Your report has been verified and combined with an ongoing ticket: "' . $masterConcern->title . '".',
-                'payload' => [
+            $this->notifyReporter(
+                $concern,
+                'concern_merged',
+                'Report Grouped with Existing Concern',
+                'Your report has been verified and combined with an ongoing ticket: "' . $masterConcern->title . '".',
+                [
                     'concern_id' => $concern->id,
                     'master_concern_id' => $masterConcern->id,
                 ],
-            ]);
+            );
         });
 
         return redirect()->route('admin.reports.index')->with('success', 'Report merged successfully into master concern.');
@@ -850,15 +888,7 @@ class ReportController extends Controller
             'created_at' => now(),
         ]);
         
-        Notification::create([
-            'user_id' => $concern->reporter_id,
-            'barangay_id' => $barangayId,
-            'channel' => 'in_app',
-            'event_type' => 'concern_rejected',
-            'title' => 'Concern Rejected',
-            'body' => 'Your report was rejected: ' . $reason,
-            'payload' => ['concern_id' => $concern->id],
-        ]);
+        $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was rejected: ' . $reason);
 
         return redirect()->route('admin.reports.index')->with('success', 'Rejected.');
     }
@@ -991,15 +1021,7 @@ class ReportController extends Controller
             SendMissionAssignmentSms::dispatch($missionId, $personnelId);
         }
 
-        Notification::create([
-            'user_id' => $concern->reporter_id,
-            'barangay_id' => $barangayId,
-            'channel' => 'in_app',
-            'event_type' => 'concern_active',
-            'title' => 'Concern Active',
-            'body' => 'A mission has been deployed to address your report.',
-            'payload' => ['concern_id' => $concern->id],
-        ]);
+        $this->notifyReporter($concern, 'concern_active', 'Concern Active', 'A mission has been deployed to address your report.');
 
         return redirect()->route('admin.reports.index')->with('success', 'Mission deployed.');
     }

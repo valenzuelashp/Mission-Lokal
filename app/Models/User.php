@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdminType;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,7 @@ class User extends Authenticatable
         'barangay_id',
         'account_id',
         'role',
+        'admin_type',
         'is_view_only',
         'first_name', 
         'middle_name',
@@ -51,6 +53,7 @@ class User extends Authenticatable
     {
         return [
             'role' => UserRole::class,
+            'admin_type' => AdminType::class,
             'is_view_only' => 'boolean',
             'password' => 'hashed',
             'is_active' => 'boolean',

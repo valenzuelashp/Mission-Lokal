@@ -219,22 +219,29 @@ class MissionController extends Controller
                 ];
             }
 
-            $personnelRecord = Personnel::with('user')->find($personnelId);
-            if ($personnelRecord && $personnelRecord->user_id) {
+            $assignmentChanges = $mission->personnel()->sync($syncData);
+            $hasNewAssignments = $assignmentChanges['attached'] !== [];
+
+            $isConfidential = $concern->visibility === 'private' || $concern->isSensitiveConcern();
+            foreach ($assignmentChanges['attached'] as $assignedPersonnelId) {
+                $personnelRecord = Personnel::with('user')->find($assignedPersonnelId);
+                if (! $personnelRecord?->user_id) {
+                    continue;
+                }
+
                 Notification::create([
                     'user_id' => $personnelRecord->user_id,
                     'barangay_id' => $barangayId,
                     'channel' => 'in_app',
                     'event_type' => 'new_mission_assigned',
                     'title' => 'New mission assigned',
-                    'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
+                    'body' => $isConfidential
+                        ? 'A confidential assignment is ready. Sign in to view details.'
+                        : 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
                     'payload' => ['mission_id' => $mission->id],
                     'is_read' => false,
                 ]);
             }
-
-            $assignmentChanges = $mission->personnel()->sync($syncData);
-            $hasNewAssignments = $assignmentChanges['attached'] !== [];
 
             if ($hasNewAssignments) {
                 $mission->update([
@@ -336,7 +343,7 @@ class MissionController extends Controller
                     ->whereNotIn('id', $mission->personnel->pluck('id'))
                     ->whereNotNull('department')
                     ->where('department', $mission->department)
-                    ->when($concern->isSensitiveConcern(), fn ($query) => $query->whereIn('role', ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']))
+                    ->when($concern->isVawcConcern(), fn ($query) => $query->whereIn('role', ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']))
                     ->whereHas('user', fn ($query) => $query
                         ->where('barangay_id', $barangayId)
                         ->where('role', 'personnel')
@@ -426,6 +433,7 @@ class MissionController extends Controller
             $mission->personnel()->syncWithoutDetaching($syncData);
 
             $newPersonnel = Personnel::with('user')->whereIn('id', $newPersonnelIds)->get();
+            $isConfidential = $mission->concern->visibility === 'private' || $mission->concern->isSensitiveConcern();
             foreach ($newPersonnel as $personnel) {
                 if ($personnel->user_id) {
                     Notification::create([
@@ -434,7 +442,9 @@ class MissionController extends Controller
                         'channel' => 'in_app',
                         'event_type' => 'new_mission_assigned',
                         'title' => 'New mission assigned',
-                        'body' => 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $mission->concern->title . ' — due ' . ($mission->due_date?->format('M d, Y') ?? 'soon') . '.',
+                        'body' => $isConfidential
+                            ? 'A confidential assignment is ready. Sign in to view details.'
+                            : 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $mission->concern->title . ' — due ' . ($mission->due_date?->format('M d, Y') ?? 'soon') . '.',
                         'payload' => ['mission_id' => $mission->id],
                         'is_read' => false,
                     ]);
@@ -549,16 +559,18 @@ class MissionController extends Controller
                     }
                 }
                 
-                Notification::create([
-                    'user_id' => $concern->reporter_id,
-                    'barangay_id' => $barangayId,
-                    'channel' => 'in_app',
-                    'event_type' => 'concern_resolved',
-                    'title' => 'Concern Resolved',
-                    'body' => 'Your report has been fully verified and resolved. Thank you for keeping the community safe!',
-                    'payload' => ['concern_id' => $concern->id],
-                    'is_read' => false,
-                ]);
+                if ($concern->reporter_id) {
+                    Notification::create([
+                        'user_id' => $concern->reporter_id,
+                        'barangay_id' => $barangayId,
+                        'channel' => 'in_app',
+                        'event_type' => 'concern_resolved',
+                        'title' => 'Concern Resolved',
+                        'body' => 'Your report has been fully verified and resolved. Thank you for keeping the community safe!',
+                        'payload' => ['concern_id' => $concern->id],
+                        'is_read' => false,
+                    ]);
+                }
 
                 // Also notify all residents whose reports were merged into this primary concern
                 foreach ($concern->duplicates as $duplicateConcern) {
@@ -574,16 +586,18 @@ class MissionController extends Controller
                         );
                     }
                     
-                    Notification::create([
-                        'user_id' => $duplicateConcern->reporter_id,
-                        'barangay_id' => $barangayId,
-                        'channel' => 'in_app',
-                        'event_type' => 'concern_resolved',
-                        'title' => 'Concern Resolved',
-                        'body' => 'The community issue you reported ("' . $duplicateConcern->title . '") has been officially resolved through field operation MS-' . strtoupper(substr($mission->id, 0, 4)) . '.',
-                        'payload' => ['concern_id' => $duplicateConcern->id],
-                        'is_read' => false,
-                    ]);
+                    if ($duplicateConcern->reporter_id) {
+                        Notification::create([
+                            'user_id' => $duplicateConcern->reporter_id,
+                            'barangay_id' => $barangayId,
+                            'channel' => 'in_app',
+                            'event_type' => 'concern_resolved',
+                            'title' => 'Concern Resolved',
+                            'body' => 'The community issue you reported ("' . $duplicateConcern->title . '") has been officially resolved through field operation MS-' . strtoupper(substr($mission->id, 0, 4)) . '.',
+                            'payload' => ['concern_id' => $duplicateConcern->id],
+                            'is_read' => false,
+                        ]);
+                    }
                 }
             }
 

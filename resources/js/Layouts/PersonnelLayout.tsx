@@ -80,11 +80,12 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
         }).format(currentTime)
         : '--:--';
 
-    const sidebar = (
+    const sidebar = (isMobile = false) => (
         <div className={cn(
             "flex h-full flex-col border-r shadow-sm transition-all duration-300 relative",
             sidebarTheme,
-            collapsed ? "w-20" : "w-72"
+            "personnel-sidebar",
+            !isMobile && collapsed ? "w-20" : isMobile ? "w-72" : "w-72",
         )}>
             {/* Collapse Toggle Button */}
             <button
@@ -97,24 +98,24 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
             </button>
 
             {/* Brand Header */}
-            <div className={cn("flex items-center gap-3.5 border-b border-white/15 py-5 bg-white/10 backdrop-blur-md transition-all shrink-0", collapsed ? "justify-center px-4" : "px-7")}>
+            <div className={cn("flex items-center gap-3.5 border-b border-white/15 py-5 bg-white/10 backdrop-blur-md transition-all shrink-0",             (!isMobile && collapsed) ? "justify-center px-4" : "px-7")}>
                 <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-md", accent)}>
                     <DepartmentIcon className="h-6 w-6" />
                 </div>
-                {!collapsed && (
+                {(isMobile || !collapsed) && (
                     <div className="overflow-hidden">
-                        <p className={cn("text-base font-black tracking-wider truncate", departmentTheme ? "text-white" : "text-slate-900")}>MISSION-LOKAL</p>
+                        <p className="truncate text-base font-black tracking-wider text-slate-900 dark:text-slate-100">MISSION-LOKAL</p>
                         <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5 truncate opacity-80">Department Portal</p>
                     </div>
                 )}
             </div>
 
             {/* User Profile Pill */}
-            {!collapsed && (
+            {(isMobile || !collapsed) && (
                 <div className="border-b border-white/15 bg-white/10 px-6 py-4 backdrop-blur-md shrink-0">
                     <div className="space-y-2">
                         <div className="min-w-0">
-                            <p className={cn("truncate text-sm font-black", departmentTheme ? "text-white" : "text-slate-900")}>
+                            <p className="truncate text-sm font-black text-slate-900 dark:text-slate-100">
                                 {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}` : 'Personnel'}
                             </p>
                             <p className="mt-0.5 truncate font-mono text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -133,7 +134,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
 
             {/* Navigation Links (Scrollable if needed) */}
             <nav className="flex-1 space-y-1.5 overflow-y-auto px-4 py-4 admin-sidebar-scrollbar">
-                {!collapsed && <div className="px-3 pb-2 text-[10px] font-black uppercase tracking-widest opacity-60">Department Queue</div>}
+                {(isMobile || !collapsed) && <div className="px-3 pb-2 text-[10px] font-black uppercase tracking-widest opacity-60">Department Queue</div>}
                 {nav.map((item) => {
                     const isActiveLink = isActive(item.href);
                     return (
@@ -144,14 +145,14 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                             title={collapsed ? item.label : undefined}
                             className={cn(
                                 'group flex items-center rounded-2xl text-xs font-black transition-all duration-200 relative',
-                                collapsed ? 'justify-center p-3.5' : 'gap-3.5 px-4 py-3',
+                                (!isMobile && collapsed) ? 'justify-center p-3.5' : 'gap-3.5 px-4 py-3',
                                 isActiveLink
                                     ? cn(accent, 'text-white shadow-md translate-x-1')
                                     : 'opacity-75 hover:bg-white/10 hover:opacity-100',
                             )}
                         >
                             <item.icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', isActiveLink ? 'text-white' : 'opacity-70')} />
-                            {!collapsed && <span className="truncate">{item.label}</span>}
+                            {(isMobile || !collapsed) && <span className="truncate">{item.label}</span>}
                             {item.href.includes('notifications') && unread > 0 && (
                                 <Badge className={cn("h-5 min-w-5 justify-center bg-rose-600 text-white text-[10px] font-black px-1.5 rounded-full shadow-2xs", collapsed ? "absolute -top-1 -right-1" : "ml-auto")}>
                                     {unread}
@@ -170,11 +171,11 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                     title={collapsed ? "Logout Session" : undefined}
                     className={cn(
                         "flex w-full items-center rounded-2xl text-xs font-black transition-colors hover:bg-rose-500/20 hover:text-rose-100 cursor-pointer",
-                        collapsed ? "justify-center p-3.5" : "gap-3.5 px-4 py-2.5"
+                        (!isMobile && collapsed) ? "justify-center p-3.5" : "gap-3.5 px-4 py-2.5"
                     )}
                 >
                     <LogOut className="h-4 w-4 shrink-0 opacity-70" />
-                    {!collapsed && <span>Logout Session</span>}
+                    {(isMobile || !collapsed) && <span>Logout Session</span>}
                 </button>
             </div>
         </div>
@@ -186,7 +187,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
         : undefined;
 
     return (
-        <div className={cn("flex h-screen overflow-hidden text-slate-900 w-full antialiased", pageTheme, departmentTheme?.theme.ring ?? 'selection:bg-blue-100 selection:text-blue-900')}>
+        <div className={cn("personnel-shell flex h-screen overflow-hidden text-slate-900 w-full antialiased dark:bg-slate-800 dark:text-slate-100", pageTheme, departmentTheme?.theme.ring ?? 'selection:bg-blue-100 selection:text-blue-900')}>
             <style>{`
                 .admin-sidebar-scrollbar::-webkit-scrollbar {
                     width: 4px;
@@ -205,7 +206,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
 
             <FlashToasts />
             <aside className={cn("hidden h-full shrink-0 flex-col lg:flex shadow-md z-20 transition-all duration-300", collapsed ? "w-20" : "w-72")}>
-                {sidebar}
+                {sidebar()}
             </aside>
 
             {mobileOpen && (
@@ -216,11 +217,11 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                         aria-label="Close menu"
                         onClick={() => setMobileOpen(false)}
                     />
-                    <aside className="relative flex h-full w-72 flex-col z-10 shadow-2xl">{sidebar}</aside>
+                    <aside className="relative flex h-full w-72 flex-col z-10 shadow-2xl">{sidebar(true)}</aside>
                 </div>
             )}
 
-            <div className={cn("flex h-full min-w-0 flex-1 flex-col w-full overflow-hidden", pageTheme)}>
+            <div className={cn("personnel-content flex h-full min-w-0 flex-1 flex-col w-full overflow-hidden dark:bg-slate-800", pageTheme)}>
                 <PersonnelTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
                 <main className="flex-1 w-full overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12 max-w-7xl mx-auto space-y-6">
                     {personnelDepartment?.label && (

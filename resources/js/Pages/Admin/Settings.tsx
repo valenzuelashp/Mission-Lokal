@@ -7,6 +7,7 @@ import { PasswordInput } from '@/Components/ui/password-input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { PageProps } from '@/Types';
+import OtpInput from '@/Components/shared/OtpInput';
 
 interface Props {
     user: { first_name: string; last_name: string; email: string };
@@ -331,15 +332,7 @@ export default function Settings({ user, barangay, pendingRequest, pendingCleara
                                                 </div>
                                                 <p className="text-[11px] text-blue-800 mb-3">Verify your identity via Email OTP to bypass your current password.</p>
                                                 <div className="flex gap-2">
-                                                    <Input 
-                                                        type="text"
-                                                        placeholder="6-digit code"
-                                                        maxLength={6}
-                                                        value={securityForm.data.otp} 
-                                                        onChange={e => securityForm.setData('otp', e.target.value)} 
-                                                        required={useOtpBypass}
-                                                        className="rounded-xl h-11 text-xs flex-1 text-center tracking-[0.5em] font-bold bg-white" 
-                                                    />
+                                                    <OtpInput value={securityForm.data.otp} onChange={(otp) => securityForm.setData('otp', otp)} className="flex-1" />
                                                     <Button 
                                                         type="button" 
                                                         variant="outline" 

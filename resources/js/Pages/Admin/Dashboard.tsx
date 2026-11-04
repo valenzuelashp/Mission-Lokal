@@ -16,7 +16,8 @@ import {
     Bell,
     ShieldAlert,
     FileSpreadsheet,
-    FolderKanban
+    FolderKanban,
+    PhoneCall
 } from 'lucide-react';
 import ActivityFeed from '@/Components/admin/ActivityFeed';
 import AdminOperationMap from '@/Components/admin/AdminOperationMap';
@@ -116,7 +117,7 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                     <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-1">
                         Primary Action Queues
                     </div>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-5">
                         {/* 1. Report Queue */}
                         <Link 
                             href="/admin/reports" 
@@ -134,6 +135,26 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                                 <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.total_reports}</p>
                                 <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Report Queue</p>
                                 <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Incoming resident concerns</p>
+                            </div>
+                        </Link>
+
+                        {/* Desk Concern Intake */}
+                        <Link
+                            href="/admin/reports/intake"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-cyan-200/80 bg-white p-2.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-500 hover:shadow-md sm:rounded-3xl sm:p-6"
+                        >
+                            <div className="mb-2 flex items-center justify-between sm:mb-4">
+                                <div className="rounded-xl bg-cyan-50 p-2 text-cyan-700 sm:rounded-2xl sm:p-3.5 group-hover:bg-cyan-700 group-hover:text-white transition-colors">
+                                    <PhoneCall className="h-5 w-5" />
+                                </div>
+                                <span className="hidden text-xs font-bold text-cyan-600 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
+                                    Open <ArrowRight className="h-3 w-3" />
+                                </span>
+                            </div>
+                            <div>
+                                <p className="text-xl font-black text-slate-900 sm:text-3xl">Desk</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Log Concern</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Phone call or walk-in</p>
                             </div>
                         </Link>
 

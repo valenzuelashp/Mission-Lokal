@@ -66,7 +66,7 @@ class PersonnelDepartmentTest extends TestCase
         $this->assertFalse($access->canView($tanod, $mission));
     }
 
-    public function test_safety_flagged_reports_remain_vaw_desk_only_when_vawc_classification_is_missing(): void
+    public function test_private_safety_reports_without_vawc_classification_remain_available_to_tanods(): void
     {
         $access = new DepartmentMissionAccess();
         $mission = new Mission([
@@ -74,17 +74,30 @@ class PersonnelDepartmentTest extends TestCase
             'barangay_id' => 'brgy-1',
         ]);
         $mission->setRelation('concern', new Concern([
-            'title' => 'Confidential report',
-            'description' => 'The report text does not identify its classification.',
+            'title' => 'Excessive late-night videoke noise past curfew',
+            'description' => 'Loud singing and bass amplifiers operating continuously past 1:00 AM.',
             'is_blotter_candidate' => true,
         ]));
-        $mission->concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'OTHER']));
+        $mission->concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'NOISE']));
 
         $tanod = $this->personnel(PersonnelDepartment::PeaceOrder, PersonnelRole::Tanod);
-        $vawDesk = $this->personnel(PersonnelDepartment::PeaceOrder, PersonnelRole::VawDesk);
 
-        $this->assertFalse($access->canView($tanod, $mission));
-        $this->assertTrue($access->canView($vawDesk, $mission));
+        $this->assertTrue($mission->concern->isSensitiveConcern());
+        $this->assertFalse($mission->concern->isVawcConcern());
+        $this->assertTrue($access->canView($tanod, $mission));
+    }
+
+    public function test_ai_classified_vawc_is_recognized_as_vawc(): void
+    {
+        $concern = new Concern([
+            'title' => 'Confidential report',
+            'description' => 'Details omitted.',
+        ]);
+        $analysis = new \App\Models\ConcernAiAnalysis();
+        $analysis->setRelation('suggestedSubcategory', new ConcernSubcategory(['code' => 'VAWC']));
+        $concern->setRelation('currentAiAnalysis', $analysis);
+
+        $this->assertTrue($concern->isVawcConcern());
     }
 
     public function test_department_queue_access_is_limited_to_the_personnels_barangay(): void

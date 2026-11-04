@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
+import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, PhoneCall, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
@@ -33,6 +33,7 @@ const navSections: NavSection[] = [
         icon: ShieldAlert,
         items: [
             { href: '/admin/reports', label: 'Report queue', icon: FileText },
+            { href: '/admin/reports/intake', label: 'Desk concern intake', icon: PhoneCall },
             { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
             { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
             { href: '/admin/map', label: 'Map operations', icon: Map },
@@ -177,7 +178,8 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     const sidebarContent = (isMobile = false) => (
         <div className={cn(
             "flex h-full flex-col bg-[#f0f6fc] text-slate-700 border-r border-sky-100/90 shadow-[1px_0_6px_rgba(56,189,248,0.05)] transition-all duration-300 relative overflow-visible",
-            !isMobile && collapsed ? "w-20" : "w-64"
+            !isMobile && collapsed ? "w-20" : "w-64",
+            "admin-sidebar"
         )}>
             {/* Collapse Toggle Button */}
             {!isMobile && (
@@ -227,6 +229,11 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                             <p className="truncate font-mono text-[10px] uppercase tracking-wider text-sky-700/70">
                                 {user?.account_id ?? 'CMD-001'}
                             </p>
+                            {user?.role === 'admin' && (
+                                <p className="truncate text-[10px] font-bold text-cyan-800">
+                                    {user.admin_type === 'radio_room' ? 'Radio Room Admin' : user.admin_type === 'general' ? 'General Main Admin' : 'Barangay Admin'}
+                                </p>
+                            )}
                         </div>
                         <ProfilePhotoPicker
                             fallback="A"
@@ -401,7 +408,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     );
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#f8fafc] text-slate-900">
+        <div className="admin-shell flex h-screen overflow-hidden bg-[#f8fafc] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
             <style>{`
                 .admin-sidebar-scrollbar::-webkit-scrollbar {
                     width: 5px;
@@ -445,7 +452,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                 </div>
             )}
 
-            <div className="flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden">
+            <div className="admin-content flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden dark:bg-slate-950">
                 <AdminTopBar
                     title={title}
                     unreadCount={unread}
@@ -454,7 +461,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                 />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8fafc] p-3 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-5 sm:pt-5 md:px-6 md:pt-6 lg:p-8">{children}</main>
             </div>
-            <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-sky-100 bg-white/95 shadow-xl backdrop-blur-md lg:hidden">
+            <nav className="glass-panel progressive-blur-background fixed bottom-0 left-0 right-0 z-40 border-t border-sky-100 bg-white/95 shadow-xl backdrop-blur-md lg:hidden">
                 <div className="flex items-stretch justify-around px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                     {[
                         { href: '/admin', label: 'Home', icon: LayoutDashboard },

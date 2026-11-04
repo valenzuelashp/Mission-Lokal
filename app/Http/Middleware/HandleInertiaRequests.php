@@ -159,6 +159,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'new_credentials' => fn () => $request->session()->get('new_credentials'),
                 'credentials' => fn () => $request->session()->get('credentials'),
+                'new_admin_credentials' => fn () => $request->session()->get('new_admin_credentials'),
                 'new_view_only_credentials' => fn () => $request->session()->get('new_view_only_credentials'),
             ],
             'unread_count' => $unreadCount,

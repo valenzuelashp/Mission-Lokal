@@ -140,15 +140,15 @@ class ConcernStatusUpdate
             return $hours . ' ' . ($hours === 1 ? 'hour' : 'hours');
         }
 
-        $days = intdiv($hours, 24);
+        $workingDays = intdiv($hours, 24);
         $remainingHours = $hours % 24;
-        $duration = 'about ' . $days . ' ' . ($days === 1 ? 'day' : 'days');
+        $duration = 'about ' . $workingDays . ' ' . ($workingDays === 1 ? 'working day' : 'working days');
 
         if ($remainingHours > 0) {
             $duration .= ' and ' . $remainingHours . ' ' . ($remainingHours === 1 ? 'hour' : 'hours');
         }
 
-        return $duration . ' (' . $hours . ' hours)';
+        return $duration;
     }
 
     private static function rejectionMessage(?string $note, ?string $closedSummary): string

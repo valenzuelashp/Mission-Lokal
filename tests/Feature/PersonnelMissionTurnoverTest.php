@@ -57,6 +57,12 @@ class PersonnelMissionTurnoverTest extends TestCase
             $table->char('id', 36)->primary();
             $table->string('code')->nullable();
         });
+        Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->char('id', 36)->primary();
+            $table->char('concern_id', 36);
+            $table->char('suggested_subcategory_id', 36)->nullable();
+            $table->boolean('is_current')->default(true);
+        });
         Schema::create('mission_personnel', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->char('mission_id', 36);
@@ -108,6 +114,7 @@ class PersonnelMissionTurnoverTest extends TestCase
             'mission_status_history',
             'mission_assignments',
             'mission_personnel',
+            'concern_ai_analysis',
             'concern_subcategories',
             'concerns',
             'missions',
@@ -136,9 +143,9 @@ class PersonnelMissionTurnoverTest extends TestCase
         DB::table('concerns')->insert([
             'id' => $concernId,
             'barangay_id' => $barangayId,
-            'title' => 'Street light repair',
-            'description' => 'A street light is not working.',
-            'is_blotter_candidate' => false,
+            'title' => 'Private noise report - neighbor dispute',
+            'description' => 'A resident requests confidential assistance.',
+            'is_blotter_candidate' => true,
         ]);
         DB::table('missions')->insert([
             'id' => $missionId,
@@ -198,6 +205,9 @@ class PersonnelMissionTurnoverTest extends TestCase
             'user_id' => $nextUser->id,
             'event_type' => 'mission_turnover_assigned',
         ]);
+        $notificationBodies = DB::table('notifications')->pluck('body')->implode(' ');
+        $this->assertStringContainsString('confidential', $notificationBodies);
+        $this->assertStringNotContainsString('Private noise report', $notificationBodies);
     }
 
     private function createUser(string $barangayId, string $firstName, string $lastName): User

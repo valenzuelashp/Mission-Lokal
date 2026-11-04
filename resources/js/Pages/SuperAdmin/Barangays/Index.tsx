@@ -1,6 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Building2, Plus, Users, FileText, Edit2, UserPlus, CheckCircle2, Copy, Shield, User, BarChart3 } from 'lucide-react';
+import { Building2, Plus, Users, FileText, Edit2, UserPlus, CheckCircle2, Copy, Shield, User, BarChart3, Radio } from 'lucide-react';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -9,14 +9,16 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
     const { flash } = usePage().props as any;
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showViewOnlyModal, setShowViewOnlyModal] = useState(false);
+    const [showRadioRoomModal, setShowRadioRoomModal] = useState(false);
     const [editingBarangay, setEditingBarangay] = useState<any | null>(null);
     const [selectedBarangayForViewOnly, setSelectedBarangayForViewOnly] = useState<any | null>(null);
+    const [selectedBarangayForRadioRoom, setSelectedBarangayForRadioRoom] = useState<any | null>(null);
     const [generatedCredentials, setGeneratedCredentials] = useState<any | null>(null);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        if (flash?.new_view_only_credentials) {
-            setGeneratedCredentials(flash.new_view_only_credentials);
+        if (flash?.new_admin_credentials || flash?.new_view_only_credentials) {
+            setGeneratedCredentials(flash.new_admin_credentials ?? flash.new_view_only_credentials);
         }
     }, [flash]);
 
@@ -30,9 +32,19 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
         admin_first_name: '',
         admin_last_name: '',
         admin_email: '',
+        radio_room_admin_first_name: '',
+        radio_room_admin_last_name: '',
+        radio_room_admin_email: '',
     });
 
     const viewOnlyForm = useForm({
+        barangay_id: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+    });
+
+    const radioRoomForm = useForm({
         barangay_id: '',
         first_name: '',
         last_name: '',
@@ -61,8 +73,8 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                 createForm.reset();
                 setShowCreateModal(false);
                 const incomingFlash = page.props?.flash as any;
-                if (incomingFlash?.new_view_only_credentials) {
-                    setGeneratedCredentials(incomingFlash.new_view_only_credentials);
+                if (incomingFlash?.new_admin_credentials || incomingFlash?.new_view_only_credentials) {
+                    setGeneratedCredentials(incomingFlash.new_admin_credentials ?? incomingFlash.new_view_only_credentials);
                 }
             },
         });
@@ -77,8 +89,24 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                 setShowViewOnlyModal(false);
                 setSelectedBarangayForViewOnly(null);
                 const incomingFlash = page.props?.flash as any;
-                if (incomingFlash?.new_view_only_credentials) {
-                    setGeneratedCredentials(incomingFlash.new_view_only_credentials);
+                if (incomingFlash?.new_admin_credentials || incomingFlash?.new_view_only_credentials) {
+                    setGeneratedCredentials(incomingFlash.new_admin_credentials ?? incomingFlash.new_view_only_credentials);
+                }
+            },
+        });
+    };
+
+    const handleRadioRoomCreate = (e: React.FormEvent) => {
+        e.preventDefault();
+        radioRoomForm.post('/super-admin/barangays/radio-room-admin', {
+            preserveScroll: true,
+            onSuccess: (page: any) => {
+                radioRoomForm.reset();
+                setShowRadioRoomModal(false);
+                setSelectedBarangayForRadioRoom(null);
+                const incomingFlash = page.props?.flash as any;
+                if (incomingFlash?.new_admin_credentials) {
+                    setGeneratedCredentials(incomingFlash.new_admin_credentials);
                 }
             },
         });
@@ -93,6 +121,12 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
             email: '',
         });
         setShowViewOnlyModal(true);
+    };
+
+    const openRadioRoomModal = (b: any) => {
+        setSelectedBarangayForRadioRoom(b);
+        radioRoomForm.setData({ barangay_id: b.id, first_name: '', last_name: '', email: '' });
+        setShowRadioRoomModal(true);
     };
 
     const openEditModal = (b: any) => {
@@ -152,13 +186,27 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
     };
 
     const previewNewBarangayCode = calculatePreviewCode(createForm.data.city, createForm.data.barangay_name);
+    const previewPasswordSurname = (lastName: string) => {
+        const cleaned = lastName.replace(/[^a-zA-Z0-9]/g, '');
+        return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase() : 'Lastname';
+    };
+
     const previewNewAdminPassword = createForm.data.admin_last_name
-        ? `${previewNewBarangayCode}!${createForm.data.admin_last_name.trim()}`
+        ? `${previewNewBarangayCode}!${previewPasswordSurname(createForm.data.admin_last_name)}`
+        : `${previewNewBarangayCode}!Lastname`;
+    const previewRadioRoomPassword = createForm.data.radio_room_admin_last_name
+        ? `${previewNewBarangayCode}!${previewPasswordSurname(createForm.data.radio_room_admin_last_name)}`
         : `${previewNewBarangayCode}!Lastname`;
 
     const previewViewOnlyPassword = selectedBarangayForViewOnly && viewOnlyForm.data.last_name
-        ? `${selectedBarangayForViewOnly.code}!${viewOnlyForm.data.last_name.trim()}`
+        ? `${selectedBarangayForViewOnly.code}!${previewPasswordSurname(viewOnlyForm.data.last_name)}`
         : selectedBarangayForViewOnly ? `${selectedBarangayForViewOnly.code}!Lastname` : 'BarangayCode!Lastname';
+    const previewExistingRadioRoomPassword = selectedBarangayForRadioRoom && radioRoomForm.data.last_name
+        ? `${selectedBarangayForRadioRoom.code}!${previewPasswordSurname(radioRoomForm.data.last_name)}`
+        : selectedBarangayForRadioRoom ? `${selectedBarangayForRadioRoom.code}!Lastname` : 'BarangayCode!Lastname';
+    const credentialItems = Array.isArray(generatedCredentials)
+        ? generatedCredentials
+        : generatedCredentials ? [generatedCredentials] : [];
 
     return (
         <SuperAdminLayout title="Barangay Nodes Management">
@@ -181,34 +229,41 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                         <div className="flex items-center gap-3 text-emerald-600 border-b pb-3">
                             <CheckCircle2 className="h-6 w-6 shrink-0" />
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">{generatedCredentials.title || 'Credentials Created!'}</h3>
-                                <p className="text-xs text-muted-foreground">Sent via Gmail and displayed below securely.</p>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    {credentialItems.length > 1 ? 'Barangay Admin Accounts Created' : credentialItems[0]?.title || 'Credentials Created!'}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">Credentials are shown once and sent to each admin’s email.</p>
                             </div>
                         </div>
 
-                        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border text-sm">
-                            <div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Official Name</span>
-                                <p className="font-semibold text-slate-900">{generatedCredentials.name}</p>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Login Account ID (User ID)</span>
-                                <p className="font-mono font-bold text-blue-600 bg-white p-2 rounded border select-all">{generatedCredentials.account_id}</p>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Email</span>
-                                <p className="font-mono text-slate-800">{generatedCredentials.email}</p>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Auto-Generated Password</span>
-                                <p className="font-mono font-bold text-emerald-700 bg-white p-2 rounded border select-all">{generatedCredentials.password}</p>
-                            </div>
+                        <div className="max-h-[55vh] space-y-3 overflow-y-auto">
+                            {credentialItems.map((credential: any) => (
+                                <div key={credential.account_id} className="space-y-3 rounded-xl border bg-slate-50 p-4 text-sm">
+                                    <h4 className="text-xs font-black uppercase text-blue-800">{credential.admin_type_label ?? credential.title}</h4>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase text-slate-500">Official Name</span>
+                                        <p className="font-semibold text-slate-900">{credential.name}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase text-slate-500">Login Account ID</span>
+                                        <p className="select-all rounded border bg-white p-2 font-mono font-bold text-blue-600">{credential.account_id}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase text-slate-500">Email</span>
+                                        <p className="font-mono text-slate-800">{credential.email}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-bold uppercase text-slate-500">Temporary Password</span>
+                                        <p className="select-all rounded border bg-white p-2 font-mono font-bold text-emerald-700">{credential.password}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="flex justify-end gap-2 pt-2 border-t">
                             <Button 
                                 type="button" 
-                                onClick={() => copyToClipboard(`Account ID: ${generatedCredentials.account_id}\nEmail: ${generatedCredentials.email}\nPassword: ${generatedCredentials.password}`)}
+                                onClick={() => copyToClipboard(credentialItems.map((credential: any) => `${credential.admin_type_label ?? credential.title}\nAccount ID: ${credential.account_id}\nEmail: ${credential.email}\nPassword: ${credential.password}`).join('\n\n'))}
                                 className="bg-slate-800 hover:bg-slate-900 text-white"
                             >
                                 <Copy className="mr-2 h-4 w-4" /> {copied ? 'Copied!' : 'Copy Credentials'}
@@ -226,7 +281,7 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between border-b pb-3">
-                            <h3 className="text-lg font-bold text-slate-900">Provision New Barangay & Primary Admin</h3>
+                                <h3 className="text-lg font-bold text-slate-900">Provision Barangay and Two Main Admins</h3>
                             <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>✕</Button>
                         </div>
 
@@ -251,12 +306,12 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-xs font-semibold uppercase">Contact Phone</label>
-                                    <Input placeholder="09171234567" value={createForm.data.contact_phone} onChange={e => createForm.setData('contact_phone', e.target.value)} />
+                                    <label className="text-xs font-semibold uppercase">Contact Phone *</label>
+                                    <Input placeholder="09171234567" value={createForm.data.contact_phone} onChange={e => createForm.setData('contact_phone', e.target.value)} required />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold uppercase">Contact Email</label>
-                                    <Input type="email" placeholder="brgy@demo.local" value={createForm.data.contact_email} onChange={e => createForm.setData('contact_email', e.target.value)} />
+                                    <label className="text-xs font-semibold uppercase">Contact Email *</label>
+                                    <Input type="email" placeholder="brgy@demo.local" value={createForm.data.contact_email} onChange={e => createForm.setData('contact_email', e.target.value)} required />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3 pt-2 border-t">
@@ -273,9 +328,30 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                                 <label className="text-xs font-semibold uppercase">Admin Email (For Gmail Notification) *</label>
                                 <Input type="email" value={createForm.data.admin_email} onChange={e => createForm.setData('admin_email', e.target.value)} required />
                             </div>
+                            <div className="grid grid-cols-2 gap-3 border-t pt-4">
+                                <div className="col-span-2 flex items-center gap-2 text-xs font-black uppercase text-cyan-800">
+                                    <Radio className="h-4 w-4" /> Radio Room Department Admin
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">First Name *</label>
+                                    <Input value={createForm.data.radio_room_admin_first_name} onChange={e => createForm.setData('radio_room_admin_first_name', e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">Last Name *</label>
+                                    <Input value={createForm.data.radio_room_admin_last_name} onChange={e => createForm.setData('radio_room_admin_last_name', e.target.value)} required />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-xs font-semibold uppercase">Official Email *</label>
+                                    <Input type="email" value={createForm.data.radio_room_admin_email} onChange={e => createForm.setData('radio_room_admin_email', e.target.value)} required />
+                                </div>
+                            </div>
                             <div>
                                 <label className="text-xs font-semibold uppercase">Auto-Generated Password Preview</label>
                                 <Input type="text" value={previewNewAdminPassword} disabled className="bg-slate-100 font-mono text-slate-700 cursor-not-allowed" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold uppercase">Radio Room Admin Password Preview</label>
+                                <Input type="text" value={previewRadioRoomPassword} disabled className="bg-slate-100 font-mono text-cyan-800 cursor-not-allowed" />
                             </div>
                             <div className="flex justify-end gap-2 pt-2 border-t">
                                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
@@ -330,6 +406,50 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                 </div>
             )}
 
+            {showRadioRoomModal && selectedBarangayForRadioRoom && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg space-y-4 rounded-2xl border bg-white p-6 shadow-2xl">
+                        <div className="flex items-center justify-between border-b pb-3">
+                            <div>
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                                    <Radio className="h-5 w-5 text-cyan-700" /> Provision Radio Room Admin
+                                </h3>
+                                <p className="text-xs text-muted-foreground">Full system access for {selectedBarangayForRadioRoom.name}.</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setShowRadioRoomModal(false)}>✕</Button>
+                        </div>
+                        <form onSubmit={handleRadioRoomCreate} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">First Name *</label>
+                                    <Input value={radioRoomForm.data.first_name} onChange={e => radioRoomForm.setData('first_name', e.target.value)} required />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold uppercase">Last Name *</label>
+                                    <Input value={radioRoomForm.data.last_name} onChange={e => radioRoomForm.setData('last_name', e.target.value)} required />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold uppercase">Official Email *</label>
+                                <Input type="email" value={radioRoomForm.data.email} onChange={e => radioRoomForm.setData('email', e.target.value)} required />
+                            </div>
+                            {radioRoomForm.errors.email && <p role="alert" className="text-xs font-semibold text-red-600">{radioRoomForm.errors.email}</p>}
+                            {radioRoomForm.errors.barangay_id && <p role="alert" className="text-xs font-semibold text-red-600">{radioRoomForm.errors.barangay_id}</p>}
+                            <div>
+                                <label className="text-xs font-semibold uppercase">Auto-Generated Password Preview</label>
+                                <Input type="text" value={previewExistingRadioRoomPassword} disabled className="bg-slate-100 font-mono text-slate-700 cursor-not-allowed" />
+                            </div>
+                            <div className="flex justify-end gap-2 border-t pt-3">
+                                <Button type="button" variant="outline" onClick={() => setShowRadioRoomModal(false)}>Cancel</Button>
+                                <Button type="submit" disabled={radioRoomForm.processing} className="bg-cyan-700 text-white hover:bg-cyan-800">
+                                    {radioRoomForm.processing ? 'Provisioning...' : 'Create Admin Account'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* COMPREHENSIVE EDIT MODAL */}
             {editingBarangay && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -377,12 +497,12 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-semibold uppercase">Contact Phone</label>
-                                        <Input value={editForm.data.contact_phone} onChange={e => editForm.setData('contact_phone', e.target.value)} />
+                                        <label className="text-xs font-semibold uppercase">Contact Phone *</label>
+                                        <Input value={editForm.data.contact_phone} onChange={e => editForm.setData('contact_phone', e.target.value)} required />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold uppercase">Contact Email</label>
-                                        <Input type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} />
+                                        <label className="text-xs font-semibold uppercase">Contact Email *</label>
+                                        <Input type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} required />
                                     </div>
                                 </div>
                                 <div>
@@ -398,10 +518,10 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                                 </div>
                             </div>
 
-                            {/* Section 2: Primary Administrator Details */}
+                            {/* Section 2: General Main Administrator Details */}
                             <div className="space-y-3 pt-2">
                                 <h4 className="text-xs font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5 border-b pb-1">
-                                    <Shield className="h-3.5 w-3.5" /> Primary Administrator Account
+                                    <Shield className="h-3.5 w-3.5" /> General Main Admin Account
                                 </h4>
                                 {editingBarangay.primary_admin ? (
                                     <div className="grid grid-cols-2 gap-3 bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">
@@ -420,7 +540,7 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-xs text-red-600 font-medium">No primary administrator assigned to this node.</p>
+                                            <p className="text-xs text-red-600 font-medium">No General Main Admin assigned to this node.</p>
                                 )}
                             </div>
 
@@ -494,6 +614,16 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openRadioRoomModal(b)}
+                                        disabled={Boolean(b.radio_room_admin)}
+                                        title={b.radio_room_admin ? 'Radio Room Admin is already provisioned' : 'Create full-access Radio Room Admin'}
+                                        className="text-cyan-700 hover:bg-cyan-50 disabled:opacity-50"
+                                    >
+                                        <Radio className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="ghost" size="sm" onClick={() => openViewOnlyModal(b)} title="Create View-Only Account" className="text-indigo-600 hover:bg-indigo-50">
                                         <UserPlus className="h-4 w-4" />
                                     </Button>
@@ -509,22 +639,36 @@ export default function SuperAdminBarangays({ barangays = [] }: { barangays: any
 
                             <div className="rounded-lg bg-slate-50 p-3 border text-xs space-y-2">
                                 <div>
-                                    <span className="font-semibold text-gray-700 block">Primary Administrator:</span>
+                                    <span className="font-semibold text-gray-700 block">General Main Admin:</span>
                                     {b.primary_admin ? (
                                         <>
                                             <p className="font-medium text-gray-900">{b.primary_admin.name} <span className="font-mono text-[10px] text-blue-600">({b.primary_admin.account_id})</span></p>
                                             <p className="font-mono text-muted-foreground">{b.primary_admin.email}</p>
                                         </>
                                     ) : (
-                                        <p className="text-red-600 font-medium">No primary admin assigned</p>
+                                        <p className="text-red-600 font-medium">No General Main Admin assigned</p>
+                                    )}
+                                </div>
+
+                                <div className="border-t pt-2">
+                                    <span className="block font-semibold text-cyan-800">Radio Room Admin:</span>
+                                    {b.radio_room_admin ? (
+                                        <>
+                                            <p className="font-medium text-gray-900">{b.radio_room_admin.name} <span className="font-mono text-[10px] text-cyan-700">({b.radio_room_admin.account_id})</span></p>
+                                            <p className="font-mono text-muted-foreground">{b.radio_room_admin.email}</p>
+                                        </>
+                                    ) : (
+                                        <button type="button" onClick={() => openRadioRoomModal(b)} className="text-left text-xs font-semibold text-cyan-800 underline underline-offset-2">
+                                            Not provisioned · Create account
+                                        </button>
                                     )}
                                 </div>
 
                                 {b.view_only_admins && b.view_only_admins.length > 0 && (
                                     <div className="pt-2 border-t">
                                         <span className="font-semibold text-indigo-700 block">View-Only Accounts ({b.view_only_admins.length}):</span>
-                                        {b.view_only_admins.map((va: any, idx: number) => (
-                                            <div key={idx} className="mt-1 text-slate-700">
+                                        {b.view_only_admins.map((va: any) => (
+                                            <div key={va.id} className="mt-1 text-slate-700">
                                                 <p className="font-medium">{va.name} <span className="font-mono text-[10px] text-indigo-600">({va.account_id})</span></p>
                                                 <p className="font-mono text-muted-foreground">{va.email}</p>
                                             </div>

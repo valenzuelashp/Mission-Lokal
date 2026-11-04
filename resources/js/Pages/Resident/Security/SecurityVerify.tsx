@@ -8,6 +8,7 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
+import OtpInput from '@/Components/shared/OtpInput';
 
 declare function route(name: string, parameters?: any, absolute?: boolean): string;
 
@@ -52,17 +53,7 @@ export default function SecurityVerify({ email }: { email: string }) {
 
                             <div className="space-y-2">
                                 <Label htmlFor="otp">6-Digit Code</Label>
-                                <Input
-                                    id="otp"
-                                    type="text"
-                                    maxLength={6}
-                                    placeholder="123456"
-                                    className={`text-center text-2xl tracking-widest font-mono h-14 ${theme.inputBg} font-black rounded-2xl`}
-                                    value={data.otp}
-                                    onChange={(e) => setData('otp', e.target.value)}
-                                    required
-                                />
-                                {errors.otp && <p className="text-xs font-medium text-destructive">{errors.otp}</p>}
+                                <OtpInput value={data.otp} onChange={(otp) => setData('otp', otp)} error={errors.otp} className={theme.textMain} />
                             </div>
 
                             <div className={`flex flex-col gap-3 pt-4 border-t ${theme.dividerColor} sm:flex-row`}>

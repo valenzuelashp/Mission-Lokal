@@ -5,6 +5,35 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { type ComponentType } from 'react';
 import { ResidentThemeProvider } from '@/Layouts/ResidentThemeContext';
 import axios from 'axios';
+import { applyStoredTheme } from '@/Components/shared/ThemeToggle';
+import { getResidentTheme } from '@/Lib/residentThemes';
+import { router } from '@inertiajs/react';
+
+function applyRouteTheme(component?: string) {
+    if (!component) return;
+
+    if (component.startsWith('Resident/')) {
+        const residentTheme = getResidentTheme();
+        document.documentElement.dataset.residentTheme = residentTheme.id;
+        document.documentElement.classList.remove('dark');
+        return;
+    }
+
+    if (component.startsWith('Auth/') || component === 'Legal/Privacy') {
+        document.documentElement.classList.remove('dark');
+        return;
+    }
+
+    applyStoredTheme();
+}
+
+applyStoredTheme();
+
+router.on('start', () => document.documentElement.setAttribute('data-navigation-loading', 'true'));
+router.on('finish', () => document.documentElement.removeAttribute('data-navigation-loading'));
+router.on('success', (event) => {
+    applyRouteTheme(event.component);
+});
 
 // --- CRITICAL FIX: Allow cookies and XSRF tokens to be sent with requests ---
 axios.defaults.withCredentials = true;
@@ -55,6 +84,7 @@ createInertiaApp({
         };
     },
     setup({ el, App, props }) {
+        applyRouteTheme(props.initialPage?.component);
         createRoot(el).render(<App {...props} />);
     },
     progress: {

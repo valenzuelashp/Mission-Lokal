@@ -25,6 +25,7 @@ export function ResidentThemeProvider({ children }: PropsWithChildren) {
         const previousValues = propertyNames.map((name) => root.style.getPropertyValue(name));
 
         root.dataset.residentTheme = theme.id;
+        root.classList.remove('dark');
         root.style.setProperty('--resident-scrollbar-thumb', theme.scrollbarThumb);
         root.style.setProperty('--resident-scrollbar-track', theme.scrollbarTrack);
         root.style.setProperty('--resident-scrollbar-thumb-hover', theme.scrollbarThumbHover);

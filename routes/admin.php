@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\DeskConcernIntakeController;
 use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\VerificationController;
 use App\Http\Controllers\Admin\BlotterController;
@@ -26,6 +27,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
     Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
+    Route::get('/reports/intake', [DeskConcernIntakeController::class, 'create'])->name('reports.intake.create');
+    Route::post('/reports/intake', [DeskConcernIntakeController::class, 'store'])->name('reports.intake.store');
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
     

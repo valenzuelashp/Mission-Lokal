@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\ConcernStatus;
+use App\Enums\AdminType;
 use App\Enums\MissionStatus;
 use App\Enums\PersonnelRole;
 use App\Enums\UserRole;
@@ -207,6 +208,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'barangay_id' => $tambo->id,
             'account_id' => 'TAMBO_ADM_0001',
             'role' => UserRole::Admin,
+            'admin_type' => AdminType::General,
             'is_view_only' => false,
             'first_name' => 'System',
             'last_name' => 'Admin',
@@ -221,6 +223,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'barangay_id' => $tambo->id,
             'account_id' => 'TAMBO_ADM_0999',
             'role' => UserRole::Admin,
+            'admin_type' => AdminType::RadioRoom,
             'is_view_only' => false,
             'first_name' => 'Triage',
             'last_name' => 'Admin',

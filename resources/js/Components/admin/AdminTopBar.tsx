@@ -3,6 +3,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Link, usePage } from '@inertiajs/react';
 import type { PageProps } from '@/Types';
+import ThemeToggle from '@/Components/shared/ThemeToggle';
 
 type Props = {
     title: string;
@@ -16,7 +17,7 @@ export default function AdminTopBar({ title, unreadCount, onMenuClick, onNotific
     const unread = unreadCount ?? Number(usePage<PageProps>().props.unread_count ?? 0);
 
     return (
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-md shadow-2xs sm:gap-4 sm:px-8 sm:py-4">
+        <header className="glass-panel progressive-blur-background sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-md shadow-2xs sm:gap-4 sm:px-8 sm:py-4">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <Button variant="outline" size="icon" className="shrink-0 lg:hidden border-slate-200 rounded-xl" onClick={onMenuClick}>
                     <Menu className="h-5 w-5 text-slate-700" />
@@ -31,6 +32,7 @@ export default function AdminTopBar({ title, unreadCount, onMenuClick, onNotific
             </div>
 
             <div className="flex shrink-0 items-center gap-3">
+                <ThemeToggle />
                 <div className="relative hidden w-full max-w-xs md:block">
                     <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input className="pl-10 bg-slate-50/70 border-slate-200 text-xs h-10 rounded-2xl shadow-none" placeholder="Search mission ID or record…" readOnly />

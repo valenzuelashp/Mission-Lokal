@@ -51,7 +51,7 @@ class SensitiveMediaAccess
             return false;
         }
 
-        if ($concern->isSensitiveConcern()) {
+        if ($concern->isVawcConcern()) {
             return $this->isVawDesk($personnel);
         }
 

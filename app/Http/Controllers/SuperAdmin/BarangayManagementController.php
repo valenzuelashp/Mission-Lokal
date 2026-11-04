@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Barangay;
 use App\Models\User;
+use App\Enums\AdminType;
 use App\Enums\UserRole;
 use App\Services\LocalIdentifier;
 use App\Mail\PrimaryAdminCredentials;
@@ -62,6 +63,12 @@ class BarangayManagementController extends Controller
             ->map(function ($b) {
                 $primaryAdmin = User::where('barangay_id', $b->id)
                     ->where('role', UserRole::Admin)
+                    ->where('admin_type', AdminType::General->value)
+                    ->where('is_view_only', false)
+                    ->first();
+                $radioRoomAdmin = User::where('barangay_id', $b->id)
+                    ->where('role', UserRole::Admin)
+                    ->where('admin_type', AdminType::RadioRoom->value)
                     ->where('is_view_only', false)
                     ->first();
 
@@ -97,6 +104,14 @@ class BarangayManagementController extends Controller
                         'name' => trim($primaryAdmin->first_name . ' ' . $primaryAdmin->last_name),
                         'email' => $primaryAdmin->email,
                         'account_id' => $primaryAdmin->account_id,
+                    ] : null,
+                    'radio_room_admin' => $radioRoomAdmin ? [
+                        'id' => $radioRoomAdmin->id,
+                        'first_name' => $radioRoomAdmin->first_name,
+                        'last_name' => $radioRoomAdmin->last_name,
+                        'name' => trim($radioRoomAdmin->first_name . ' ' . $radioRoomAdmin->last_name),
+                        'email' => $radioRoomAdmin->email,
+                        'account_id' => $radioRoomAdmin->account_id,
                     ] : null,
                     'view_only_admins' => $viewOnlyAdmins,
                     'created_at' => $b->created_at?->format('M d, Y'),
@@ -220,17 +235,22 @@ class BarangayManagementController extends Controller
             'house_street' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'province' => ['required', 'string', 'max:100'],
-            'contact_phone' => ['nullable', 'string', 'max:50'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone' => ['required', 'string', 'max:50'],
+            'contact_email' => ['required', 'email', 'max:255'],
             'admin_first_name' => ['required', 'string', 'max:255'],
             'admin_last_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'radio_room_admin_first_name' => ['required', 'string', 'max:255'],
+            'radio_room_admin_last_name' => ['required', 'string', 'max:255'],
+            'radio_room_admin_email' => ['required', 'email', 'max:255', 'different:admin_email', 'unique:users,email'],
         ]);
 
         $rawPassword = '';
+        $radioRoomPassword = '';
         $accountId = '';
+        $radioRoomAccountId = '';
 
-        DB::transaction(function () use ($validated, &$rawPassword, &$accountId) {
+        DB::transaction(function () use ($validated, &$rawPassword, &$radioRoomPassword, &$accountId, &$radioRoomAccountId) {
             $cityClean = preg_replace('/(CITY|MUNICIPALITY|PROVINCE)/i', '', $validated['city']);
             $cityNormalized = \Illuminate\Support\Str::ascii(trim($cityClean));
             $cityUpper = strtoupper(preg_replace('/[^a-zA-Z]/', '', $cityNormalized));
@@ -259,8 +279,8 @@ class BarangayManagementController extends Controller
                 'house_street' => $validated['house_street'],
                 'city' => $validated['city'],
                 'province' => $validated['province'],
-                'contact_phone' => $validated['contact_phone'] ?? null,
-                'contact_email' => $validated['contact_email'] ?? null,
+                'contact_phone' => $validated['contact_phone'],
+                'contact_email' => $validated['contact_email'],
                 'is_active' => true,
             ]);
 
@@ -276,11 +296,29 @@ class BarangayManagementController extends Controller
                 'barangay_id' => $barangay->id,
                 'account_id' => $accountId,
                 'role' => UserRole::Admin,
+                'admin_type' => AdminType::General,
                 'is_view_only' => false,
                 'first_name' => $validated['admin_first_name'],
                 'last_name' => $validated['admin_last_name'],
                 'email' => $validated['admin_email'],
                 'password' => Hash::make($rawPassword),
+                'is_active' => true,
+            ]);
+
+            $radioRoomAccountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
+            $radioLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['radio_room_admin_last_name']);
+            $radioRoomPassword = $code . '!' . ucfirst(strtolower($radioLastName ?: 'Radio'));
+
+            User::create([
+                'barangay_id' => $barangay->id,
+                'account_id' => $radioRoomAccountId,
+                'role' => UserRole::Admin,
+                'admin_type' => AdminType::RadioRoom,
+                'is_view_only' => false,
+                'first_name' => $validated['radio_room_admin_first_name'],
+                'last_name' => $validated['radio_room_admin_last_name'],
+                'email' => $validated['radio_room_admin_email'],
+                'password' => Hash::make($radioRoomPassword),
                 'is_active' => true,
             ]);
         });
@@ -290,16 +328,103 @@ class BarangayManagementController extends Controller
             'name' => trim($validated['admin_first_name'] . ' ' . $validated['admin_last_name']),
             'email' => $validated['admin_email'],
             'password' => $rawPassword,
+            'admin_type_label' => AdminType::General->label(),
             'title' => 'Primary Administrator Created & Emailed!',
         ];
-
+        $radioRoomAdminPayload = [
+            'account_id' => $radioRoomAccountId,
+            'name' => trim($validated['radio_room_admin_first_name'] . ' ' . $validated['radio_room_admin_last_name']),
+            'email' => $validated['radio_room_admin_email'],
+            'password' => $radioRoomPassword,
+            'admin_type_label' => AdminType::RadioRoom->label(),
+            'title' => 'Radio Room Administrator Created & Emailed!',
+        ];
         try {
             Mail::to($validated['admin_email'])->send(new PrimaryAdminCredentials($adminPayload));
         } catch (\Exception $e) {}
+        try {
+            Mail::to($validated['radio_room_admin_email'])->send(new PrimaryAdminCredentials($radioRoomAdminPayload));
+        } catch (\Exception $e) {}
 
         return back()->with([
-            'success' => 'Barangay node and primary admin successfully provisioned and emailed.',
-            'new_view_only_credentials' => $adminPayload
+            'success' => 'Barangay node and both main admin accounts were successfully provisioned.',
+            'new_admin_credentials' => [$adminPayload, $radioRoomAdminPayload],
+            'new_view_only_credentials' => $adminPayload,
+        ]);
+    }
+
+    public function storeRadioRoomAdmin(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'barangay_id' => ['required', 'exists:barangays,id'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+        ]);
+
+        $accountId = '';
+        $rawPassword = '';
+        DB::transaction(function () use ($validated, &$accountId, &$rawPassword) {
+            $barangay = Barangay::query()->lockForUpdate()->findOrFail($validated['barangay_id']);
+            $generalAdminExists = User::query()
+                ->where('barangay_id', $barangay->id)
+                ->where('role', UserRole::Admin)
+                ->where('admin_type', AdminType::General->value)
+                ->where('is_view_only', false)
+                ->exists();
+
+            if (! $generalAdminExists) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'barangay_id' => 'Provision the General Main Admin before adding a Radio Room Admin.',
+                ]);
+            }
+
+            $alreadyProvisioned = User::query()
+                ->where('barangay_id', $barangay->id)
+                ->where('role', UserRole::Admin)
+                ->where('admin_type', AdminType::RadioRoom->value)
+                ->exists();
+
+            if ($alreadyProvisioned) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'barangay_id' => 'This barangay already has a Radio Room Admin.',
+                ]);
+            }
+
+            $accountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
+            $cleanLastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $validated['last_name']);
+            $rawPassword = $barangay->code . '!' . ucfirst(strtolower($cleanLastName ?: 'Radio'));
+
+            User::create([
+                'barangay_id' => $barangay->id,
+                'account_id' => $accountId,
+                'role' => UserRole::Admin,
+                'admin_type' => AdminType::RadioRoom,
+                'is_view_only' => false,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($rawPassword),
+                'is_active' => true,
+            ]);
+        });
+
+        $payload = [
+            'account_id' => $accountId,
+            'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
+            'email' => $validated['email'],
+            'password' => $rawPassword,
+            'admin_type_label' => AdminType::RadioRoom->label(),
+            'title' => 'Radio Room Administrator Created & Emailed!',
+        ];
+
+        try {
+            Mail::to($validated['email'])->send(new PrimaryAdminCredentials($payload));
+        } catch (\Exception $e) {}
+
+        return back()->with([
+            'success' => 'Full-access Radio Room Admin account created and emailed.',
+            'new_admin_credentials' => [$payload],
         ]);
     }
 
@@ -358,6 +483,12 @@ class BarangayManagementController extends Controller
     public function update(Request $request, string $id): RedirectResponse
     {
         $barangay = Barangay::findOrFail($id);
+        $primaryAdmin = User::where('barangay_id', $barangay->id)
+            ->where('role', UserRole::Admin)
+            ->where('admin_type', AdminType::General->value)
+            ->where('is_view_only', false)
+            ->first();
+        $primaryAdminId = $primaryAdmin?->id;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -365,12 +496,17 @@ class BarangayManagementController extends Controller
             'house_street' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'province' => ['required', 'string', 'max:100'],
-            'contact_phone' => ['nullable', 'string', 'max:50'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone' => ['required', 'string', 'max:50'],
+            'contact_email' => ['required', 'email', 'max:255'],
             'is_active' => ['required', 'boolean'],
             'primary_admin_first_name' => ['nullable', 'string', 'max:255'],
             'primary_admin_last_name' => ['nullable', 'string', 'max:255'],
-            'primary_admin_email' => ['nullable', 'email', 'max:255'],
+            'primary_admin_email' => [
+                'nullable',
+                'email',
+                'max:255',
+                $primaryAdminId ? 'unique:users,email,' . $primaryAdminId : 'unique:users,email',
+            ],
         ]);
 
         DB::transaction(function () use ($barangay, $validated) {
@@ -388,6 +524,7 @@ class BarangayManagementController extends Controller
             if (!empty($validated['primary_admin_email'])) {
                 User::where('barangay_id', $barangay->id)
                     ->where('role', UserRole::Admin)
+                    ->where('admin_type', AdminType::General->value)
                     ->where('is_view_only', false)
                     ->update([
                         'first_name' => $validated['primary_admin_first_name'],
