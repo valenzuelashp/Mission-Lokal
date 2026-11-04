@@ -28,11 +28,17 @@ interface Props {
         name: string;
         role: string;
         role_value?: string;
-        department?: PersonnelDepartmentKey;
+        department?: string;
         department_label?: string;
         shift_label?: string;
         subcategories?: string[];
     }[];
+}
+
+function departmentKey(department?: string | null): PersonnelDepartmentKey | undefined {
+    return personnelDepartmentOptions.find(
+        (option) => option.value === department || option.label === department,
+    )?.value;
 }
 
 export default function Show({ report, personnel = [] }: Props) {
@@ -52,7 +58,10 @@ export default function Show({ report, personnel = [] }: Props) {
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
     const hasMission = Boolean(report?.mission);
     const assignedPersonnel: { id: string; name: string; role: string }[] = report?.assigned_personnel ?? [];
-    const departmentPersonnel = personnel.filter((member) => member.department === data.department);
+    const selectedDepartment = departmentKey(data.department);
+    const departmentPersonnel = personnel.filter(
+        (member) => departmentKey(member.department) === selectedDepartment,
+    );
     const safeLat = report?.lat ? Number(report.lat) : TAMBO_CENTER[0];
     const safeLng = report?.lng ? Number(report.lng) : TAMBO_CENTER[1];
 
@@ -410,7 +419,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                                 </div>
                                                 <select
                                                     id="mission-department"
-                                                    value={data.department}
+                                                    value={selectedDepartment ?? ''}
                                                     onChange={(event) => {
                                                         setData({
                                                             ...data,
