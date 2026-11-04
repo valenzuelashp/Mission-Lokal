@@ -32,7 +32,7 @@ applyStoredTheme();
 router.on('start', () => document.documentElement.setAttribute('data-navigation-loading', 'true'));
 router.on('finish', () => document.documentElement.removeAttribute('data-navigation-loading'));
 router.on('success', (event) => {
-    applyRouteTheme(event.component);
+    applyRouteTheme(event.detail.page.component);
 });
 
 // --- CRITICAL FIX: Allow cookies and XSRF tokens to be sent with requests ---
