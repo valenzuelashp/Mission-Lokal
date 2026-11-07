@@ -85,15 +85,6 @@ class RegisteredUserController extends Controller
         }
 
         $request->merge([
-            'first_name' => $this->upperCase($request->first_name),
-            'middle_name' => $this->upperCase($request->middle_name),
-            'last_name' => $this->upperCase($request->last_name),
-            'name_extension' => $this->upperCase($request->name_extension),
-            'house_street' => $this->upperCase($request->house_street),
-            'barangay_name' => $this->upperCase($request->barangay_name),
-            'city' => $this->upperCase($request->city),
-            'province' => $this->upperCase($request->province),
-            'parent_name' => $this->upperCase($request->parent_name),
             'email' => strtolower(trim((string) $request->email)),
         ]);
 
@@ -240,17 +231,4 @@ class RegisteredUserController extends Controller
         return back()->with('success', 'Registration submitted successfully! Admin will verify your details against physical barangay records.');
     }
 
-    private function upperCase(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-        if ($trimmed === '') {
-            return '';
-        }
-
-        return mb_strtoupper($trimmed, 'UTF-8');
-    }
 }

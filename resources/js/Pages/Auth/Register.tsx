@@ -5,10 +5,6 @@ import { Input } from '@/Components/ui/input';
 import { ShieldAlert, Search, ChevronDown, FileText, CheckCircle2 } from 'lucide-react';
 import FormProgress from '@/Components/shared/FormProgress';
 
-function toUpperCase(value: string) {
-    return value.toUpperCase();
-}
-
 function formatDateInputForPH(date: Date) {
     const formatter = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Manila',
@@ -32,7 +28,7 @@ function parseDateOnly(value: string) {
     return new Date(year, month - 1, day, 12, 0, 0);
 }
 
-function CapsInput({
+function TextInput({
     value,
     onChange,
     required,
@@ -51,8 +47,8 @@ function CapsInput({
             placeholder={placeholder}
             required={required}
             disabled={disabled}
-            className="uppercase bg-slate-50/50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500/20 transition-all text-xs font-medium h-9"
-            onChange={(e) => onChange(toUpperCase(e.target.value))}
+            className="bg-slate-50/50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500/20 transition-all text-xs font-medium h-9"
+            onChange={(e) => onChange(e.target.value)}
         />
     );
 }
@@ -95,7 +91,7 @@ function SearchableSelect({
                     disabled ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:border-blue-400 hover:bg-white focus:ring-2 focus:ring-blue-500/20'
                 }`}
             >
-                <span className={value ? 'uppercase text-slate-900 font-semibold tracking-wide' : 'text-slate-400'}>
+                <span className={value ? 'text-slate-900 font-semibold tracking-wide' : 'text-slate-400'}>
                     {value || placeholder}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400 opacity-70" />
@@ -110,7 +106,7 @@ function SearchableSelect({
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-transparent text-xs uppercase focus:outline-none text-slate-800 font-medium"
+                            className="w-full bg-transparent text-xs focus:outline-none text-slate-800 font-medium"
                             autoFocus
                         />
                     </div>
@@ -126,7 +122,7 @@ function SearchableSelect({
                                         setIsOpen(false);
                                         setSearchTerm('');
                                     }}
-                                    className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs uppercase transition-colors font-medium ${
+                                    className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs transition-colors font-medium ${
                                         value === opt ? 'bg-blue-50 text-blue-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
                                     }`}
                                 >
@@ -291,16 +287,16 @@ export default function Register() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[11px] font-semibold text-slate-700 mb-1 block">First Name *</label>
-                                    <CapsInput value={data.first_name} onChange={(value) => setData('first_name', value)} required placeholder="JUAN" />
+                                    <TextInput value={data.first_name} onChange={(value) => setData('first_name', value)} required placeholder="Juan" />
                                     {errors.first_name && <p className="text-[10px] text-red-600 mt-0.5">{errors.first_name}</p>}
                                 </div>
                                 <div>
                                     <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Middle Name</label>
-                                    <CapsInput
+                                    <TextInput
                                         value={data.middle_name}
                                         onChange={(value) => setData('middle_name', value)}
                                         disabled={data.no_middle_name}
-                                        placeholder="SANTOS"
+                                        placeholder="Santos"
                                     />
                                     <label className="flex cursor-pointer items-center gap-2 text-[11px] text-slate-600 font-medium mt-1.5">
                                         <input
@@ -321,12 +317,12 @@ export default function Register() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Last Name *</label>
-                                    <CapsInput value={data.last_name} onChange={(value) => setData('last_name', value)} required placeholder="DELA CRUZ" />
+                                    <TextInput value={data.last_name} onChange={(value) => setData('last_name', value)} required placeholder="Dela Cruz" />
                                     {errors.last_name && <p className="text-[10px] text-red-600 mt-0.5">{errors.last_name}</p>}
                                 </div>
                                 <div>
                                     <label className="text-[11px] font-semibold text-slate-700 mb-1 block">Extension</label>
-                                    <CapsInput placeholder="JR, III" value={data.name_extension} onChange={(value) => setData('name_extension', value)} />
+                                    <TextInput placeholder="Jr, III" value={data.name_extension} onChange={(value) => setData('name_extension', value)} />
                                 </div>
                             </div>
 
@@ -382,7 +378,7 @@ export default function Register() {
                                 <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 space-y-2">
                                     <p className="text-[10px] text-amber-900 font-semibold">Minor detected (under 18). Guardian details required:</p>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <CapsInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="GUARDIAN NAME" />
+                                        <TextInput value={data.parent_name} onChange={(value) => setData('parent_name', value)} required={isMinor} placeholder="Guardian name" />
                                         <Input 
                                             placeholder="09123456789" 
                                             value={data.parent_contact} 
@@ -448,7 +444,7 @@ export default function Register() {
 
                                 <div>
                                     <label className="text-[11px] font-semibold text-slate-700 mb-1 block">House / Street *</label>
-                                    <CapsInput placeholder="HOUSE #, STREET" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
+                                    <TextInput placeholder="House #, Street" value={data.house_street} onChange={(value) => setData('house_street', value)} required />
                                 </div>
                             </div>
 
@@ -490,9 +486,15 @@ export default function Register() {
 
                     {/* Footer Actions */}
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <button type="button" onClick={() => registrationStep === 2 ? setRegistrationStep(1) : window.history.back()} className="text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors">
-                            &larr; {registrationStep === 2 ? 'Previous' : 'Back to Login'}
-                        </button>
+                        {registrationStep === 2 ? (
+                            <button type="button" onClick={() => setRegistrationStep(1)} className="text-xs font-semibold text-slate-600 hover:text-blue-700 transition-colors">
+                                &larr; Previous
+                            </button>
+                        ) : (
+                            <Link href="/account-status" className="text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline">
+                                Already submitted? Check your application status
+                            </Link>
+                        )}
                         {registrationStep === 1 ? (
                             <Button type="button" onClick={() => setRegistrationStep(2)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 text-xs h-9">
                                 Continue to Address

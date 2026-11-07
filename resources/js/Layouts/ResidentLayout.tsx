@@ -28,7 +28,7 @@ export default function ResidentLayout({ children, wide = false }: Props) {
     }, [serverUnread]);
 
     return (
-        <div className={cn("min-h-screen transition-colors duration-300", theme.bgMain, theme.textMain)}>
+        <div className={cn("resident-portal min-h-screen transition-colors duration-300", theme.bgMain, theme.textMain)}>
                 <FlashToasts />
                 <PasswordPromptModal />
                 <ResidentHeader unreadCount={unread} onNotificationsClick={() => setNotificationsOpen(true)} />

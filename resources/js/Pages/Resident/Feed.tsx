@@ -1,4 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { lazy, Suspense, useState } from 'react';
 import { AlertCircle, FileText, TrendingUp } from 'lucide-react';
 import AnnouncementCard from '@/Components/resident/AnnouncementCard';
 import CommunityResolutionCarousel from '@/Components/resident/CommunityResolutionCarousel';
@@ -12,21 +13,40 @@ import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { PageProps } from '@/Types';
 
+const NewConcern = lazy(() => import('@/Pages/Resident/Concerns/New'));
+
 type FeedPageProps = PageProps & {
-    concerns: any[];
+    concerns: {
+        data: any[];
+        links: { url: string | null; label: string; active: boolean }[];
+        total: number;
+    };
     resolutionPosts?: any[];
     announcements: any[];
     search?: string;
+    categories: { value: string; label: string }[];
+    mapCenter: [number, number];
+    barangayBounds?: [[number, number], [number, number]];
     userStats: {
         total_reports: number;
         active_reports: number;
     };
 };
 
-function FeedContent({ concerns, resolutionPosts = [], announcements = [], search = '', userStats }: FeedPageProps) {
+function FeedContent({
+    concerns,
+    resolutionPosts = [],
+    announcements = [],
+    search = '',
+    userStats,
+    categories,
+    mapCenter,
+    barangayBounds,
+}: FeedPageProps) {
     const theme = useResidentTheme();
     const { user } = useAuth();
     const { flash } = usePage<PageProps>().props;
+    const [concernModalOpen, setConcernModalOpen] = useState(false);
 
     const totalReports = userStats?.total_reports ?? 0;
     const activeReports = userStats?.active_reports ?? 0;
@@ -86,7 +106,7 @@ function FeedContent({ concerns, resolutionPosts = [], announcements = [], searc
         <>
             <Head title="Community Feed" />
             
-            <div className="w-full space-y-6 pb-2">
+            <div className={`w-full space-y-6 pb-2 ${flash.success ? 'pt-4 sm:pt-5' : ''}`}>
                 {flash.success && (
                     <div className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
                         <AlertCircle className="h-5 w-5 shrink-0 text-emerald-600" />
@@ -96,10 +116,10 @@ function FeedContent({ concerns, resolutionPosts = [], announcements = [], searc
 
                 <ResidentSocialShell right={rightAside}>
                     <div className="w-full space-y-6">
-                        <FeedComposer />
+                        <FeedComposer onClick={() => setConcernModalOpen(true)} />
                         <CommunityResolutionCarousel items={resolutionPosts} compact />
 
-                        {concerns.length === 0 ? (
+                        {concerns.data.length === 0 ? (
                             <div className={`rounded-3xl border border-dashed ${theme.cardBorder} ${theme.cardBg} px-6 py-16 text-center shadow-2xs`}>
                                 <h3 className={`font-black text-base ${theme.textMain}`}>
                                     {search ? `No results for “${search}”` : 'No public concerns reported yet'}
@@ -116,7 +136,7 @@ function FeedContent({ concerns, resolutionPosts = [], announcements = [], searc
                                         </Link>
                                     ) : (
                                         <Button asChild className={`${theme.primaryBg} ${theme.primaryHover} text-white font-black text-xs shadow-sm cursor-pointer rounded-2xl h-11 px-6`}>
-                                            <Link href="/concerns/new">Post a Community Concern</Link>
+                                            <button type="button" onClick={() => setConcernModalOpen(true)}>Post a Community Concern</button>
                                         </Button>
                                     )}
                                 </div>
@@ -126,19 +146,54 @@ function FeedContent({ concerns, resolutionPosts = [], announcements = [], searc
                                 {search && (
                                     <div className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${theme.cardBorder} ${theme.accentSurface}`}>
                                         <span className={`font-semibold ${theme.textMuted}`}>
-                                            {concerns.length} result{concerns.length === 1 ? '' : 's'} for <strong className={theme.textMain}>{search}</strong>
+                                            {concerns.total} result{concerns.total === 1 ? '' : 's'} for <strong className={theme.textMain}>{search}</strong>
                                         </span>
                                         <Link href="/feed" className={`shrink-0 font-black ${theme.primaryText} hover:underline`}>
                                             Clear
                                         </Link>
                                     </div>
                                 )}
-                                {concerns.map((concern) => <ConcernCard key={concern.id} concern={concern} />)}
+                                {concerns.data.map((concern) => <ConcernCard key={concern.id} concern={concern} />)}
+                                {concerns.links.length > 3 && (
+                                    <nav className="flex flex-wrap justify-center gap-2" aria-label="Community concern pages">
+                                        {concerns.links.map((link, index) => (
+                                            <Link
+                                                key={`${link.label}-${index}`}
+                                                href={link.url ?? '#'}
+                                                preserveScroll
+                                                aria-current={link.active ? 'page' : undefined}
+                                                aria-disabled={link.url === null}
+                                                className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                                                    link.active
+                                                        ? `${theme.primaryBg} border-transparent text-white`
+                                                        : `${theme.cardBorder} ${theme.textMain}`
+                                                } ${link.url === null ? 'pointer-events-none opacity-50' : 'hover:opacity-80'}`}
+                                            >
+                                                {link.label.replace(/&laquo;|&raquo;/g, (entity) => entity === '&laquo;' ? '«' : '»')}
+                                            </Link>
+                                        ))}
+                                    </nav>
+                                )}
                             </div>
                         )}
                     </div>
                 </ResidentSocialShell>
             </div>
+            {concernModalOpen && (
+                <Suspense fallback={(
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-md" role="status">
+                        <span className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-xl">Opening concern form...</span>
+                    </div>
+                )}>
+                    <NewConcern
+                        categories={categories}
+                        mapCenter={mapCenter}
+                        barangayBounds={barangayBounds}
+                        modal
+                        onClose={() => setConcernModalOpen(false)}
+                    />
+                </Suspense>
+            )}
         </>
     );
 }

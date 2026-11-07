@@ -132,6 +132,7 @@ export interface PublicConcern {
     has_voted?: boolean;
     reporter_name?: string;
     reporter_photo_url?: string | null;
+    reporter_badge?: string | null;
     latest_update?: {
         label: string;
         message: string;

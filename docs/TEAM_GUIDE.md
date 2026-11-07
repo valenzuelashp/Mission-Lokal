@@ -98,7 +98,7 @@ php artisan storage:link
 
 ## Running the app
 
-You need **two terminals** from the project root:
+You need **three terminals** from the project root:
 
 **Terminal 1 — Laravel:**
 
@@ -110,6 +110,12 @@ php artisan serve
 
 ```bash
 npm run dev
+```
+
+**Terminal 3 — Background queue worker:**
+
+```bash
+php artisan queue:work database
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
@@ -235,7 +241,7 @@ Share this section with teammates. Follow the steps **in order**.
 - [ ] **1. Open XAMPP Control Panel** (Run as Administrator if MySQL won't start)
 - [ ] **2. Start Apache** (optional — only needed for phpMyAdmin)
 - [ ] **3. Start MySQL** — wait until the row turns **green**
-- [ ] **4. Open two terminals** in the project folder (`mission-lokal`)
+- [ ] **4. Open three terminals** in the project folder (`mission-lokal`)
 
 **Terminal 1:**
 ```bash
@@ -247,9 +253,14 @@ php artisan serve
 npm run dev
 ```
 
+**Terminal 3:**
+```bash
+php artisan queue:work database
+```
+
 - [ ] **5. Open the app:** [http://localhost:8000/login](http://localhost:8000/login)
 
-> Keep both terminals open while coding. Closing `npm run dev` breaks the frontend styles/JS.
+> Keep all three terminals open while coding. Closing the queue worker pauses AI triage and address geocoding; closing `npm run dev` breaks frontend styles/JS.
 
 ---
 
@@ -315,6 +326,7 @@ Run all commands from the project root: `S:\college\RESEARCH\mission-lokal`
 | Command | When to use |
 |---------|-------------|
 | `php artisan serve` | Start the backend — required every session |
+| `php artisan queue:work database` | Process queued AI triage and address geocoding |
 | `php artisan migrate` | Apply new database tables after `git pull` |
 | `php artisan db:seed` | Insert demo users (first setup) |
 | `php artisan migrate:fresh --seed` | **Reset entire database** + demo data (wipes all data) |

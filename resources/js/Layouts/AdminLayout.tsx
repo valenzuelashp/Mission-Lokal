@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, PhoneCall, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
+import { Award, CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, PhoneCall, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
@@ -11,6 +11,7 @@ import { cn } from '@/Lib/utils';
 import { useActivePath } from '@/Hooks/useActivePath';
 import type { PageProps } from '@/Types';
 import FlashToasts from '@/Components/shared/FlashToasts';
+import PasswordPromptModal from '@/Pages/Auth/PasswordPromptModal';
 
 interface NavItem {
     href: string;
@@ -34,6 +35,7 @@ const navSections: NavSection[] = [
         items: [
             { href: '/admin/reports', label: 'Report queue', icon: FileText },
             { href: '/admin/reports/intake', label: 'Desk concern intake', icon: PhoneCall },
+            { href: '/admin/reports/dilg', label: 'Quarterly DILG report', icon: FileText },
             { href: '/admin/missions', label: 'Mission queue', icon: ClipboardList },
             { href: '/admin/blotters', label: 'Blotters', icon: ShieldAlert },
             { href: '/admin/map', label: 'Map operations', icon: Map },
@@ -46,6 +48,7 @@ const navSections: NavSection[] = [
         items: [
             { href: '/admin/departments', label: 'Departments', icon: Users },
             { href: '/admin/residents', label: 'Residents', icon: Users },
+            { href: '/admin/civic-recognition', label: 'Civic recognition', icon: Award },
             { href: '/admin/verifications', label: 'Verifications', icon: CheckSquare },
             { href: '/admin/profile-edits', label: 'Profile Requests', icon: UserCircle },
         ],
@@ -431,6 +434,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
             `}</style>
 
             <FlashToasts />
+            <PasswordPromptModal />
             <aside className={cn(
                 "hidden h-full shrink-0 flex-col lg:flex transition-all duration-300 overflow-visible z-20",
                 collapsed ? "w-20" : "w-64"

@@ -44,6 +44,7 @@ class BarangayAdminProvisioningTest extends TestCase
             $table->string('email')->nullable()->unique();
             $table->string('password')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('must_change_password')->default(false);
             $table->timestamps();
             $table->unique(['barangay_id', 'account_id']);
         });
@@ -90,8 +91,8 @@ class BarangayAdminProvisioningTest extends TestCase
         $admins = User::query()->where('role', UserRole::Admin)->get();
         $this->assertCount(2, $admins);
         $this->assertSame(
-            [AdminType::General, AdminType::RadioRoom],
-            $admins->sortBy('admin_type')->pluck('admin_type')->values()->all(),
+            [AdminType::General->value, AdminType::RadioRoom->value],
+            $admins->map(fn (User $admin) => $admin->admin_type->value)->sort()->values()->all(),
         );
         $this->assertSame(2, $admins->filter(fn (User $admin) => ! $admin->is_view_only && $admin->canModifySystem())->count());
         $this->assertSame(2, $admins->pluck('account_id')->unique()->count());

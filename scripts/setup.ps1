@@ -63,9 +63,10 @@ if (-not (Test-Path "public\storage")) {
 Write-Host ""
 Write-Host "=== Setup complete ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "Start the app (two terminals):" -ForegroundColor Cyan
+Write-Host "Start the app (three terminals):" -ForegroundColor Cyan
 Write-Host "  php artisan serve"
 Write-Host "  npm run dev"
+Write-Host "  php artisan queue:work database"
 Write-Host ""
 Write-Host "Open http://localhost:8000" -ForegroundColor Cyan
 Write-Host ""

@@ -197,6 +197,7 @@ class SettingsController extends Controller
 
         DB::table('users')->where('id', $user->id)->update([
             'password' => Hash::make($request->password),
+            'must_change_password' => false,
             'updated_at' => now(),
         ]);
 

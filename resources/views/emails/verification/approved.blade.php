@@ -8,8 +8,8 @@
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
         
         <!-- Header Brand Accent -->
-        <div style="border-bottom: 2px solid #0d9488; padding-bottom: 16px; margin-bottom: 24px;">
-            <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #0d9488; font-weight: 700;">Mission-Lokal Portal</span>
+        <div style="border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
+            <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #2563eb; font-weight: 700;">Mission-Lokal Portal</span>
             <h2 style="color: #0f172a; margin: 6px 0 0 0; font-size: 22px;">ID Verification Approved</h2>
         </div>
 
@@ -22,15 +22,15 @@
         </p>
         
         <!-- Credentials Box -->
-        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #a7f3d0; border-radius: 8px; padding: 24px; margin: 28px 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 24px; margin: 28px 0; text-align: center;">
             <div style="margin-bottom: 16px;">
-                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #0f766e; font-weight: 700; display: block; margin-bottom: 4px;">Your Account ID</span>
-                <span style="font-size: 20px; font-weight: 800; font-family: monospace; color: #134e4a; letter-spacing: 2px;">{{ $user->account_id }}</span>
+                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1d4ed8; font-weight: 700; display: block; margin-bottom: 4px;">Your Account ID</span>
+                <span style="font-size: 20px; font-weight: 800; font-family: monospace; color: #1e3a8a; letter-spacing: 2px;">{{ $user->account_id }}</span>
             </div>
             
             <div style="border-top: 1px solid #cbd5e1; padding-top: 16px;">
-                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #0f766e; font-weight: 700; display: block; margin-bottom: 4px;">Your Temporary Password</span>
-                <span style="font-size: 20px; font-weight: 800; font-family: monospace; color: #134e4a; letter-spacing: 1px;">{{ $rawPassword }}</span>
+                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1d4ed8; font-weight: 700; display: block; margin-bottom: 4px;">Your Temporary Password</span>
+                <span style="font-size: 20px; font-weight: 800; font-family: monospace; color: #1e3a8a; letter-spacing: 1px;">{{ $rawPassword }}</span>
             </div>
         </div>
 
@@ -43,7 +43,7 @@
 
         <!-- Action Button -->
         <div style="text-align: center; margin: 32px 0 24px 0;">
-            <a href="{{ url('/login') }}" style="background-color: #0d9488; color: #ffffff; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);">Log In to Your Account</a>
+            <a href="{{ url('/login') }}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">Log In to Your Account</a>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />

@@ -28,6 +28,7 @@ type Props = {
     bounds?: [[number, number], [number, number]];
     onPositionChange: (lat: number, lng: number) => void;
     className?: string;
+    compact?: boolean;
 };
 
 function MapClickHandler({
@@ -79,6 +80,7 @@ export default function MapPinPicker({
     bounds = TAMBO_BOUNDS,
     onPositionChange,
     className = 'h-64',
+    compact = false,
 }: Props) {
     const theme = useResidentTheme();
     const pin = position ?? center;
@@ -129,7 +131,7 @@ export default function MapPinPicker({
 
     return (
         <div className={className}>
-            <div className={`h-full min-h-[18rem] overflow-hidden rounded-2xl border ${theme.cardBorder} relative ${theme.inputBg} shadow-md`}>
+            <div className={`h-full ${compact ? 'min-h-0' : 'min-h-[18rem]'} overflow-hidden rounded-2xl border ${theme.cardBorder} relative ${theme.inputBg} shadow-md`}>
                 <MapContainer 
                     bounds={leafletBounds}
                     scrollWheelZoom 
@@ -179,7 +181,7 @@ export default function MapPinPicker({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className={`absolute bottom-4 right-4 z-[1000] shadow-lg border ${theme.cardBorder} ${theme.cardBg} font-black text-xs rounded-2xl h-10 px-4`}
+                    className={`absolute ${compact ? 'bottom-2 right-2 h-8 px-2.5 text-[10px]' : 'bottom-4 right-4 h-10 px-4'} z-[1000] shadow-lg border ${theme.cardBorder} ${theme.cardBg} font-black rounded-2xl`}
                     onClick={handleGetLocation}
                     disabled={isLocating}
                 >
@@ -192,12 +194,12 @@ export default function MapPinPicker({
                 </Button>
             </div>
             {notice ? (
-                <p role="status" className="mt-2.5 flex items-start gap-2 text-xs font-bold text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                <p role="status" className={`${compact ? 'mt-1 px-2 py-1 text-[10px]' : 'mt-2.5 p-3 text-xs'} flex items-start gap-2 font-bold text-amber-900 bg-amber-50 rounded-xl border border-amber-200`}>
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                     {notice}
                 </p>
             ) : (
-                <p className={`mt-2.5 text-xs font-medium ${theme.textMuted}`}>Tap the map or drag the pin to pinpoint the exact issue location.</p>
+                <p className={`${compact ? 'mt-1 text-[10px]' : 'mt-2.5 text-xs'} font-medium ${theme.textMuted}`}>Tap the map or drag the pin to pinpoint the exact issue location.</p>
             )}
         </div>
     );

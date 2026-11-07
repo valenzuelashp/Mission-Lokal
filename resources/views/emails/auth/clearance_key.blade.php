@@ -6,7 +6,7 @@ Your request to modify your administrative security credentials has been approve
 Here is your single-use Clearance Key (valid for 2 hours):
 
 <x-mail::panel>
-<div style="text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #e11d48;">
+<div style="text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #1d4ed8;">
 {{ $key }}
 </div>
 </x-mail::panel>

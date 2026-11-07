@@ -1,39 +1,38 @@
 import { BadgeCheck } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 type Props = {
     fullName: string;
-    accountId: string;
-    digitalIdCode: string | null;
+    verificationToken: string | null;
     memberSince: string;
     isVerified: boolean;
 };
 
-export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memberSince, isVerified }: Props) {
+export default function DigitalIdCard({ fullName, verificationToken, memberSince, isVerified }: Props) {
     const theme = useResidentTheme();
-    const qrValue = digitalIdCode 
-        ? `https://mission-lokal.test/verify-id/${digitalIdCode}` 
-        : `MISSION-LOKAL-${accountId}`;
-    
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}&color=000000`;
+    const qrValue = verificationToken
+        ? new URL(`/verify-id/${encodeURIComponent(verificationToken)}`, window.location.origin).toString()
+        : '';
 
     return (
-        <Card className={`digital-id-card overflow-hidden border ${theme.cardBorder} ${theme.primaryBg} text-white shadow-xl rounded-3xl`}>
+        <Card className={`digital-id-card overflow-hidden border ${theme.cardBorder} bg-white/90 text-slate-950 shadow-xl rounded-3xl`}>
             <CardContent className="p-7 space-y-6">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white opacity-100">Official Municipal Digital ID</p>
-                        <p className="mt-2 break-words text-xl font-black tracking-tight text-white">{fullName}</p>
-                        <p className="truncate font-mono text-xs font-bold text-white opacity-100 mt-1">{accountId}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-700">Official Municipal Digital ID</p>
+                        <p className="mt-2 break-words text-xl font-black tracking-tight text-slate-950">{fullName}</p>
                     </div>
 
                     <div className="shrink-0 bg-white p-3 rounded-2xl border border-white/25 shadow-md">
-                        {digitalIdCode ? (
-                            <img 
-                                src={qrCodeUrl} 
-                                alt="Digital ID QR Code" 
+                        {verificationToken && isVerified ? (
+                            <QRCodeSVG
+                                value={qrValue}
+                                size={104}
+                                level="M"
+                                title="Scan to verify this municipal resident ID"
                                 className="h-20 w-20 rounded object-contain"
                             />
                         ) : (
@@ -44,14 +43,14 @@ export default function DigitalIdCard({ fullName, accountId, digitalIdCode, memb
                     </div>
                 </div>
 
-                <div className="space-y-2.5 border-t border-white/20 pt-5 text-xs font-medium">
+                <div className={`space-y-2.5 border-t ${theme.dividerColor} pt-5 text-xs font-medium`}>
                     <div className="flex justify-between gap-2">
-                        <span className="shrink-0 text-white opacity-100">Secure Digital Hash Code</span>
-                        <span className="truncate font-mono font-black text-white">{digitalIdCode ?? 'Pending Verification'}</span>
+                        <span className="text-slate-700">Digital ID verification</span>
+                        <span className="font-black text-slate-950">{isVerified ? 'Ready to scan' : 'Pending verification'}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-white opacity-100">Member Since</span>
-                        <span className="font-black text-white">{memberSince}</span>
+                        <span className="text-slate-700">Member Since</span>
+                        <span className="font-black text-slate-950">{memberSince}</span>
                     </div>
                 </div>
 

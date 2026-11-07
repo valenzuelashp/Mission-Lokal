@@ -10,10 +10,12 @@ use App\Enums\UserRole;
 use App\Services\LocalIdentifier;
 use App\Mail\PrimaryAdminCredentials;
 use App\Mail\ViewOnlyAdminCredentials;
+use Illuminate\Mail\Mailable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -249,8 +251,9 @@ class BarangayManagementController extends Controller
         $radioRoomPassword = '';
         $accountId = '';
         $radioRoomAccountId = '';
+        $barangayId = '';
 
-        DB::transaction(function () use ($validated, &$rawPassword, &$radioRoomPassword, &$accountId, &$radioRoomAccountId) {
+        DB::transaction(function () use ($validated, &$rawPassword, &$radioRoomPassword, &$accountId, &$radioRoomAccountId, &$barangayId) {
             $cityClean = preg_replace('/(CITY|MUNICIPALITY|PROVINCE)/i', '', $validated['city']);
             $cityNormalized = \Illuminate\Support\Str::ascii(trim($cityClean));
             $cityUpper = strtoupper(preg_replace('/[^a-zA-Z]/', '', $cityNormalized));
@@ -283,6 +286,7 @@ class BarangayManagementController extends Controller
                 'contact_email' => $validated['contact_email'],
                 'is_active' => true,
             ]);
+            $barangayId = $barangay->id;
 
             $accountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
 
@@ -303,6 +307,7 @@ class BarangayManagementController extends Controller
                 'email' => $validated['admin_email'],
                 'password' => Hash::make($rawPassword),
                 'is_active' => true,
+                'must_change_password' => true,
             ]);
 
             $radioRoomAccountId = LocalIdentifier::next($barangay, LocalIdentifier::ADM);
@@ -320,8 +325,11 @@ class BarangayManagementController extends Controller
                 'email' => $validated['radio_room_admin_email'],
                 'password' => Hash::make($radioRoomPassword),
                 'is_active' => true,
+                'must_change_password' => true,
             ]);
         });
+
+        $barangayDetails = $this->barangayMailDetails(Barangay::findOrFail($barangayId));
 
         $adminPayload = [
             'account_id' => $accountId,
@@ -329,6 +337,7 @@ class BarangayManagementController extends Controller
             'email' => $validated['admin_email'],
             'password' => $rawPassword,
             'admin_type_label' => AdminType::General->label(),
+            'barangay' => $barangayDetails,
             'title' => 'Primary Administrator Created & Emailed!',
         ];
         $radioRoomAdminPayload = [
@@ -337,17 +346,16 @@ class BarangayManagementController extends Controller
             'email' => $validated['radio_room_admin_email'],
             'password' => $radioRoomPassword,
             'admin_type_label' => AdminType::RadioRoom->label(),
+            'barangay' => $barangayDetails,
             'title' => 'Radio Room Administrator Created & Emailed!',
         ];
-        try {
-            Mail::to($validated['admin_email'])->send(new PrimaryAdminCredentials($adminPayload));
-        } catch (\Exception $e) {}
-        try {
-            Mail::to($validated['radio_room_admin_email'])->send(new PrimaryAdminCredentials($radioRoomAdminPayload));
-        } catch (\Exception $e) {}
+        $mailFailed = ! $this->sendCredentialEmail($validated['admin_email'], new PrimaryAdminCredentials($adminPayload), 'Primary administrator');
+        $mailFailed = ! $this->sendCredentialEmail($validated['radio_room_admin_email'], new PrimaryAdminCredentials($radioRoomAdminPayload), 'Radio Room administrator') || $mailFailed;
 
         return back()->with([
-            'success' => 'Barangay node and both main admin accounts were successfully provisioned.',
+            $mailFailed ? 'error' : 'success' => $mailFailed
+                ? 'Barangay and admin accounts were created, but at least one credential email could not be sent. Check mail settings and the application log.'
+                : 'Barangay node and both main admin accounts were provisioned and emailed.',
             'new_admin_credentials' => [$adminPayload, $radioRoomAdminPayload],
             'new_view_only_credentials' => $adminPayload,
         ]);
@@ -415,15 +423,16 @@ class BarangayManagementController extends Controller
             'email' => $validated['email'],
             'password' => $rawPassword,
             'admin_type_label' => AdminType::RadioRoom->label(),
+            'barangay' => $this->barangayMailDetails(Barangay::findOrFail($validated['barangay_id'])),
             'title' => 'Radio Room Administrator Created & Emailed!',
         ];
 
-        try {
-            Mail::to($validated['email'])->send(new PrimaryAdminCredentials($payload));
-        } catch (\Exception $e) {}
+        $mailFailed = ! $this->sendCredentialEmail($validated['email'], new PrimaryAdminCredentials($payload), 'Radio Room administrator');
 
         return back()->with([
-            'success' => 'Full-access Radio Room Admin account created and emailed.',
+            $mailFailed ? 'error' : 'success' => $mailFailed
+                ? 'Radio Room Admin account created, but its credential email could not be sent. Check mail settings and the application log.'
+                : 'Full-access Radio Room Admin account created and emailed.',
             'new_admin_credentials' => [$payload],
         ]);
     }
@@ -459,6 +468,7 @@ class BarangayManagementController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($rawPassword),
                 'is_active' => true,
+                'must_change_password' => true,
             ]);
         });
 
@@ -467,17 +477,57 @@ class BarangayManagementController extends Controller
             'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
             'email' => $validated['email'],
             'password' => $rawPassword,
+            'barangay' => $this->barangayMailDetails(Barangay::findOrFail($validated['barangay_id'])),
             'title' => 'View-Only Account Created & Emailed!',
         ];
 
-        try {
-            Mail::to($validated['email'])->send(new ViewOnlyAdminCredentials($viewOnlyPayload));
-        } catch (\Exception $e) {}
+        $mailFailed = ! $this->sendCredentialEmail($validated['email'], new ViewOnlyAdminCredentials($viewOnlyPayload), 'View-only administrator');
 
         return back()->with([
-            'success' => 'View-only monitoring account successfully created and emailed.',
+            $mailFailed ? 'error' : 'success' => $mailFailed
+                ? 'View-only account created, but its credential email could not be sent. Check mail settings and the application log.'
+                : 'View-only monitoring account successfully created and emailed.',
             'new_view_only_credentials' => $viewOnlyPayload
         ]);
+    }
+
+    private function barangayMailDetails(Barangay $barangay): array
+    {
+        return [
+            'name' => $barangay->name,
+            'code' => $barangay->code,
+            'house_street' => $barangay->house_street,
+            'city' => $barangay->city,
+            'province' => $barangay->province,
+            'contact_phone' => $barangay->contact_phone,
+            'contact_email' => $barangay->contact_email,
+        ];
+    }
+
+    private function sendCredentialEmail(string $email, Mailable $message, string $accountType): bool
+    {
+        if (config('mail.default') === 'log') {
+            Log::warning('Credential email was not delivered because the log mailer is configured.', [
+                'email' => $email,
+                'account_type' => $accountType,
+            ]);
+
+            return false;
+        }
+
+        try {
+            Mail::to($email)->send($message);
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::error('Administrator credential email failed.', [
+                'email' => $email,
+                'account_type' => $accountType,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     public function update(Request $request, string $id): RedirectResponse

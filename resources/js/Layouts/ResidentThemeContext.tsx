@@ -18,6 +18,7 @@ export function ResidentThemeProvider({ children }: PropsWithChildren) {
         const root = document.documentElement;
         const previousTheme = root.dataset.residentTheme;
         const propertyNames = [
+            '--resident-accent',
             '--resident-scrollbar-thumb',
             '--resident-scrollbar-track',
             '--resident-scrollbar-thumb-hover',
@@ -26,6 +27,7 @@ export function ResidentThemeProvider({ children }: PropsWithChildren) {
 
         root.dataset.residentTheme = theme.id;
         root.classList.remove('dark');
+        root.style.setProperty('--resident-accent', theme.previewColor);
         root.style.setProperty('--resident-scrollbar-thumb', theme.scrollbarThumb);
         root.style.setProperty('--resident-scrollbar-track', theme.scrollbarTrack);
         root.style.setProperty('--resident-scrollbar-thumb-hover', theme.scrollbarThumbHover);

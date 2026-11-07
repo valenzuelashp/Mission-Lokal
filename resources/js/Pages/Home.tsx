@@ -185,7 +185,7 @@ export default function Home() {
                                 </p>
                                 <div className="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
                                     <Button asChild className="h-11 w-full rounded-2xl bg-blue-500 text-base font-bold text-white hover:bg-blue-400 sm:w-auto">
-                                        <Link href="/register">Create a resident account</Link>
+                                        <Link href="/register">Register as a resident</Link>
                                     </Button>
                                     <Button asChild variant="outline" className="h-11 w-full rounded-2xl border-white/20 bg-white/10 text-base font-bold text-white hover:bg-white/20 hover:text-white sm:w-auto">
                                         <Link href="/login">I already have an account</Link>

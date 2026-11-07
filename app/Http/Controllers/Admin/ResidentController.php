@@ -8,6 +8,7 @@ use App\Models\ResidentProfile;
 use App\Models\Notification;
 use App\Models\ResidentDocument;
 use App\Services\LocalIdentifier;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Enums\VerificationStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,87 @@ use Illuminate\Support\Facades\Crypt;
 
 class ResidentController extends Controller
 {
+    public function civicRecognition(Request $request): Response
+    {
+        $validated = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+        ]);
+        $barangayId = $request->user()->barangay_id;
+        $currentMonth = now()->format('Y-m');
+        $month = $validated['month'] ?? $currentMonth;
+        abort_if($month > $currentMonth, 404);
+
+        $firstEventAt = DB::table('civic_xp_events')
+            ->where('barangay_id', $barangayId)
+            ->min('created_at');
+        $firstBadgeAt = DB::table('resident_badges')
+            ->join('users', 'resident_badges.user_id', '=', 'users.id')
+            ->where('users.barangay_id', $barangayId)
+            ->min('resident_badges.earned_at');
+        $firstSnapshotMonth = DB::table('civic_xp_monthly_rankings')
+            ->where('barangay_id', $barangayId)
+            ->min('month');
+        $recordDates = array_values(array_filter([
+            $firstEventAt,
+            $firstBadgeAt,
+            $firstSnapshotMonth ? $firstSnapshotMonth.'-01' : null,
+        ]));
+        $minimumSelectableMonth = now()->startOfMonth()->subMonths(11);
+        $firstMonth = $recordDates === []
+            ? $minimumSelectableMonth
+            : Carbon::parse(min($recordDates))->startOfMonth();
+        if ($firstMonth->greaterThan($minimumSelectableMonth)) {
+            $firstMonth = $minimumSelectableMonth;
+        }
+        $months = [];
+        for ($cursor = $firstMonth->copy(); $cursor <= now()->startOfMonth(); $cursor->addMonth()) {
+            $months[] = [
+                'value' => $cursor->format('Y-m'),
+                'label' => $cursor->format('F Y'),
+            ];
+        }
+
+        $ranking = app(\App\Services\CivicXpMonthlyRanking::class)
+            ->recordsForBarangay($barangayId, $month);
+
+        return Inertia::render('Admin/CivicRecognition/Index', [
+            'residents' => $ranking['records'],
+            'month' => $month,
+            'months' => $months,
+            'ranking_source' => $ranking['source'],
+            'ranking_has_activity' => $ranking['has_activity'],
+        ]);
+    }
+
+    public function civicCertificate(Request $request, string $userId)
+    {
+        $validated = $request->validate([
+            'month' => ['required', 'date_format:Y-m'],
+            'badge_id' => ['required', 'uuid'],
+        ]);
+        abort_if($validated['month'] > now()->format('Y-m'), 404);
+
+        $resident = User::query()
+            ->where('barangay_id', $request->user()->barangay_id)
+            ->where('role', 'resident')
+            ->whereHas('residentProfile', fn ($query) => $query->where('verification_status', 'approved'))
+            ->with(['residentProfile.badges', 'barangay'])
+            ->findOrFail($userId);
+        $badge = $resident->residentProfile?->badges
+            ->first(fn ($item) => $item->id === $validated['badge_id']);
+        abort_if(! $badge || $badge->earned_at?->format('Y-m') !== $validated['month'], 404);
+
+        $pdf = Pdf::loadView('pdf.civic-certificate', [
+            'residentName' => trim($resident->first_name.' '.$resident->last_name),
+            'barangayName' => $resident->barangay?->name ?? 'Barangay',
+            'badgeName' => $badge->name,
+            'civicXp' => $badge->earned_xp,
+            'issuedAt' => $badge->earned_at->format('F j, Y'),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('civic-recognition-'.$resident->account_id.'.pdf');
+    }
+
     public function index(Request $request): Response
     {
         $barangayId = $request->user()->barangay_id;

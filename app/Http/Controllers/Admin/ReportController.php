@@ -48,10 +48,10 @@ class ReportController extends Controller
         $categoryName = $concern->category ? $concern->category->name : 'Unknown';
 
         $pointsMap = [
-            'Public Safety & Order'      => 20, 
-            'Infrastructure & Utilities' => 15,
-            'Sanitation & Environment'   => 10,
-            'Katarungang Pambarangay'    => 5,  
+            'Public Safety & Order'      => 5,
+            'Infrastructure & Utilities' => 4,
+            'Sanitation & Environment'   => 3,
+            'Katarungang Pambarangay'    => 2,
         ];
 
         if (array_key_exists($categoryName, $pointsMap)) {
@@ -59,7 +59,7 @@ class ReportController extends Controller
         }
 
         $settings = BarangaySetting::find($barangayId);
-        return $settings ? $settings->civic_xp_per_valid_report : 10;
+        return min(5, max(1, (int) ($settings?->civic_xp_per_valid_report ?? 3)));
     }
 
     private function notifyReporter(Concern $concern, string $eventType, string $title, string $body, array $payload = []): void

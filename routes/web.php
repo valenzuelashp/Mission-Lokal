@@ -2,6 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Resident\ConcernController;
+use App\Http\Controllers\Resident\DigitalIdVerificationController;
 use App\Http\Controllers\Resident\DocumentRequestController as ResidentDocumentRequestController;
 use App\Http\Controllers\Resident\ProfileController;
 use App\Http\Controllers\Resident\LibraryController;
@@ -58,6 +59,10 @@ Route::get('/', function () {
     return redirect()->route('feed');
 });
 
+Route::get('/verify-id/{token}', [DigitalIdVerificationController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('digital-id.verify');
+
 /*
 |--------------------------------------------------------------------------
 | Resident Portal Routes (Protected by Verification Middleware)
@@ -91,6 +96,8 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/calendar', [\App\Http\Controllers\Resident\CalendarController::class, 'index'])->name('calendar');
     
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::get('/profile/civic-certificate', [ProfileController::class, 'civicCertificate'])->name('profile.civic-certificate');
+    Route::get('/profile/civic-certificates/{badgeId}', [ProfileController::class, 'civicCertificateForBadge'])->name('profile.civic-certificates.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.edit.store');
     
@@ -179,7 +186,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/private-media/proofs/{media}', [\App\Http\Controllers\PrivateMediaController::class, 'proof'])->name('private-media.proof');
 });
 
-Route::middleware(['auth', 'role:resident'])->group(function () {
+Route::middleware(['auth', 'role:resident,admin'])->group(function () {
     Route::get('/verification/waiting', [AccountStatusController::class, 'waiting'])->name('verification.waiting');
     Route::post('/password/custom', [TemporaryPasswordController::class, 'update'])->name('password.custom.store');
     Route::post('/password/prompt/dismiss', [TemporaryPasswordController::class, 'dismiss'])->name('password.prompt.dismiss');

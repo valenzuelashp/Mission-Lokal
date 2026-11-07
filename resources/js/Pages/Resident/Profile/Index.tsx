@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Award, FileText, Lock, Pencil, Shield, AlertCircle, History, TrendingUp, TrendingDown } from 'lucide-react';
+import { Award, Download, FileText, Lock, Pencil, Shield, AlertCircle, History, TrendingUp, TrendingDown } from 'lucide-react';
 import DigitalIdCard from '@/Components/resident/DigitalIdCard';
 import ResidentSocialShell from '@/Components/resident/ResidentSocialShell';
 import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { useAuth } from '@/Hooks/usePageProps';
 import ResidentLayout from '@/Layouts/ResidentLayout';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
+import PdfPngDownloadButton from '@/Components/shared/PdfPngDownloadButton';
 
 const verificationBadge: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'outline' }> = {
     approved: { label: 'Verified', variant: 'success' },
@@ -29,7 +30,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
         address: 'No address registered',
         birthday: '—',
         verification_status: 'unverified',
-        digital_id_code: 'ML-PENDING',
+        digital_id_verification_token: null,
         member_since: 'July 2026',
         report_count: 0,
         edit_status: 'approved',
@@ -45,8 +46,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
         <div className="space-y-6">
             <DigitalIdCard
                 fullName={activeProfile.full_name}
-                accountId={user.account_id}
-                digitalIdCode={activeProfile.digital_id_code}
+                verificationToken={activeProfile.digital_id_verification_token}
                 memberSince={activeProfile.member_since}
                 isVerified={isVerifiedUser}
             />
@@ -119,7 +119,7 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                         </Card>
 
                         <div className="grid grid-cols-3 gap-2 sm:gap-5">
-                            <StatCard label="Civic XP Score" value={user.civic_xp ?? 50} icon={Award} hint="Earned from verified reports" />
+                            <StatCard label="Monthly Civic XP" value={user.civic_xp ?? 50} icon={Award} hint="Resets to 50 on the 1st · capped at 100" />
                             <StatCard label="Total Reports" value={activeProfile.report_count ?? 0} icon={FileText} hint="Community submissions" />
                             <StatCard label="Verification Status" value={status.label} icon={Shield} hint={`State: ${statusKey}`} />
                         </div>
@@ -173,12 +173,23 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                                 {activeProfile.badges.length === 0 ? (
                                     <p className={`text-xs ${theme.textMuted} font-semibold`}>Submit valid community concerns to unlock achievement badges.</p>
                                 ) : (
-                                    <div className="flex flex-wrap gap-2.5">
+                                    <div className="flex flex-col gap-2.5">
                                         {activeProfile.badges.map((badge: any) => (
-                                            <Badge key={badge.id} variant="outline" className={`gap-2 py-2 px-3.5 font-bold ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} rounded-xl shadow-2xs`}>
-                                                <Award className={`h-4 w-4 ${theme.primaryText}`} />
-                                                {badge.name}
-                                            </Badge>
+                                            <div key={badge.id} className="flex flex-wrap items-center justify-between gap-3">
+                                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                    <Badge variant="outline" className={`gap-2 py-2 px-3.5 font-bold ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} rounded-xl shadow-2xs`}>
+                                                        <Award className={`h-4 w-4 ${theme.primaryText}`} />
+                                                        {badge.name} · {badge.threshold} XP
+                                                    </Badge>
+                                                    <span className={`text-xs ${theme.textMuted}`}>Earned {badge.earned_at}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <a href={badge.certificate_url} className={`inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-semibold ${theme.cardBorder} ${theme.textMain} ${theme.hoverBg}`}>
+                                                        <Download className="h-4 w-4" /> PDF
+                                                    </a>
+                                                    <PdfPngDownloadButton pdfUrl={badge.certificate_url} fileName={`civic-recognition-${user.account_id}-${badge.id}`} label="PNG" className="h-9 rounded-xl px-3" />
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 )}

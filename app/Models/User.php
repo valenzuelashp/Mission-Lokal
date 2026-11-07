@@ -37,6 +37,7 @@ class User extends Authenticatable
         'profile_edit_status',
         'is_active',
         'password_prompt_snoozed_on',
+        'must_change_password',
         'last_login_at',
         // --- PARENT FIELDS FOR MINORS ---
         'parent_user_id',
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'password_prompt_snoozed_on' => 'date',
+            'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
             'birthday' => 'date',
         ];
@@ -112,11 +114,31 @@ class User extends Authenticatable
 
     public function needsPasswordSetup(): bool
     {
-        if (! $this->password) {
-            return true;
+        return $this->must_change_password
+            || ! $this->password
+            || ! $this->is_active
+            || Hash::check('password', $this->password)
+            || $this->usesProvisionedAdminPassword();
+    }
+
+    private function usesProvisionedAdminPassword(): bool
+    {
+        $role = $this->role instanceof \BackedEnum ? $this->role->value : $this->role;
+        if ($role !== UserRole::Admin->value || ! $this->password || ! $this->barangay_id) {
+            return false;
         }
 
-        return ! $this->is_active || Hash::check('password', $this->password);
+        $barangay = $this->barangay;
+        if (! $barangay?->code) {
+            return false;
+        }
+
+        $adminType = $this->admin_type instanceof \BackedEnum ? $this->admin_type->value : $this->admin_type;
+        $fallback = $this->is_view_only ? 'Official' : ($adminType === AdminType::RadioRoom->value ? 'Radio' : 'Admin');
+        $lastName = preg_replace('/[^a-zA-Z0-9]/', '', (string) $this->last_name);
+        $candidate = $barangay->code.'!'.ucfirst(strtolower($lastName ?: $fallback));
+
+        return Hash::check($candidate, $this->password);
     }
 
     public function shouldShowPasswordPrompt(): bool

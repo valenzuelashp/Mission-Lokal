@@ -10,6 +10,7 @@ use App\Services\Missions\DepartmentMissionAccess;
 use App\Models\ResidentRegistration;
 use App\Enums\UserRole;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 
@@ -75,54 +76,73 @@ class HandleInertiaRequests extends Middleware
             }
             
             if ($roleValue === 'admin' || $roleValue === 'super_admin' || $roleValue === UserRole::Admin) {
-                // 1. Verifications (Pending resident registrations waiting for review)
-                $pendingRegistrations = ResidentRegistration::query()
-                    ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
-                    ->count();
+                $badgeCounts = Cache::remember(
+                    'inertia:admin-badges:'.($user->barangay_id ?? 'all'),
+                    now()->addSeconds(10),
+                    function () use ($user): array {
+                        $counts = [
+                            'registrations' => ResidentRegistration::query()
+                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                                ->count(),
+                            'reports' => 0,
+                            'missions' => 0,
+                            'blotters' => 0,
+                            'profile_edits' => 0,
+                            'map_alerts' => 0,
+                        ];
 
-                // 2. Report Queue (Strictly reports with 'ai_processed' status waiting for admin review)
-                try {
-                    $pendingReports = DB::table('concerns')
-                        ->when($user->barangay_id, fn ($q) => $q->where('barangay_id', $user->barangay_id))
-                        ->where('status', 'ai_processed')
-                        ->count();
-                } catch (\Exception $e) {}
+                        try {
+                            $counts['reports'] = DB::table('concerns')
+                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                                ->where('status', 'ai_processed')
+                                ->count();
+                        } catch (\Exception $exception) {
+                        }
 
-                // 3. Mission Queue (Counting assigned, acknowledged, and in_progress from the missions table)
-                try {
-                    $pendingMissions = DB::table('missions')
-                        ->when($user->barangay_id, fn ($q) => $q->where('barangay_id', $user->barangay_id))
-                        ->whereIn('status', ['assigned', 'acknowledged', 'in_progress'])
-                        ->count();
-                } catch (\Exception $e) {}
+                        try {
+                            $counts['missions'] = DB::table('missions')
+                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                                ->whereIn('status', ['assigned', 'acknowledged', 'in_progress'])
+                                ->count();
+                        } catch (\Exception $exception) {
+                        }
 
-                // 4. Blotters (Pending resident complaints/blotters)
-                try {
-                    $pendingBlotters = DB::table('blotters')
-                        ->when($user->barangay_id, fn ($q) => $q->where('barangay_id', $user->barangay_id))
-                        ->where('status', 'pending')
-                        ->count();
-                } catch (\Exception $e) {}
+                        try {
+                            $counts['blotters'] = DB::table('blotters')
+                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                                ->where('status', 'pending')
+                                ->count();
+                        } catch (\Exception $exception) {
+                        }
 
-                // 5. Profile Requests (Pending resident information change requests)
-                try {
-                    $pendingProfileEdits = DB::table('profile_edit_requests')
-                        ->join('users', 'profile_edit_requests.user_id', '=', 'users.id')
-                        ->when($user->barangay_id, fn ($q) => $q->where('users.barangay_id', $user->barangay_id))
-                        ->where('profile_edit_requests.status', 'pending')
-                        ->count();
-                } catch (\Exception $e) {}
+                        try {
+                            $counts['profile_edits'] = DB::table('profile_edit_requests')
+                                ->join('users', 'profile_edit_requests.user_id', '=', 'users.id')
+                                ->when($user->barangay_id, fn ($query) => $query->where('users.barangay_id', $user->barangay_id))
+                                ->where('profile_edit_requests.status', 'pending')
+                                ->count();
+                        } catch (\Exception $exception) {
+                        }
 
-                // 6. Map Alerts (Escalated concerns or high priority markers)
-                try {
-                    $pendingMapAlerts = DB::table('concerns')
-                        ->when($user->barangay_id, fn ($q) => $q->where('barangay_id', $user->barangay_id))
-                        ->where(function($query) {
-                            $query->where('is_escalated', true)->orWhere('priority', 'high');
-                        })
-                        ->where('status', '!=', 'verified')
-                        ->count();
-                } catch (\Exception $e) {}
+                        try {
+                            $counts['map_alerts'] = DB::table('concerns')
+                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                                ->where(fn ($query) => $query->where('is_escalated', true)->orWhere('priority', 'high'))
+                                ->where('status', '!=', 'verified')
+                                ->count();
+                        } catch (\Exception $exception) {
+                        }
+
+                        return $counts;
+                    },
+                );
+
+                $pendingRegistrations = $badgeCounts['registrations'];
+                $pendingReports = $badgeCounts['reports'];
+                $pendingMissions = $badgeCounts['missions'];
+                $pendingBlotters = $badgeCounts['blotters'];
+                $pendingProfileEdits = $badgeCounts['profile_edits'];
+                $pendingMapAlerts = $badgeCounts['map_alerts'];
             }
         }
 
@@ -143,6 +163,9 @@ class HandleInertiaRequests extends Middleware
                 $isApproved = $status === VerificationStatus::Approved || $status === 'approved';
                 $showPasswordPrompt = $isApproved
                     && $user->shouldShowPasswordPrompt()
+                    && ! $request->session()->get('password_prompt_dismissed');
+            } elseif ($roleValue === 'admin') {
+                $showPasswordPrompt = $user->shouldShowPasswordPrompt()
                     && ! $request->session()->get('password_prompt_dismissed');
             }
         }

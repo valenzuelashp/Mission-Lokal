@@ -1,13 +1,14 @@
 import { Link, router } from '@inertiajs/react';
-import { MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import MapView from '@/Components/maps/MapView';
+import { Award, MapPin, MessageCircle, Calendar, MoreHorizontal, Trash2, X } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import ConcernPhotoGallery from '@/Components/resident/ConcernPhotoGallery';
 import UserAvatar from '@/Components/shared/UserAvatar';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
 import { Badge } from '@/Components/ui/badge';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import type { PublicConcern, Severity } from '@/Types';
+
+const MapView = lazy(() => import('@/Components/maps/MapView'));
 
 const severityVariant: Record<Severity, 'success' | 'secondary' | 'warning' | 'danger'> = {
     low: 'success',
@@ -24,7 +25,7 @@ const severityLabel: Record<Severity, string> = {
 };
 
 type Props = {
-    concern: PublicConcern & { reporter_name?: string; reporter_photo_url?: string | null };
+    concern: PublicConcern & { reporter_name?: string; reporter_photo_url?: string | null; reporter_badge?: string | null };
 };
 
 export default function ConcernCard({ concern }: Props) {
@@ -32,7 +33,16 @@ export default function ConcernCard({ concern }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [privacyEditorOpen, setPrivacyEditorOpen] = useState(false);
     const [mapOpen, setMapOpen] = useState(false);
+    const [updateExpanded, setUpdateExpanded] = useState(false);
     const hasMap = concern.lat != null && concern.lng != null;
+    const hasExpandableUpdate = Boolean(
+        concern.latest_update && (
+            concern.latest_update.message.length > 140
+            || concern.latest_update.prescriptive_steps?.length
+            || concern.latest_update.estimated_duration
+            || concern.latest_update.estimated_completion
+        ),
+    );
 
     useEffect(() => {
         if (!mapOpen) {
@@ -61,7 +71,7 @@ export default function ConcernCard({ concern }: Props) {
 
     return (
         <article className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md w-full`}>
-            <div className={`flex items-center justify-between gap-3 p-4 sm:p-5 border-b ${theme.dividerColor}`}>
+            <div className={`flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 ${theme.dividerColor}`}>
                 <div className="flex min-w-0 items-center gap-3.5">
                     <UserAvatar
                         src={concern.reporter_photo_url}
@@ -69,12 +79,17 @@ export default function ConcernCard({ concern }: Props) {
                         fallback="ML"
                         className={`h-11 w-11 shrink-0 rounded-2xl border font-black shadow-2xs ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
                     />
-                    <div className="min-w-0">
-                        <p className={`truncate text-sm font-black ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
-                        <p className={`truncate text-xs font-black uppercase tracking-wider ${theme.primaryText} mt-0.5`}>{concern.category}</p>
+                    <div className="min-w-0 flex-1">
+                        <p className={`break-words text-sm font-black ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
+                        {concern.reporter_badge && (
+                            <span title="Earned Civic XP badge" className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-[10px] font-bold text-emerald-700">
+                                <Award className="h-3 w-3 shrink-0" />{concern.reporter_badge}
+                            </span>
+                        )}
+                        <p className={`break-words text-xs font-black uppercase tracking-wider ${theme.primaryText} mt-0.5`}>{concern.category}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
                     <Badge variant={severityVariant[concern.severity]} className="font-black px-3 py-1 rounded-xl">{severityLabel[concern.severity]}</Badge>
                     <span className={`text-xs font-bold px-3.5 py-1 rounded-xl border ${
                         concern.visibility === 'private'
@@ -187,18 +202,24 @@ export default function ConcernCard({ concern }: Props) {
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
-                        <MapView
-                            center={[concern.lat as number, concern.lng as number]}
-                            zoom={16}
-                            pins={[{
-                                id: concern.id,
-                                lat: concern.lat as number,
-                                lng: concern.lng as number,
-                                title: concern.title,
-                                severity: concern.severity,
-                            }]}
-                            className="h-72"
-                        />
+                        <Suspense fallback={(
+                            <div className={`flex h-72 items-center justify-center rounded-2xl ${theme.accentSurface} text-sm font-semibold ${theme.textMuted}`} role="status">
+                                Loading map...
+                            </div>
+                        )}>
+                            <MapView
+                                center={[concern.lat as number, concern.lng as number]}
+                                zoom={16}
+                                pins={[{
+                                    id: concern.id,
+                                    lat: concern.lat as number,
+                                    lng: concern.lng as number,
+                                    title: concern.title,
+                                    severity: concern.severity,
+                                }]}
+                                className="h-72"
+                            />
+                        </Suspense>
                     </div>
                 </div>
             )}
@@ -226,50 +247,63 @@ export default function ConcernCard({ concern }: Props) {
             </div>
 
             {concern.latest_update && (
-            <div className={`border-t ${theme.dividerColor} p-4 ${theme.accentSurface}`}>
-                <Link
-                    href={`/concerns/${concern.id}`}
-                    className={`flex items-start gap-3.5 rounded-2xl ${theme.cardBg} p-3.5 border ${theme.cardBorder} shadow-2xs`}
-                >
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${theme.primaryBg} text-white text-xs font-black shadow-2xs`}>
-                        B
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className={`text-[10px] font-black uppercase tracking-wider ${theme.primaryText}`}>
-                            Barangay update
-                            {` · ${concern.latest_update.label}`}
-                            {concern.latest_update.at ? ` · ${concern.latest_update.at}` : ''}
-                        </p>
-                        <p className={`mt-1 text-xs font-semibold leading-relaxed ${theme.textMain}`}>
-                            {concern.latest_update.message}
-                        </p>
-                        {concern.latest_update?.prescriptive_steps && concern.latest_update.prescriptive_steps.length > 0 && (
-                            <div className="mt-2">
-                                <p className={`text-[11px] font-black ${theme.textMain}`}>AI-suggested response plan</p>
-                                <ol className={`mt-1 list-decimal space-y-1 pl-4 text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
-                                    {concern.latest_update.prescriptive_steps.map((step, index) => (
-                                        <li key={`${index}-${step}`}>{step}</li>
-                                    ))}
-                                </ol>
-                            </div>
-                        )}
-                        {(concern.latest_update?.estimated_duration || concern.latest_update?.estimated_completion) && (
-                            <p className={`mt-2 text-[11px] font-semibold ${theme.textMuted}`}>
-                                {concern.latest_update.estimated_duration && `Estimated duration: ${concern.latest_update.estimated_duration}`}
-                                {concern.latest_update.estimated_duration && concern.latest_update.estimated_completion && ' · '}
-                                {concern.latest_update.estimated_completion && `Target completion: ${concern.latest_update.estimated_completion}`}
-                                <span className="block">Estimate only; actual timing may vary.</span>
+                <div className={`border-t ${theme.dividerColor} p-3 sm:p-4 ${theme.accentSurface}`}>
+                    <div className={`flex items-start gap-3 rounded-2xl border p-3 sm:p-3.5 ${theme.cardBg} ${theme.cardBorder} shadow-2xs`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${theme.primaryBg} text-xs font-black text-white shadow-2xs`}>
+                            B
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className={`text-[10px] font-black uppercase tracking-wider ${theme.primaryText}`}>
+                                Official update
+                                {` · ${concern.latest_update.label}`}
+                                {concern.latest_update.at ? ` · ${concern.latest_update.at}` : ''}
                             </p>
-                        )}
-                        <span className={`mt-1.5 inline-block text-[11px] font-bold ${theme.textMuted}`}>
-                            View all updates
+                            <p className={`mt-1 text-xs font-semibold leading-relaxed ${theme.textMain} ${updateExpanded ? '' : 'line-clamp-2'}`}>
+                                {concern.latest_update.message}
+                            </p>
+                            {updateExpanded && (
+                                <>
+                                    {concern.latest_update.prescriptive_steps && concern.latest_update.prescriptive_steps.length > 0 && (
+                                        <div className="mt-2">
+                                            <p className={`text-[11px] font-black ${theme.textMain}`}>AI-suggested response plan</p>
+                                            <ol className={`mt-1 list-decimal space-y-1 pl-4 text-[11px] font-medium leading-relaxed ${theme.textMuted}`}>
+                                                {concern.latest_update.prescriptive_steps.map((step, index) => (
+                                                    <li key={`${index}-${step}`}>{step}</li>
+                                                ))}
+                                            </ol>
+                                        </div>
+                                    )}
+                                    {(concern.latest_update.estimated_duration || concern.latest_update.estimated_completion) && (
+                                        <p className={`mt-2 text-[11px] font-semibold ${theme.textMuted}`}>
+                                            {concern.latest_update.estimated_duration && `Estimated duration: ${concern.latest_update.estimated_duration}`}
+                                            {concern.latest_update.estimated_duration && concern.latest_update.estimated_completion && ' · '}
+                                            {concern.latest_update.estimated_completion && `Target completion: ${concern.latest_update.estimated_completion}`}
+                                            <span className="block">Estimate only; actual timing may vary.</span>
+                                        </p>
+                                    )}
+                                </>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                {hasExpandableUpdate && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setUpdateExpanded((expanded) => !expanded)}
+                                        aria-expanded={updateExpanded}
+                                        className={`text-[11px] font-black ${theme.primaryText} hover:underline`}
+                                    >
+                                        {updateExpanded ? 'See less' : 'See more'}
+                                    </button>
+                                )}
+                                <Link href={`/concerns/${concern.id}`} className={`text-[11px] font-bold ${theme.textMuted} hover:underline`}>
+                                    View all updates
+                                </Link>
+                            </div>
+                        </div>
+                        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${theme.primaryText}`} aria-hidden="true">
+                            <MessageCircle className="h-4 w-4" />
                         </span>
                     </div>
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${theme.primaryText}`}>
-                        <MessageCircle className="h-4 w-4" />
-                    </span>
-                </Link>
-            </div>
+                </div>
             )}
         </article>
     );

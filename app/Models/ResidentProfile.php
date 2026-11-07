@@ -6,9 +6,9 @@ use App\Enums\VerificationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
 
 class ResidentProfile extends Model
 {
@@ -29,6 +29,7 @@ class ResidentProfile extends Model
         'address',
         'government_id_storage_key',
         'digital_id_code',
+        'digital_id_verification_token',
     ];
 
     protected $casts = [
@@ -41,9 +42,21 @@ class ResidentProfile extends Model
         'civic_xp' => 50,
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (ResidentProfile $profile): void {
+            $profile->digital_id_verification_token ??= Str::random(64);
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function badges(): HasMany
+    {
+        return $this->hasMany(ResidentBadge::class, 'user_id', 'user_id')->orderBy('threshold');
     }
 
     /**
@@ -52,30 +65,48 @@ class ResidentProfile extends Model
      */
     public function awardXp(string $action, int $points, string $referenceType, string $referenceId, string $barangayId): void
     {
-        // Check if points were already awarded for this specific action and concern
-        $exists = DB::table('civic_xp_events')
-            ->where('user_id', $this->user_id)
-            ->where('action', $action)
-            ->where('reference_type', $referenceType)
-            ->where('reference_id', $referenceId)
-            ->exists();
+        if ($points <= 0) {
+            return;
+        }
 
-        if (!$exists && $points > 0) {
-            // Log the event
+        DB::transaction(function () use ($action, $points, $referenceType, $referenceId, $barangayId) {
+            $profile = self::query()->lockForUpdate()->find($this->getKey());
+            if (! $profile) {
+                return;
+            }
+
+            $events = DB::table('civic_xp_events')->where('user_id', $profile->user_id);
+            $alreadyAwarded = (clone $events)
+                ->where('action', $action)
+                ->where('reference_type', $referenceType)
+                ->where('reference_id', $referenceId)
+                ->exists();
+
+            if ($alreadyAwarded) {
+                return;
+            }
+
+            $awardedPoints = min($points, max(0, 100 - (int) $profile->civic_xp));
+            if ($awardedPoints === 0) {
+                return;
+            }
+
             DB::table('civic_xp_events')->insert([
                 'id' => (string) Str::uuid(),
-                'user_id' => $this->user_id,
+                'user_id' => $profile->user_id,
                 'barangay_id' => $barangayId,
                 'action' => $action,
-                'points' => $points,
+                'points' => $awardedPoints,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
                 'created_at' => now(),
             ]);
 
-            // Add points to their profile
-            $this->increment('civic_xp', $points);
-        }
+            $profile->increment('civic_xp', $awardedPoints);
+            $profile->refresh();
+            $this->civic_xp = $profile->civic_xp;
+            app(\App\Services\CivicRecognition::class)->awardBadges($profile->user_id, (int) $profile->civic_xp);
+        });
     }
 
     /**
@@ -83,51 +114,37 @@ class ResidentProfile extends Model
      */
     public function penalize(string $action, int $penaltyPoints, string $referenceType, string $referenceId, string $barangayId): void
     {
-        // Ensure points are negative
-        $points = -abs($penaltyPoints);
+        DB::transaction(function () use ($action, $penaltyPoints, $referenceType, $referenceId, $barangayId) {
+            $profile = self::query()->lockForUpdate()->find($this->getKey());
+            if (! $profile) {
+                return;
+            }
 
-        $exists = DB::table('civic_xp_events')
-            ->where('user_id', $this->user_id)
-            ->where('action', $action)
-            ->where('reference_type', $referenceType)
-            ->where('reference_id', $referenceId)
-            ->exists();
+            $alreadyPenalized = DB::table('civic_xp_events')
+                ->where('user_id', $profile->user_id)
+                ->where('action', $action)
+                ->where('reference_type', $referenceType)
+                ->where('reference_id', $referenceId)
+                ->exists();
 
-        if (!$exists && $points < 0) {
-            // 1. Log the penalty event
+            if ($alreadyPenalized) {
+                return;
+            }
+
+            $deduction = min((int) $profile->civic_xp, abs($penaltyPoints));
             DB::table('civic_xp_events')->insert([
                 'id' => (string) Str::uuid(),
-                'user_id' => $this->user_id,
+                'user_id' => $profile->user_id,
                 'barangay_id' => $barangayId,
                 'action' => $action,
-                'points' => $points,
+                'points' => -$deduction,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
                 'created_at' => now(),
             ]);
 
-            // 2. Deduct points from profile
-            $this->increment('civic_xp', $points);
-            $this->refresh();
-
-            // 3. Auto-Suspend if XP drops below 0
-            if ($this->civic_xp < 0) {
-                $user = $this->user;
-                if ($user && $user->is_active) {
-                    $user->update(['is_active' => 0]); // 0 = Suspended
-
-                    DB::table('audit_logs')->insert([
-                        'barangay_id' => $barangayId,
-                        'actor_id' => Auth::id() ?? $user->id,
-                        'action' => 'AUTO_SUSPEND',
-                        'entity_type' => 'User',
-                        'entity_id' => $user->id,
-                        'metadata' => json_encode(['details' => 'Account auto-suspended. Civic XP dropped to ' . $this->civic_xp . ' due to spam/fake reports.']),
-                        'ip_address' => request()->ip(),
-                        'created_at' => now(),
-                    ]);
-                }
-            }
-        }
+            $profile->update(['civic_xp' => (int) $profile->civic_xp - $deduction]);
+            $this->civic_xp = $profile->civic_xp;
+        });
     }
 }

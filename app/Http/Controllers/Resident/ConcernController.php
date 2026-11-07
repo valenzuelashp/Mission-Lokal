@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Services\Concerns\FileUploadService;
+use App\Jobs\GeocodeConcernAddress;
+use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\ConcernSubcategory;
@@ -12,7 +14,6 @@ use App\Support\ConcernStatusUpdate;
 use App\Enums\ConcernStatus;
 use App\Models\ConcernVote;
 use App\Models\MissionResolutionPost;
-use App\Services\Geocoding\ReverseGeocoder;
 use App\Support\MapHelpers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -55,7 +56,7 @@ class ConcernController extends Controller
                 });
             })
             ->with([
-                'reporter',
+                'reporter.residentProfile.badges',
                 'category',
                 'media',
                 'subcategory',
@@ -72,9 +73,11 @@ class ConcernController extends Controller
                 'votes as downvotes_count' => fn($q) => $q->where('vote', -1)
             ])
             ->latest()
-            ->get()
-            ->map(function ($item) {
+            ->paginate(12)
+            ->withQueryString()
+            ->through(function ($item) {
                 $reporterName = trim(($item->reporter?->first_name ?? '') . ' ' . ($item->reporter?->last_name ?? ''));
+                $reporterBadge = $item->reporter?->residentProfile?->badges?->last();
                 $rawVote = $item->votes->first()?->vote;
                 $statusStr = $item->status->value ?? $item->status;
                 
@@ -130,6 +133,7 @@ class ConcernController extends Controller
                         ? $reporterName
                         : ($item->intake_channel !== 'resident_portal' ? 'Barangay Desk' : 'Verified Resident'),
                     'reporter_photo_url' => $item->reporter?->profilePhotoUrl(),
+                    'reporter_badge' => $reporterBadge?->name,
                     'is_owner' => $item->reporter_id === auth()->id(),
                     'visibility' => $item->visibility,
                     'privacy_locked' => $item->isSensitiveConcern(),
@@ -183,6 +187,7 @@ class ConcernController extends Controller
             'announcements' => $announcements,
             'resolutionPosts' => $resolutionPosts,
             'search' => $search,
+            ...$this->concernFormOptions(),
             'userStats' => [
                 'total_reports' => $userTotalReports,
                 'active_reports' => $userActiveReports,
@@ -262,6 +267,13 @@ class ConcernController extends Controller
     public function create(): Response
     {
         return Inertia::render('Resident/Concerns/New', [
+            ...$this->concernFormOptions(),
+        ]);
+    }
+
+    private function concernFormOptions(): array
+    {
+        return [
             'categories' => [
                 ['value' => 'fire', 'label' => 'Fire Hazard'],
                 ['value' => 'flood', 'label' => 'Flooding & Drainage'],
@@ -270,14 +282,12 @@ class ConcernController extends Controller
                 ['value' => 'light', 'label' => 'Infrastructure & Utilities'],
                 ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
             ],
-            
             'mapCenter' => [14.5173079, 120.9933811],
-            
             'barangayBounds' => [
                 [14.5059, 120.9766288],
                 [14.5235931, 121.0011399],
             ],
-        ]);
+        ];
     }
 
     public function store(Request $request): RedirectResponse
@@ -329,10 +339,7 @@ class ConcernController extends Controller
         $visibility = $forcePrivate ? 'private' : 'public';
         $lat = (float) $request->lat;
         $lng = (float) $request->lng;
-        $addressText = $forcePrivate
-            ? null
-            : app(ReverseGeocoder::class)->label($lat, $lng);
-        $addressText ??= "Coordinates: {$lat}, {$lng}";
+        $addressText = $forcePrivate ? null : "Coordinates: {$lat}, {$lng}";
         
         $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $subcategoryId, $isVawcConcern, $visibility, $forcePrivate, $lat, $lng, $addressText) {
             $createdConcern = Concern::create([
@@ -383,11 +390,15 @@ class ConcernController extends Controller
             return $createdConcern;
         });
 
-        if (! config('services.gemini.key') || config('queue.default') === 'sync') {
-            \App\Jobs\Ai\ProcessConcernWithAi::dispatchSync($concern);
-        } else {
-            \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
+        if (! $forcePrivate) {
+            GeocodeConcernAddress::dispatch((string) $concern->id, $lat, $lng)
+                ->onConnection('database')
+                ->afterCommit();
         }
+
+        ProcessConcernWithAi::dispatch($concern)
+            ->onConnection('database')
+            ->afterCommit();
 
         return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
     }
@@ -397,8 +408,9 @@ class ConcernController extends Controller
         $user = $request->user();
         $concern->denyUnlessVisibleToResident($user);
 
-        $concern->load('reporter', 'category', 'currentAiAnalysis');
+        $concern->load('reporter.residentProfile.badges', 'category', 'currentAiAnalysis');
         $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
+        $reporterBadge = $concern->reporter?->residentProfile?->badges?->last();
         if ($reporterName === '' && $concern->intake_channel !== 'resident_portal') {
             $reporterName = 'Barangay Desk';
         }
@@ -485,6 +497,7 @@ class ConcernController extends Controller
                 'user_vote' => $userVote,
                 'reporter_name' => $reporterName !== '' ? $reporterName : 'Verified Resident',
                 'reporter_photo_url' => $concern->reporter?->profilePhotoUrl(),
+                'reporter_badge' => $reporterBadge?->name,
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
                 'images' => $concern->media->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray(),
                 'timeline' => $timeline,

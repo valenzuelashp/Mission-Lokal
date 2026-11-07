@@ -1,0 +1,635 @@
+MISSION-LOKAL - COMPLETE IMPLEMENTED SYSTEM REFERENCE
+Generated from executable application code, migrations, routes, controllers, layouts, pages, jobs, scheduled tasks, and project documentation.
+Repository documentation is retained as background design intent, but executable code is authoritative where they differ.
+
+1. PRODUCT PURPOSE
+------------------
+Mission-Lokal is a Laravel/Inertia React Progressive Web App for barangay-level incident reporting, response coordination, resident identity verification, administrative operations, field personnel mission execution, blotters, announcements, documents, library resources, and inter-role notifications.
+
+The core process is:
+1. Resident registers and uploads a government ID.
+2. An admin reviews and approves or rejects the resident registration.
+3. The approved resident reports a concern.
+4. The concern receives category, visibility, severity, duplicate, and response-plan processing or staff review.
+5. Admin staff review the report and create or escalate a mission.
+6. Personnel receive the assignment, acknowledge it, execute the checklist, and upload completion proof.
+7. Admin verifies mission completion and publishes a resolution post where appropriate.
+8. Residents see public feed updates, private case updates, resolution posts, notifications, and civic XP changes.
+
+2. TECHNOLOGY AND APPLICATION SHELL
+-----------------------------------
+Backend: PHP/Laravel, Inertia.js, MySQL/PostgreSQL-compatible migrations using UUID and spatial fields. DomPDF generates civic-recognition certificates and quarterly operational report PDFs.
+Frontend: React + TypeScript, Vite, Tailwind CSS, and shadcn-style UI components.
+Maps: Leaflet components and map utilities.
+Queues/cache: Laravel cache, queue, and database-backed queue tables.
+Storage: Local/public Laravel storage for uploaded IDs, concern media, proof, avatars, documents, signatures, and resolution media.
+PWA: public service worker, web manifest, installable assets, and offline-oriented library behavior.
+
+3. USER ROLES AND ACCESS
+------------------------
+resident
+- Registers, verifies identity, and logs in only after resident verification approval.
+- Uses the resident feed, concern reporting, resolutions, documents, library, help assistant, announcements, calendar, profile/security, blotters, and notifications.
+- Can modify only owned concerns, selected own profile data, privacy of a report subject to sensitive-concern restrictions, and own blotters/documents/profile actions.
+
+personnel
+- Field responder assigned by an admin.
+- Uses personnel missions and calendar.
+- Sees department context, shift context, and mission notifications.
+- Can acknowledge, update status, turn over an eligible mission, toggle checklist items, and upload proof.
+- Peace & Order Tanods may have morning, evening, or overnight shifts; turnover goes to an eligible Tanod in the next shift.
+
+admin
+- Full barangay operations for assigned barangay.
+- Manages dashboard, notifications, map, report queue and desk intake, missions, personnel/departments, resident verification, profile edits, residents, blotters, calendar, announcements, documents/signatures/templates, library, audit logs, and settings.
+- General admin and radio-room admin types exist.
+
+super_admin
+- Platform-level tenant operator.
+- Manages barangays, radio-room and view-only administrators, barangay suspension appeals, admin/resident profile edit requests, and security-clearance requests.
+- Has no barangay field unless assigned by platform data.
+
+Additional admin modifiers:
+- admin_type=general: general main administrator.
+- admin_type=radio_room: radio-room administrator.
+- is_view_only: restricts the user to view-only behavior.
+
+4. AUTHENTICATION AND ACCOUNT LIFECYCLE
+---------------------------------------
+Resident login:
+- The normal login is /login.
+- A resident account requires resident-profile verification_status=approved before protected resident routes can be used.
+- If unapproved, the user is routed to /verification/waiting.
+- Login rate limiting and inactive-account handling are implemented by the login controller.
+
+Separate admin/personnel login:
+- /admin-personnel/login authenticates administrative and personnel users through a separate login page/controller.
+
+Registration:
+- /register accepts first name, optional middle name, last name, name extension, house/street, barangay/city/province, birthday, email, mobile, government ID, optional parent or guardian information, and privacy consent.
+- Residents must be at least 12 years old.
+- Parent name and parent contact are required when age is below 18.
+- Government ID supports JPG, JPEG, PNG, or PDF up to 2 MB.
+- The system rejects duplicate approved identity records based on normalized first name, last name, and birthday.
+- It also rejects duplicate pending registrations with the same name and birthday.
+- A barangay/city/province combination must match an active barangay.
+- Successful registration creates a pending resident registration and waiting-verification flow.
+
+Verification flow:
+- Admin views resident verification queue and individual verification records.
+- Admin can approve the resident after confirming supplied identity details.
+- Admin can reject with a rejection reason.
+- Approval permits access to protected resident routes.
+- Government ID viewing uses a private admin route rather than exposing public media URLs.
+
+Password and security:
+- Forgot password requests email OTP; OTP verification then allows password reset.
+- OTP request, verification, and reset routes are throttled.
+- Temporary generated passwords can be replaced through /password/custom.
+- Password prompts may be dismissed temporarily through /password/prompt/dismiss.
+- Resident security settings support OTP request, OTP verification, and password update.
+- Admin security settings can request OTP or a super-admin security-clearance key before sensitive password changes.
+
+Session actions:
+- /logout logs out authenticated users.
+- Profile photos can be uploaded or deleted.
+- Theme preferences are supported in the resident frontend.
+
+5. TOP-LEVEL ROUTING AND ROLE REDIRECTION
+-----------------------------------------
+Unauthenticated root / renders the public Home page.
+Authenticated root redirects by role:
+- super_admin -> /super-admin/dashboard
+- admin -> /admin
+- personnel -> /personnel/missions
+- resident with approved verification -> /feed
+- unapproved resident -> /verification/waiting
+
+The application exposes 168 application routes in route:list, grouped below. Closure-rendered and controller-backed routes are both included.
+
+6. RESIDENT MODULES AND ACTIONS
+--------------------------------
+Feed and concerns (/feed, /concerns/new, /concerns/{concern})
+- Feed loads concerns available to the resident in public and permitted private contexts.
+- Users can create a concern title, category/subcategory or selected concern type, description, visibility, location, address, and media.
+- Sensitive categories/subcategories can force private visibility.
+- Public reports can receive up/down-like voting through concern vote actions.
+- Concern creator can change visibility between public/private when not locked by sensitivity.
+- Creators can retract a submitted or rejected report before administrative processing; processing locks it.
+- Concern detail displays a status timeline, response plan, proof summary, updates, and media when authorized.
+- Concern cards show the reporter's highest permanently earned Civic XP badge when one exists.
+- Concern visibility and private-media routes are access-controlled.
+
+Rate limits:
+- Concern submission: 30 requests per minute.
+- Barangay-help chat: 10 requests per minute.
+
+Resolutions (/resolutions):
+- Shows public resolution posts and outcome information.
+
+Blotters (/blotter/new, /blotter/new/{type}, /blotters, /blotter)
+- User chooses one-party or two-party blotter flow.
+- Fields and narrative are submitted to the resident blotter controller.
+- Resident can view own blotter status/history.
+- Admin approval creates/updates the administrative blotter record.
+
+Announcements:
+- /announcements lists published announcements.
+- /announcements/{announcement} displays one announcement.
+- Residents can join or leave volunteer announcements through the volunteer route.
+- Event announcements may include event time.
+
+Calendar:
+- Displays barangay calendar events derived from announcements and operational calendar data.
+
+Library:
+- Displays prepared manuals, responder contacts, and FAQ/help content maintained by admins.
+- Available content includes emergency and preparedness resources.
+
+Barangay Help:
+- /help renders the barangay help/chat page.
+- /help POST sends a question to the BarangayChatController.
+- The chat service uses current barangay FAQ/library context and rate limits requests.
+
+Documents:
+- Resident lists document templates and request queue.
+- Resident submits a request to /documents/{template}.
+- Resident views a generated/processed request through /documents/{documentRequest}.
+- Document availability and requirements are controlled by admin templates and barangay document settings.
+
+Profile:
+- /profile displays resident summary, verification, current-month Civic XP, report counts, profile photo, and all permanently earned badges with their earned dates.
+- Civic XP starts at 50 each month, resets on the 1st, and is capped at 100.
+- Earned badges and their certificates are retained across monthly XP resets; residents can download each earned badge certificate at /profile/civic-certificates/{badgeId} or their highest badge at /profile/civic-certificate.
+- /profile/edit displays editable fields.
+- /profile/edit POST submits resident profile changes.
+- Profile changes may enter admin approval instead of immediately overwriting protected identity data.
+- /profile/security supports OTP and password changes.
+- Photo upload and deletion are available to authenticated users.
+
+Notifications:
+- Resident notification page lists and provides notification state updates.
+
+7. ADMIN MODULES AND ACTIONS
+-----------------------------
+Dashboard /admin:
+- Shows operational KPIs, pending reports, ongoing missions, completed reports, pending verification, resident activity, high-priority incidents, and action queues according to controller data.
+
+Notifications /admin/notifications:
+- Lists in-app admin notifications.
+
+Map /admin/map:
+- Displays report pins, hotspots, severity, mission association, and operational map information.
+- Admin map actions depend on backend pin/hotspot aggregation.
+
+Reports and desk concern intake:
+- /admin/reports and /admin/reports/queue list report queue records and status counts.
+- /admin/reports/{concern} opens report review details.
+- /admin/reports/{concern} PUT updates report review information.
+- /admin/reports/intake renders desk/walk-in/phone intake.
+- POST /admin/reports/intake stores the concern as a desk intake.
+- Confirm AI applies AI classification/category/visibility/severity decisions.
+- Confirm AI verdict confirms the final staff verdict.
+- Merge duplicate merges a linked concern into a primary concern.
+- Reject marks concern rejected/spam under controller rules.
+- Escalate converts a qualifying concern to a mission.
+- Intake can have resident_portal, phone, or walk_in channels.
+- /admin/reports/dilg previews a quarter/year aggregate report; downloads are available as one-page A4 portrait PDF or a PNG rendered from that PDF page. The report is a working template, not a confirmed official DILG form.
+
+Missions:
+- /admin/missions and /admin/mission-board show the same mission index from two routes.
+- POST /admin/missions creates a mission.
+- Mission creation uses concern/playbook, due date, duration, details, checklist, and assignment data.
+- /admin/missions/{mission} shows mission detail.
+- Add personnel assigns a responder.
+- Resend assignment SMS queues or re-sends mission assignment SMS.
+- Verify mission marks staff-accepted proof/completion.
+- Resolution post publishes the final public resident-facing outcome and proof summary.
+- Unacknowledged mission monitoring escalates assigned missions.
+
+Personnel/departments:
+- /admin/departments lists/creates barangay departments.
+- /admin/personnel lists personnel.
+- Admin creates personnel accounts and assigns department, role, shift, zone/location, contact, and credentials.
+- Admin updates role, information, and archives a personnel account.
+- Departments include Traffic Management, Environmental, Peace & Order, Utility & Infrastructure, Animal Response Team, and Maintenance, plus configurable barangay departments.
+- Eligible roles: Tanod, Lupon, Public Works, Sanitation, VAW Desk, Traffic Control, Animal Response, Maintenance.
+- Tanod shifts are restricted to Peace & Order; the other roles do not use shift scheduling.
+
+Verifications:
+- Lists pending/in-progress residents.
+- Shows individual records and private government ID when authorized.
+- Approve/reject actions update verification status and notifications.
+
+Profile edits:
+- Lists pending resident/admin profile change requests.
+- Approve applies requested values to the user/profile.
+- Reject records/reports the reason.
+
+Residents:
+- Lists/searches/sorts/filter resident records.
+- Creates resident records through admin.
+- Imports residents through CSV.
+- Opens resident detail.
+- Updates resident information.
+- Flags a resident.
+- Sends a resident message/notification.
+- Uploads supporting resident documents.
+
+Civic recognition:
+- /admin/civic-recognition ranks verified residents in the barangay by Civic XP for the selected month. The latest 12 months are selectable and older months remain available when XP, badge, or snapshot history exists.
+- Closed-month rankings are stored in civic_xp_monthly_rankings before the monthly XP reset. Months without a snapshot are reconstructed from retained XP events on first view and then saved; the page identifies live, archived, reconstructed, and no-activity views.
+- Rankings include only residents with an XP event or badge earned during the selected month. Baseline-only residents are omitted, and an empty month displays no resident names.
+- The month filter shows badges first earned in that month and provides matching certificate PDF downloads, so historical rankings and awards remain reviewable.
+- Admin certificate downloads are barangay-scoped.
+
+Blotters:
+- Lists blotters and opens details.
+- Approves filed blotter records.
+- Approved blotters receive an administrative ticket/reference and status progression through controller rules.
+
+Calendar:
+- Aggregates dates/events/announcements and operational deadlines.
+
+Announcements:
+- Admin lists, creates, edits, updates, and deletes announcements.
+- Announcement kinds are advisory, event, or volunteer.
+- Optional fields include publication state, event time, cover image, and volunteer functionality.
+
+Documents:
+- Lists templates and requests.
+- Uploads/updates barangay signature.
+- Creates, edits, updates, and deletes document templates.
+- Opens document requests.
+- Updates request status through the administrative status action.
+
+Library:
+- Lists, creates, edits, updates, and deletes library manuals/items/contacts.
+
+Audit:
+- /admin/audit and /admin/audit-logs open audit log data.
+- Audit entries record actor, action, subject/entity, metadata, IP, and timestamps where implemented.
+
+Settings:
+- Updates profile fields.
+- Requests OTP or super-admin clearance key.
+- Updates password/security-sensitive settings.
+
+8. PERSONNEL MODULES AND ACTIONS
+--------------------------------
+Mission list:
+- /personnel/missions lists missions assigned to or eligible for personnel.
+- Mission cards/tables show display ID, concern, location, severity, status, schedule, assignment, proof state, and action availability.
+
+Mission detail:
+- /personnel/missions/{mission} shows mission instructions, concern, checklist, status history, proof requirements, and allowed actions.
+
+Status actions:
+- Acknowledges assigned mission.
+- Moves acknowledged mission to in_progress.
+- Marks completed.
+- Subsequent verification belongs to admin.
+- Cancelation behavior follows mission assignment rules.
+
+Checklist:
+- Personnel toggle checklist items according to authorization and current mission status.
+
+Turnover:
+- A Tanod can turnover an active mission to an eligible Peace & Order Tanod in the next shift.
+- The outgoing and incoming users receive notifications.
+
+Proof:
+- /personnel/missions/{mission}/proof renders proof upload.
+- Personnel can capture current location, add notes, and upload proof images/media.
+- Proof submission stores mission proof and media.
+
+Calendar and notifications:
+- Personnel calendar shows assigned missions and dates.
+- Personnel notifications list mission assignment, acknowledgements, reminders, escalation, turnover, and status messages.
+
+9. SUPER ADMIN MODULES AND ACTIONS
+----------------------------------
+Dashboard:
+- Platform-wide overview of barangays, suspension state, users, and clearance/profile appeal queues.
+
+Barangays:
+- Creates barangays with code/name/location/contact and settings.
+- Updates barangay fields and active state.
+- Creates General Main Admin and Radio Room Admin users.
+- Creates View-Only Admin users.
+- Sends each administrator their own credentials and barangay office details when mail delivery is configured; generated default passwords trigger a first-login reminder until changed.
+- Suspended barangays are routed to the public suspension page.
+
+Suspension appeals:
+- Suspended barangays residents can submit an appeal.
+- Public suspended-barangay options endpoint supplies appeal choices.
+- Super admin lists appeals and resolves with an accepted/rejected result.
+
+Profile edits:
+- Reviews admin/barangay profile edit requests.
+- Approves/rejects and records admin response.
+
+Security clearances:
+- Lists password-reset security-clearance key requests.
+- Approves or rejects requests.
+- Approved clearance keys are used by controller security settings.
+
+10. SHARED UI AND CONTROLS
+--------------------------
+Layouts:
+- ResidentLayout supplies resident navigation, notification drawer, theme context, bottom navigation, profile photo, and logout.
+- AdminLayout supplies admin navigation, badges for pending queue counts, notifications, profile photo, theme, and logout.
+- PersonnelLayout supplies personnel department/shift state, missions, calendar, notifications, profile photo, and logout.
+- SuperAdminLayout supplies overview, barangays, appeals, profile requests, clearances, profile photo, theme toggle, and logout.
+
+Common controls:
+- ThemeToggle changes interface theme.
+- ProfilePhotoPicker uploads/deletes or shows a photo.
+- FlashToasts displays success/error validation and workflow messages.
+- Confirmation dialogs protect destructive or high-impact actions.
+- Back buttons and page headers return to parent pages.
+- Map components support locate/pan/select, pins, basemap rendering, and size invalidation.
+- Mobile bottom navigation exposes common resident destinations on small screens.
+
+11. CORE DOMAIN DATA
+--------------------
+Primary tables are represented in migrations:
+- barangays, barangay_settings, users, sessions, password_reset_tokens
+- concern_categories, concern_subcategories, category_playbooks
+- concerns, concern_ai_analysis, concern_duplicate_links, concern_media, concern_votes, concern_status_history
+- missions, mission_assignments, mission_checklist_items, mission_status_history, mission_proof, mission_proof_media
+- blotters, blotter_media
+- announcements, announcement_volunteers
+- library_items
+- resident_profiles, resident_badges, civic_xp_monthly_rankings, resident_registrations, preloaded residents/import data
+- personnel, mission_personnel, departments
+- profile_edit_requests
+- notifications
+- audit_logs
+- document_templates, document_requests
+- clearance_requests, barangay_appeals
+- civic_xp_events, mission_resolution_posts
+- cache, jobs, job_batches, failed_jobs
+
+13. CONCERN DATA AND LIFECYCLE
+------------------------------
+Concern fields include:
+- reporter, barangay, title, description, category/subcategory, visibility, severity, status, location point, address label, source/channel, blotter candidate flag, staff review actor, AI processed timestamp, closed summary, timestamps, and resolution data.
+
+Visibility:
+- public
+- private
+
+Severity:
+- low
+- medium
+- high
+- critical
+
+Status:
+- submitted
+- ai_processed
+- under_review
+- rejected
+- spam
+- active
+- resolved
+- closed
+
+AI analysis fields can store:
+- detected language
+- suggested category/subcategory
+- suggested visibility
+- severity and confidence
+- prescriptive response steps
+- suggested due date/duration
+- duplicate candidate
+- processing status/time
+
+Duplicate links can be merge, link, or dismissed.
+
+Concern lifecycle controls include:
+- status history with previous status, next status, actor, note, and time
+- duplicate detection by configured barangay radius and time window
+- private status restrictions in route and media authorization
+- location fuzzing for protected/public display where configured
+
+14. MISSION DATA AND LIFECYCLE
+------------------------------
+Mission fields include concern linkage, barangay, department/category context, title/description, priority/severity, due/completion dates, lifecycle timestamps, estimated duration, escalation state, and verification state.
+
+Mission statuses:
+- assigned
+- acknowledged
+- in_progress
+- completed
+- verified
+- cancelled
+
+Assignments track personnel, assignment/acknowledgement time, SMS delivery state, and active/inactive status.
+Checklist items track label, completion, completer, and timestamps.
+Status history tracks previous and next states, actor, note, and time.
+Proof has notes, location, submitter, review state, timestamps, and proof media.
+Resolution posts store public outcome text and media.
+
+15. NOTIFICATION, SCHEDULED, AND BACKGROUND BEHAVIOR
+-----------------------------------------------------
+Notifications are in-app records with recipient, channel, event type, title, body, JSON payload, read state, sent/read timestamps.
+
+Scheduled tasks:
+- missions:check-unacknowledged runs every minute.
+- CheckOverdueMissions runs daily at 00:05.
+- civic-xp:monthly-reset archives the prior month's ranking, then sets each resident profile's monthly Civic XP back to 50 at 00:01 on the first of each month; earned badges, XP events, and ranking snapshots are retained.
+- acknowledgment timeout escalation runs hourly.
+- Missions assigned for more than 4 hours without acknowledgment and not escalated trigger:
+  * mission marked escalated
+  * same-barangay admins receive mission_escalated notification
+
+Jobs:
+- CheckOverdueMissions processes overdue mission state.
+- SendMissionAssignmentSms sends mission assignment messages where assignment SMS configuration permits it.
+- Resending assignment SMS uses the same mission assignment notification job/flow.
+
+Console commands:
+- ImportResidents imports prepared resident roster data.
+- GeocodeConcernAddresses geocodes concern addresses.
+- CheckUnacknowledgedMissions checks mission acknowledgement deadlines.
+- civic-xp:monthly-reset resets monthly Civic XP to 50 without deleting badges or event history.
+
+16. CIVIC XP AND GAMIFICATION
+------------------------------
+Resident profiles start at 50 Civic XP each month. Scores reset to 50 at 00:01 on the first day of each month and cannot exceed 100.
+- A staff-accepted valid concern awards category-based XP: Public Safety & Order 5, Infrastructure & Utilities 4, Sanitation & Environment 3, and Katarungang Pambarangay 2; other categories use the barangay setting capped at 5.
+- There is no per-day award limit. Each accepted concern can award XP only once, and the monthly score remains capped at 100.
+- civic_xp_monthly_rankings stores each month's final score, rank, badge list, resident name, and account ID per barangay.
+- The scheduled monthly reset archives the closing month's ranking before resetting profiles. If an older month has events but no snapshot, the admin page reconstructs and stores it on first view; the page identifies the data source.
+- Awards are recorded idempotently in civic_xp_events; spam/rejection penalties cannot reduce the score below zero.
+- The admin ranking is barangay-scoped and sorts active verified residents by their current-month score.
+- Five permanent badge tiers are earned at 60 (Civic Spark), 70 (Community Helper), 80 (Neighborhood Champion), 90 (Civic Advocate), and 100 (Civic Leader) monthly XP.
+- Badges survive monthly score resets and appear on resident profiles and concern cards.
+- Residents can download a one-page A4 landscape certificate as PDF or PNG for their highest badge from /profile/civic-certificate; admins can download either format from the civic-recognition ranking.
+- Residents can view their full permanent badge history and download an individual PDF or PNG certificate for each earned badge.
+
+17. DOCUMENTS AND CONTENT
+-------------------------
+Document templates contain paper size, title, body/template requirements, requirements checklist, and barangay signature configuration.
+Resident document requests store template, requester, submitted values and requirement data, status, processing staff, generation/review timestamps, and output reference.
+Barangay hotlines and document requirements may be added through migrations/settings.
+
+Announcements can be advisory, event, or volunteer call.
+Volunteers are tracked per resident and announcement.
+Library items store administrative preparedness/response knowledge used by resident and chatbot features.
+
+18. SECURITY AND PRIVACY CONTROLS
+---------------------------------
+- Protected routes use auth, role middleware, resident verification middleware, and super-admin middleware.
+- Private concern/proof/media endpoints authorize the user against the protected case or ownership.
+- Government IDs and private media are not expected to be public paths.
+- Sensitive concern categories force private visibility.
+- Destructive reports are locked once under active processing.
+- Account/password routes are throttled.
+- Settings password changes can require OTP or clearance key.
+- Suspended barangays are excluded from normal public/active operations by middleware/application redirects.
+- Audit logging records privileged actions in implemented admin controllers.
+- Profile photo, media, and government IDs use storage keys rather than trusting arbitrary client paths.
+
+19. REAL-TIME VS CURRENT IMPLEMENTATION NOTE
+---------------------------------------------
+The frontend and backend currently implement server-rendered Inertia navigation, forms, flash messages, polling-like reloads, notifications, and scheduled Laravel jobs. A dedicated WebSocket/push server is not established merely by mentioning real-time recommendations in the blueprint. SMS, geocoding, AI behavior, and third-party services are implemented only where corresponding service/controller/job code exists; the presence of configuration fields does not prove an active external provider.
+
+20. DOCUMENTATION CODEBASE RECONCILIATION
+------------------------------------------
+AUTHORITATIVE:
+- routes/*.php for reachable endpoints
+- app/Http/Controllers for fields, authorization, and business actions
+- app/Models, app/Enums for domain vocabulary and relationships
+- database/migrations for current database shape
+- resources/js/Pages and Layouts for implemented screens and visible controls
+- app/Jobs, app/Console, routes/console.php for automation
+
+NON-AUTHORITATIVE WHEN IT DIFFERS:
+- docs/BLUEPACK.md, docs/BLUEPRINT.md, docs/DATABASE.md, docs/FRONTEND_GUIDE.md, docs/TASKS.md, and docs/TEAM_GUIDE.md
+
+Current implemented additions absent or incomplete in older docs include:
+- super_admin role and platform-level barangay management
+- admin_type general/radio_room
+- view-only admin mode
+- resident security OTP pages
+- desk/walk-in/phone concern intake
+- mission resolution posts
+- clearance requests and barangay suspension appeals
+- departments, personnel roles, and Tanod shift scheduling
+- document templates and requests with signatures/paper size requirements
+- concern status spam and escalation lifecycle details
+- announcement kinds and volunteer support
+- profile photo/private media routes
+- recent migration-added document requirements, Tambo hotlines, and admin type fields
+- monthly Civic XP reset, 100-point cap, permanent recognition badges, and resident/admin badge certificates
+- barangay-scoped Civic XP ranking and quarterly DILG-style report preview/PDF export
+- administrator credential emails with barangay details and first-login default-password reminders
+
+Some blueprint recommendations mention badges, WebSockets, refresh tokens, Elasticsearch, push, and PostGIS, but should not be treated as implemented features unless a route/controller/model/job proves it.
+
+21. COMPLETE ROUTE INVENTORY
+----------------------------
+Public/shared:
+GET /
+GET account-status; GET/POST account-status/resubmit-form/{id}
+GET /login; POST /login
+GET /admin-personnel/login; POST /admin-personnel/login
+GET /register; POST /register; GET /api/location-options
+GET /forgot-password; POST forgot-password/send-otp; POST forgot-password/verify-otp; POST forgot-password/reset
+POST /logout
+GET /privacy
+GET /node-suspended; GET /api/suspended-barangay-options; POST /node-suspended/appeal
+GET /api/check-barangay
+POST /password/custom; POST /password/prompt/dismiss
+GET /sw.js
+
+Authenticated shared/private media:
+POST/DELETE /profile-photo
+GET /private-media/concerns/{media}
+GET /private-media/proofs/{media}
+
+Resident:
+GET /notifications
+GET /feed
+GET /resolutions
+GET /concerns/new; POST /concerns
+GET /concerns/{concern}; PATCH /concerns/{concern}/visibility; POST /concerns/{concern}/vote; DELETE /concerns/{concern}
+GET /documents; POST /documents/{template}; GET /documents/{documentRequest}
+GET /library
+GET/POST /help
+GET /announcements; GET /announcements/{announcement}; POST /announcements/{announcement}/volunteer
+GET /calendar
+GET /profile; GET/POST /profile/edit
+GET /profile/civic-certificate
+GET /profile/civic-certificates/{badgeId}
+GET /profile/security/request; GET /profile/security/verify; POST /profile/security/verify
+GET/PUT /profile/security
+GET /blotter/new; GET /blotter/new/{type}; GET /blotters; POST /blotter
+GET /verification/waiting
+
+Admin:
+GET /admin
+GET /admin/notifications; GET /admin/map
+GET /admin/reports; GET /admin/reports/queue; GET /admin/reports/intake; POST /admin/reports/intake
+GET /admin/reports/dilg; GET /admin/reports/dilg/pdf
+GET/PUT /admin/reports/{concern}
+POST /admin/reports/{id}/confirm-ai; confirm-ai-verdict; merge; reject; escalate
+GET /admin/missions; GET /admin/mission-board; POST /admin/missions
+GET /admin/missions/{mission}; POST /admin/missions/{mission}/personnel
+POST /admin/missions/{mission}/personnel/{personnel}/resend-sms
+POST /admin/missions/{mission}/verify; POST /admin/missions/{mission}/resolution-post
+GET/POST /admin/departments
+GET/POST /admin/personnel
+PATCH /admin/personnel/{id}/role; information; archive
+GET /admin/view-id/{path}
+GET /admin/verifications; GET /admin/verifications/{user}; POST approve/reject
+GET /admin/profile-edits; POST approve/reject
+GET/POST /admin/residents; POST /admin/residents/import-csv
+GET/PUT /admin/residents/{user}; POST flag/message/documents
+GET /admin/civic-recognition; GET /admin/civic-recognition/{userId}/certificate
+GET /admin/blotters; GET /admin/blotters/{blotter}; POST approve
+GET /admin/calendar
+GET /admin/announcements; GET/create; POST store; GET/edit; PUT update; DELETE destroy
+GET /admin/documents; POST signature
+GET/create, POST, GET/edit, PUT, DELETE /admin/documents/templates[/...]
+POST/GET /admin/documents/requests/{documentRequest}/status/show
+GET /admin/library; POST library; GET/edit; PUT/update; DELETE/destroy
+GET /admin/audit, /admin/audit-logs
+GET /admin/settings; PUT profile/security; POST security request OTP/clearance
+
+Personnel:
+GET /personnel/calendar
+GET /personnel/missions; GET /personnel/missions/{mission}
+POST /personnel/missions/{mission}/turnover
+PATCH /personnel/missions/{mission}/status
+PATCH /personnel/missions/{mission}/checklist
+GET/POST /personnel/missions/{mission}/proof
+GET /personnel/notifications
+
+Super admin:
+GET /super-admin/dashboard
+GET/POST /super-admin/barangays; PUT /super-admin/barangays/{barangay}
+POST /super-admin/barangays/radio-room-admin
+POST /super-admin/barangays/view-only-admin
+GET /super-admin/barangay-appeals; POST /super-admin/barangay-appeals/{appealId}/resolve
+GET /super-admin/profile-edits; POST approve/reject
+GET /super-admin/clearances; POST approve/reject
+
+22. IMPLEMENTED INERTIA PAGE INVENTORY
+--------------------------------------
+Public/auth/legal: Home, Login, AdminPersonnelLogin, Register, ForgotPassword, ResetPassword, VerifyOtp, AccountStatus, ResubmitRegistration, VerificationWaiting, PasswordPromptModal, NodeSuspended, Privacy.
+
+Resident:
+Feed, Resolutions, Concerns/New and Show, Blotter/TypeSelect/Form/Index, Documents/Index/Show, Library, BarangayHelp, Announcements and Announcement Show, Calendar, Profile/Index/Edit, Security/Security/SecurityVerify. Profile includes monthly XP, earned badge tiers, and a resident-accessible certificate download.
+
+Admin:
+Dashboard, Notifications, Map, Reports Index/Intake/Show, DILG quarterly report preview, CivicRecognition ranking, Missions Index/Show, Departments, Personnel/Index, Verifications Index/Show, ProfileEdits, Residents Index/Show, Blotters Index/Show, Calendar, Announcements Create/Edit/Index, Documents Form/Index/Show, Library Index/Edit, AuditLog, Settings.
+
+Personnel:
+Missions Index/Show/Proof, Calendar, Notifications.
+
+Super admin:
+Dashboard, Barangays Index/Appeals, ProfileEdits Index, ClearanceRequests Index.

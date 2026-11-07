@@ -156,7 +156,7 @@ class ImportResidents extends Command
                         'birthday' => $birthday,
                         'address' => $address,
                         'digital_id_code' => $accountId,
-                        'civic_xp' => 0,
+                        'civic_xp' => 50,
                     ]
                 );
 

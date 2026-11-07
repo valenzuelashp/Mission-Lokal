@@ -91,7 +91,7 @@ routes/
 chmod +x scripts/setup.sh && ./scripts/setup.sh
 ```
 
-Then run two terminals: `php artisan serve` and `npm run dev` → [http://localhost:8000](http://localhost:8000)
+Then run three terminals: `php artisan serve`, `npm run dev`, and `php artisan queue:work database` → [http://localhost:8000](http://localhost:8000)
 
 **Demo logins** (password: `password`):
 
@@ -164,6 +164,12 @@ Department portal demos (all use password `password`):
    npm run dev
    ```
 
+   In a third terminal, start the background queue worker:
+
+   ```bash
+   php artisan queue:work database
+   ```
+
    Open [http://localhost:8000](http://localhost:8000).
 
 ## Scripts
@@ -174,6 +180,7 @@ Department portal demos (all use password `password`):
 | `npm run build` | Type-check and build production assets |
 | `npm run preview` | Preview the production build |
 | `php artisan serve` | Start the Laravel development server |
+| `php artisan queue:work database` | Process queued AI triage and address geocoding jobs |
 
 ## Domain Model (overview)
 

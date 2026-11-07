@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Concern;
 use App\Models\ProfileEditRequest;
 use App\Models\CivicXpEvent;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -69,14 +70,21 @@ class ProfileController extends Controller
             'address'             => $addressStr,
             'birthday'            => $birthdayStr,
             'verification_status' => $profileStatusValue,
-            'digital_id_code'     => $profile?->digital_id_code ?: ($user->account_id ?? 'PENDING'),
+            'digital_id_verification_token' => $profile?->digital_id_verification_token,
             'member_since'        => $user->created_at ? $user->created_at->format('F Y') : now()->format('F Y'),
             'report_count'        => $reportCount,
             'edit_status'         => $user->profile_edit_status ?? 'approved', 
             'is_minor'            => $user->isMinor(),
             'parent_name'         => $user->parent_name ?? '',
             'parent_contact'      => $user->parent_contact ?? '',
-            'badges'              => [],
+            'badges'              => $profile?->badges->map(fn ($badge) => [
+                'id' => $badge->id,
+                'name' => $badge->name,
+                'threshold' => $badge->threshold,
+                'earned_xp' => $badge->earned_xp,
+                'earned_at' => $badge->earned_at?->format('M d, Y'),
+                'certificate_url' => route('profile.civic-certificates.show', ['badgeId' => $badge->id]),
+            ])->values()->all() ?? [],
         ];
 
         // Fetch the 10 most recent XP changes for the resident
@@ -139,6 +147,39 @@ class ProfileController extends Controller
         return Inertia::render('Resident/Profile/Edit', [
             'profile' => $profileData
         ]);
+    }
+
+    public function civicCertificate(Request $request)
+    {
+        $user = $request->user()->loadMissing(['residentProfile.badges', 'barangay']);
+        $badge = $user->residentProfile?->badges->last();
+
+        abort_if(! $badge, 404);
+
+        return $this->downloadCivicCertificate($user, $badge);
+    }
+
+    public function civicCertificateForBadge(Request $request, string $badgeId)
+    {
+        $user = $request->user()->loadMissing(['residentProfile.badges', 'barangay']);
+        $badge = $user->residentProfile?->badges->firstWhere('id', $badgeId);
+
+        abort_if(! $badge, 404);
+
+        return $this->downloadCivicCertificate($user, $badge);
+    }
+
+    private function downloadCivicCertificate($user, $badge)
+    {
+        $pdf = Pdf::loadView('pdf.civic-certificate', [
+            'residentName' => trim($user->first_name.' '.$user->last_name),
+            'barangayName' => $user->barangay?->name ?? 'Barangay',
+            'badgeName' => $badge->name,
+            'civicXp' => $badge->earned_xp,
+            'issuedAt' => $badge->earned_at->format('F j, Y'),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('civic-recognition-'.$user->account_id.'.pdf');
     }
 
     public function update(Request $request)

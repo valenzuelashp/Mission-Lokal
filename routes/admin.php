@@ -18,12 +18,16 @@ use App\Http\Controllers\Admin\CalendarController;
 use App\Http\Controllers\Admin\LibraryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\DilgReportController;
 use App\Http\Controllers\Admin\PersonnelController as AdminPersonnelController;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
+
+    Route::get('/reports/dilg', [DilgReportController::class, 'index'])->name('reports.dilg');
+    Route::get('/reports/dilg/pdf', [DilgReportController::class, 'pdf'])->name('reports.dilg.pdf');
     
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
     Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
@@ -72,6 +76,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/profile-edits/{id}/reject', [ProfileEditController::class, 'reject'])->name('profile-edits.reject');
 
     Route::get('/residents', [ResidentController::class, 'index'])->name('residents.index');
+    Route::get('/civic-recognition', [ResidentController::class, 'civicRecognition'])->name('civic-recognition.index');
+    Route::get('/civic-recognition/{userId}/certificate', [ResidentController::class, 'civicCertificate'])->name('civic-recognition.certificate');
     Route::post('/residents', [ResidentController::class, 'store'])->name('residents.store');
     Route::post('/residents/import-csv', [ResidentController::class, 'importCsv'])->name('residents.import-csv');
     Route::get('/residents/{user}', [ResidentController::class, 'show'])->name('residents.show');

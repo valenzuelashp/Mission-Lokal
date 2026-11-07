@@ -15,6 +15,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('missions:check-unacknowledged')->everyMinute();
 Schedule::job(new CheckOverdueMissions())->dailyAt('00:05')->name('missions:check-overdue');
+Schedule::command('civic-xp:monthly-reset')->monthlyOn(1, '00:01')->name('civic-xp:monthly-reset');
 // --- ACK Timeout Escalation Task (Default 4 Hours) ---
 Schedule::call(function () {
     $cutoff = Carbon::now()->subHours(4);
