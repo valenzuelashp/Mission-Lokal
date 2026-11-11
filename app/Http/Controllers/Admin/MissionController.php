@@ -20,6 +20,7 @@ use App\Services\Missions\MissionLifecycleService;
 use App\Services\Missions\MissionDepartmentAssignment;
 use App\Services\Missions\MissionResolutionPostBuilder;
 use App\Support\ConcernStatusUpdate;
+use App\Support\MissionWorkload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -34,11 +35,15 @@ class MissionController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $concerns = Concern::where('barangay_id', $barangayId)
-            ->whereIn('status', ['active', 'resolved', 'in_progress'])
+            ->where(function ($query) use ($barangayId) {
+                $query->whereIn('status', ['active', 'resolved', 'in_progress'])
+                    ->orWhereHas('mission', fn ($mission) => $mission->where('barangay_id', $barangayId));
+            })
             ->with(['votes', 'category', 'duplicates.reporter', 'duplicateOf'])
             ->get();
 
         $realMissions = Mission::with('personnel.user')
+            ->where('barangay_id', $barangayId)
             ->whereIn('concern_id', $concerns->pluck('id'))
             ->get()
             ->keyBy('concern_id');
@@ -86,6 +91,7 @@ class MissionController extends Controller
                 'due_date_iso' => $mission?->due_date?->toDateString(),
                 'max_due_date' => $deadlinePolicy->deadlineFor($concern)->toDateString(),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
+                'is_past_due' => MissionWorkload::isPastDue($mission),
                 'is_escalated' => $mission ? (bool)$mission->is_escalated : false,
                 'merged_duplicates_count' => $mergedCount,
                 'has_merged_duplicates' => $mergedCount > 0,
@@ -106,6 +112,7 @@ class MissionController extends Controller
             'completed' => $missions->where('status', 'completed')->count(),
             'verified' => $missions->where('status', 'verified')->count(),
             'overdue' => $missions->where('is_overdue', true)->where('status', '!=', 'verified')->count(),
+            'past_due' => $missions->where('is_past_due', true)->count(),
             'merged' => $missions->where('has_merged_duplicates', true)->count(),
         ];
 

@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { Building2, ChevronDown, ChevronUp, Compass, Facebook, FileText, Github, Globe, HardHat, Instagram, MapPin, ShieldCheck, Users, type LucideIcon } from 'lucide-react';
+import { Building2, ChevronDown, ChevronUp, Compass, Facebook, FileText, Github, HardHat, Instagram, MapPin, ShieldCheck, Users, type LucideIcon } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 
 const steps = [
@@ -77,16 +77,9 @@ const developers = [
 ];
 
 function SocialIcon({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
-    const className = 'flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white hover:bg-white/20';
+    const className = 'flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300';
 
-    if (!href) {
-        return (
-            <span className={className} title={`${label} — paste the link in Home.tsx`}>
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">{label}</span>
-            </span>
-        );
-    }
+    if (!href) return null;
 
     return (
         <a href={href} target="_blank" rel="noreferrer" aria-label={label} className={className}>
@@ -96,11 +89,11 @@ function SocialIcon({ href, label, icon: Icon }: { href: string; label: string; 
 }
 
 const residentPages = [
-    { title: 'Public feed', file: 'homepage-1.png', rotate: -14, shift: -260 },
-    { title: 'News', file: 'homepage-2.png', rotate: -7, shift: -130 },
-    { title: 'Calendar', file: 'homepage-5.png', rotate: 0, shift: 0 },
-    { title: 'Library', file: 'homepage-3.png', rotate: 7, shift: 130 },
-    { title: 'Profile', file: 'homepage-4.png', rotate: 14, shift: 260 },
+    { title: 'Public feed', file: 'homepage-1.png' },
+    { title: 'News', file: 'homepage-2.png' },
+    { title: 'Calendar', file: 'homepage-5.png' },
+    { title: 'Library', file: 'homepage-3.png' },
+    { title: 'Profile', file: 'homepage-4.png' },
 ];
 
 function ResidentPageShot({ title, file }: { title: string; file: string }) {
@@ -108,7 +101,7 @@ function ResidentPageShot({ title, file }: { title: string; file: string }) {
 
     if (missing) {
         return (
-            <div className="flex h-[240px] w-[158px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-3 text-center shadow-2xl sm:h-[300px] sm:w-[196px]">
+            <div className="flex h-[240px] w-[158px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-3 text-center shadow-lg shadow-slate-900/10 sm:h-[300px] sm:w-[196px]">
                 <p className="text-[11px] font-black text-slate-900">{title}</p>
                 <p className="mt-2 text-[10px] font-semibold leading-4 text-slate-500">public/images/{file}</p>
             </div>
@@ -119,7 +112,7 @@ function ResidentPageShot({ title, file }: { title: string; file: string }) {
         <img
             src={`/images/${file}`}
             alt={title}
-            className="h-[240px] w-[158px] rounded-2xl bg-white object-cover object-top shadow-2xl sm:h-[300px] sm:w-[196px]"
+            className="h-[240px] w-[158px] rounded-xl border border-slate-200 bg-white object-cover object-top shadow-lg shadow-slate-900/10 sm:h-[300px] sm:w-[196px]"
             onError={() => setMissing(true)}
         />
     );
@@ -154,178 +147,160 @@ export default function Home() {
     return (
         <>
             <Head title="Mission-Lokal" />
-            <div className="min-h-screen bg-[#f4f7fb] text-slate-900">
-                <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-5 sm:py-5">
-                    <div className="flex items-center gap-2.5">
-                        <img src="/images/mission-lokal-logo.png" alt="" className="h-9 w-9 object-contain sm:h-11 sm:w-11" />
-                        <p className="text-base font-black tracking-tight">Mission-Lokal</p>
+            <div className="min-h-screen bg-[#f7f9fb] text-slate-900">
+                <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 sm:py-6 lg:px-10">
+                    <div className="flex items-center gap-3">
+                        <img src="/images/mission-lokal-logo.png" alt="" className="h-10 w-10 object-contain" />
+                        <p className="text-lg font-bold tracking-tight">Mission-Lokal</p>
                     </div>
-                    <Button asChild variant="outline" className="h-11 rounded-xl bg-white px-4 text-base font-bold">
+                    <Button asChild className="h-10 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
                         <Link href="/login">Sign in</Link>
                     </Button>
                 </header>
 
-                <main className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-5">
-                    <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-5 py-7 text-white shadow-xl sm:rounded-[2rem] sm:px-10 sm:py-14">
-                        <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
-                        <div className="pointer-events-none absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-sky-400/20 blur-3xl" />
-                        <div className="relative grid items-center gap-5 sm:gap-10 lg:grid-cols-[auto_1fr]">
-                            <img
-                                src="/images/mission-lokal-logo.png"
-                                alt="Mission-Lokal seal"
-                                className="mx-auto h-24 w-24 object-contain drop-shadow-2xl sm:h-48 sm:w-48"
-                            />
-                            <div>
-                                <p className="text-sm font-bold uppercase tracking-[0.12em] text-sky-300 text-balance sm:font-black sm:tracking-[0.22em]">Barangay concern and response</p>
-                                <h1 className="mt-2 max-w-xl text-balance text-[1.75rem] font-black leading-snug tracking-tight sm:mt-3 sm:text-5xl sm:leading-tight">
+                <main className="mx-auto w-full max-w-7xl px-5 pb-20 sm:px-8 lg:px-10">
+                    <section className="relative overflow-hidden rounded-[1.5rem] bg-[#102337] px-6 py-10 text-white shadow-lg shadow-slate-900/10 sm:px-10 sm:py-14 lg:px-16 lg:py-20">
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_40%,rgba(59,130,246,0.19),transparent_45%)]" />
+                        <div className="pointer-events-none absolute right-0 top-0 h-full w-full opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.09)_1px,transparent_1px)] [background-size:48px_48px]" />
+                        <div className="relative grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:gap-16">
+                            <div className="max-w-2xl">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">Barangay concern and response</p>
+                                <h1 className="mt-5 max-w-2xl text-balance text-3xl font-semibold leading-[1.16] tracking-tight sm:text-5xl lg:text-[3.4rem]">
                                     A reported concern should become a mission, not a forgotten note.
                                 </h1>
-                                <p className="mt-3 max-w-xl text-base font-medium leading-6 text-slate-300 sm:mt-4">
+                                <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
                                     Mission-Lokal is the website a barangay shares with its residents. People report problems in the community, follow what happens next, and request everyday certificates.
                                 </p>
-                                <div className="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
-                                    <Button asChild className="h-11 w-full rounded-2xl bg-blue-500 text-base font-bold text-white hover:bg-blue-400 sm:w-auto">
+                                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                                    <Button asChild className="h-12 w-full rounded-lg bg-blue-500 px-6 text-sm font-semibold text-white shadow-md shadow-blue-950/20 hover:bg-blue-400 sm:w-auto">
                                         <Link href="/register">Register as a resident</Link>
                                     </Button>
-                                    <Button asChild variant="outline" className="h-11 w-full rounded-2xl border-white/20 bg-white/10 text-base font-bold text-white hover:bg-white/20 hover:text-white sm:w-auto">
+                                    <Button asChild variant="outline" className="h-12 w-full rounded-lg border-white/25 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto">
                                         <Link href="/login">I already have an account</Link>
                                     </Button>
                                 </div>
                             </div>
+                            <div className="mx-auto flex aspect-square w-44 items-center justify-center rounded-full border border-white/15 bg-white/5 shadow-[0_0_0_24px_rgba(255,255,255,0.025)] sm:w-64 lg:w-full lg:max-w-[19rem]">
+                                <img src="/images/mission-lokal-logo.png" alt="Mission-Lokal seal" className="h-3/4 w-3/4 object-contain drop-shadow-xl" />
+                            </div>
                         </div>
                     </section>
 
-                    <section className="mt-8 grid gap-3 md:grid-cols-3">
+                    <section className="mt-14 grid gap-4 md:grid-cols-3" aria-label="How Mission-Lokal works">
                         {steps.map((step, index) => (
-                            <article key={step.title} className="relative overflow-hidden rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:rounded-[1.75rem] sm:p-6">
-                                <span className="pointer-events-none absolute -right-1 -top-4 text-6xl font-black tracking-tighter text-slate-100 sm:-top-5 sm:text-7xl">0{index + 1}</span>
-                                <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
+                            <article key={step.title} className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-900/5 sm:p-7">
+                                <span className="absolute right-6 top-7 text-sm font-semibold tracking-widest text-slate-400">0{index + 1}</span>
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                                     <step.icon className="h-5 w-5" />
                                 </div>
-                                <h2 className="relative mt-4 text-lg font-black tracking-tight">{step.title}</h2>
-                                <p className="relative mt-1.5 text-base font-medium leading-6 text-slate-600">{step.text}</p>
+                                <h2 className="mt-6 text-lg font-semibold tracking-tight">{step.title}</h2>
+                                <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">{step.text}</p>
                             </article>
                         ))}
                     </section>
 
-                    <section className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-b from-blue-700 to-blue-900 px-4 py-7 text-white shadow-xl sm:mt-8 sm:rounded-[2rem] sm:px-6 sm:py-10">
-                        <p className="text-center text-sm font-bold uppercase tracking-[0.12em] text-sky-200 sm:font-black sm:tracking-[0.22em]">For residents</p>
-                        <h2 className="mx-auto mt-2 max-w-xl text-balance text-center text-2xl font-black leading-snug tracking-tight sm:mt-3 sm:text-4xl">
+                    <section className="mt-16 overflow-hidden rounded-[1.5rem] border border-blue-100 bg-[#eaf2fb] px-5 py-10 sm:px-8 sm:py-14">
+                        <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">For residents</p>
+                        <h2 className="mx-auto mt-3 max-w-xl text-balance text-center text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
                             The pages a resident opens
                         </h2>
-                        <div className="relative mx-auto mt-8 hidden h-[390px] max-w-5xl md:block">
+                        <div className="mt-10 flex gap-4 overflow-x-auto pb-3 lg:justify-center lg:gap-5">
                             {residentPages.map((page) => (
-                                <div
-                                    key={page.file}
-                                    className="absolute top-4 left-1/2 origin-bottom"
-                                    style={{
-                                        transform: `translateX(calc(-50% + ${page.shift}px)) rotate(${page.rotate}deg)`,
-                                        zIndex: page.rotate === 0 ? 30 : 20 - Math.abs(page.rotate),
-                                    }}
-                                >
+                                <figure key={page.file} className="shrink-0">
                                     <ResidentPageShot title={page.title} file={page.file} />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-6 flex gap-3 overflow-x-auto pb-2 md:hidden">
-                            {residentPages.map((page) => (
-                                <div key={page.file} className="shrink-0">
-                                    <ResidentPageShot title={page.title} file={page.file} />
-                                </div>
+                                    <figcaption className="mt-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-600">{page.title}</figcaption>
+                                </figure>
                             ))}
                         </div>
                     </section>
 
-                    <section className="mt-6 grid gap-3 lg:grid-cols-5 sm:mt-8">
-                        <article className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-950 p-5 text-white shadow-xl sm:rounded-[2rem] sm:p-10 lg:col-span-3">
-                            <Compass className="pointer-events-none absolute -right-10 -top-12 h-64 w-64 text-white/10" />
-                            <div className="pointer-events-none absolute -bottom-20 left-8 h-48 w-48 rounded-full bg-sky-300/25 blur-3xl" />
-                            <p className="relative text-sm font-bold uppercase tracking-[0.12em] text-sky-200 sm:font-black sm:tracking-[0.22em]">Vision</p>
-                            <h2 className="relative mt-3 max-w-lg text-balance text-2xl font-black leading-snug tracking-tight sm:mt-4 sm:text-4xl">
+                    <section className="mt-16 grid gap-4 lg:grid-cols-5">
+                        <article className="relative overflow-hidden rounded-2xl bg-[#173a5c] p-7 text-white sm:p-10 lg:col-span-3">
+                            <Compass className="pointer-events-none absolute -right-8 -top-8 h-48 w-48 text-white/[0.07]" />
+                            <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">Vision</p>
+                            <h2 className="relative mt-5 max-w-lg text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
                                 A barangay where every concern is seen through to a response.
                             </h2>
-                            <p className="relative mt-4 max-w-md text-base font-medium leading-6 text-blue-100 sm:mt-6">
+                            <p className="relative mt-5 max-w-lg text-base leading-7 text-blue-100">
                                 Residents know where to report. The barangay can see what is waiting, who is assigned, and what was done. The record stays with the community, not in a stack of paper.
                             </p>
                         </article>
-                        <article className="flex flex-col justify-between rounded-3xl bg-slate-950 p-5 text-white shadow-xl sm:rounded-[2rem] sm:p-10 lg:col-span-2">
+                        <article className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 sm:p-10 lg:col-span-2">
                             <div>
-                                <Users className="h-6 w-6 text-sky-300" />
-                                <p className="mt-4 text-sm font-bold uppercase tracking-[0.12em] text-sky-300 sm:mt-5 sm:font-black sm:tracking-[0.22em]">Mission</p>
-                                <h2 className="mt-2 text-balance text-2xl font-black leading-snug tracking-tight sm:mt-3">Turn community reports into work the barangay can assign and follow.</h2>
+                                <Users className="h-6 w-6 text-blue-700" />
+                                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Mission</p>
+                                <h2 className="mt-4 text-balance text-2xl font-semibold leading-tight tracking-tight">Turn community reports into work the barangay can assign and follow.</h2>
                             </div>
-                            <p className="mt-4 text-base font-medium leading-6 text-slate-300 sm:mt-6">
+                            <p className="mt-5 text-base leading-7 text-slate-600">
                                 Mission-Lokal gives residents a place to file a concern with a location, and gives barangay staff and personnel a shared place to review it, send someone out, and keep the resident informed.
                             </p>
                         </article>
                     </section>
 
-                    <section className="mt-8">
-                        <h2 className="text-2xl font-black leading-snug tracking-tight">Who uses it</h2>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                            <article className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:rounded-[1.75rem] sm:p-6">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                    <section className="mt-16">
+                        <h2 className="text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Who uses it</h2>
+                        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                                     <Users className="h-5 w-5" />
                                 </div>
-                                <h3 className="mt-4 text-lg font-black">Residents</h3>
-                                <p className="mt-1.5 text-base font-medium leading-6 text-slate-600">Register, report a concern, and request a barangay document.</p>
+                                <h3 className="mt-5 text-lg font-semibold">Residents</h3>
+                                <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">Register, report a concern, and request a barangay document.</p>
                             </article>
-                            <article className="rounded-3xl bg-slate-950 p-5 text-white shadow-xl sm:rounded-[1.75rem] sm:p-6">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-sky-200">
+                            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                                     <Building2 className="h-5 w-5" />
                                 </div>
-                                <h3 className="mt-4 text-lg font-black">Barangay staff</h3>
-                                <p className="mt-1.5 text-base font-medium leading-6 text-slate-300">Review reports, prepare certificates, and keep the directory updated.</p>
+                                <h3 className="mt-5 text-lg font-semibold">Barangay staff</h3>
+                                <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">Review reports, prepare certificates, and keep the directory updated.</p>
                             </article>
-                            <article className="rounded-3xl bg-blue-700 p-5 text-white shadow-xl sm:rounded-[1.75rem] sm:p-6">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white">
+                            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                                     <HardHat className="h-5 w-5" />
                                 </div>
-                                <h3 className="mt-4 text-lg font-black">Personnel</h3>
-                                <p className="mt-1.5 text-base font-medium leading-6 text-blue-100">Receive an assignment and record the response in the field.</p>
+                                <h3 className="mt-5 text-lg font-semibold">Personnel</h3>
+                                <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">Receive an assignment and record the response in the field.</p>
                             </article>
                         </div>
-                        <div className="mt-3 flex flex-col items-stretch gap-3 rounded-3xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:rounded-[1.75rem]">
-                            <p className="text-base font-semibold leading-6 text-slate-600">Barangay staff and personnel sign in through the command portal.</p>
-                            <Button asChild variant="outline" className="h-11 w-full rounded-xl bg-white text-base font-bold sm:w-auto">
+                        <div className="mt-4 flex flex-col items-stretch gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                            <p className="text-sm leading-6 text-slate-600 sm:text-base">Barangay staff and personnel sign in through the command portal.</p>
+                            <Button asChild className="h-10 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
                                 <Link href="/admin-personnel/login">Open the command portal</Link>
                             </Button>
                         </div>
                     </section>
 
-                    <section className="relative mt-6 overflow-hidden rounded-3xl bg-slate-950 p-4 text-white shadow-xl sm:mt-8 sm:rounded-[2rem] sm:p-8">
-                        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl" />
-                        <div className="relative grid items-stretch gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-                            <article className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900 sm:min-h-[32rem] sm:rounded-[1.75rem]">
+                    <section className="mt-16 overflow-hidden rounded-[1.5rem] bg-[#102337] p-5 text-white sm:p-8 lg:p-10">
+                        <div className="grid items-stretch gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+                            <article className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900 sm:min-h-[26rem]">
                                 {selected ? (
-                                    <div className="flex h-full flex-col sm:min-h-[32rem]">
-                                        <div className="relative min-h-[16rem] flex-1 sm:min-h-[22rem]">
+                                    <div className="flex h-full flex-col sm:min-h-[26rem]">
+                                        <div className="relative min-h-[16rem] flex-1 sm:min-h-[18rem]">
                                             <DeveloperFace person={selected} className="absolute inset-0 h-full w-full text-6xl" />
                                         </div>
-                                        <div className="px-4 py-4 text-center sm:px-5 sm:py-5">
-                                            <h3 className="text-balance text-xl font-black leading-snug tracking-tight sm:text-2xl">{selected.name}</h3>
-                                            <p className="mt-1 text-sm font-bold uppercase tracking-[0.12em] text-sky-300">Developer · Founder</p>
-                                            <p className="mx-auto mt-3 max-w-md text-base font-medium leading-6 text-slate-300">{selected.detail}</p>
+                                        <div className="px-5 py-5 text-center">
+                                            <h3 className="text-balance text-xl font-semibold leading-snug tracking-tight sm:text-2xl">{selected.name}</h3>
+                                            <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-sky-300">Developer · Founder</p>
+                                            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-300">{selected.detail}</p>
                                             <div className="mt-4 flex justify-center gap-2">
                                                 <SocialIcon href={selected.github} label={`${selected.name} on GitHub`} icon={Github} />
                                                 <SocialIcon href={selected.facebook} label={`${selected.name} on Facebook`} icon={Facebook} />
                                                 <SocialIcon href={selected.instagram} label={`${selected.name} on Instagram`} icon={Instagram} />
-                                                <SocialIcon href={selected.website} label={`${selected.name}'s website`} icon={Globe} />
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="relative h-full sm:min-h-[32rem]">
+                                    <div className="relative h-full sm:min-h-[26rem]">
                                         <img
                                             src="/images/tup-manila.png"
                                             alt="Technological University of the Philippines, Manila"
                                             className="absolute inset-0 h-full w-full bg-[#f3efe8] object-contain object-center"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent" />
-                                        <div className="relative flex h-full min-h-[22rem] flex-col justify-end p-5 sm:min-h-[32rem] sm:p-8">
-                                            <p className="text-balance text-sm font-bold uppercase tracking-[0.1em] text-sky-200">Technological University of the Philippines, Manila</p>
-                                            <h3 className="mt-2 text-balance text-xl font-black leading-snug tracking-tight sm:text-2xl">Information Technology students</h3>
-                                            <p className="mt-2 text-base font-medium leading-6 text-slate-100 sm:mt-3">
+                                        <div className="relative flex h-full min-h-[22rem] flex-col justify-end p-6 sm:min-h-[26rem] sm:p-8">
+                                            <p className="text-balance text-xs font-semibold uppercase tracking-widest text-sky-200">Technological University of the Philippines, Manila</p>
+                                            <h3 className="mt-2 text-balance text-2xl font-semibold leading-snug tracking-tight">Information Technology students</h3>
+                                            <p className="mt-3 text-sm leading-6 text-slate-100 sm:text-base">
                                                 We are TUP students who collaborated on a thesis project and came up with the Mission-Lokal idea. The four of us are Information Technology students, and this website is what we built together.
                                             </p>
                                         </div>
@@ -336,8 +311,8 @@ export default function Home() {
                             <div className="flex flex-col">
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <h2 className="text-2xl font-black leading-snug tracking-tight sm:text-3xl">Developers</h2>
-                                        <p className="mt-2 max-w-sm text-base font-medium leading-6 text-slate-300 sm:mt-3">
+                                        <h2 className="text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">Developers</h2>
+                                        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-300 sm:text-base">
                                             Bachelor of Science in Information Technology, Technological University of the Philippines, Manila.
                                         </p>
                                     </div>
@@ -346,7 +321,7 @@ export default function Home() {
                                             type="button"
                                             onClick={() => showNeighbor(-1)}
                                             aria-label="Previous developer"
-                                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 hover:bg-white/20"
+                                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-colors hover:bg-white/15"
                                         >
                                             <ChevronUp className="h-4 w-4" />
                                         </button>
@@ -354,7 +329,7 @@ export default function Home() {
                                             type="button"
                                             onClick={() => showNeighbor(1)}
                                             aria-label="Next developer"
-                                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 hover:bg-white/20"
+                                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-colors hover:bg-white/15"
                                         >
                                             <ChevronDown className="h-4 w-4" />
                                         </button>
@@ -364,23 +339,23 @@ export default function Home() {
                                 <button
                                     type="button"
                                     onClick={() => setSelectedId(null)}
-                                    className={`mt-4 self-start text-sm font-bold uppercase tracking-[0.12em] ${selected ? 'text-sky-300 hover:text-white' : 'text-white'}`}
+                                    className={`mt-6 self-start text-xs font-semibold uppercase tracking-widest ${selected ? 'text-sky-300 hover:text-white' : 'text-white'}`}
                                 >
                                     TUP Manila
                                 </button>
 
-                                <div className="mt-4 grid flex-1 grid-cols-2 content-start gap-3">
+                                <div className="mt-4 grid flex-1 grid-cols-2 content-start gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                                     {developers.map((person) => (
                                         <button
                                             key={person.id}
                                             type="button"
                                             onClick={() => setSelectedId(person.id)}
                                             aria-pressed={selected?.id === person.id}
-                                            className={`rounded-2xl p-2 text-left ${selected?.id === person.id ? 'bg-white/10 ring-2 ring-sky-300' : 'bg-white/5 hover:bg-white/10'}`}
+                                            className={`rounded-xl border p-2 text-left transition-colors ${selected?.id === person.id ? 'border-sky-300 bg-white/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
                                         >
-                                            <DeveloperFace person={person} className="aspect-square w-full rounded-xl text-2xl" />
-                                            <p className="mt-2 px-1 text-base font-black">{person.shortName}</p>
-                                            <p className="px-1 text-sm font-semibold text-slate-400">Developer · Founder</p>
+                                            <DeveloperFace person={person} className="aspect-square w-full rounded-lg text-2xl" />
+                                            <p className="mt-2 px-1 text-sm font-semibold">{person.shortName}</p>
+                                            <p className="px-1 text-xs text-slate-400">Developer · Founder</p>
                                         </button>
                                     ))}
                                 </div>

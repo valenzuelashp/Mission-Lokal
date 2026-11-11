@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\DeskConcernIntakeController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Admin\PersonnelController as AdminPersonnelController;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/map', [MapController::class, 'index'])->name('map.index');
 

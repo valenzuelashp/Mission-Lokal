@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Filter, Search, X, Calendar } from 'lucide-react';
 import { useMemo, useState, FormEvent } from 'react';
 import MissionQueueTable from '@/Components/admin/MissionQueueTable';
@@ -14,6 +14,7 @@ type AdminMission = BaseAdminMission & {
     display_id?: string;
     personnel_ids?: string[];
     is_overdue?: boolean;
+    is_past_due?: boolean;
     is_escalated?: boolean;
     rank?: number;
     merged_duplicates_count?: number;
@@ -22,7 +23,7 @@ type AdminMission = BaseAdminMission & {
     due_date_iso?: string | null;
 };
 
-type FilterKey = 'all' | 'assigned' | 'in_progress' | 'completed' | 'verified' | 'overdue' | 'merged';
+type FilterKey = 'all' | 'assigned' | 'in_progress' | 'completed' | 'verified' | 'overdue' | 'past_due' | 'merged';
 
 const tabs: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'All Missions' },
@@ -30,7 +31,8 @@ const tabs: { key: FilterKey; label: string }[] = [
     { key: 'in_progress', label: 'Active & Ongoing' },
     { key: 'completed', label: 'Completed' },
     { key: 'verified', label: 'Verified & Closed' },
-    { key: 'overdue', label: 'Overdue / Alerts' },
+    { key: 'overdue', label: 'Flagged alerts' },
+    { key: 'past_due', label: 'Past due' },
     { key: 'merged', label: 'Merged Concerns' },
 ];
 
@@ -50,9 +52,19 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
     const counts: Record<string, number> = props.counts ?? {
         ...missionCounts(missions),
         merged: missions.filter(m => Boolean(m.has_merged_duplicates || (m.merged_duplicates_count && m.merged_duplicates_count > 0))).length,
+        past_due: missions.filter(m => Boolean(m.is_past_due)).length,
     };
 
-    const [filter, setFilter] = useState<FilterKey>('all');
+    const { url } = usePage();
+    const queryParams = new URLSearchParams(url.split('?')[1] ?? '');
+    const requestedFilter = queryParams.get('filter');
+    const filter: FilterKey = tabs.some(tab => tab.key === requestedFilter) ? requestedFilter as FilterKey : 'all';
+    const setFilter = (key: FilterKey) => {
+        if (key === 'all') queryParams.delete('filter');
+        else queryParams.set('filter', key);
+        const query = queryParams.toString();
+        router.replace({ url: `/admin/missions${query ? `?${query}` : ''}`, preserveState: true, preserveScroll: true });
+    };
     const [search, setSearch] = useState('');
     const [selectedMission, setSelectedMission] = useState<AdminMission | null>(null);
     const [personnelRoleFilter, setPersonnelRoleFilter] = useState('all');
@@ -79,6 +91,8 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                 matchesFilter = row.status === 'verified';
             } else if (filter === 'overdue') {
                 matchesFilter = isOverdueAlert && row.status !== 'verified';
+            } else if (filter === 'past_due') {
+                matchesFilter = Boolean(row.is_past_due);
             } else if (filter === 'merged') {
                 matchesFilter = Boolean(row.has_merged_duplicates || (row.merged_duplicates_count && row.merged_duplicates_count > 0));
             }
@@ -158,6 +172,7 @@ export default function Index(props: Partial<AdminMissionQueuePageProps & { pers
                                 <button
                                     key={tab.key}
                                     type="button"
+                                    aria-pressed={filter === tab.key}
                                     onClick={() => setFilter(tab.key)}
                                     className={cn(
                                         'rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs',

@@ -1,4 +1,4 @@
-import { Award, CalendarDays, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, PhoneCall, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
+import { Award, CalendarDays, ChartNoAxesCombined, ClipboardList, FileText, LayoutDashboard, LogOut, Map, Megaphone, Menu, PhoneCall, UserCircle, Users, ShieldAlert, CheckSquare, BookOpen, ShieldCheck, ChevronDown, ChevronRight, ChevronLeft, ScrollText } from 'lucide-react';
 import { PropsWithChildren, useState, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import AdminNotificationDrawer from '@/Components/admin/AdminNotificationDrawer';
@@ -271,6 +271,23 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                         active('/admin', true) ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700',
                     )} />
                     {(!collapsed || isMobile) && <span>Dashboard</span>}
+                </Link>
+
+                <Link
+                    href="/admin/analytics"
+                    title={!isMobile && collapsed ? 'Analytics' : undefined}
+                    aria-current={active('/admin/analytics') ? 'page' : undefined}
+                    onClick={() => isMobile && setMobileOpen(false)}
+                    className={cn(
+                        'group flex items-center rounded-xl text-xs font-semibold transition-all duration-150',
+                        !isMobile && collapsed ? 'justify-center p-2.5' : 'w-full gap-3 px-3.5 py-2.5',
+                        active('/admin/analytics')
+                            ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/25'
+                            : 'text-slate-600 hover:bg-white/80 hover:text-sky-900',
+                    )}
+                >
+                    <ChartNoAxesCombined className={cn('h-4 w-4 shrink-0', active('/admin/analytics') ? 'text-white' : 'text-sky-600/70 group-hover:text-sky-700')} />
+                    {(!collapsed || isMobile) && <span>Analytics</span>}
                 </Link>
 
                 {navSections.map((section) => {

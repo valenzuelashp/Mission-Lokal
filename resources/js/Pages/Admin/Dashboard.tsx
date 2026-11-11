@@ -20,6 +20,7 @@ import {
     PhoneCall
 } from 'lucide-react';
 import ActivityFeed from '@/Components/admin/ActivityFeed';
+import AdminOverviewTabs from '@/Components/admin/AdminOverviewTabs';
 import AdminOperationMap from '@/Components/admin/AdminOperationMap';
 import IncidentQueueTable from '@/Components/admin/IncidentQueueTable';
 import { Button } from '@/Components/ui/button';
@@ -75,6 +76,7 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
             <Head title="Command Center Dashboard" />
 
             <div className="w-full space-y-8 pb-16">
+                <AdminOverviewTabs active="dashboard" />
 
                 {/* Enterprise Header Banner */}
                 <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between rounded-3xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 p-8 text-white shadow-xl">
@@ -115,7 +117,7 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                 {/* SECTION 1: PRIMARY OPERATIONAL KPI TILES */}
                 <div className="space-y-3">
                     <div className="text-xs font-black text-slate-400 uppercase tracking-wider px-1">
-                        Primary Action Queues
+                        Primary Action Queues · Current totals
                     </div>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-5">
                         {/* 1. Report Queue */}
@@ -133,8 +135,8 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                             </div>
                             <div>
                                 <p className="text-xl font-black text-slate-900 sm:text-3xl">{stats.total_reports}</p>
-                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Report Queue</p>
-                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">Incoming resident concerns</p>
+                                <p className="mt-1 text-[9px] font-black uppercase leading-tight tracking-wider text-slate-500 sm:text-xs">Total Reports</p>
+                                <p className="mt-1 hidden text-xs font-medium text-slate-400 sm:block">All resident concerns</p>
                             </div>
                         </Link>
 
@@ -296,7 +298,7 @@ export default function Dashboard({ stats, incidents = [], activities = [], map_
                 {stats.by_severity && (
                     <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-2xs text-xs font-bold">
                         <span className="text-slate-400 uppercase tracking-wider mr-2 flex items-center gap-2 font-black">
-                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Severity Triage:
+                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Severity Triage · All reports:
                         </span>
                         {(
                             [
