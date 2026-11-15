@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\MissionStatus;
 use App\Enums\PersonnelDepartment;
 use App\Support\MissionWorkload;
+use App\Services\Concerns\ConcernHotspotAnalytics;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -142,6 +143,7 @@ class DashboardAnalytics
             'statuses' => $statuses,
             'categories' => $categories,
             'severities' => $severities,
+            'hotspots' => app(ConcernHotspotAnalytics::class)->forBarangay($barangayId, $start, $endExclusive),
         ];
     }
 

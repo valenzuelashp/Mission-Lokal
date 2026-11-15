@@ -103,6 +103,7 @@ class DeskConcernIntakeTest extends TestCase
             $table->dateTime('processed_at')->nullable();
             $table->timestamps();
         });
+        (require database_path('migrations/2026_06_19_045331_create_category_playbooks_table.php'))->up();
         Schema::create('concern_status_history', function (Blueprint $table) {
             $table->id();
             $table->uuid('concern_id');
@@ -152,6 +153,7 @@ class DeskConcernIntakeTest extends TestCase
     protected function tearDown(): void
     {
         foreach ([
+            'category_playbooks',
             'audit_logs',
             'concern_status_history',
             'concern_ai_analysis',

@@ -94,6 +94,10 @@ class ReportController extends Controller
                 'duplicateOf',
                 'primaryDuplicateLinks'
             ])
+            ->withCount([
+                'clarifications',
+                'clarifications as pending_clarifications_count' => fn ($query) => $query->whereNull('answered_at'),
+            ])
             ->get();
 
         $reports = $concerns->map(function ($c) {
@@ -139,6 +143,9 @@ class ReportController extends Controller
                 'duplicate_candidate_title' => $c->currentAiAnalysis?->duplicateCandidate?->title,
                 'duplicate_similarity' => $c->currentAiAnalysis?->duplicate_similarity,
                 'submitted_at' => $c->created_at?->format('M d, g:i A') ?? 'Just now',
+                'report_quality' => $c->isAwaitingStaffDecision() ? $c->currentAiAnalysis?->reportQuality() : null,
+                'clarification_status' => ! $c->isAwaitingStaffDecision() ? null : ($c->pending_clarifications_count > 0
+                    ? 'awaiting_reply' : ($c->clarifications_count > 0 ? 'answered' : null)),
             ];
         })->sortByDesc('priority_score')->values();
 
@@ -197,6 +204,7 @@ class ReportController extends Controller
                 'mission.personnel.user',
                 'reporter',
                 'intakeLogger',
+                'clarifications',
                 'duplicateOf.reporter',
                 'duplicates.reporter',
                 'duplicates.media',
@@ -310,14 +318,24 @@ class ReportController extends Controller
             ];
         });
 
-        // Intelligent Recommended Action based on AI confidence & duplicate match
-        $isLowConfidence = ($aiAnalysis?->severity_confidence ?? 0.55) < 0.1;
+        $reportQuality = $aiAnalysis?->reportQuality() ?? 'ready_for_review';
+        $pendingClarification = $record->clarifications->contains(fn ($entry) => $entry->answered_at === null);
+        $hasClarificationReply = $record->clarifications->contains(fn ($entry) => $entry->answered_at !== null);
         $recommendedAction = 'escalate';
         $actionReason = 'AI suggests standard operational triage and deployment.';
 
-        if ($isLowConfidence) {
+        if ($pendingClarification) {
+            $recommendedAction = 'review';
+            $actionReason = 'Questions have been sent to the resident. Staff may review the concern while awaiting their reply.';
+        } elseif ($hasClarificationReply) {
+            $recommendedAction = 'review';
+            $actionReason = 'The resident provided additional details. Staff should review the private reply before choosing an action.';
+        } elseif ($reportQuality === 'possible_spam') {
             $recommendedAction = 'dismiss';
-            $actionReason = 'AI detected potential spam, gibberish, or insufficient context. Recommended for dismissal.';
+            $actionReason = 'The report was flagged as possible spam. Staff must verify its content before deciding whether to dismiss it.';
+        } elseif ($reportQuality === 'needs_clarification') {
+            $recommendedAction = 'review';
+            $actionReason = 'Information is missing or severity is uncertain. Review the suggested questions and request details if needed.';
         } elseif ($aiAnalysis?->duplicate_candidate_id) {
             $recommendedAction = 'merge';
             $actionReason = 'AI detected a high-probability duplicate report nearby. Merging will consolidate resources.';
@@ -347,6 +365,7 @@ class ReportController extends Controller
             ->all();
 
         $rawAiOutput = is_array($aiAnalysis?->raw_model_output) ? $aiAnalysis->raw_model_output : [];
+        $reanalysis = app(\App\Services\Concerns\ConcernReanalysisService::class)->availability($record);
         $imageAssessments = is_array($rawAiOutput['image_assessments'] ?? null)
             ? $rawAiOutput['image_assessments']
             : [];
@@ -385,15 +404,26 @@ class ReportController extends Controller
                 'due_date' => $suggestedDueDate,
                 'department' => $missionDepartment,
                 'is_vawc' => $isVawcConcern,
+                'can_confirm_verdict' => $request->user()->canModifySystem(),
                 'lat' => $locationData ? (float) $locationData->lat : 14.5173079,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
                 'images' => $record->media->sortBy('sort_order')->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($record, $m))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
+                'triage_explanation' => $aiAnalysis?->triageExplanation($record),
                 'assigned_personnel_ids' => $suggestedPersonnelIds,
                 'image_assessments' => $imageAssessments,
                 'images_analyzed_count' => $imagesAnalyzedCount,
                 'images_analyzed_numbers' => $imagesAnalyzedNumbers,
                 'image_review_needed' => $imageReviewNeeded,
+                'report_quality' => $reportQuality,
+                'missing_details' => $rawAiOutput['missing_details'] ?? [],
+                'follow_up_questions' => $rawAiOutput['follow_up_questions'] ?? [],
+                'clarifications' => $record->clarifications->map->toThreadEntry()->values(),
+                'can_request_clarification' => $request->user()->canModifySystem() && $record->canRequestClarification(),
+                'clarification_replies_open' => $record->isAwaitingStaffDecision(),
+                'can_reanalyse' => $request->user()->canModifySystem() && $reanalysis['can_reanalyse'],
+                'reanalysis_status' => $reanalysis['status'],
+                'reanalysis_error' => $reanalysis['error'],
                 'mission' => $existingMission ? [
                     'id' => $existingMission->id,
                     'status' => $existingMission->status->value ?? $existingMission->status,
@@ -407,6 +437,7 @@ class ReportController extends Controller
                 'ai_duplicate_description' => $duplicateCandidate?->description,
                 'ai_duplicate_reporter' => trim(($duplicateCandidate?->reporter?->first_name ?? '') . ' ' . ($duplicateCandidate?->reporter?->last_name ?? '')),
                 'ai_duplicate_similarity' => $aiAnalysis?->duplicate_similarity,
+                'ai_duplicate_context' => $rawAiOutput['duplicate_context'] ?? null,
                 'ai_duplicate_reporter_count' => $duplicateReporterCount,
                 'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason ?? 'Flagged as spam, test input, or non-actionable gibberish.',
                 'duplicate_of_id' => $record->duplicate_of_id,

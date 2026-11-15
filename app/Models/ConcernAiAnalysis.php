@@ -52,6 +52,50 @@ class ConcernAiAnalysis extends Model
 
     // --- Relationships ---
 
+    public function reportQuality(): string
+    {
+        $quality = $this->raw_model_output['report_quality'] ?? null;
+        if (in_array($quality, ['ready_for_review', 'needs_clarification', 'possible_spam'], true)) {
+            return $quality;
+        }
+
+        return ($this->severity_confidence ?? 0.55) < 0.1 ? 'needs_clarification' : 'ready_for_review';
+    }
+
+    public function triageExplanation(Concern $concern): array
+    {
+        $raw = is_array($this->raw_model_output) ? $this->raw_model_output : [];
+        $factors = is_array($raw['severity_factors'] ?? null) ? $raw['severity_factors'] : [];
+        $plan = is_array($raw['response_plan'] ?? null) ? $raw['response_plan'] : [];
+        $severities = ['low', 'medium', 'high', 'critical'];
+        $strings = static fn ($items) => array_slice(array_values(array_filter(array_map(
+            fn ($item) => is_string($item) ? mb_substr(trim($item), 0, 500) : '',
+            is_array($items) ? $items : [],
+        ), fn ($item) => $item !== '')), 0, 10);
+        $count = filter_var($factors['reporter_count'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return [
+            'analysis_source' => in_array($raw['analysis_source'] ?? null, ['gemini', 'local_rules'], true)
+                ? $raw['analysis_source'] : 'unknown',
+            'base_severity' => in_array($this->suggested_severity, $severities, true) ? $this->suggested_severity : null,
+            'community_severity' => $count !== false && in_array($factors['community_severity'] ?? null, $severities, true)
+                ? $factors['community_severity'] : null,
+            'reporter_count' => $count !== false ? $count : null,
+            'current_severity' => in_array($concern->severity, $severities, true) ? $concern->severity : 'medium',
+            'staff_confirmed' => (bool) $concern->severity_confirmed,
+            'severity_reason' => is_string($raw['severity_reason'] ?? null) && trim($raw['severity_reason']) !== ''
+                ? mb_substr(trim($raw['severity_reason']), 0, 1000) : null,
+            'evidence_summary' => $strings($raw['evidence_summary'] ?? []),
+            'uncertainties' => $strings($raw['uncertainties'] ?? []),
+            'response_plan' => [
+                'source' => in_array($plan['source'] ?? null, ['playbook', 'gemini', 'local_rules', 'safeguarding'], true)
+                    ? $plan['source'] : 'unknown',
+                'playbook_title' => ($plan['source'] ?? null) === 'playbook' && is_string($plan['playbook_title'] ?? null)
+                    ? mb_substr($plan['playbook_title'], 0, 255) : null,
+            ],
+        ];
+    }
+
     public function concern(): BelongsTo
     {
         return $this->belongsTo(Concern::class);

@@ -223,7 +223,35 @@ export interface LibraryPageProps extends PageProps {
     faqs: LibraryFaq[];
 }
 
+export type ConcernReportQuality = 'ready_for_review' | 'needs_clarification' | 'possible_spam';
+
+export interface ConcernTriageExplanation {
+    analysis_source: 'gemini' | 'local_rules' | 'unknown';
+    base_severity: Severity | null;
+    community_severity: Severity | null;
+    reporter_count: number | null;
+    current_severity: Severity;
+    staff_confirmed: boolean;
+    severity_reason: string | null;
+    evidence_summary: string[];
+    uncertainties: string[];
+    response_plan: {
+        source: 'playbook' | 'gemini' | 'local_rules' | 'safeguarding' | 'unknown';
+        playbook_title: string | null;
+    };
+}
+
+export interface ConcernClarification {
+    id: string;
+    questions: string[];
+    response: string | null;
+    requested_at: string | null;
+    answered_at: string | null;
+}
+
 export interface ConcernDetail extends PublicConcern {
+    clarifications?: ConcernClarification[];
+    can_reply_to_clarification?: boolean;
     lat: number;
     lng: number;
     description: string;
@@ -277,6 +305,8 @@ export interface AdminIncident {
 }
 
 export interface AdminReport extends AdminIncident {
+    report_quality?: ConcernReportQuality | null;
+    clarification_status?: 'awaiting_reply' | 'answered' | null;
     rank?: number;
     ai_category: string;
     priority_score?: number;

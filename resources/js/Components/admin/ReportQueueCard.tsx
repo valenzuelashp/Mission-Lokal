@@ -66,6 +66,13 @@ export default function ReportQueueCard({ report, scoreDisplay, maxUpvotes }: Pr
                                 </Badge>
                             )}
 
+                            {(report.clarification_status || report.report_quality === 'needs_clarification') && (
+                                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-900">
+                                    {report.clarification_status === 'awaiting_reply' ? 'Awaiting resident reply'
+                                        : report.clarification_status === 'answered' ? 'Resident replied' : 'Needs clarification'}
+                                </Badge>
+                            )}
+
                             {report.is_duplicate && (
                                 <Badge className="bg-purple-100 text-purple-950 border-purple-300 font-extrabold text-[10px] gap-1 px-2.5 py-1">
                                     <GitMerge className="h-3 w-3 text-purple-600" />

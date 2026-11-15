@@ -38,4 +38,17 @@ class ConcernDuplicateMatcherTest extends TestCase
         $this->assertSame('critical', $matcher->severityForReporterCount(7));
         $this->assertSame('critical', $matcher->higherSeverity('critical', 'medium'));
     }
+
+    public function test_missing_crowd_severity_does_not_raise_a_low_report(): void
+    {
+        $matcher = new ConcernDuplicateMatcher();
+
+        $this->assertSame('low', $matcher->higherSeverity('low', null));
+        $this->assertSame('medium', $matcher->higherSeverity('low', $matcher->severityForReporterCount(2)));
+        $this->assertSame('medium', $matcher->higherSeverity('low', $matcher->severityForReporterCount(3)));
+        $this->assertSame('high', $matcher->higherSeverity('low', $matcher->severityForReporterCount(6)));
+        $this->assertSame('critical', $matcher->higherSeverity('low', $matcher->severityForReporterCount(7)));
+        $this->assertSame('critical', $matcher->higherSeverity('critical', null));
+        $this->assertSame('high', $matcher->higherSeverity('high', 'low'));
+    }
 }

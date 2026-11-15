@@ -28,14 +28,37 @@ class DashboardAnalyticsTest extends TestCase
 
         Schema::create('concern_categories', function (Blueprint $table) {
             $table->string('id')->primary();
+            $table->string('barangay_id')->nullable();
             $table->string('name');
         });
         Schema::create('concerns', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->string('barangay_id')->nullable();
             $table->string('category_id')->nullable();
+            $table->string('subcategory_id')->nullable();
+            $table->string('reporter_id')->nullable();
+            $table->string('duplicate_of_id')->nullable();
+            $table->string('title')->default('Community concern');
+            $table->text('description')->default('Reported community issue.');
+            $table->string('visibility')->default('public');
+            $table->string('status')->default('ai_processed');
+            $table->boolean('is_blotter_candidate')->default(false);
+            $table->text('address_text')->nullable();
             $table->string('severity')->nullable();
             $table->timestamp('created_at');
+        });
+        Schema::create('concern_subcategories', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->string('code');
+            $table->boolean('force_private')->default(false);
+        });
+        Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('concern_id');
+            $table->string('suggested_category_id')->nullable();
+            $table->string('suggested_subcategory_id')->nullable();
+            $table->uuid('duplicate_candidate_id')->nullable();
+            $table->boolean('is_current')->default(true);
         });
         Schema::create('missions', function (Blueprint $table) {
             $table->string('id')->primary();
@@ -52,12 +75,66 @@ class DashboardAnalyticsTest extends TestCase
 
     protected function tearDown(): void
     {
+        Schema::dropIfExists('concern_ai_analysis');
+        Schema::dropIfExists('concern_subcategories');
         Schema::dropIfExists('missions');
         Schema::dropIfExists('concerns');
         Schema::dropIfExists('concern_categories');
         Carbon::setTestNow();
         CarbonImmutable::setTestNow();
         parent::tearDown();
+    }
+
+    public function test_hotspots_count_reports_and_confirmed_incidents_separately_and_exclude_private_locations(): void
+    {
+        DB::table('concern_categories')->insert(['id' => '1', 'name' => 'Sanitation']);
+        $master = $this->concern('a', '2026-11-01 10:00:00', 'high', '1');
+        $confirmed = $this->concern('a', '2026-11-02 10:00:00', 'high', '1');
+        $suggested = $this->concern('a', '2026-11-02 12:00:00', 'high', '1');
+        foreach ([$master, $confirmed, $suggested] as $index => $id) {
+            DB::table('concerns')->where('id', $id)->update(['title' => 'Baradong kanal', 'description' => 'Kanal malapit sa court.',
+                'address_text' => $index === 0 ? '123 Rizal St.' : 'Rizal Street', 'reporter_id' => $index === 2 ? 'resident-2' : 'resident-'.($index + 1)]);
+        }
+        DB::table('concerns')->where('id', $confirmed)->update(['duplicate_of_id' => $master, 'status' => 'resolved']);
+        DB::table('concern_ai_analysis')->insert(['id' => (string) Str::uuid(), 'concern_id' => $suggested, 'duplicate_candidate_id' => $master, 'is_current' => true]);
+        foreach (['private', 'spam', 'rejected', 'submitted', 'sensitive', 'vawc', 'vawc_filipino'] as $type) {
+            $id = $this->concern('a', '2026-11-02 10:00:00', 'high', '1');
+            DB::table('concerns')->where('id', $id)->update(['address_text' => 'Confidential household location',
+                'visibility' => $type === 'private' ? 'private' : 'public',
+                'status' => in_array($type, ['spam', 'rejected', 'submitted']) ? $type : 'ai_processed',
+                'is_blotter_candidate' => $type === 'sensitive', 'title' => match ($type) {
+                    'vawc' => 'Domestic violence report', 'vawc_filipino' => 'May pananakit sa bahay', default => 'Community concern',
+                }]);
+        }
+        $this->concern('b', '2026-11-02 10:00:00', 'high', '1');
+
+        $hotspots = $this->analytics('a')['hotspots'];
+
+        self::assertSame(['reports' => 3, 'incidents' => 2, 'named_areas' => 1, 'unnamed_reports' => 0], $hotspots['totals']);
+        self::assertCount(1, $hotspots['rows']);
+        self::assertSame('Rizal Street', $hotspots['rows'][0]['area']);
+        self::assertSame('drainage', $hotspots['rows'][0]['topic']);
+        self::assertSame(2, $hotspots['rows'][0]['unique_reporters']);
+        self::assertSame(2, $hotspots['rows'][0]['open_incidents']);
+        self::assertStringNotContainsString('Confidential household', json_encode($hotspots));
+    }
+
+    public function test_hotspots_resolve_confirmed_parents_outside_the_selected_period(): void
+    {
+        $parent = $this->concern('a', '2026-10-01 10:00:00');
+        DB::table('concerns')->where('id', $parent)->update(['address_text' => 'Mabini Road', 'title' => 'Broken streetlight']);
+        $child = $this->concern('a', '2026-11-02 10:00:00');
+        DB::table('concerns')->where('id', $child)->update(['duplicate_of_id' => $parent, 'status' => 'resolved', 'address_text' => 'Different label']);
+        $unnamed = $this->concern('a', '2026-11-02 11:00:00');
+        DB::table('concerns')->where('id', $unnamed)->update(['address_text' => 'Coordinates: 14.51, 120.99']);
+
+        $hotspots = $this->analytics('a')['hotspots'];
+
+        self::assertSame(2, $hotspots['totals']['reports']);
+        self::assertSame(2, $hotspots['totals']['incidents']);
+        self::assertSame(1, $hotspots['totals']['unnamed_reports']);
+        self::assertContains('Mabini Road', array_column($hotspots['rows'], 'area'));
+        self::assertNotContains('Different label', array_column($hotspots['rows'], 'area'));
     }
 
     public function test_default_and_preset_periods_include_today_and_use_the_application_timezone(): void

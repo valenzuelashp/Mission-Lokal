@@ -31,6 +31,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
     const { data, setData, post, processing, errors, progress } = useForm({
         title: '',
         description: '',
+        incident_occurred_at: '',
         category_id: '',
         lat: defaultLat,
         lng: defaultLng,
@@ -147,6 +148,13 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                     className={`resize-none ${theme.inputBg} rounded-2xl p-4 text-xs`}
                                 />
                                 {errors.description && <p id="description-error" role="alert" className="text-xs font-medium text-destructive">{errors.description}</p>}
+                                <div className="space-y-1 pt-2">
+                                    <Label htmlFor="incident-occurred-at">When did this happen? (optional)</Label>
+                                    <Input id="incident-occurred-at" type="datetime-local" value={data.incident_occurred_at}
+                                        onChange={event => setData('incident_occurred_at', event.target.value)} className={theme.inputBg} />
+                                    <p className={`text-[11px] ${theme.textMuted}`}>Use barangay local time. If unknown, the report submission time will be used to compare incidents.</p>
+                                    {errors.incident_occurred_at && <p role="alert" className="text-xs text-red-600">{errors.incident_occurred_at}</p>}
+                                </div>
                             </div>
 
                             <div className={modal ? 'col-span-2 min-w-0 space-y-1' : 'space-y-2'}>

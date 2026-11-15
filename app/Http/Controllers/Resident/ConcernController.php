@@ -295,6 +295,7 @@ class ConcernController extends Controller
         $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'min:10'],
+            'incident_occurred_at' => ['nullable', 'date', 'before_or_equal:now'],
             'category_id' => ['required', 'string'],
             'lat' => ['required', 'numeric'],
             'lng' => ['required', 'numeric'],
@@ -347,6 +348,7 @@ class ConcernController extends Controller
                 'reporter_id' => $user->id,
                 'title' => $request->title,
                 'description' => $request->description,
+                'incident_occurred_at' => $request->input('incident_occurred_at'),
                 'category_id' => $categoryIdInt,
                 'subcategory_id' => $subcategoryId,
                 'is_vawc' => $isVawcConcern,
@@ -502,6 +504,9 @@ class ConcernController extends Controller
                 'images' => $concern->media->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray(),
                 'timeline' => $timeline,
                 'response_plan' => $responsePlan,
+                'clarifications' => $concern->reporter_id === $user->id
+                    ? $concern->clarifications->map->toThreadEntry()->values() : [],
+                'can_reply_to_clarification' => $concern->reporter_id === $user->id && $concern->isAwaitingStaffDecision(),
             ]
         ]);
     }

@@ -77,6 +77,8 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:30,1');
     
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
+    Route::post('/concerns/{concern}/clarifications/{clarification}/reply', [\App\Http\Controllers\ConcernClarificationController::class, 'reply'])
+        ->middleware('throttle:10,1')->name('concerns.clarifications.reply');
     Route::patch('/concerns/{concern}/visibility', [ConcernController::class, 'updateVisibility'])->name('concerns.visibility.update');
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     Route::delete('/concerns/{concern}', [ConcernController::class, 'destroy'])->name('concerns.destroy');

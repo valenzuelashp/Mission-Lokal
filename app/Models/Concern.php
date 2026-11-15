@@ -96,6 +96,10 @@ class Concern extends Model
             return true;
         }
 
+        if (($this->getRelation('currentAiAnalysis')?->raw_model_output['confidential_vawc_context'] ?? false) === true) {
+            return true;
+        }
+
         return self::isVawcReport(null, $this->title ?? '', $this->description ?? '');
     }
 
@@ -249,6 +253,23 @@ class Concern extends Model
     public function aiAnalyses(): HasMany
     {
         return $this->hasMany(ConcernAiAnalysis::class);
+    }
+
+    public function clarifications(): HasMany
+    {
+        return $this->hasMany(ConcernClarification::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    public function isAwaitingStaffDecision(): bool
+    {
+        return in_array($this->status?->value, ['submitted', 'ai_processed', 'under_review'], true);
+    }
+
+    public function canRequestClarification(): bool
+    {
+        return $this->reporter_id !== null
+            && $this->isAwaitingStaffDecision()
+            && ! $this->clarifications()->whereNull('answered_at')->exists();
     }
 
     public function mission(): HasOne

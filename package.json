@@ -5,7 +5,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test:verdict": "node --test tests/Frontend/reportVerdict.test.mjs"
     },
     "dependencies": {
         "@inertiajs/react": "^2.0.0",

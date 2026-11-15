@@ -37,6 +37,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/reports/intake', [DeskConcernIntakeController::class, 'store'])->name('reports.intake.store');
     Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
     Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
+
+    Route::post('/reports/{concern}/clarifications', [\App\Http\Controllers\ConcernClarificationController::class, 'store'])
+        ->middleware('throttle:10,1')->name('reports.clarifications.store');
+    Route::post('/reports/{concern}/reanalyse', [\App\Http\Controllers\ConcernClarificationController::class, 'reanalyse'])
+        ->middleware('throttle:5,1')->name('reports.reanalyse');
     
     Route::post('/reports/{id}/confirm-ai', [ReportController::class, 'confirmAI'])->name('reports.confirm-ai');
     Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict');

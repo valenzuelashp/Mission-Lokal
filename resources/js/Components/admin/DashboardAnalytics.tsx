@@ -9,6 +9,7 @@ import { Button } from '@/Components/ui/button';
 import AnalyticsChartCard from '@/Components/admin/AnalyticsChartCard';
 import AnalyticsMetricComparison from '@/Components/admin/AnalyticsMetricComparison';
 import AnalyticsWorkload from '@/Components/admin/AnalyticsWorkload';
+import AnalyticsHotspots from '@/Components/admin/AnalyticsHotspots';
 import type { AnalyticsRange, DashboardAnalyticsData } from '@/Types/dashboardAnalytics';
 
 const statusLabels: Record<string, string> = {
@@ -242,6 +243,7 @@ export default function DashboardAnalytics({ analytics }: { analytics: Dashboard
                     </div>
                 </AnalyticsChartCard>
             </div>
+            {analytics.hotspots && <AnalyticsHotspots data={analytics.hotspots} />}
             <AnalyticsWorkload workload={workload} timezone={period.timezone} />
         </section>
     );

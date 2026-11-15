@@ -5,135 +5,62 @@ namespace App\Services\Concerns;
 use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Container\Container;
 
 class ConcernDuplicateMatcher
 {
-    private const MAX_DISTANCE_METERS = 75;
-
     private const MIN_TEXT_SIMILARITY = 0.5;
 
     private const ACTIVE_STATUSES = ['ai_processed', 'under_review', 'active'];
 
-    private const STOP_WORDS = [
-        'a', 'an', 'and', 'ang', 'at', 'but', 'by', 'for', 'from', 'here', 'in', 'is', 'it',
-        'na', 'ng', 'of', 'on', 'or', 'po', 'sa', 'the', 'there', 'this', 'to', 'with',
-        'yung', 'mga', 'may', 'please', 'reported', 'report', 'problem', 'issue', 'concern',
-    ];
-
     public function findMatch(Concern $concern, int $categoryId, ?int $subcategoryId): ?array
     {
-        if (!in_array(DB::getDriverName(), ['mysql', 'mariadb'], true) || !Schema::hasColumn('concerns', 'location')) {
+        $context = new ConcernIncidentContext;
+        if ($concern->visibility !== 'public' || $concern->isSensitiveConcern() || ! Schema::hasColumn('concerns', 'location')) {
             return null;
         }
-
-        $location = DB::selectOne(
-            'SELECT ST_X(location) AS x, ST_Y(location) AS y FROM concerns WHERE id = ?',
-            [$concern->id],
-        );
-
-        if (!$location || $location->x === null || $location->y === null) {
+        $point = $context->point($concern);
+        if ($point === null) {
             return null;
         }
-
-        $rawX = (float) $location->x;
-        $rawY = (float) $location->y;
-
-        // In the Philippines (Lat ~14, Lng ~120):
-        // Longitude is always > 90, Latitude is < 90.
-        if ($rawX > 90) {
-            $lng = $rawX;
-            $lat = $rawY;
-        } else {
-            $lat = $rawX;
-            $lng = $rawY;
+        $window = $context->windowHours($context->topic($concern->title.' '.$concern->description));
+        $when = $context->occurredAt($concern);
+        $timeColumn = Schema::hasColumn('concerns', 'incident_occurred_at') ? 'COALESCE(incident_occurred_at, created_at)' : 'created_at';
+        $query = Concern::query()->publiclyDiscoverable()
+            ->where('barangay_id', $concern->barangay_id)->where('id', '!=', $concern->id)
+            ->whereNull('duplicate_of_id')->whereIn('status', self::ACTIVE_STATUSES)
+            ->whereRaw($timeColumn.' BETWEEN ? AND ?', [$when->subHours($window), $when->addHours($window)])
+            ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
+                $query->where('suggested_category_id', $categoryId);
+                $subcategoryId === null ? $query->whereNull('suggested_subcategory_id') : $query->where('suggested_subcategory_id', $subcategoryId);
+            })
+            ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
+            ->with(['currentAiAnalysis', 'subcategory']);
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
+            $query->select('concerns.*')->selectRaw('ST_X(location) as context_x, ST_Y(location) as context_y');
         }
-
-        // Try standard Point(longitude latitude) first, then fallback to Point(latitude longitude) if needed
-        $primaryPoint = sprintf('POINT(%F %F)', $lng, $lat);
-        $fallbackPoint = sprintf('POINT(%F %F)', $lat, $lng);
-
-        $candidates = null;
-
-        try {
-            $candidates = Concern::query()
-                ->where('barangay_id', $concern->barangay_id)
-                ->where('id', '!=', $concern->id)
-                ->whereNull('duplicate_of_id')
-                ->where('visibility', 'public')
-                ->whereIn('status', self::ACTIVE_STATUSES)
-                ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
-                    $query->where('suggested_category_id', $categoryId);
-                    $subcategoryId === null
-                        ? $query->whereNull('suggested_subcategory_id')
-                        : $query->where('suggested_subcategory_id', $subcategoryId);
-                })
-                ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
-                ->whereRaw(
-                    'ST_Distance_Sphere(location, ST_GeomFromText(?, 4326)) <= ?',
-                    [$primaryPoint, self::MAX_DISTANCE_METERS],
-                )
-                ->with('currentAiAnalysis')
-                ->get();
-        } catch (\Throwable $e) {
-            try {
-                $candidates = Concern::query()
-                    ->where('barangay_id', $concern->barangay_id)
-                    ->where('id', '!=', $concern->id)
-                    ->whereNull('duplicate_of_id')
-                    ->where('visibility', 'public')
-                    ->whereIn('status', self::ACTIVE_STATUSES)
-                    ->whereHas('currentAiAnalysis', function ($query) use ($categoryId, $subcategoryId) {
-                        $query->where('suggested_category_id', $categoryId);
-                        $subcategoryId === null
-                            ? $query->whereNull('suggested_subcategory_id')
-                            : $query->where('suggested_subcategory_id', $subcategoryId);
-                    })
-                    ->whereDoesntHave('currentAiAnalysis', fn ($query) => $query->whereNotNull('duplicate_candidate_id'))
-                    ->whereRaw(
-                        'ST_Distance_Sphere(location, ST_GeomFromText(?, 4326)) <= ?',
-                        [$fallbackPoint, self::MAX_DISTANCE_METERS],
-                    )
-                    ->with('currentAiAnalysis')
-                    ->get();
-            } catch (\Throwable $fallbackException) {
-                Log::warning('Spatial duplicate check skipped due to environment-specific GIS variance: ' . $fallbackException->getMessage());
-                return null;
+        $bestMatch = null;
+        foreach ($query->get() as $candidate) {
+            if ($candidate->isSensitiveConcern() || $candidate->currentAiAnalysis?->reportQuality() === 'possible_spam') {
+                continue;
+            }
+            $match = $this->compareIncident($concern, $candidate, $point);
+            if ($match !== null && ($bestMatch === null || $match['similarity'] > $bestMatch['similarity'])) {
+                $bestMatch = [...$match, 'candidate' => $candidate];
             }
         }
-
-        if (!$candidates || $candidates->isEmpty()) {
+        if ($bestMatch === null) {
             return null;
         }
-
-        $matches = $candidates
-            ->map(fn (Concern $candidate) => [
-                'concern' => $candidate,
-                'similarity' => $this->textSimilarity(
-                    $concern->title,
-                    $concern->description,
-                    $candidate->title,
-                    $candidate->description,
-                ),
-            ])
-            ->filter(fn (array $match) => $match['similarity'] >= self::MIN_TEXT_SIMILARITY)
-            ->sortByDesc('similarity')
-            ->values();
-
-        if ($matches->isEmpty()) {
-            return null;
-        }
-
-        $bestMatch = $matches->first();
-        $candidate = $bestMatch['concern'];
-        $linkedReporterIds = DB::table('concern_ai_analysis')
-            ->join('concerns', 'concerns.id', '=', 'concern_ai_analysis.concern_id')
-            ->where('concern_ai_analysis.duplicate_candidate_id', $candidate->id)
-            ->where('concern_ai_analysis.is_current', true)
-            ->where('concerns.visibility', 'public')
-            ->whereIn('concerns.status', self::ACTIVE_STATUSES)
-            ->pluck('concerns.reporter_id');
+        $candidate = $bestMatch['candidate'];
+        $linkedReporterIds = Concern::query()->publiclyDiscoverable()->where('barangay_id', $concern->barangay_id)
+            ->where(function ($query) use ($candidate) {
+                $query->where('id', $candidate->id)
+                    ->orWhere(fn ($query) => $query->where('duplicate_of_id', $candidate->id)->whereNotIn('status', ['spam', 'rejected']))
+                    ->orWhere(fn ($query) => $query->whereIn('status', self::ACTIVE_STATUSES)
+                        ->whereHas('currentAiAnalysis', fn ($analysis) => $analysis->where('duplicate_candidate_id', $candidate->id)));
+            })->pluck('reporter_id');
         $reporterCount = collect([$concern->reporter_id, $candidate->reporter_id])
             ->merge($linkedReporterIds)
             ->filter()
@@ -144,13 +71,43 @@ class ConcernDuplicateMatcher
             'candidate' => $candidate,
             'similarity' => $bestMatch['similarity'],
             'reporter_count' => $reporterCount,
+            'context' => $bestMatch['context'],
         ];
+    }
+
+    public function compareIncident(Concern $concern, Concern $candidate, ?array $point = null): ?array
+    {
+        $context = new ConcernIncidentContext;
+        $first = $point ?? $context->point($concern);
+        $second = $context->point($candidate);
+        if ($first === null || $second === null) {
+            return null;
+        }
+        $distance = $context->distanceMeters($first, $second);
+        $maximumDistance = Container::getInstance()->bound('config') ? (float) config('concerns.duplicate_distance_meters', 75) : 75;
+        $topic = $context->topic($concern->title.' '.$concern->description);
+        $candidateTopic = $context->topic($candidate->title.' '.$candidate->description);
+        $window = min($context->windowHours($topic), $context->windowHours($candidateTopic));
+        $timeGap = abs($context->occurredAt($concern)->diffInSeconds($context->occurredAt($candidate))) / 3600;
+        $similarity = $this->textSimilarity($concern->title, $concern->description, $candidate->title, $candidate->description);
+        if (($topic !== 'other' && $candidateTopic !== 'other' && $topic !== $candidateTopic)
+            || $distance > $maximumDistance || $timeGap > $window || $similarity < self::MIN_TEXT_SIMILARITY) {
+            return null;
+        }
+
+        return ['similarity' => $similarity, 'context' => [
+            'distance_meters' => round($distance, 1), 'time_gap_hours' => round($timeGap, 1), 'window_hours' => $window,
+            'shared_terms' => array_values(array_intersect($context->tokens($concern->title.' '.$concern->description), $context->tokens($candidate->title.' '.$candidate->description))),
+            'time_basis' => $concern->incident_occurred_at && $candidate->incident_occurred_at ? 'incident_time' : 'includes_submission_time',
+            'area' => $context->areaLabel($candidate->address_text),
+        ]];
     }
 
     public function textSimilarity(string $title, string $description, string $candidateTitle, string $candidateDescription): float
     {
-        $tokens = array_unique($this->tokens($title . ' ' . $description));
-        $candidateTokens = array_unique($this->tokens($candidateTitle . ' ' . $candidateDescription));
+        $context = new ConcernIncidentContext;
+        $tokens = $context->tokens($title . ' ' . $description);
+        $candidateTokens = $context->tokens($candidateTitle . ' ' . $candidateDescription);
         $sharedTokens = array_intersect($tokens, $candidateTokens);
 
         if (count($sharedTokens) < 2 || !$tokens || !$candidateTokens) {
@@ -170,13 +127,14 @@ class ConcernDuplicateMatcher
         };
     }
 
-    public function raiseMatchedIncidentSeverity(Concern $candidate, string $crowdSeverity): void
+    public function raiseMatchedIncidentSeverity(Concern $candidate, string $crowdSeverity, ?int $reporterCount = null): void
     {
         $linkedIds = ConcernAiAnalysis::query()
             ->where('duplicate_candidate_id', $candidate->id)
             ->where('is_current', true)
             ->pluck('concern_id');
         $incidentReports = Concern::query()
+            ->where('barangay_id', $candidate->barangay_id)
             ->where(function ($query) use ($candidate, $linkedIds) {
                 $query->where('id', $candidate->id)->orWhereIn('id', $linkedIds);
             })
@@ -186,15 +144,24 @@ class ConcernDuplicateMatcher
             ->get();
 
         foreach ($incidentReports as $report) {
-            if ($report->severity_confirmed) {
-                continue;
-            }
-
             $baseSeverity = $report->currentAiAnalysis?->suggested_severity ?? $report->severity;
-            $severity = $this->higherSeverity($baseSeverity, $crowdSeverity);
+            $severity = $report->severity_confirmed ? $report->severity : $this->higherSeverity($baseSeverity, $crowdSeverity);
 
             if ($severity !== $report->severity) {
                 $report->update(['severity' => $severity]);
+            }
+
+            if ($reporterCount !== null && $report->currentAiAnalysis) {
+                $raw = $report->currentAiAnalysis->raw_model_output ?? [];
+                $raw['severity_factors'] = [
+                    'base_severity' => $baseSeverity,
+                    'community_severity' => $crowdSeverity,
+                    'reporter_count' => $reporterCount,
+                    'final_severity' => $severity,
+                    'staff_confirmed' => (bool) $report->severity_confirmed,
+                    'updated_at' => now()->toIso8601String(),
+                ];
+                $report->currentAiAnalysis->update(['raw_model_output' => $raw]);
             }
         }
     }
@@ -203,18 +170,9 @@ class ConcernDuplicateMatcher
     {
         $rank = ['low' => 1, 'medium' => 2, 'high' => 3, 'critical' => 4];
         $first = isset($rank[$first ?? '']) ? $first : 'medium';
-        $second = isset($rank[$second ?? '']) ? $second : 'medium';
+        $second = isset($rank[$second ?? '']) ? $second : $first;
 
         return $rank[$first] >= $rank[$second] ? $first : $second;
     }
 
-    private function tokens(string $text): array
-    {
-        $words = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        return array_values(array_filter(
-            $words,
-            fn (string $word) => mb_strlen($word) > 2 && !in_array($word, self::STOP_WORDS, true),
-        ));
-    }
 }

@@ -14,6 +14,14 @@ export interface DepartmentWorkload {
 }
 
 export interface DashboardAnalyticsData {
+    hotspots: {
+        totals: { reports: number; incidents: number; named_areas: number; unnamed_reports: number };
+        rows: {
+            key: string; area: string; category: string; topic: string;
+            reports: number; incidents: number; unique_reporters: number; open_incidents: number;
+            last_reported_at: string | null;
+        }[];
+    };
     period: {
         range: AnalyticsRange;
         start: string;

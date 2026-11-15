@@ -1,7 +1,9 @@
-import { useState, useTransition } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { useEffect, useTransition } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2, Zap, MapPin, ShieldAlert, GitMerge, User, Phone, Calendar, Sparkles, Clock } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConcernClarificationPanel from '@/Components/admin/ConcernClarificationPanel';
+import ConcernTriageExplanationCard from '@/Components/admin/ConcernTriageExplanationCard';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import MapView from '@/Components/maps/MapView';
@@ -9,6 +11,19 @@ import { Badge } from '@/Components/ui/badge';
 import { TAMBO_CENTER } from '@/Lib/mapUtils';
 import { cn } from '@/Lib/utils';
 import { personnelDepartmentOptions, type PersonnelDepartmentKey } from '@/Lib/personnelDepartments';
+import { initialVerdictAction, verdictBlocker, type ReportVerdictAction } from '@/Lib/reportVerdict';
+
+const responsePlanLabels: Record<string, string> = {
+    playbook: 'Barangay playbook', gemini: 'AI-generated draft',
+    local_rules: 'Local rule template', safeguarding: 'Confidential safeguarding procedure',
+    unknown: 'Suggested response steps',
+};
+
+const staffActions: { value: ReportVerdictAction; label: string; description: string }[] = [
+    { value: 'escalate', label: 'Deploy mission', description: 'Choose a department and assign personnel.' },
+    { value: 'merge', label: 'Merge duplicate', description: 'Link this report to an existing incident.' },
+    { value: 'dismiss', label: 'Dismiss report', description: 'Record why this report will not proceed.' },
+];
 
 function formatStep(step: unknown): string {
     if (typeof step === 'string') return step;
@@ -50,27 +65,42 @@ function departmentKey(department?: string | null): PersonnelDepartmentKey | und
     )?.value;
 }
 
-export default function Show({ report, personnel = [] }: Props) {
-    const [overrideAction, setOverrideAction] = useState<string | null>(null);
+export default function Show({ report, personnel = [], masterCandidates = [] }: Props) {
     const [, startTransition] = useTransition();
 
     const { data, setData, post, processing, errors } = useForm({
         concern_id: report?.id ?? '',
         personnel_ids: (report?.assigned_personnel_ids ?? []) as string[],
         department: report?.department ?? '',
-        confirmed_action: report?.ai_recommended_action ?? 'escalate',
-        rejection_reason: report?.ai_dismissal_reason ?? '',
+        confirmed_action: initialVerdictAction(report?.ai_recommended_action),
+        rejection_reason: report?.ai_recommended_action === 'dismiss' ? report?.ai_dismissal_reason ?? '' : '',
         master_concern_id: report?.ai_duplicate_id ?? '',
         due_date: report?.due_date ?? report?.max_due_date ?? '',
     });
 
+    useEffect(() => {
+        setData('confirmed_action', initialVerdictAction(report?.ai_recommended_action));
+    }, [report.id, report.ai_recommended_action]);
+
     const isTerminal = ['resolved', 'rejected', 'merged', 'closed'].includes(report?.status);
+    useEffect(() => {
+        if (!['queued', 'processing'].includes(report.reanalysis_status ?? '')) return;
+        const timer = setInterval(() => router.reload({ only: ['report'] }), 5000);
+        return () => clearInterval(timer);
+    }, [report.reanalysis_status]);
     const hasMission = Boolean(report?.mission);
+    const canConfirmVerdict = report.can_confirm_verdict !== false;
     const assignedPersonnel: { id: string; name: string; role: string }[] = report?.assigned_personnel ?? [];
     const selectedDepartment = departmentKey(data.department);
     const departmentPersonnel = personnel.filter(
-        (member) => departmentKey(member.department) === selectedDepartment,
+        (member) => departmentKey(member.department) === selectedDepartment
+            && (!report.is_vawc || ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases'].includes(member.role_value ?? '')),
     );
+    const submitBlocker = verdictBlocker({
+        action: data.confirmed_action, canConfirm: canConfirmVerdict, department: selectedDepartment,
+        eligiblePersonnelIds: departmentPersonnel.map(member => member.id), selectedPersonnelIds: data.personnel_ids,
+        dueDate: data.due_date, masterConcernId: data.master_concern_id, rejectionReason: data.rejection_reason,
+    });
     const safeLat = report?.lat ? Number(report.lat) : TAMBO_CENTER[0];
     const safeLng = report?.lng ? Number(report.lng) : TAMBO_CENTER[1];
 
@@ -87,6 +117,7 @@ export default function Show({ report, personnel = [] }: Props) {
 
     const handleConfirmAiVerdict = (e: React.FormEvent) => {
         e.preventDefault();
+        if (processing || submitBlocker) return;
         post(`/admin/reports/${report.id}/confirm-ai-verdict`, {
             preserveScroll: true,
         });
@@ -347,6 +378,19 @@ export default function Show({ report, personnel = [] }: Props) {
 
                     {/* Right Column */}
                     <div className="lg:col-span-5 space-y-6">
+                        <ConcernClarificationPanel
+                            key={report.id}
+                            concernId={report.id}
+                            quality={report.report_quality}
+                            missingDetails={report.missing_details ?? []}
+                            suggestedQuestions={report.follow_up_questions ?? []}
+                            clarifications={report.clarifications ?? []}
+                            canRequest={Boolean(report.can_request_clarification)}
+                            repliesOpen={Boolean(report.clarification_replies_open)}
+                            canReanalyse={Boolean(report.can_reanalyse)}
+                            reanalysisStatus={report.reanalysis_status}
+                            reanalysisError={report.reanalysis_error}
+                        />
                         <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-white to-white p-6 sm:p-8 shadow-sm space-y-6">
                             <div className="flex items-center justify-between border-b border-blue-100 pb-4">
                                 <div className="flex items-center gap-3">
@@ -355,19 +399,30 @@ export default function Show({ report, personnel = [] }: Props) {
                                     </div>
                                     <div>
                                         <h3 className="text-base font-black text-blue-950">AI Triage Intelligence</h3>
-                                        <p className="text-[11px] font-bold text-blue-700/80">Automated classification & telemetry</p>
+                                        <p className="text-[11px] font-bold text-blue-700/80">Evidence, severity factors & response plan</p>
                                     </div>
                                 </div>
                                 <Badge className="uppercase font-black tracking-wider bg-blue-700 text-white px-3.5 py-1 text-xs shadow-2xs">
-                                    {overrideAction ?? report?.ai_recommended_action ?? 'Escalate'}
+                                    {report?.ai_recommended_action === 'review' ? 'Staff review' : report?.ai_recommended_action ?? 'Staff review'}
                                 </Badge>
                             </div>
 
+                            <ConcernTriageExplanationCard explanation={report.triage_explanation ?? null} />
+
                             <div className="rounded-2xl bg-white p-4 border border-blue-100/80 shadow-2xs space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AI Reasoning Engine</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Recommended action</span>
                                 <p className="text-xs text-slate-700 font-medium italic leading-relaxed">
-                                    "{report?.ai_action_reason ?? 'AI analyzed telemetry, category playbooks, and community density to recommend standard deployment workflow.'}"
+                                    "{report?.ai_action_reason ?? 'Review the available evidence and choose the appropriate action.'}"
                                 </p>
+                                <div className="space-y-1 border-t border-slate-100 pt-3">
+                                    <h4 className="text-xs font-black text-slate-900">Suggested response plan</h4>
+                                    <p className="text-xs font-semibold text-blue-800">
+                                        {responsePlanLabels[report.triage_explanation?.response_plan?.source ?? 'unknown'] ?? 'Suggested response steps'}
+                                        {report.triage_explanation?.response_plan?.playbook_title
+                                            ? `: ${report.triage_explanation.response_plan.playbook_title}` : ''}
+                                    </p>
+                                    <p className="text-[11px] text-slate-500">For assigned barangay personnel{hasMission ? '.' : '; subject to staff approval.'}</p>
+                                </div>
                                 {Array.isArray(report?.prescriptive_steps) && report.prescriptive_steps.length > 0 ? (
                                     <ol className="space-y-2 pt-2">
                                         {report.prescriptive_steps.map((step: unknown, index: number) => (
@@ -402,6 +457,11 @@ export default function Show({ report, personnel = [] }: Props) {
                                         Matches <strong>{report.ai_duplicate_title ?? 'another report'}</strong>
                                         {report.ai_duplicate_reporter && ` by ${report.ai_duplicate_reporter}`}.
                                     </p>
+                                    {report.ai_duplicate_context && <div className="space-y-1 text-[11px] text-amber-950">
+                                        <p>Within {report.ai_duplicate_context.distance_meters} meters; {report.ai_duplicate_context.time_gap_hours} hours apart (matching window: {report.ai_duplicate_context.window_hours} hours).</p>
+                                        <p>Shared terms: {(report.ai_duplicate_context.shared_terms ?? []).join(', ')}.</p>
+                                        <p>{report.ai_duplicate_context.time_basis === 'incident_time' ? 'Compared using reported incident times.' : 'Submission time was used where the incident time was not provided.'} Staff confirmation is required before merging.</p>
+                                    </div>}
                                     
                                     <div className="pt-1 flex flex-wrap gap-2">
                                         <Button 
@@ -409,7 +469,6 @@ export default function Show({ report, personnel = [] }: Props) {
                                             size="sm" 
                                             variant="outline" 
                                             onClick={() => {
-                                                setOverrideAction('merge');
                                                 setData('confirmed_action', 'merge');
                                                 setData('master_concern_id', report.ai_duplicate_id);
                                             }}
@@ -452,9 +511,28 @@ export default function Show({ report, personnel = [] }: Props) {
                                 </div>
                             ) : !isTerminal ? (
                                 <form onSubmit={handleConfirmAiVerdict} className="space-y-5 pt-2">
+                                    <fieldset className="space-y-3" disabled={processing || !canConfirmVerdict}>
+                                        <legend className="text-sm font-black text-slate-900">Choose staff action</legend>
+                                        <p className="text-xs leading-relaxed text-slate-600">
+                                            {report.ai_recommended_action === 'review'
+                                                ? 'The AI requested staff review. Request clarification above if needed, or choose how to proceed after reviewing the report.'
+                                                : 'Review the recommendation, then choose the action to carry out.'}
+                                        </p>
+                                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                                            {staffActions.map(action => (
+                                                <button key={action.value} type="button" aria-pressed={data.confirmed_action === action.value}
+                                                    onClick={() => setData('confirmed_action', action.value)}
+                                                    className={cn('rounded-xl border p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60',
+                                                        data.confirmed_action === action.value ? 'border-blue-500 bg-blue-50 text-blue-950' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300')}>
+                                                    <span className="block text-xs font-black">{action.label}</span>
+                                                    <span className="mt-1 block text-[11px] leading-relaxed">{action.description}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </fieldset>
                                     
                                     {/* Escalate Specific Fields */}
-                                    {(overrideAction ?? report?.ai_recommended_action) === 'escalate' && (
+                                    {data.confirmed_action === 'escalate' && (
                                         <>
                                             <div className="space-y-2">
                                                 <label htmlFor="mission-due-date" className="block text-xs font-black uppercase tracking-wider text-slate-700">
@@ -475,7 +553,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                             <div className="space-y-2.5">
                                                 <div className="flex justify-between items-center">
                                                     <label htmlFor="mission-department" className="text-xs font-black uppercase tracking-wider text-slate-700">Assign to Department</label>
-                                                    <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">AI Recommended</span>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-lg font-black">{departmentPersonnel.length} active personnel</span>
                                                 </div>
                                                 <select
                                                     id="mission-department"
@@ -547,7 +625,7 @@ export default function Show({ report, personnel = [] }: Props) {
                                     )}
 
                                     {/* Merge Specific Fields */}
-                                    {(overrideAction ?? report?.ai_recommended_action) === 'merge' && (
+                                    {data.confirmed_action === 'merge' && (
                                         <div className="space-y-2">
                                             <label htmlFor="master-concern" className="block text-xs font-black uppercase tracking-wider text-slate-700">
                                                 Select Master Concern
@@ -565,14 +643,16 @@ export default function Show({ report, personnel = [] }: Props) {
                                                         [AI Suggestion] {report.ai_duplicate_title}
                                                     </option>
                                                 )}
-                                                {/* Fallback to list master candidates if provided by backend */}
+                                                {masterCandidates.filter(candidate => candidate.id !== report.ai_duplicate_id && candidate.id !== report.id).map(candidate => (
+                                                    <option key={candidate.id} value={candidate.id}>{candidate.label}</option>
+                                                ))}
                                             </select>
                                             {errors.master_concern_id && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.master_concern_id}</p>}
                                         </div>
                                     )}
 
                                     {/* Dismiss Specific Fields */}
-                                    {(overrideAction ?? report?.ai_recommended_action) === 'dismiss' && (
+                                    {data.confirmed_action === 'dismiss' && (
                                         <div className="space-y-2">
                                             <label htmlFor="rejection-reason" className="block text-xs font-black uppercase tracking-wider text-slate-700">
                                                 Reason for rejection
@@ -594,21 +674,15 @@ export default function Show({ report, personnel = [] }: Props) {
                                     )}
 
                                     <div className="pt-4 space-y-3.5 border-t border-blue-100">
-                                        <Button type="submit" disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3.5 shadow-sm cursor-pointer rounded-2xl transition-all">
+                                        <p id="verdict-submit-requirements" role="status" className="text-xs font-semibold text-slate-600">
+                                            {submitBlocker ?? 'Ready to confirm the selected action.'}
+                                        </p>
+                                        <Button type="submit" disabled={processing || submitBlocker !== null} aria-describedby="verdict-submit-requirements" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3.5 shadow-sm cursor-pointer rounded-2xl transition-all">
                                             <CheckCircle2 className="mr-2 h-4 w-4" /> 
-                                            {processing ? 'Processing...' : 'Confirm AI Verdict & Execute Dispatch'}
+                                            {processing ? 'Processing...' : data.confirmed_action === 'escalate' ? 'Confirm & dispatch mission'
+                                                : data.confirmed_action === 'merge' ? 'Confirm merge'
+                                                    : data.confirmed_action === 'dismiss' ? 'Confirm dismissal' : 'Choose an action to continue'}
                                         </Button>
-
-                                        <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 pt-1">
-                                            <span className="text-slate-400">Manual Override:</span>
-                                            <div className="flex items-center gap-2">
-                                                <button type="button" onClick={() => { setOverrideAction('escalate'); setData('confirmed_action', 'escalate'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'escalate' ? 'text-slate-800' : 'text-blue-600')}>Escalate</button>
-                                                <span className="text-slate-300">•</span>
-                                                <button type="button" onClick={() => { setOverrideAction('merge'); setData('confirmed_action', 'merge'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'merge' ? 'text-slate-800' : 'text-blue-600')}>Merge</button>
-                                                <span className="text-slate-300">•</span>
-                                                <button type="button" onClick={() => { setOverrideAction('dismiss'); setData('confirmed_action', 'dismiss'); }} className={cn("hover:underline cursor-pointer font-bold", data.confirmed_action === 'dismiss' ? 'text-slate-800' : 'text-blue-600')}>Dismiss</button>
-                                            </div>
-                                        </div>
                                     </div>
                                 </form>
                             ) : (

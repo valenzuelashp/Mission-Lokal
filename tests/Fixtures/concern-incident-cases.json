@@ -1,0 +1,342 @@
+{
+  "label_source": "synthetic_regression",
+  "reviewed_by_barangay": false,
+  "cases": [
+    {
+      "id": "filipino_english_drainage",
+      "first": {
+        "title": "Baradong kanal malapit sa court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Clogged drainage beside the basketball court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "taglish_drainage",
+      "first": {
+        "title": "Baradong drainage malapit sa basketbolan",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Blocked drain near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "streetlight_translation",
+      "first": {
+        "title": "Sirang ilaw sa Rizal",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "LIGHT",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Broken street light on Rizal",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "LIGHT",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "waste_translation",
+      "first": {
+        "title": "Basura sa palengke",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "WASTE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Garbage beside the market",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "WASTE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "noise_translation",
+      "first": {
+        "title": "Maingay na videoke sa palengke",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "NOISE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Karaoke noise beside the market",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "NOISE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "pothole_translation",
+      "first": {
+        "title": "Lubak sa kalsada Rizal",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "ROAD",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Pothole on Rizal road",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "ROAD",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "flood_translation",
+      "first": {
+        "title": "Baha sa tulay",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "FLOOD",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Flooding near the bridge",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "FLOOD",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "fire_translation",
+      "first": {
+        "title": "Sunog malapit sa paaralan",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "FIRE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Fire beside the school",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "FIRE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": true
+    },
+    {
+      "id": "distant_locations",
+      "first": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.54,
+        "lng": 121.02,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": false
+    },
+    {
+      "id": "recurring_incident",
+      "first": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": "2026-11-15 08:00:00"
+      },
+      "second": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": "2026-10-15 08:00:00"
+      },
+      "expected_duplicate": false
+    },
+    {
+      "id": "different_categories",
+      "first": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "SAFETY",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": false
+    },
+    {
+      "id": "different_subcategories",
+      "first": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "FLOOD",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": false
+    },
+    {
+      "id": "different_issue_same_place",
+      "first": {
+        "title": "Blocked drainage near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "second": {
+        "title": "Fire near the court",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "DRAINAGE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": null
+      },
+      "expected_duplicate": false
+    },
+    {
+      "id": "old_noise_event",
+      "first": {
+        "title": "Videoke noise at the market",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "NOISE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": "2026-11-15 08:00:00"
+      },
+      "second": {
+        "title": "Karaoke noise near market",
+        "description": "",
+        "category": "INFRA",
+        "subcategory": "NOISE",
+        "lat": 14.5173,
+        "lng": 120.9934,
+        "reported_at": "2026-11-15 08:00:00",
+        "incident_at": "2026-11-13 08:00:00"
+      },
+      "expected_duplicate": false
+    }
+  ]
+}

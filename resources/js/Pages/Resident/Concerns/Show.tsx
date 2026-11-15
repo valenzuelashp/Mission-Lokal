@@ -4,6 +4,7 @@ import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernPhotoGallery from '@/Components/resident/ConcernPhotoGallery';
 import UserAvatar from '@/Components/shared/UserAvatar';
 import ConcernVoteButtons from '@/Components/resident/ConcernVoteButtons';
+import ConcernClarifications from '@/Components/resident/ConcernClarifications';
 import StatusTimeline from '@/Components/resident/StatusTimeline';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -204,6 +205,13 @@ export default function Show({ concern }: Props) {
                                     <ConcernPhotoGallery images={concern.images} title={concern.title} />
                                 </section>
                             )}
+
+                            <ConcernClarifications
+                                key={concern.id}
+                                concernId={concern.id}
+                                clarifications={concern.clarifications ?? []}
+                                canReply={Boolean(concern.can_reply_to_clarification)}
+                            />
 
                             {concern.proof_notes && (
                                 <section className={`space-y-3 rounded-2xl border p-5 shadow-2xs ${theme.badgeBorder} ${theme.badgeBg}`}>

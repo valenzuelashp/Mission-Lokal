@@ -149,6 +149,13 @@ export default function ReportQueueTable({ reports, scoreDisplay, maxUpvotes }: 
                                                 </Badge>
                                             )}
 
+                                            {(row.clarification_status || row.report_quality === 'needs_clarification') && (
+                                                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-900">
+                                                    {row.clarification_status === 'awaiting_reply' ? 'Awaiting resident reply'
+                                                        : row.clarification_status === 'answered' ? 'Resident replied' : 'Needs clarification'}
+                                                </Badge>
+                                            )}
+
                                             {row.is_duplicate && (
                                                 <Badge className="bg-purple-100 text-purple-950 border-purple-300 font-extrabold text-[10px] gap-1 px-2 py-0.5">
                                                     <GitMerge className="h-3 w-3 text-purple-600" />
