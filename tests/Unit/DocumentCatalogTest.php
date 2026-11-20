@@ -66,17 +66,22 @@ class DocumentCatalogTest extends TestCase
         $this->assertSame('LIZA CRUZ SANTOS lives at Zone 1, Tambo.', $result);
     }
 
-    public function test_known_document_questions_get_exact_requirements_without_ai(): void
+    public function test_known_document_questions_use_the_actual_form_fields_without_ai(): void
     {
+        $template = (new DocumentTemplate)->forceFill([
+            'id' => 'test-template', 'key' => 'barangay_clearance',
+            'name' => 'Barangay Clearance Certificate', 'resident_fields' => ['purpose'],
+        ]);
         $answer = (new BarangayHelpAnswer)->fromPublishedKnowledge(
             'whats needed for brngy clearance',
             new Collection,
+            collect([$template]),
         );
 
-        $this->assertSame(
-            "Barangay Clearance Certificate requires: First Name, Middle Name, Surname, Alias, Address, Gender, Birthday, Age, Birthplace, Status, Citizenship, Purpose.\n\nTo request it:\n1. Open Documents and select \"Request this\" for the document.\n2. Complete the required fields and submit the form.\n3. Track it under Your Requests. Wait for barangay review; open the request to print when it is ready.",
-            $answer,
-        );
+        $this->assertStringContainsString('Online request form fields: Purpose of the request.', $answer);
+        $this->assertStringContainsString('not a list of supporting documents', $answer);
+        $this->assertStringContainsString('Track it under Your Requests', $answer);
+        $this->assertStringNotContainsString('First Name', $answer);
     }
 
     public function test_hotline_questions_use_the_published_contact_numbers(): void

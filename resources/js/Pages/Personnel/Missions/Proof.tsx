@@ -65,7 +65,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                     </Link>
                 </Button>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Submit Execution Proof</h2>
-                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+                <p className="mt-1 break-words text-xs sm:text-sm font-medium text-slate-500">
                     {mission.id} · {mission.title}
                 </p>
             </div>
@@ -131,8 +131,8 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                                 <ul className="space-y-2">
                                     {data.photos.map((file, index) => (
                                         <li key={index} className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs font-bold text-slate-700">
-                                            <span className="truncate max-w-[260px] sm:max-w-md">{file.name}</span>
-                                            <span className="text-muted-foreground font-mono">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                            <span className="min-w-0 truncate sm:max-w-md">{file.name}</span>
+                                            <span className="ml-2 shrink-0 text-muted-foreground font-mono">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                                         </li>
                                     ))}
                                 </ul>

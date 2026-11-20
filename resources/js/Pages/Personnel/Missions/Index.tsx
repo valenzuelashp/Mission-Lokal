@@ -53,7 +53,7 @@ export default function Index({ missions = [], counts = { all: 0, active: 0, in_
     ).length;
 
     return (
-        <PersonnelLayout title="Mission-Lokal Personnel: Missions">
+        <PersonnelLayout title="Mission-Lokal Personnel: Missions" showDepartmentHero>
             <Head title="Department Mission Queue" />
 
             {flash.success && (
@@ -70,21 +70,21 @@ export default function Index({ missions = [], counts = { all: 0, active: 0, in_
                 </div>
             )}
 
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {[
                     { label: 'Department missions', value: missions.length, icon: ClipboardList, detail: 'Shared team queue' },
                     { label: 'Active response', value: activeCount, icon: Activity, detail: 'Open and in progress' },
                     { label: 'Assigned to me', value: mine, icon: UserRoundCheck, detail: 'You can update these' },
                     { label: 'Completed', value: completedCount, icon: CheckCircle2, detail: 'Awaiting or past review' },
                 ].map((stat) => (
-                    <div key={stat.label} className={cn('flex items-center gap-3 rounded-2xl border bg-white/90 p-4 shadow-sm', border)}>
+                    <div key={stat.label} className={cn('flex min-w-0 flex-col items-start gap-2 rounded-2xl border bg-white/90 p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:p-4', border)}>
                         <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm', accent)}>
                             <stat.icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-2xl font-black leading-none text-slate-900">{stat.value}</p>
-                            <p className={cn('mt-1 truncate text-[11px] font-black uppercase tracking-wide', foreground)}>{stat.label}</p>
-                            <p className="mt-0.5 truncate text-[10px] font-medium text-slate-500">{stat.detail}</p>
+                            <p className={cn('mt-1 text-[11px] font-black uppercase tracking-wide', foreground)}>{stat.label}</p>
+                            <p className="mt-0.5 text-[10px] font-medium text-slate-500">{stat.detail}</p>
                         </div>
                     </div>
                 ))}
@@ -113,7 +113,7 @@ export default function Index({ missions = [], counts = { all: 0, active: 0, in_
                 </div>
             </div>
 
-            <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8 w-full space-y-4">
+            <section className="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm sm:p-8 w-full space-y-4">
                 <div className="flex items-center justify-between text-xs font-black text-slate-400 uppercase tracking-wider pb-3 border-b border-slate-100">
                     <span>Showing {filtered.length} of {missions.length} department missions · {mine} assigned to you</span>
                 </div>

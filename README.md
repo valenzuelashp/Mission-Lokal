@@ -9,6 +9,7 @@ Barangay concern and response management platform for residents, field personnel
 - Submit and track concerns (with AI-assisted processing workflow)
 - File blotter reports
 - Browse announcements and a document library
+- Ask the Barangay Knowledge Assistant in English, Filipino, or Taglish, with published sources and clearly labeled general guidance
 - Profile management, security settings, and ID verification onboarding
 
 ### Personnel
@@ -181,6 +182,34 @@ Department portal demos (all use password `password`):
 | `npm run preview` | Preview the production build |
 | `php artisan serve` | Start the Laravel development server |
 | `php artisan queue:work database` | Process queued AI triage and address geocoding jobs |
+
+## Barangay Knowledge Assistant
+
+The assistant prioritizes active Resource Library entries and enabled document forms for the signed-in resident's barangay. Official facts appear as source excerpts; general guidance is labeled separately. Questions without matching records can still receive useful guidance or a clarification question.
+
+Manage public knowledge through the existing admin library and document tools. Publish actual office schedules, service requirements, and current contact details there; the assistant does not invent missing local information. Document form fields are distinguished from supporting-document requirements.
+
+Configure Gemini on the server:
+
+```dotenv
+GEMINI_API_KEY=your-server-side-key
+GEMINI_CHAT_MODEL=gemini-3.1-pro-preview
+GEMINI_CHAT_MAX_OUTPUT_TOKENS=4096
+GEMINI_CHAT_TIMEOUT=20
+```
+
+Chat settings do not change the AI concern-analysis model. After changing cached deployment configuration, refresh Laravel's configuration cache through the normal deployment process.
+
+Conversations use the existing server session, retain up to six exchanges, and expire after 30 minutes of inactivity. Residents can clear their conversation. Private records are not retrieved, and questions, provider response bodies, and credentials are excluded from chatbot diagnostic logs.
+
+Published contact answers and limited general fallbacks remain available during AI failures. Empty retrieval is distinguished from database failure, quota limits, blocked output, incomplete generation, and invalid evidence. Check sanitized application logs when a service notice appears. For local development, ensure XAMPP MySQL is running on the configured database port.
+
+Focused checks:
+
+```shell
+php vendor/bin/phpunit --filter "BarangayHelp|DocumentCatalogTest"
+npm run test:help
+```
 
 ## Domain Model (overview)
 

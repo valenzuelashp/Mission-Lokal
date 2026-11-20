@@ -220,6 +220,24 @@ class ProcessConcernWithAiTest extends TestCase
             === ['ready_for_review', 'needs_clarification', 'possible_spam']);
     }
 
+    public function test_severity_is_assessed_even_when_an_optional_clarification_has_no_reply(): void
+    {
+        $this->fakeAnalysis([
+            'suggested_severity' => 'critical', 'report_quality' => 'needs_clarification',
+            'missing_details' => ['The extent of the hazard'],
+        ]);
+        $concern = Concern::create(['title' => 'Electrical hazard', 'description' => 'Sparks near the school gate.']);
+        $entry = $concern->clarifications()->create(['questions' => ['How far from the school is the hazard?']]);
+
+        (new ProcessConcernWithAi($concern))->handle();
+
+        $this->assertNull($entry->fresh()->answered_at);
+        $this->assertSame('critical', $concern->fresh()->severity);
+        $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
+        $this->assertSame('needs_clarification', $concern->fresh()->currentAiAnalysis->reportQuality());
+        $this->assertSame(0, ConcernReanalysis::count());
+    }
+
     public function test_valid_filipino_words_are_not_rejected_as_keyboard_smashes(): void
     {
         $this->fakeAnalysis(['suggested_severity' => 'low']);

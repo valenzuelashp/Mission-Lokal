@@ -19,7 +19,7 @@ type Props = {
 
 export default function RespondersDirectory({ contacts }: Props) {
     const theme = useResidentTheme();
-    const [showAll, setShowAll] = useState(false);
+    const [showAll, setShowAll] = useState(() => typeof window !== 'undefined' && contacts.some((contact) => window.location.hash === '#library-' + contact.id));
     const visible = showAll ? contacts : contacts.slice(0, 4);
 
     return (
@@ -43,6 +43,7 @@ export default function RespondersDirectory({ contacts }: Props) {
                     return (
                         <div
                             key={contact.id}
+                            id={'library-' + contact.id}
                             className={`flex items-center gap-3.5 rounded-xl border ${theme.cardBorder} ${theme.cardBg} p-3.5 shadow-2xs transition-all`}
                         >
                             <span className={cn(

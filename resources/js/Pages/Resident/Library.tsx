@@ -13,6 +13,15 @@ export default function Library({ manuals = [], contacts = [], faqs = [] }: Libr
     const theme = useResidentTheme();
 
     useEffect(() => {
+        const timer = window.setTimeout(() => {
+            const target = document.getElementById(window.location.hash.slice(1));
+            if (target instanceof HTMLDetailsElement) target.open = true;
+            target?.scrollIntoView({ block: 'center' });
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
         try {
             window.localStorage.setItem(
                 'mission-lokal-library-v1',
@@ -80,7 +89,7 @@ export default function Library({ manuals = [], contacts = [], faqs = [] }: Libr
                                             <h2 className={`text-sm font-black uppercase tracking-wider ${theme.textMain}`}>Forms & Frequently Asked Questions</h2>
                                         </div>
                                         {faqs.map((faq) => (
-                                            <details key={faq.id} className={`rounded-xl border ${theme.cardBorder} p-4`}>
+                                            <details key={faq.id} id={'library-' + faq.id} className={`rounded-xl border ${theme.cardBorder} p-4`}>
                                                 <summary className={`cursor-pointer text-sm font-bold ${theme.textMain}`}>{faq.title}</summary>
                                                 <p className={`mt-2 text-xs font-medium ${theme.textMuted}`}>{faq.subtitle}</p>
                                                 <p className={`mt-3 whitespace-pre-wrap text-xs leading-relaxed ${theme.textMain}`}>{faq.body}</p>

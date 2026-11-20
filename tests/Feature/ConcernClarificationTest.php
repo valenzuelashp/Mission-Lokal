@@ -314,7 +314,7 @@ class ConcernClarificationTest extends TestCase
         $this->actingAs($this->admin)->get('/admin/reports', ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.reports.0.clarification_status', 'awaiting_reply');
         $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
-            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'review')
+            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'escalate')
             ->assertJsonPath('props.report.can_request_clarification', false);
 
         $entry->update(['response' => 'The water is near the school gate.', 'answered_at' => now()]);
@@ -323,6 +323,55 @@ class ConcernClarificationTest extends TestCase
         $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.report.clarifications.0.response', 'The water is near the school gate.')
             ->assertJsonPath('props.report.can_request_clarification', true);
+    }
+
+    public function test_unanswered_optional_questions_do_not_replace_the_assessment_or_block_staff_decisions(): void
+    {
+        ConcernAiAnalysis::create([
+            'concern_id' => $this->concern->id, 'is_current' => true, 'severity_confidence' => 0.9,
+            'raw_model_output' => ['report_quality' => 'ready_for_review', 'severity_reason' => 'Floodwater is entering homes.'],
+        ]);
+        $entry = $this->entry();
+
+        $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('props.report.severity', 'high')
+            ->assertJsonPath('props.report.triage_explanation.severity_reason', 'Floodwater is entering homes.')
+            ->assertJsonPath('props.report.ai_recommended_action', 'escalate')
+            ->assertJsonPath('props.report.can_confirm_verdict', true)
+            ->assertJsonPath('props.report.can_reanalyse', false);
+
+        $this->assertNull($entry->fresh()->answered_at);
+        $this->assertSame(1, $this->concern->aiAnalyses()->count());
+    }
+
+    public function test_supplementary_replies_do_not_require_reanalysis_before_a_staff_decision(): void
+    {
+        $this->entry()->update(['response' => 'Near the school gate.', 'answered_at' => now()]);
+
+        $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'escalate')
+            ->assertJsonPath('props.report.severity', 'high')
+            ->assertJsonPath('props.report.can_confirm_verdict', true)
+            ->assertJsonPath('props.report.can_reanalyse', true);
+        $this->assertSame(0, ConcernReanalysis::count());
+    }
+
+    public function test_optional_clarification_does_not_hide_a_duplicate_recommendation(): void
+    {
+        $original = $this->concern->replicate();
+        $original->title = 'Original flood report';
+        $original->save();
+        ConcernAiAnalysis::create([
+            'concern_id' => $this->concern->id, 'is_current' => true, 'severity_confidence' => 0.5,
+            'duplicate_candidate_id' => $original->id, 'raw_model_output' => ['report_quality' => 'needs_clarification'],
+        ]);
+        $this->entry();
+
+        $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'merge')
+            ->assertJsonPath('props.report.ai_duplicate_id', $original->id)
+            ->assertJsonPath('props.report.severity', 'high')
+            ->assertJsonPath('props.report.can_confirm_verdict', true);
     }
 
     public function test_only_an_explicit_spam_assessment_recommends_dismissal(): void

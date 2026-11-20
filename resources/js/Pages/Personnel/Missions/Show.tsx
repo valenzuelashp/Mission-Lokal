@@ -89,7 +89,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 </div>
             )}
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button variant="ghost" className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer p-0 h-auto" asChild>
                     <Link href="/personnel/missions">
                         <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
@@ -100,7 +100,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             </div>
 
             <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{mission.id} · {mission.title}</h2>
+                <h2 className="break-words text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{mission.id} · {mission.title}</h2>
             </div>
 
             {!isAssigned && (
@@ -123,8 +123,8 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                 </div>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-12 items-start w-full">
-                <div className="space-y-6 lg:col-span-7">
+            <div className="grid gap-6 xl:grid-cols-12 items-start w-full">
+                <div className="min-w-0 space-y-6 xl:col-span-7">
                     <Card className="border-slate-200/80 shadow-2xs bg-white rounded-3xl overflow-hidden">
                         <CardContent className="p-6 sm:p-8 space-y-6">
                             <div>
@@ -148,7 +148,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                                 </div>
                             )}
 
-                            <dl className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs">
+                            <dl className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs break-words">
                                 <div>
                                     <span className="text-slate-400 font-bold uppercase tracking-wider block">Concern Reference ID</span>
                                     <span className="font-mono font-black text-slate-900 text-sm">{mission.concern_id}</span>
@@ -164,7 +164,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                                 {mission.reporter_phone && (
                                     <div className="col-span-2 pt-2">
                                         <a href={`tel:${mission.reporter_phone}`} className="inline-flex items-center gap-2 font-bold text-blue-700 hover:underline bg-blue-50 px-4 py-2.5 rounded-2xl border border-blue-100 shadow-2xs">
-                                            <Phone className="h-4 w-4" />
+                                            <Phone className="h-4 w-4 shrink-0" />
                                             Call Reporter Directly: {mission.reporter_phone}
                                         </a>
                                     </div>
@@ -209,7 +209,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                     </Card>
                 </div>
 
-                <div className="space-y-6 lg:col-span-5">
+                <div className="min-w-0 space-y-6 xl:col-span-5">
                     <Card className="border-slate-200/80 shadow-2xs bg-white rounded-3xl overflow-hidden">
                         <CardHeader className="py-4 px-6 border-b border-slate-100">
                             <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">Execution Timeline</CardTitle>
@@ -220,10 +220,10 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                     </Card>
 
                     <Card className="border-slate-200/80 shadow-2xs bg-white rounded-3xl overflow-hidden">
-                        <CardHeader className="py-4 px-6 border-b border-slate-100">
+                        <CardHeader className="py-4 px-4 sm:px-6 border-b border-slate-100">
                             <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">Field Checklist Steps</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4 sm:p-6">
                             <MissionChecklist
                                 missionId={mission.id}
                                 items={checklist}
@@ -288,7 +288,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                     </Button>
                 )}
                 {isAssigned && needsProof && checklistComplete && (
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3.5 sm:w-auto shadow-sm cursor-pointer rounded-2xl px-8 h-12" asChild>
+                    <Button className="w-full whitespace-normal text-center bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3.5 sm:w-auto shadow-sm cursor-pointer rounded-2xl px-4 sm:px-8 h-auto min-h-12" asChild>
                         <Link href={`/personnel/missions/${mission.id}/proof`}>
                             <Camera className="mr-2 h-4 w-4" />
                             Submit Execution Proof to Complete
@@ -296,7 +296,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                     </Button>
                 )}
                 {isAssigned && needsProof && !checklistComplete && (
-                    <Button disabled className="w-full sm:w-auto font-bold text-xs py-3.5 rounded-2xl px-6 h-12">
+                    <Button disabled className="w-full whitespace-normal text-center sm:w-auto font-bold text-xs py-3.5 rounded-2xl px-4 sm:px-6 h-auto min-h-12">
                         Complete checklist to unlock proof submission
                     </Button>
                 )}
@@ -309,7 +309,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                     </Button>
                 )}
                 {mission.proof_submitted && (
-                    <Badge variant="success" className="w-fit px-5 py-2.5 text-xs font-black rounded-xl shadow-2xs uppercase tracking-wider">
+                    <Badge variant="success" className="w-fit whitespace-normal px-5 py-2.5 text-xs font-black rounded-xl shadow-2xs uppercase tracking-wider">
                         ✓ Proof Submitted — Awaiting Administrative Verification
                     </Badge>
                 )}

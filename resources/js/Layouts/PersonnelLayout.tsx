@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bell, CalendarDays, ClipboardList, Clock3, LogOut, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, CalendarDays, ClipboardList, Clock3, LogOut, Shield, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import PersonnelTopBar from '@/Components/personnel/PersonnelTopBar';
 import ProfilePhotoPicker from '@/Components/shared/ProfilePhotoPicker';
@@ -19,9 +19,10 @@ const nav = [
 
 type Props = PropsWithChildren<{
     title?: string;
+    showDepartmentHero?: boolean;
 }>;
 
-export default function PersonnelLayout({ children, title = 'Mission-Lokal Personnel: Missions' }: Props) {
+export default function PersonnelLayout({ children, title = 'Mission-Lokal Personnel: Missions', showDepartmentHero = false }: Props) {
     const { isActive } = useActivePath();
     const { user } = useAuth();
     const { unread_count, personnel_department: personnelDepartment, personnel_shift: personnelShift } = usePage<PageProps & { unread_count?: number }>().props;
@@ -39,6 +40,15 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setMobileOpen(false);
+        };
+        window.addEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    }, [mobileOpen]);
 
     useEffect(() => {
         const updateTime = () => setCurrentTime(new Date());
@@ -98,15 +108,20 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
             </button>
 
             {/* Brand Header */}
-            <div className={cn("flex items-center gap-3.5 border-b border-white/15 py-5 bg-white/10 backdrop-blur-md transition-all shrink-0",             (!isMobile && collapsed) ? "justify-center px-4" : "px-7")}>
+            <div className={cn("flex items-center gap-3.5 border-b border-white/15 py-5 bg-white/10 backdrop-blur-md transition-all shrink-0", (!isMobile && collapsed) ? "justify-center px-4" : isMobile ? "px-4" : "px-7")}>
                 <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-md", accent)}>
                     <DepartmentIcon className="h-6 w-6" />
                 </div>
                 {(isMobile || !collapsed) && (
-                    <div className="overflow-hidden">
+                    <div className="min-w-0 flex-1 overflow-hidden">
                         <p className="truncate text-base font-black tracking-wider text-slate-900 dark:text-slate-100">MISSION-LOKAL</p>
                         <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5 truncate opacity-80">Department Portal</p>
                     </div>
+                )}
+                {isMobile && (
+                    <button type="button" aria-label="Close personnel navigation" onClick={() => setMobileOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-current/15 hover:bg-white/20">
+                        <X className="h-5 w-5" />
+                    </button>
                 )}
             </div>
 
@@ -187,7 +202,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
         : undefined;
 
     return (
-        <div className={cn("personnel-shell flex h-screen overflow-hidden text-slate-900 w-full antialiased dark:bg-slate-800 dark:text-slate-100", pageTheme, departmentTheme?.theme.ring ?? 'selection:bg-blue-100 selection:text-blue-900')}>
+        <div className={cn("personnel-shell flex h-dvh overflow-hidden text-slate-900 w-full antialiased dark:bg-slate-800 dark:text-slate-100", pageTheme, departmentTheme?.theme.ring ?? 'selection:bg-blue-100 selection:text-blue-900')}>
             <style>{`
                 .admin-sidebar-scrollbar::-webkit-scrollbar {
                     width: 4px;
@@ -222,16 +237,24 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
             )}
 
             <div className={cn("personnel-content flex h-full min-w-0 flex-1 flex-col w-full overflow-hidden dark:bg-slate-800", pageTheme)}>
-                <PersonnelTopBar title={title} onMenuClick={() => setMobileOpen(true)} />
-                <main className="flex-1 w-full overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12 max-w-7xl mx-auto space-y-6">
-                    {personnelDepartment?.label && (
+                <PersonnelTopBar
+                    title={title}
+                    subtitle={[
+                        personnelDepartment?.label,
+                        hasShiftSchedule ? `Shift: ${personnelShift?.hours ?? 'Not assigned'}${personnelShift?.value ? ` (${isOnShift ? 'on shift' : 'off shift'})` : ''}` : personnelDepartment?.role,
+                    ].filter(Boolean).join(' · ')}
+                    onMenuClick={() => setMobileOpen(true)}
+                />
+                <main className="min-w-0 flex-1 w-full overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+                    {showDepartmentHero && personnelDepartment?.label && (
                         <section
-                            className="relative isolate min-h-[260px] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950 bg-cover bg-center text-white shadow-xl sm:min-h-[300px]"
+                            aria-label="Department overview"
+                            className="relative isolate overflow-hidden rounded-3xl border border-white/10 bg-slate-950 bg-cover bg-center text-white shadow-xl sm:rounded-[2rem] sm:min-h-[300px]"
                             style={departmentHeroStyle}
                         >
                             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-950/75 via-transparent to-white/5" />
-                            <div className="flex min-h-[260px] flex-col justify-between gap-8 p-6 sm:min-h-[300px] sm:p-9 lg:p-10">
-                                <div className="flex items-start justify-between gap-4">
+                            <div className="flex flex-col justify-between gap-4 p-5 sm:gap-8 sm:min-h-[300px] sm:p-9 lg:p-10">
+                                <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
                                     <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/90 backdrop-blur-md">
                                         <span className={cn('h-2 w-2 rounded-full shadow-[0_0_12px_currentColor]', departmentTheme?.heroAccent)} />
                                         Department operations
@@ -258,18 +281,18 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                                     </div>
                                     )}
                                 </div>
-                                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                                    <div className="max-w-2xl">
+                                <div className="flex flex-col gap-4 sm:gap-5 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="min-w-0 max-w-2xl">
                                         <p className={cn('text-[11px] font-black uppercase tracking-[0.22em]', departmentTheme?.heroAccent)}>
                                             {departmentTheme?.heroEyebrow}
                                         </p>
-                                        <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+                                        <h1 className="mt-2 break-words text-2xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                                             {personnelDepartment.label}
                                         </h1>
                                         <p className="mt-3 max-w-xl text-sm font-medium leading-relaxed text-white/80 sm:text-base">
                                             {personnelDepartment.description}
                                         </p>
-                                        <div className="mt-5 flex flex-wrap items-center gap-2">
+                                        <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-5">
                                             <span className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-950/45 px-3 py-2 text-[11px] font-bold text-white/90 backdrop-blur-sm">
                                                 <DepartmentIcon className="h-3.5 w-3.5" />
                                                 {personnelDepartment.role ?? 'Department member'}
@@ -286,7 +309,7 @@ export default function PersonnelLayout({ children, title = 'Mission-Lokal Perso
                                         )}
                                     </div>
                                     <time
-                                        className="shrink-0 self-end pb-1 text-5xl font-black leading-none tracking-tight text-white sm:text-6xl lg:text-7xl"
+                                        className="shrink-0 self-end pb-1 text-3xl font-black leading-none tracking-tight text-white sm:text-6xl lg:text-7xl"
                                         aria-label={`Current Philippines time ${timeLabel}`}
                                     >
                                         {timeLabel}

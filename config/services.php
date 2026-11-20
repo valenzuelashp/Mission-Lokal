@@ -10,6 +10,8 @@ return [
         'key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.1-pro-preview'),
         'chat_model' => env('GEMINI_CHAT_MODEL', env('GEMINI_MODEL', 'gemini-3.1-pro-preview')),
+        'chat_max_output_tokens' => (int) env('GEMINI_CHAT_MAX_OUTPUT_TOKENS', 4096),
+        'chat_timeout' => (int) env('GEMINI_CHAT_TIMEOUT', 20),
     ],
 
     'sms' => [

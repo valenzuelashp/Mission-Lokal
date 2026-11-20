@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RegisterResidentRequest;
 use App\Services\LocalIdentifier;
 use App\Models\ResidentRegistration;
 use App\Models\User;
@@ -79,84 +80,16 @@ class RegisteredUserController extends Controller
         return response()->json([]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function validateIdentity(RegisterResidentRequest $request): RedirectResponse
     {
-        if ($request->boolean('no_middle_name')) {$request->merge(['middle_name' => 'N/A']);
-        }
+        // Checking a step must never create an account or save an uploaded ID.
+        return back();
+    }
 
-        $request->merge([
-            'email' => strtolower(trim((string) $request->email)),
-        ]);
-
-        $minDate = Carbon::now()->subYears(12)->format('Y-m-d');
-
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'no_middle_name' => 'nullable|boolean',
-            'last_name' => 'required|string|max:255',
-            'name_extension' => 'nullable|string|max:20',
-            'house_street' => 'required|string|max:150',
-            'barangay_name' => 'required|string|max:100',
-            'city' => 'required|string|max:100',
-            'province' => 'required|string|max:100',
-            'birthday' => ['required', 'date', 'before_or_equal:' . $minDate],
-            'email' => 'required|string|email|max:255|unique:resident_registrations,email|unique:users,email',
-            'mobile' => 'required|string|max:20',
-            'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            'parent_name' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute,$value, $fail) use ($request) {
-                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {$fail('The parent or guardian name is required for minors (under 18 years old).');
-                    }
-                },
-            ],
-            'parent_contact' => [
-                'nullable',
-                'string',
-                'max:20',
-                function ($attribute,$value, $fail) use ($request) {
-                    if ($request->birthday && Carbon::parse($request->birthday)->age < 18 && empty($value)) {$fail('The parent or guardian contact number is required for minors (under 18 years old).');
-                    }
-                },
-            ],
-            'consent' => 'accepted', 
-        ], [
-            'consent.accepted' => 'You must accept the Privacy Policy and consent to data processing to register.',
-            'birthday.before_or_equal' => 'You must be at least 12 years old to register an account.',
-        ]);
-
+    public function store(RegisterResidentRequest $request): RedirectResponse
+    {
         $parsedBirthday = Carbon::parse($request->birthday)->format('Y-m-d');
         $isMinor = Carbon::parse($parsedBirthday)->age < 18;
-        $firstName = strtolower(trim($request->first_name));
-        $lastName = strtolower(trim($request->last_name));
-
-        $approvedUser = User::where('role', 'resident')
-            ->whereHas('residentProfile', function ($profileQuery) use ($parsedBirthday) {$profileQuery->where('verification_status', 'approved')
-                             ->whereDate('birthday', $parsedBirthday);
-            })
-            ->whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
-            ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
-            ->first();
-
-        if ($approvedUser) {
-            return back()->withErrors([
-                'general' => 'An approved account already exists for this name and birthday. Please proceed to login instead.',
-            ])->withInput();
-        }
-
-        $pendingRegistration = ResidentRegistration::whereRaw('LOWER(TRIM(first_name)) = ?', [$firstName])
-            ->whereRaw('LOWER(TRIM(last_name)) = ?', [$lastName])
-            ->whereDate('birthday', $parsedBirthday)
-            ->exists();
-
-        if ($pendingRegistration) {
-            return back()->withErrors([
-                'general' => 'A registration for this name and birthday is already pending review.',
-            ])->withInput();
-        }
 
         // Fetch barangay ID based on selected dropdown values
         $inputBrgy = trim($request->barangay_name);

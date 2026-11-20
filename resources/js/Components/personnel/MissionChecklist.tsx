@@ -41,22 +41,23 @@ export default function MissionChecklist({
     };
 
     return (
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
             {prerequisiteNotice && (
                 <div role="alert" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
                     <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
                     {prerequisiteNotice}
                 </div>
             )}
-            <ul className="space-y-3">
+            <ul aria-label="Field checklist steps" className="space-y-3">
                 {items.map((item) => (
                     <li key={item.id}>
                         <button
                             type="button"
+                            aria-pressed={item.done}
                             disabled={readonly}
                             onClick={() => toggle(item.id)}
                             className={cn(
-                                'flex w-full items-center gap-3.5 rounded-2xl border p-4 text-left text-xs font-black transition-all shadow-2xs cursor-pointer',
+                                'flex min-w-0 w-full items-start gap-3 rounded-2xl border p-3 text-left text-xs font-black transition-all shadow-2xs cursor-pointer sm:p-4',
                                 item.done
                                     ? 'border-emerald-200 bg-emerald-50/70 text-emerald-950 shadow-none'
                                     : 'border-slate-200/80 bg-white hover:border-blue-400 hover:bg-slate-50 text-slate-900',
@@ -71,7 +72,7 @@ export default function MissionChecklist({
                             >
                                 {item.done && <Check className="h-3 w-3 stroke-[3]" />}
                             </span>
-                            <span className={cn('flex-1 truncate', item.done && 'text-emerald-950/60 line-through font-bold')}>
+                            <span className={cn('min-w-0 flex-1 whitespace-pre-line [overflow-wrap:anywhere] leading-relaxed', item.done && 'text-emerald-950/60 line-through font-bold')}>
                                 {item.label}
                             </span>
                         </button>

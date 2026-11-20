@@ -17,7 +17,9 @@ type Props = {
 
 export default function PreparednessManuals({ manuals }: Props) {
     const theme = useResidentTheme();
-    const [openId, setOpenId] = useState<string | null>(null);
+    const [openId, setOpenId] = useState<string | null>(() =>
+        typeof window === 'undefined' ? null : manuals.find((manual) => window.location.hash === '#library-' + manual.id)?.id ?? null,
+    );
 
     const toggle = (id: string) => setOpenId((current) => (current === id ? null : id));
 
@@ -32,10 +34,11 @@ export default function PreparednessManuals({ manuals }: Props) {
                     const isOpen = openId === manual.id;
 
                     return (
-                        <div key={manual.id} className={`overflow-hidden rounded-xl border ${theme.cardBorder} ${theme.cardBg} transition-all shadow-2xs`}>
+                        <div key={manual.id} id={'library-' + manual.id} className={`overflow-hidden rounded-xl border ${theme.cardBorder} ${theme.cardBg} transition-all shadow-2xs`}>
                             <button
                                 type="button"
                                 onClick={() => toggle(manual.id)}
+                                aria-expanded={isOpen}
                                 className={`flex w-full items-center gap-3.5 p-3.5 text-left transition-colors ${theme.hoverBg} cursor-pointer`}
                             >
                                 <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder} border font-bold`}>

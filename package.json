@@ -6,7 +6,8 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "test:verdict": "node --test tests/Frontend/reportVerdict.test.mjs"
+        "test:verdict": "node --test tests/Frontend/reportVerdict.test.mjs",
+        "test:help": "node --test tests/Frontend/barangayHelp.test.mjs"
     },
     "dependencies": {
         "@inertiajs/react": "^2.0.0",

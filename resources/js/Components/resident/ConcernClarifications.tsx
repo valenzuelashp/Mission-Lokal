@@ -23,6 +23,7 @@ export default function ConcernClarifications({ concernId, clarifications, canRe
             <div>
                 <h2 className="flex items-center gap-2 text-sm font-black"><MessageSquare className={`h-4 w-4 ${theme.primaryText}`} /> Questions from barangay staff</h2>
                 <p className={`mt-1 text-xs leading-relaxed ${theme.textMuted}`}>Only you and barangay staff can see these questions and your replies.</p>
+                <p className={`mt-2 text-xs leading-relaxed ${theme.textMuted}`}>Replying is optional. Barangay staff can continue assessing and processing your concern without a reply.</p>
             </div>
             <ConcernClarificationHistory entries={clarifications} repliesOpen={canReply} />
             {pending && canReply && (
@@ -33,7 +34,7 @@ export default function ConcernClarifications({ concernId, clarifications, canRe
                         onSuccess: () => reset('response'),
                     });
                 }}>
-                    <label htmlFor="clarification-response" className="block text-xs font-bold">Your reply</label>
+                    <label htmlFor="clarification-response" className="block text-xs font-bold">Your reply (optional)</label>
                     <textarea
                         id="clarification-response" value={data.response}
                         onChange={(event) => setData('response', event.target.value)}

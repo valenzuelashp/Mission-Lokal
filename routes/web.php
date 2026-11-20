@@ -92,6 +92,8 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::post('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'ask'])
         ->middleware('throttle:10,1')
         ->name('help.ask');
+    Route::delete('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'clear'])
+        ->middleware('throttle:10,1')->name('help.clear');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
     Route::post('/announcements/{announcement}/volunteer', [AnnouncementController::class, 'volunteer'])->name('announcements.volunteer');
@@ -170,6 +172,7 @@ Route::middleware('guest')->group(function () {
     
     // Secure Registration Routes (strictly for guests)
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register/identity', [RegisteredUserController::class, 'validateIdentity'])->name('register.identity');
     Route::post('/register', [RegisteredUserController::class, 'store']);
     Route::get('/api/location-options', [RegisteredUserController::class, 'getLocationOptions']);
 

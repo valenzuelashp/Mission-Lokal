@@ -47,8 +47,8 @@ export default function Notifications({ notifications = [] }: Partial<PersonnelN
                                         )}>
                                             <Icon className="h-5 w-5" />
                                         </div>
-                                        <div className="flex-1 space-y-1.5">
-                                            <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0 flex-1 space-y-1.5 break-words">
+                                            <div className="flex flex-col items-start gap-1 sm:flex-row sm:justify-between sm:gap-3">
                                                 <p className={cn(
                                                     "text-sm font-black",
                                                     !item.read ? "text-slate-900" : "text-slate-800"

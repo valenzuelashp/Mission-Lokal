@@ -1,0 +1,55 @@
+/* Keep the review workspace readable alongside the shared admin theme rules. */
+/* A regular block scrolls the fieldset's contents without fieldset painting quirks. */
+.concern-review .review-decision-fields {
+    scrollbar-gutter: stable;
+    overscroll-behavior-y: contain;
+}
+
+@media (min-width: 1024px) and (max-height: 640px) {
+    .concern-review #staff-decision {
+        position: static;
+        max-height: none;
+    }
+
+    .concern-review .review-decision-fields {
+        overflow: visible;
+        scrollbar-gutter: auto;
+    }
+}
+
+.dark .concern-review .review-decision-header {
+    background-image: none;
+    background-color: #152238;
+}
+
+.dark .concern-review [class~="bg-slate-100"],
+.dark .concern-review [class~="bg-white/50"] {
+    background-color: #1e293b;
+}
+
+.dark .concern-review [class~="bg-blue-50"],
+.dark .concern-review [class~="bg-blue-50/60"],
+.dark .concern-review [class~="bg-blue-50/70"] {
+    background-color: #142c4b;
+}
+
+.dark .concern-review [class~="text-blue-600"],
+.dark .concern-review [class~="text-blue-700"],
+.dark .concern-review [class~="text-blue-800"],
+.dark .concern-review [class~="text-blue-900"] {
+    color: #93c5fd;
+}
+
+.dark .concern-review [class~="text-blue-950"] {
+    color: #dbeafe;
+}
+
+.dark .concern-review [class~="border-blue-100"],
+.dark .concern-review [class~="border-blue-200"] {
+    border-color: #28466b;
+}
+
+.dark .concern-review [role="tabpanel"] :is(button, a):focus-visible,
+.dark .concern-review [role="tab"]:focus-visible {
+    outline-color: #93c5fd;
+}

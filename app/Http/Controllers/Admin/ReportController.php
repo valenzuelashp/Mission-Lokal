@@ -319,26 +319,20 @@ class ReportController extends Controller
         });
 
         $reportQuality = $aiAnalysis?->reportQuality() ?? 'ready_for_review';
-        $pendingClarification = $record->clarifications->contains(fn ($entry) => $entry->answered_at === null);
-        $hasClarificationReply = $record->clarifications->contains(fn ($entry) => $entry->answered_at !== null);
         $recommendedAction = 'escalate';
-        $actionReason = 'AI suggests standard operational triage and deployment.';
+        $actionReason = 'The available report supports standard triage and deployment, subject to staff approval.';
 
-        if ($pendingClarification) {
-            $recommendedAction = 'review';
-            $actionReason = 'Questions have been sent to the resident. Staff may review the concern while awaiting their reply.';
-        } elseif ($hasClarificationReply) {
-            $recommendedAction = 'review';
-            $actionReason = 'The resident provided additional details. Staff should review the private reply before choosing an action.';
-        } elseif ($reportQuality === 'possible_spam') {
+        // Clarification is supplementary: unanswered requests and optional reanalysis
+        // must not replace the assessment or prevent staff from processing the report.
+        if ($reportQuality === 'possible_spam') {
             $recommendedAction = 'dismiss';
             $actionReason = 'The report was flagged as possible spam. Staff must verify its content before deciding whether to dismiss it.';
-        } elseif ($reportQuality === 'needs_clarification') {
-            $recommendedAction = 'review';
-            $actionReason = 'Information is missing or severity is uncertain. Review the suggested questions and request details if needed.';
         } elseif ($aiAnalysis?->duplicate_candidate_id) {
             $recommendedAction = 'merge';
-            $actionReason = 'AI detected a high-probability duplicate report nearby. Merging will consolidate resources.';
+            $actionReason = 'A possible duplicate was found nearby. Compare the reports before confirming a merge.';
+        } elseif ($reportQuality === 'needs_clarification') {
+            $recommendedAction = 'review';
+            $actionReason = 'Severity has been assessed using the available information. Staff can decide now; requesting more details is optional.';
         }
 
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
