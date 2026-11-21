@@ -47,8 +47,8 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
     };
 
     return (
-        <PersonnelLayout title={`Mission-Lokal Personnel: Proof — ${mission.id}`}>
-            <Head title={`Proof — ${mission.id}`} />
+        <PersonnelLayout title={`Mission-Lokal Personnel: Proof — ${mission.display_id ?? mission.id}`}>
+            <Head title={`Proof — ${mission.display_id ?? mission.id}`} />
 
             {flash.success && (
                 <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
@@ -66,7 +66,7 @@ export default function Proof(props: Partial<PersonnelMissionPageProps>) {
                 </Button>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Submit Execution Proof</h2>
                 <p className="mt-1 break-words text-xs sm:text-sm font-medium text-slate-500">
-                    {mission.id} · {mission.title}
+                    {mission.display_id ?? mission.id} · {mission.title}
                 </p>
             </div>
 

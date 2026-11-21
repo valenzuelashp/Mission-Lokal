@@ -75,6 +75,7 @@ class MissionController extends Controller
 
             return [
                 'id' => $mission->id, 
+                'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
                 'concern_id' => $concern?->id,
                 'title' => $concern?->title ?? 'Untitled Mission',
                 'location' => $concern?->locationLabel() ?? 'Unknown location',
@@ -205,6 +206,7 @@ class MissionController extends Controller
 
         $formattedMission = [
             'id' => $mission->id,
+            'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
             'concern_id' => $concern?->id,
             'title' => $concern?->title ?? 'Untitled Mission',
             'location' => $concern?->locationLabel() ?? 'Unknown location',
@@ -525,6 +527,7 @@ class MissionController extends Controller
 
         $formattedMission = [
             'id' => $mission->id,
+            'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
             'title' => $concern?->title ?? 'Untitled Mission',
             'location' => $concern?->locationLabel() ?? 'Unknown location',
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',

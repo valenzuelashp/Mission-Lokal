@@ -379,6 +379,7 @@ export interface PersonnelChecklistItem {
 
 export interface PersonnelMission {
     id: string;
+    display_id?: string;
     concern_id: string;
     title: string;
     images?: string[];

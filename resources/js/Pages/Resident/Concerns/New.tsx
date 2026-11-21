@@ -31,7 +31,6 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
     const { data, setData, post, processing, errors, progress } = useForm({
         title: '',
         description: '',
-        incident_occurred_at: '',
         category_id: '',
         lat: defaultLat,
         lng: defaultLng,
@@ -66,7 +65,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
         <>
             <Head title="Post Concern" />
             
-            <div className={`w-full ${modal ? 'flex min-h-0 flex-1 flex-col' : 'space-y-6 pb-2 pt-8 sm:pt-10'}`}>
+            <div className={`w-full ${modal ? 'md:flex md:min-h-0 md:flex-1 md:flex-col' : 'space-y-6 pb-2 pt-8 sm:pt-10'}`}>
                 {!modal && (
                     <PageHeader
                         title="Post a Community Concern"
@@ -84,20 +83,20 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                 )}
 
                 <form onSubmit={submit} className={modal
-                    ? 'grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)_auto]'
+                    ? 'grid grid-cols-1 gap-3 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)_auto]'
                     : 'grid gap-6 2xl:grid-cols-2'} noValidate>
                     <Card className={`min-h-0 shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
                         <CardHeader className={`border-b ${theme.dividerColor} ${modal ? 'p-3 pb-2 sm:px-4' : 'pb-5'}`}>
                             <CardTitle className="text-sm font-black uppercase tracking-wider" id="details-heading">Incident Details</CardTitle>
                         </CardHeader>
-                        <CardContent className={modal ? 'grid grid-cols-2 gap-x-3 gap-y-2 p-3 sm:p-4' : 'space-y-5 p-6 sm:p-8'} aria-labelledby="details-heading">
+                        <CardContent className={modal ? 'grid grid-cols-1 gap-3 p-3 min-[360px]:grid-cols-2 sm:gap-x-4 sm:gap-y-4 sm:p-5 md:gap-y-3 md:p-4' : 'space-y-5 p-6 sm:p-8'} aria-labelledby="details-heading">
                             <div className={modal ? 'col-span-1 min-w-0 space-y-1' : 'space-y-2'}>
                                 <Label htmlFor="title">Issue Title <span aria-hidden="true" className="text-red-500">*</span></Label>
                                 <Input
                                     id="title"
                                     value={data.title}
                                     onChange={(e) => setData('title', e.target.value)}
-                                    placeholder="e.g. Clogged drainage on Mabini St."
+                                    placeholder={modal ? 'e.g. Clogged drain' : 'e.g. Clogged drainage on Mabini St.'}
                                     required
                                     className={`${theme.inputBg} rounded-2xl h-11 text-xs`}
                                 />
@@ -105,15 +104,15 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                             </div>
 
                             <div className={modal ? 'col-span-1 min-w-0 space-y-1' : 'space-y-2'}>
-                                <Label htmlFor="category_id">Category Classification <span aria-hidden="true" className="text-red-500">*</span></Label>
+                                <Label htmlFor="category_id">{modal ? 'Category' : 'Category Classification'} <span aria-hidden="true" className="text-red-500">*</span></Label>
                                 <select
                                     id="category_id"
                                     value={data.category_id}
                                     onChange={(e) => setData('category_id', e.target.value)}
-                                    className={`flex h-11 w-full rounded-2xl border ${theme.cardBorder} ${theme.inputBg} px-4 py-2.5 text-xs font-bold shadow-2xs focus-visible:outline-none focus-visible:ring-2 ${theme.focusRing} cursor-pointer`}
+                                    className={`flex h-11 w-full rounded-2xl border ${theme.cardBorder} ${theme.inputBg} ${modal ? 'px-2 sm:px-4' : 'px-4'} py-2.5 text-xs font-bold shadow-2xs focus-visible:outline-none focus-visible:ring-2 ${theme.focusRing} cursor-pointer`}
                                     required
                                 >
-                                    <option value="">Select concern category</option>
+                                    <option value="">{modal ? 'Choose category' : 'Select concern category'}</option>
                                     {categories.map((c) => {
                                         if (isMinor && (c.value === 'vawc' || c.value === 'noise')) {
                                             return null;
@@ -136,7 +135,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                 {errors.category_id && <p id="category-error" role="alert" className="text-xs font-medium text-destructive">{errors.category_id}</p>}
                             </div>
 
-                            <div className={modal ? 'col-span-2 min-w-0 space-y-1' : 'space-y-2'}>
+                            <div className={modal ? 'col-span-1 min-w-0 space-y-2 min-[360px]:col-span-2' : 'space-y-2'}>
                                 <Label htmlFor="description">Detailed Description <span aria-hidden="true" className="text-red-500">*</span></Label>
                                 <Textarea
                                     id="description"
@@ -145,19 +144,12 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                     placeholder="Describe what happened, severity, and when you noticed it..."
                                     required
                                     rows={modal ? 3 : 5}
-                                    className={`resize-none ${theme.inputBg} rounded-2xl p-4 text-xs`}
+                                    className={`resize-none ${theme.inputBg} rounded-2xl text-xs ${modal ? 'min-h-24 p-3' : 'p-4'}`}
                                 />
                                 {errors.description && <p id="description-error" role="alert" className="text-xs font-medium text-destructive">{errors.description}</p>}
-                                <div className="space-y-1 pt-2">
-                                    <Label htmlFor="incident-occurred-at">When did this happen? (optional)</Label>
-                                    <Input id="incident-occurred-at" type="datetime-local" value={data.incident_occurred_at}
-                                        onChange={event => setData('incident_occurred_at', event.target.value)} className={theme.inputBg} />
-                                    <p className={`text-[11px] ${theme.textMuted}`}>Use barangay local time. If unknown, the report submission time will be used to compare incidents.</p>
-                                    {errors.incident_occurred_at && <p role="alert" className="text-xs text-red-600">{errors.incident_occurred_at}</p>}
-                                </div>
                             </div>
 
-                            <div className={modal ? 'col-span-2 min-w-0 space-y-1' : 'space-y-2'}>
+                            <div className={modal ? 'col-span-1 min-w-0 space-y-2 min-[360px]:col-span-2' : 'space-y-2'}>
                                 <Label htmlFor="photos">Photographic Evidence (Optional)</Label>
                                 <Input
                                     id="photos"
@@ -176,8 +168,8 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                         <CardHeader className={`border-b ${theme.dividerColor} ${modal ? 'p-3 pb-2 sm:px-4' : 'pb-5'}`}>
                             <CardTitle className="text-sm font-black uppercase tracking-wider" id="location-heading">Precise Map Location</CardTitle>
                         </CardHeader>
-                        <CardContent className={modal ? 'flex min-h-0 flex-1 flex-col p-2 sm:p-3' : 'p-6 sm:p-8'} aria-labelledby="location-heading">
-                            <div className={modal ? 'min-h-0 flex-1' : ''}>
+                        <CardContent className={modal ? 'p-3 sm:p-4 md:flex md:min-h-0 md:flex-1 md:flex-col md:p-3' : 'p-6 sm:p-8'} aria-labelledby="location-heading">
+                            <div className={modal ? 'md:min-h-0 md:flex-1' : ''}>
                                 <MapPinPicker
                                     center={[defaultLat, defaultLng]}
                                     position={[data.lat, data.lng]}
@@ -186,7 +178,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                         setData('lat', lat);
                                         setData('lng', lng);
                                     }}
-                                    className={modal ? 'h-[clamp(7rem,18dvh,10rem)] sm:h-40 md:h-full rounded-2xl overflow-hidden' : 'h-80 sm:h-96 rounded-2xl overflow-hidden'}
+                                    className={modal ? 'h-56 rounded-2xl overflow-hidden sm:h-64 md:h-full' : 'h-80 sm:h-96 rounded-2xl overflow-hidden'}
                                     compact={modal}
                                 />
                             </div>
@@ -195,10 +187,12 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                     </Card>
 
                     {/* SUBMIT SECTION */}
-                    <div className={`flex ${modal ? 'flex-row gap-2 pt-0 md:col-span-2 md:justify-end' : 'flex-col gap-3 pt-2 sm:flex-row lg:col-span-2'}`}>
+                    <div className={`flex ${modal
+                        ? `sticky bottom-0 z-10 -mx-3 flex-row gap-2 border-t ${theme.dividerColor} ${theme.cardBg} p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 md:static md:col-span-2 md:mx-0 md:justify-end md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none`
+                        : 'flex-col gap-3 pt-2 sm:flex-row lg:col-span-2'}`}>
                         <Button 
                             type="submit" 
-                            className={`${modal ? 'min-w-0 flex-1 px-2 text-[10px] sm:flex-none sm:px-5 sm:text-xs' : 'w-full py-3.5 sm:w-auto px-8'} ${theme.primaryBg} ${theme.primaryHover} text-white font-black shadow-sm cursor-pointer rounded-2xl h-10 sm:h-12`}
+                            className={`${modal ? 'min-w-0 flex-1 px-3 text-xs sm:flex-none sm:px-5' : 'w-full py-3.5 sm:w-auto px-8'} ${theme.primaryBg} ${theme.primaryHover} text-white font-black shadow-sm cursor-pointer rounded-2xl h-11 sm:h-12`}
                             disabled={processing}
                         >
                             {processing
@@ -208,7 +202,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                 : 'Submit Community Concern'}
                         </Button>
                         {modal ? (
-                            <Button type="button" variant="outline" className={`font-black text-xs cursor-pointer rounded-2xl h-10 sm:h-12 ${modal ? 'px-4 sm:px-8' : 'w-full py-3.5 sm:w-auto px-8'}`} onClick={onClose} disabled={processing}>
+                            <Button type="button" variant="outline" className={`font-black text-xs cursor-pointer rounded-2xl h-11 sm:h-12 ${modal ? 'px-5 sm:px-8' : 'w-full py-3.5 sm:w-auto px-8'}`} onClick={onClose} disabled={processing}>
                                 Cancel
                             </Button>
                         ) : (
@@ -249,7 +243,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-6 sm:py-4">
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 sm:py-4 md:overflow-hidden">
                     {pageContent}
                 </div>
             </section>

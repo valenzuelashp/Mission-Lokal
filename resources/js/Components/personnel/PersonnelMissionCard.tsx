@@ -17,7 +17,7 @@ export default function PersonnelMissionCard({ mission }: Props) {
             <Card className="shadow-2xs transition-all duration-200 hover:shadow-md hover:border-emerald-300 border-slate-200/80 bg-white rounded-3xl overflow-hidden">
                 <CardContent className="space-y-3.5 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                        <span className="min-w-0 break-all text-xs font-mono font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">{mission.id}</span>
+                        <span className="min-w-0 break-all text-xs font-mono font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100">{mission.display_id ?? mission.id}</span>
                         <MissionStatusBadge status={mission.status} />
                     </div>
                     <p className="break-words font-black text-slate-900 group-hover:text-emerald-700 transition-colors text-sm">{mission.title}</p>

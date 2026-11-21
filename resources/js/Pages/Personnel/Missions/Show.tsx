@@ -73,8 +73,8 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
     };
 
     return (
-        <PersonnelLayout title={`Department Mission: ${mission.id}`}>
-            <Head title={`Mission ${mission.id}`} />
+        <PersonnelLayout title={`Department Mission: ${mission.display_id ?? mission.id}`}>
+            <Head title={`Mission ${mission.display_id ?? mission.id}`} />
 
             {flash.success && (
                 <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">
@@ -100,7 +100,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
             </div>
 
             <div>
-                <h2 className="break-words text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{mission.id} · {mission.title}</h2>
+                <h2 className="break-words text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{mission.display_id ?? mission.id} · {mission.title}</h2>
             </div>
 
             {!isAssigned && (
@@ -149,11 +149,7 @@ export default function Show(props: Partial<PersonnelMissionPageProps>) {
                             )}
 
                             <dl className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs break-words">
-                                <div>
-                                    <span className="text-slate-400 font-bold uppercase tracking-wider block">Concern Reference ID</span>
-                                    <span className="font-mono font-black text-slate-900 text-sm">{mission.concern_id}</span>
-                                </div>
-                                <div>
+                                <div className="col-span-2">
                                     <span className="text-slate-400 font-bold uppercase tracking-wider block">Target Deadline</span>
                                     <span className="font-black text-slate-900 text-sm">{mission.due_date}</span>
                                 </div>

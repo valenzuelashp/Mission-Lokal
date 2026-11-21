@@ -71,7 +71,7 @@ export default function ConcernCard({ concern }: Props) {
 
     return (
         <article className={`overflow-hidden rounded-3xl border ${theme.cardBorder} ${theme.cardBg} shadow-sm transition-all hover:shadow-md w-full`}>
-            <div className={`flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 ${theme.dividerColor}`}>
+            <div className={`relative flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 ${theme.dividerColor}`}>
                 <div className="flex min-w-0 items-center gap-3.5">
                     <UserAvatar
                         src={concern.reporter_photo_url}
@@ -79,7 +79,7 @@ export default function ConcernCard({ concern }: Props) {
                         fallback="ML"
                         className={`h-11 w-11 shrink-0 rounded-2xl border font-black shadow-2xs ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}
                     />
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-12 sm:pr-0">
                         <p className={`break-words text-sm font-black ${theme.textMain}`}>{concern.reporter_name ?? 'Verified Resident'}</p>
                         {concern.reporter_badge && (
                             <span title="Earned Civic XP badge" className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-[10px] font-bold text-emerald-700">
@@ -99,55 +99,57 @@ export default function ConcernCard({ concern }: Props) {
                         {concern.visibility === 'private' ? 'Private View' : 'Public View'}
                     </span>
                     {concern.is_owner ? (
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setMenuOpen((open) => !open)}
-                                title="Post options"
-                                aria-label="Post options"
-                                aria-expanded={menuOpen}
-                                className={`rounded-2xl p-2.5 ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 cursor-pointer transition-colors`}
-                            >
-                                <MoreHorizontal className="h-5 w-5" />
-                            </button>
-                            {menuOpen && (
-                                <div className={`absolute right-0 top-12 z-10 w-48 rounded-2xl border ${theme.cardBorder} ${theme.cardBg} p-2 text-left shadow-xl space-y-1`}>
-                                    {!concern.privacy_locked && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={() => setPrivacyEditorOpen((open) => !open)}
-                                                className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold ${theme.textMain} ${theme.hoverBg} cursor-pointer transition-colors`}
-                                            >
-                                                Edit Privacy
-                                            </button>
-                                            {privacyEditorOpen && (
-                                                <select
-                                                    aria-label="Post privacy"
-                                                    value={concern.visibility === 'private' ? 'private' : 'public'}
-                                                    onChange={(event) => {
-                                                        updateVisibility(event.target.value as 'public' | 'private');
-                                                        setMenuOpen(false);
-                                                        setPrivacyEditorOpen(false);
-                                                    }}
-                                                    className={`mx-2 mb-2 h-9 w-[calc(100%-1rem)] rounded-xl border ${theme.cardBorder} ${theme.inputBg} px-3 text-xs font-bold cursor-pointer`}
+                        <div className="absolute right-4 top-4 z-10 sm:static">
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setMenuOpen((open) => !open)}
+                                    title="Post options"
+                                    aria-label="Post options"
+                                    aria-expanded={menuOpen}
+                                    className={`rounded-2xl p-2.5 ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 cursor-pointer transition-colors`}
+                                >
+                                    <MoreHorizontal className="h-5 w-5" />
+                                </button>
+                                {menuOpen && (
+                                    <div className={`absolute right-0 top-12 z-10 w-40 max-w-[calc(100vw-2rem)] rounded-xl border ${theme.cardBorder} ${theme.cardBg} p-1.5 text-left shadow-xl space-y-0.5`}>
+                                        {!concern.privacy_locked && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPrivacyEditorOpen((open) => !open)}
+                                                    className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold ${theme.textMain} ${theme.hoverBg} cursor-pointer transition-colors`}
                                                 >
-                                                    <option value="public">🌐 Everyone</option>
-                                                    <option value="private">🔒 Only Me</option>
-                                                </select>
-                                            )}
-                                        </>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={handleDelete}
-                                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        Delete Post
-                                    </button>
-                                </div>
-                            )}
+                                                    Edit Privacy
+                                                </button>
+                                                {privacyEditorOpen && (
+                                                    <select
+                                                        aria-label="Post privacy"
+                                                        value={concern.visibility === 'private' ? 'private' : 'public'}
+                                                        onChange={(event) => {
+                                                            updateVisibility(event.target.value as 'public' | 'private');
+                                                            setMenuOpen(false);
+                                                            setPrivacyEditorOpen(false);
+                                                        }}
+                                                        className={`mx-2 mb-2 h-9 w-[calc(100%-1rem)] rounded-xl border ${theme.cardBorder} ${theme.inputBg} px-3 text-xs font-bold cursor-pointer`}
+                                                    >
+                                                        <option value="public">🌐 Everyone</option>
+                                                        <option value="private">🔒 Only Me</option>
+                                                    </select>
+                                                )}
+                                            </>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete Post
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     ) : null}
                 </div>

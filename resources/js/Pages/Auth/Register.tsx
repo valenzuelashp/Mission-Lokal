@@ -2,7 +2,7 @@ import { Head, useForm, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { ShieldAlert, Search, ChevronDown, FileText, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Search, ChevronDown, ChevronLeft, FileText, CheckCircle2 } from 'lucide-react';
 import FormProgress from '@/Components/shared/FormProgress';
 
 function formatDateInputForPH(date: Date) {
@@ -588,10 +588,11 @@ export default function Register() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-slate-100">
+                    <div className={`flex gap-2 pt-4 border-t border-slate-100 ${registrationStep === 2 ? 'flex-row items-center justify-between' : 'flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-3'}`}>
                         {registrationStep === 2 ? (
-                            <Button type="button" variant="outline" disabled={processing} onClick={() => setRegistrationStep(1)} className="w-full sm:w-auto rounded-xl text-xs font-bold">
-                                &larr; Previous
+                            <Button type="button" variant="outline" disabled={processing} onClick={() => setRegistrationStep(1)} className="w-auto shrink-0 whitespace-nowrap rounded-xl px-3 text-xs font-bold">
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
                             </Button>
                         ) : (
                             <Link href="/account-status" className="inline-flex min-h-11 items-center text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline">
@@ -603,7 +604,7 @@ export default function Register() {
                                 {processing ? 'Checking details...' : 'Continue to Address'}
                             </Button>
                         ) : (
-                            <Button type="submit" disabled={processing} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 transition-all text-xs tracking-wide">
+                            <Button type="submit" disabled={processing} className="w-full flex-1 sm:w-auto sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 sm:px-6 py-2 rounded-xl shadow-md shadow-blue-600/20 transition-all text-xs tracking-wide">
                                 {processing ? 'Submitting...' : 'Submit Registration'}
                             </Button>
                         )}

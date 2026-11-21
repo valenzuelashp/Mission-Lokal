@@ -52,7 +52,7 @@ export default function PersonnelMissionTable({ missions }: Props) {
                                     {...rowNavProps(href)}
                                 >
                                     <td className="px-6 py-4 font-mono text-xs font-black text-emerald-700">
-                                        {row.id}
+                                        {row.display_id ?? row.id}
                                     </td>
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-3.5">
@@ -72,7 +72,6 @@ export default function PersonnelMissionTable({ missions }: Props) {
                                                     {row.title}
                                                 </div>
                                                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-                                                    <span>ID: {row.concern_id}</span>
                                                     {!assignedToMe && <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-sky-800">Team view</span>}
                                                 </div>
                                             </div>
