@@ -52,10 +52,10 @@ class MissionController extends Controller
         $missionsQuery = $access->departmentQueue($personnel)
             ->select('missions.*')
             ->addSelect([
-                'lat' => \App\Models\Concern::selectRaw('ST_X(location)')
+                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
-                'lng' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
@@ -121,10 +121,10 @@ class MissionController extends Controller
         $mission = Mission::with(['concern.media', 'concern.subcategory', 'proof.media', 'checklistItems', 'personnel'])
             ->select('missions.*') 
             ->addSelect([
-                'lat' => \App\Models\Concern::selectRaw('ST_X(location)')
+                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
-                'lng' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
