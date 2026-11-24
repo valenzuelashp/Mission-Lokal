@@ -105,10 +105,16 @@ class VerificationController extends Controller
                 ];
             });
 
-        $queue = $queue->concat($decided)->values();
+        $waiting = $queue
+            ->filter(fn (array $row) => ! in_array($row['verification_status'], ['approved', 'rejected'], true))
+            ->values();
+        $alreadyDecided = $queue
+            ->filter(fn (array $row) => in_array($row['verification_status'], ['approved', 'rejected'], true))
+            ->map(fn (array $row) => [...$row, 'can_decide' => false]);
 
         return Inertia::render('Admin/Verifications/Index', [
-            'queue' => $queue,
+            'queue' => $waiting,
+            'decided' => $alreadyDecided->concat($decided)->values(),
         ]);
     }
 

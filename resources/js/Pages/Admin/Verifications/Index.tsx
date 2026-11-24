@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
+import { cn } from '@/Lib/utils';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 declare function route(name: string, params?: any): string;
@@ -45,14 +47,78 @@ function formatSubmittedAt(value: string | null) {
     }).format(date);
 }
 
-export default function Index({ queue = [] }: { queue: QueueItem[] }) {
+type DecisionFilter = 'all' | 'approved' | 'rejected';
+
+function ApplicantTable({ rows }: { rows: QueueItem[] }) {
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+                <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-black uppercase tracking-wider text-slate-400">
+                    <tr>
+                        <th className="px-6 py-4">Reference ID</th>
+                        <th className="px-5 py-4">Applicant Name</th>
+                        <th className="px-5 py-4">Contact Details</th>
+                        <th className="px-5 py-4">Submitted At</th>
+                        <th className="px-5 py-4">Status Tag</th>
+                        <th className="px-6 py-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {rows.map((person) => (
+                        <tr
+                            key={person.id}
+                            className="cursor-pointer hover:bg-slate-50/70 transition-colors group"
+                            {...rowNavProps(route('admin.verifications.show', person.id))}
+                        >
+                            <td className="px-6 py-4 font-mono text-xs font-black text-blue-700">
+                                {person.account_id}
+                            </td>
+                            <td className="px-5 py-4 font-extrabold text-slate-900 text-xs">
+                                {person.first_name} {person.last_name}
+                            </td>
+                            <td className="px-5 py-4 text-xs text-slate-600">
+                                <div className="font-bold text-slate-900">{person.email || 'Unknown'}</div>
+                                <div className="text-[11px] text-slate-400 font-medium">{person.mobile || 'Unknown'}</div>
+                            </td>
+                            <td className="px-5 py-4 text-xs font-medium text-slate-500">
+                                {formatSubmittedAt(person.created_at)}
+                            </td>
+                            <td className="px-5 py-4">
+                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl border inline-block shadow-2xs ${statusClass(person.verification_status)}`}>
+                                    {statusLabel(person.verification_status)}
+                                </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <Link
+                                    href={route('admin.verifications.show', person.id)}
+                                    onClick={stopRowNav}
+                                    className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-100 inline-block shadow-2xs transition-colors"
+                                >
+                                    {person.can_decide === false ? 'View record' : 'Compare ID →'}
+                                </Link>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+export default function Index({ queue = [], decided = [] }: { queue?: QueueItem[]; decided?: QueueItem[] }) {
+    const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>('all');
+    const filteredDecided = decided.filter((person) => decisionFilter === 'all' || person.verification_status === decisionFilter);
+    const filters: { key: DecisionFilter; label: string }[] = [
+        { key: 'all', label: 'All' },
+        { key: 'approved', label: 'Approved' },
+        { key: 'rejected', label: 'Rejected' },
+    ];
+
     return (
         <AdminLayout title="Mission-Lokal Admin: Verification Queue">
             <Head title="Verification Queue" />
 
             <div className="w-full space-y-8 pb-16">
-                
-                {/* Header Title Block */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/60">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -69,70 +135,59 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                     </div>
                 </div>
 
-                {/* Verification Queue Data Table Card */}
-                <div className="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden">
-                    {!queue || queue.length === 0 ? (
-                        <div className="py-20 text-center space-y-3">
-                            <div className="mx-auto h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                <section className="space-y-3">
+                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">Waiting for review</h2>
+                    <div className="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden">
+                        {queue.length === 0 ? (
+                            <div className="py-16 text-center space-y-3">
+                                <div className="mx-auto h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-900">Inbox Zero — All Clear</h3>
+                                <p className="mt-1 text-xs text-muted-foreground">There are no self-registrations waiting for physical verification right now.</p>
                             </div>
-                            <h3 className="text-sm font-bold text-slate-900">Inbox Zero — All Clear</h3>
-                            <p className="mt-1 text-xs text-muted-foreground">There are no self-registrations waiting for physical verification right now.</p>
+                        ) : (
+                            <ApplicantTable rows={queue} />
+                        )}
+                    </div>
+                </section>
+
+                <section className="space-y-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 className="text-sm font-black uppercase tracking-wider text-slate-700">Decided applications</h2>
+                        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter decided applications">
+                            {filters.map((filter) => (
+                                <button
+                                    key={filter.key}
+                                    type="button"
+                                    aria-pressed={decisionFilter === filter.key}
+                                    onClick={() => setDecisionFilter(filter.key)}
+                                    className={cn(
+                                        'rounded-xl border px-3 py-1.5 text-xs font-bold',
+                                        decisionFilter === filter.key
+                                            ? 'border-blue-600 bg-blue-600 text-white'
+                                            : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300',
+                                    )}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-black uppercase tracking-wider text-slate-400">
-                                    <tr>
-                                        <th className="px-6 py-4">Reference ID</th>
-                                        <th className="px-5 py-4">Applicant Name</th>
-                                        <th className="px-5 py-4">Contact Details</th>
-                                        <th className="px-5 py-4">Submitted At</th>
-                                        <th className="px-5 py-4">Status Tag</th>
-                                        <th className="px-6 py-4 text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {queue.map((person) => (
-                                        <tr
-                                            key={person.id}
-                                            className="cursor-pointer hover:bg-slate-50/70 transition-colors group"
-                                            {...rowNavProps(route('admin.verifications.show', person.id))}
-                                        >
-                                            <td className="px-6 py-4 font-mono text-xs font-black text-blue-700">
-                                                {person.account_id}
-                                            </td>
-                                            <td className="px-5 py-4 font-extrabold text-slate-900 text-xs">
-                                                {person.first_name} {person.last_name}
-                                            </td>
-                                            <td className="px-5 py-4 text-xs text-slate-600">
-                                                <div className="font-bold text-slate-900">{person.email || 'Unknown'}</div>
-                                                <div className="text-[11px] text-slate-400 font-medium">{person.mobile || 'Unknown'}</div>
-                                            </td>
-                                            <td className="px-5 py-4 text-xs font-medium text-slate-500">
-                                                {formatSubmittedAt(person.created_at)}
-                                            </td>
-                                            <td className="px-5 py-4">
-                                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl border inline-block shadow-2xs ${statusClass(person.verification_status)}`}>
-                                                    {statusLabel(person.verification_status)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <Link 
-                                                    href={route('admin.verifications.show', person.id)} 
-                                                    onClick={stopRowNav}
-                                                    className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-100 inline-block shadow-2xs transition-colors"
-                                                >
-                                                    {person.can_decide === false ? 'View record' : 'Compare ID →'}
-                                                </Link>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
+                    </div>
+                    <div className="bg-white rounded-3xl shadow-2xs border border-slate-200/80 overflow-hidden">
+                        {filteredDecided.length === 0 ? (
+                            <p className="px-6 py-12 text-center text-xs font-medium text-slate-500">
+                                {decisionFilter === 'approved'
+                                    ? 'No approved applications yet.'
+                                    : decisionFilter === 'rejected'
+                                        ? 'No rejected applications yet.'
+                                        : 'No decided applications yet.'}
+                            </p>
+                        ) : (
+                            <ApplicantTable rows={filteredDecided} />
+                        )}
+                    </div>
+                </section>
             </div>
         </AdminLayout>
     );
