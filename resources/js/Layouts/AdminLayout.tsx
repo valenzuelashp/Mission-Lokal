@@ -453,7 +453,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
             <FlashToasts />
             <PasswordPromptModal />
             <aside className={cn(
-                "hidden h-full shrink-0 flex-col lg:flex transition-all duration-300 overflow-visible z-20",
+                "hidden h-full shrink-0 flex-col lg:flex transition-all duration-300 overflow-visible z-30",
                 collapsed ? "w-20" : "w-64"
             )}>
                 {sidebarContent(false)}
@@ -473,7 +473,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
                 </div>
             )}
 
-            <div className="admin-content flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden dark:bg-slate-950">
+            <div className="admin-content relative z-0 flex h-full min-w-0 flex-1 flex-col bg-white overflow-hidden dark:bg-slate-950">
                 <AdminTopBar
                     title={title}
                     unreadCount={unread}

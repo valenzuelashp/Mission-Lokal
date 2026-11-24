@@ -44,7 +44,7 @@ export default function AdminOperationMap({ pins, center = TAMBO_CENTER, classNa
                     </span>
                 </div>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 shadow-2xs bg-white">
+            <div className="relative z-0 isolate min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 shadow-2xs bg-white">
                 <MapContainer center={center} zoom={13} scrollWheelZoom className="h-full w-full z-0">
                     <MapInvalidateSize />
                     <MapBasemapTiles basemap={basemap} />
