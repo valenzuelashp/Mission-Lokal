@@ -116,6 +116,7 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
         'blotterType' => $type,
     ]))->name('blotter.form');
     Route::get('/blotters', [\App\Http\Controllers\Resident\BlotterController::class, 'index'])->name('blotters.index');
+    Route::get('/blotters/{blotter}', [\App\Http\Controllers\Resident\BlotterController::class, 'show'])->name('blotters.show');
     Route::post('/blotter', [\App\Http\Controllers\Resident\BlotterController::class, 'store'])->name('blotter.store');
 });
 

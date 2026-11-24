@@ -35,6 +35,29 @@ class BlotterController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $id): Response
+    {
+        $blotter = Blotter::query()
+            ->where('complainant_id', $request->user()->id)
+            ->findOrFail($id);
+
+        return Inertia::render('Resident/Blotter/Show', [
+            'blotter' => [
+                'id' => (string) $blotter->id,
+                'ticket_number' => $blotter->ticket_number ?? 'Pending Review',
+                'type' => $blotter->type === 'two_party' ? 'Two-Party Dispute' : 'One-Party Log',
+                'respondent_name' => $blotter->respondent_name,
+                'narrative' => $blotter->narrative ?? '',
+                'incident_date' => $blotter->incident_at ? $blotter->incident_at->format('M d, Y h:i A') : 'Unknown Date',
+                'incident_address' => $blotter->incident_address ?? 'No location recorded',
+                'relief_sought' => $blotter->relief_sought,
+                'witnesses' => $blotter->witnesses ?? [],
+                'status' => $blotter->status ?? 'pending_approval',
+                'created_at' => $blotter->created_at?->format('M d, Y') ?? 'Recently',
+            ],
+        ]);
+    }
+
     /**
      * Store a formal legal blotter record.
      */
