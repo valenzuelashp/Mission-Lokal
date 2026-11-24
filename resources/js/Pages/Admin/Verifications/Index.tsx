@@ -14,12 +14,22 @@ interface QueueItem {
     mobile?: string;
     verification_status: string;
     created_at: string | null;
+    can_decide?: boolean;
 }
 
 function statusLabel(status: string) {
     if (status === 'in_progress') return 'In Review';
     if (status === 'pending') return 'Pending Review';
+    if (status === 'approved') return 'Approved';
+    if (status === 'rejected') return 'Rejected';
     return status.replace('_', ' ');
+}
+
+function statusClass(status: string) {
+    if (status === 'approved') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (status === 'rejected') return 'bg-rose-50 text-rose-700 border-rose-200';
+    if (status === 'in_progress') return 'bg-purple-50 text-purple-700 border-purple-200';
+    return 'bg-amber-50 text-amber-700 border-amber-200';
 }
 
 function formatSubmittedAt(value: string | null) {
@@ -103,11 +113,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                                 {formatSubmittedAt(person.created_at)}
                                             </td>
                                             <td className="px-5 py-4">
-                                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl border inline-block shadow-2xs ${
-                                                    person.verification_status === 'in_progress'
-                                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                                                }`}>
+                                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-xl border inline-block shadow-2xs ${statusClass(person.verification_status)}`}>
                                                     {statusLabel(person.verification_status)}
                                                 </span>
                                             </td>
@@ -117,7 +123,7 @@ export default function Index({ queue = [] }: { queue: QueueItem[] }) {
                                                     onClick={stopRowNav}
                                                     className="text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 px-3.5 py-2 rounded-xl border border-blue-100 inline-block shadow-2xs transition-colors"
                                                 >
-                                                    Compare ID →
+                                                    {person.can_decide === false ? 'View record' : 'Compare ID →'}
                                                 </Link>
                                             </td>
                                         </tr>

@@ -30,7 +30,17 @@ interface User {
     resident_profile: ResidentProfile | null;
 }
 
-export default function Show({ resident }: { resident: User }) {
+export default function Show({
+    resident,
+    canDecide = true,
+    decision = null,
+    rejectionReason = null,
+}: {
+    resident: User;
+    canDecide?: boolean;
+    decision?: string | null;
+    rejectionReason?: string | null;
+}) {
     const [showRejectBox, setShowRejectBox] = useState(false);
     const [showApproveBox, setShowApproveBox] = useState(false);
     const [physicalRecordChecked, setPhysicalRecordChecked] = useState(false);
@@ -135,6 +145,17 @@ export default function Show({ resident }: { resident: User }) {
                                 </span>
                             </div>
 
+                            {!canDecide && (
+                                <div className={`rounded-2xl border p-4 text-xs font-bold leading-relaxed ${
+                                    decision === 'rejected'
+                                        ? 'border-rose-200 bg-rose-50 text-rose-900'
+                                        : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                }`}>
+                                    {decision === 'rejected' ? 'This application was rejected.' : 'This application was approved.'}
+                                    {decision === 'rejected' && rejectionReason ? ` ${rejectionReason}` : ''}
+                                </div>
+                            )}
+
                             {(approveForm.errors as Record<string, string>).general && (
                                 <p className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-2xl p-4">
                                     {(approveForm.errors as Record<string, string>).general}
@@ -201,8 +222,7 @@ export default function Show({ resident }: { resident: User }) {
                                 </div>
                             </div>
 
-                            {/* Physical Record Confirmation Checkbox */}
-                            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5 shadow-2xs">
+                            {canDecide && <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5 shadow-2xs">
                                 <label className="flex items-start gap-3.5 cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -217,15 +237,15 @@ export default function Show({ resident }: { resident: User }) {
                                         I certify that I have verified this applicant's identity against our physical barangay registration logbook and checked their valid government ID.
                                     </span>
                                 </label>
-                            </div>
+                            </div>}
 
-                            {recordWarning && (
+                            {canDecide && recordWarning && (
                                 <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
                                     Confirm that you have checked the physical barangay records before approving.
                                 </p>
                             )}
 
-                            {showApproveBox && (
+                            {canDecide && showApproveBox && (
                                 <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                                     <div>
                                         <h3 className="text-sm font-black text-emerald-950">Approve this resident?</h3>
@@ -255,7 +275,7 @@ export default function Show({ resident }: { resident: User }) {
                                 </div>
                             )}
 
-                            <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 sm:flex-row">
+                            {canDecide && <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 sm:flex-row">
                                 <Button 
                                     type="submit"
                                     disabled={approveForm.processing || rejecting || !physicalRecordChecked}
@@ -272,7 +292,7 @@ export default function Show({ resident }: { resident: User }) {
                                 >
                                     {showRejectBox ? 'Cancel Rejection' : 'Reject Application'}
                                 </Button>
-                            </div>
+                            </div>}
                         </div>
 
                         {/* RIGHT COLUMN: Submitted Government ID View & Rejection Card underneath */}

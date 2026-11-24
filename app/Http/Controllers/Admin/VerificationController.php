@@ -53,8 +53,59 @@ class VerificationController extends Controller
                 'mobile' => $reg->mobile,
                 'verification_status' => $statusValue,
                 'created_at' => $reg->created_at ? $reg->created_at->toISOString() : null,
+                'can_decide' => true,
             ];
         });
+
+        $openEmails = $queue
+            ->map(fn (array $row) => strtolower((string) ($row['email'] ?? '')))
+            ->filter()
+            ->all();
+        $approvedUserIds = DB::table('audit_logs')
+            ->where('action', 'APPROVE')
+            ->where('entity_type', 'ResidentRegistration')
+            ->pluck('entity_id')
+            ->map(fn ($id) => (string) $id);
+
+        $decided = User::query()
+            ->where('role', 'resident')
+            ->when($barangayId, fn ($query) => $query->where('barangay_id', $barangayId))
+            ->whereHas('residentProfile', fn ($query) => $query->whereIn('verification_status', [
+                VerificationStatus::Approved->value,
+                VerificationStatus::Rejected->value,
+            ]))
+            ->with('residentProfile')
+            ->orderByDesc('created_at')
+            ->get()
+            ->filter(function (User $user) use ($openEmails, $approvedUserIds) {
+                if (in_array(strtolower((string) $user->email), $openEmails, true)) {
+                    return false;
+                }
+
+                $status = $user->residentProfile?->verification_status;
+                $statusValue = $status instanceof VerificationStatus ? $status->value : $status;
+
+                return $statusValue === VerificationStatus::Rejected->value
+                    || $approvedUserIds->contains((string) $user->id);
+            })
+            ->map(function (User $user) {
+                $status = $user->residentProfile?->verification_status;
+                $statusValue = $status instanceof VerificationStatus ? $status->value : $status;
+
+                return [
+                    'id' => $user->id,
+                    'account_id' => $user->account_id ?? 'PENDING',
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                    'mobile' => $user->mobile,
+                    'verification_status' => $statusValue,
+                    'created_at' => $user->created_at?->toISOString(),
+                    'can_decide' => false,
+                ];
+            });
+
+        $queue = $queue->concat($decided)->values();
 
         return Inertia::render('Admin/Verifications/Index', [
             'queue' => $queue,
@@ -63,6 +114,10 @@ class VerificationController extends Controller
 
     public function show(Request $request, string $id)
     {
+        if (! ctype_digit($id)) {
+            return $this->showDecidedResident($request, $id);
+        }
+
         $registration = $this->registrationForAdmin($request, $id);
         $userAccount = User::where('email', $registration->email)->first();
 
@@ -102,6 +157,54 @@ class VerificationController extends Controller
         return Inertia::render('Admin/Verifications/Show', [
             'resident' => $residentData,
             'censusData' => null,
+            'canDecide' => true,
+        ]);
+    }
+
+    private function showDecidedResident(Request $request, string $id): \Inertia\Response
+    {
+        $user = User::query()
+            ->whereKey($id)
+            ->where('role', 'resident')
+            ->when($request->user()->barangay_id, fn ($query) => $query->where('barangay_id', $request->user()->barangay_id))
+            ->with('residentProfile')
+            ->firstOrFail();
+
+        $profile = $user->residentProfile;
+        $status = $profile?->verification_status;
+        $statusValue = $status instanceof VerificationStatus ? $status->value : $status;
+        if (! in_array($statusValue, [VerificationStatus::Approved->value, VerificationStatus::Rejected->value], true)) {
+            abort(404);
+        }
+
+        $birthday = $profile?->birthday;
+        $address = trim((string) ($profile?->address ?? ''));
+
+        return Inertia::render('Admin/Verifications/Show', [
+            'resident' => [
+                'id' => $user->id,
+                'account_id' => $user->account_id ?? 'PENDING',
+                'first_name' => $user->first_name,
+                'middle_name' => $user->middle_name ?? '',
+                'last_name' => $user->last_name,
+                'name_extension' => $user->name_extension ?? '',
+                'birthday' => $birthday ? Carbon::parse($birthday)->format('Y-m-d') : '',
+                'house_street' => $profile?->house_street ?: $address,
+                'barangay_name' => $profile?->barangay_name ?? '',
+                'city' => $profile?->city ?? '',
+                'province' => $profile?->province ?? '',
+                'email' => $user->email,
+                'mobile' => $user->mobile,
+                'parent_name' => $user->parent_name,
+                'parent_contact' => $user->parent_contact,
+                'resident_profile' => [
+                    'government_id_storage_key' => $profile?->government_id_storage_key,
+                ],
+            ],
+            'censusData' => null,
+            'canDecide' => false,
+            'decision' => $statusValue,
+            'rejectionReason' => $profile?->rejection_reason,
         ]);
     }
 
@@ -237,6 +340,12 @@ class VerificationController extends Controller
                 [
                     'verification_status' => VerificationStatus::Rejected,
                     'rejection_reason' => $request->rejection_reason,
+                    'birthday' => Carbon::parse($registration->birthday)->format('Y-m-d'),
+                    'house_street' => $registration->house_street,
+                    'barangay_name' => $registration->barangay_name,
+                    'city' => $registration->city,
+                    'province' => $registration->province,
+                    'government_id_storage_key' => $registration->government_id_path,
                 ]
             );
         }
