@@ -32,7 +32,9 @@ interface User {
 
 export default function Show({ resident }: { resident: User }) {
     const [showRejectBox, setShowRejectBox] = useState(false);
+    const [showApproveBox, setShowApproveBox] = useState(false);
     const [physicalRecordChecked, setPhysicalRecordChecked] = useState(false);
+    const [recordWarning, setRecordWarning] = useState(false);
 
     const approveForm = useForm({
         first_name: resident.first_name,
@@ -54,12 +56,16 @@ export default function Show({ resident }: { resident: User }) {
     const handleApprove = (e: React.FormEvent) => {
         e.preventDefault();
         if (!physicalRecordChecked) {
-            alert('Please confirm that you have checked the physical barangay records before approving.');
+            setRecordWarning(true);
             return;
         }
-        if (confirm('Approve this resident, generate their secure credentials, and email their login details?')) {
-            approveForm.post(route('admin.verifications.approve', resident.id));
-        }
+        setRecordWarning(false);
+        setShowRejectBox(false);
+        setShowApproveBox(true);
+    };
+
+    const confirmApprove = () => {
+        approveForm.post(route('admin.verifications.approve', resident.id));
     };
 
     const handleReject = (e: React.FormEvent) => {
@@ -201,9 +207,11 @@ export default function Show({ resident }: { resident: User }) {
                                     <input
                                         type="checkbox"
                                         checked={physicalRecordChecked}
-                                        onChange={e => setPhysicalRecordChecked(e.target.checked)}
+                                        onChange={e => {
+                                            setPhysicalRecordChecked(e.target.checked);
+                                            if (e.target.checked) setRecordWarning(false);
+                                        }}
                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
-                                        required
                                     />
                                     <span className="text-xs text-blue-950 font-bold leading-relaxed">
                                         I certify that I have verified this applicant's identity against our physical barangay registration logbook and checked their valid government ID.
@@ -211,13 +219,49 @@ export default function Show({ resident }: { resident: User }) {
                                 </label>
                             </div>
 
+                            {recordWarning && (
+                                <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
+                                    Confirm that you have checked the physical barangay records before approving.
+                                </p>
+                            )}
+
+                            {showApproveBox && (
+                                <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                                    <div>
+                                        <h3 className="text-sm font-black text-emerald-950">Approve this resident?</h3>
+                                        <p className="mt-1 text-xs font-medium leading-relaxed text-emerald-900">
+                                            This generates their secure credentials and emails the login details to {resident.email}.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setShowApproveBox(false)}
+                                            disabled={approveForm.processing}
+                                            className="cursor-pointer rounded-xl text-xs font-bold"
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={confirmApprove}
+                                            disabled={approveForm.processing}
+                                            className="cursor-pointer rounded-xl bg-emerald-700 text-xs font-bold text-white hover:bg-emerald-800"
+                                        >
+                                            {approveForm.processing ? 'Approving Account...' : 'Approve & Send Credentials'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 sm:flex-row">
                                 <Button 
                                     type="submit"
                                     disabled={approveForm.processing || rejecting || !physicalRecordChecked}
                                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-12 shadow-sm cursor-pointer rounded-2xl"
                                 >
-                                    {approveForm.processing ? 'Approving Account...' : 'Approve & Send Credentials'}
+                                    Approve & Send Credentials
                                 </Button>
                                 <Button 
                                     type="button"
