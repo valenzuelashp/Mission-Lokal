@@ -345,6 +345,7 @@ export interface AdminMission {
     rank?: number;
     display_id: string;
     id: string;
+    has_mission?: boolean;
     concern_id: string;
     concern_title: string;
     location: string;

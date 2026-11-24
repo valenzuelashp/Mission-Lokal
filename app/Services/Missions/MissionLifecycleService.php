@@ -73,7 +73,8 @@ class MissionLifecycleService
         $analysis = $concern->currentAiAnalysis()->first();
         $concern->setRelation('currentAiAnalysis', $analysis);
         $responsePlans = app(ConcernResponsePlan::class);
-        $snapshot = $analysis?->raw_model_output['response_plan'] ?? null;
+        $rawOutput = $analysis?->raw_model_output;
+        $snapshot = is_array($rawOutput) ? ($rawOutput['response_plan'] ?? null) : null;
         $playbook = null;
 
         if ($concern->isVawcConcern()) {

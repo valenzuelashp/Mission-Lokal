@@ -8,6 +8,7 @@ import ConcernTriageExplanationCard from '@/Components/admin/ConcernTriageExplan
 import { ReportDuplicateReview, ReportEvidence, ReportIncidentDetails, ReportResponsePlan } from '@/Components/admin/ReportReviewDetails';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { missionRef } from '@/Lib/missionRef';
 import { cn } from '@/Lib/utils';
 import { personnelDepartmentOptions, type PersonnelDepartmentKey } from '@/Lib/personnelDepartments';
 import { initialVerdictAction, verdictBlocker, type ReportVerdictAction } from '@/Lib/reportVerdict';
@@ -167,7 +168,7 @@ function ReportReview({ report, personnel = [], masterCandidates = [] }: Props) 
 
                         {hasMission ? <div className="space-y-4 overflow-y-auto p-5">
                             <div className="flex items-center gap-2 text-sm font-bold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> Mission dispatched</div>
-                            <p className="text-xs leading-relaxed text-slate-500">Mission MS-{String(report.mission.id).slice(0, 4).toUpperCase()} is {String(report.mission.status).replaceAll('_', ' ')}.{report.mission.due_date ? ` Due ${report.mission.due_date}.` : ''}</p>
+                            <p className="text-xs leading-relaxed text-slate-500">Mission {missionRef(String(report.mission.id))} is {String(report.mission.status).replaceAll('_', ' ')}.{report.mission.due_date ? ` Due ${report.mission.due_date}.` : ''}</p>
                             <div className="space-y-2"><h3 className="text-xs font-semibold text-slate-700">Assigned personnel</h3>{(report.assigned_personnel || []).map((person: any) => <p key={person.id} className="rounded-lg bg-slate-50 p-3 text-xs font-semibold text-slate-800">{person.name}<span className="mt-1 block font-normal text-slate-500">{person.role}</span></p>)}</div>
                             <Button variant="outline" size="sm" className="w-full" asChild><Link href={`/admin/missions/${report.mission.id}`}>Manage mission <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
                         </div> : isTerminal ? <div className="space-y-3 p-5"><p className="text-sm font-semibold text-slate-700">This report has been processed.</p><p className="text-xs text-slate-500">You can still review the assessment and supporting details.</p><Link href="/admin/reports" className="inline-flex text-xs font-bold text-blue-700">Return to report queue →</Link></div> : (

@@ -181,12 +181,9 @@ export const MAP_BASEMAPS: Record<
     gray: {
         id: 'gray',
         label: 'Light Gray',
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-        attribution: 'Tiles &copy; Esri',
-        maxZoom: 16,
-        overlays: [
-            'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-        ],
+        url: 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 20,
     },
     humanitarian: {
         id: 'humanitarian',

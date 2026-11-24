@@ -96,7 +96,8 @@ class Concern extends Model
             return true;
         }
 
-        if (($this->getRelation('currentAiAnalysis')?->raw_model_output['confidential_vawc_context'] ?? false) === true) {
+        $rawOutput = $this->getRelation('currentAiAnalysis')?->raw_model_output;
+        if (is_array($rawOutput) && ($rawOutput['confidential_vawc_context'] ?? false) === true) {
             return true;
         }
 

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Mission;
+use App\Support\MissionRef;
 use App\Models\Notification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +32,7 @@ class CheckOverdueMissions implements ShouldQueue
                         $mission->barangay_id,
                         'mission_overdue',
                         'Mission Overdue: RA 11032 Deadline Exceeded',
-                        "{$concernTitle} (MS-".strtoupper(substr($mission->id, 0, 4)).') has passed its resolution deadline.',
+                        "{$concernTitle} (".MissionRef::label($mission->id).') has passed its resolution deadline.',
                         ['mission_id' => $mission->id, 'concern_id' => $mission->concern_id],
                     );
                 }

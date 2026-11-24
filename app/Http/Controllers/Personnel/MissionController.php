@@ -13,6 +13,8 @@ use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
 use App\Services\Missions\MissionLifecycleService;
+use App\Support\MapHelpers;
+use App\Support\MissionRef;
 use App\Services\Missions\DepartmentMissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -72,16 +74,17 @@ class MissionController extends Controller
                 : [];
 
             $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+            $coordinates = MapHelpers::normalizeLatLng($mission->lat, $mission->lng);
 
             return [
                 'id' => $mission->id, 
-                'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
+                'display_id' => MissionRef::label($mission->id),
                 'concern_id' => $concern?->id,
                 'title' => $concern?->title ?? 'Untitled Mission',
                 'location' => $concern?->locationLabel() ?? 'Unknown location',
                 'images' => $concernImages,
-                'lat' => $mission->lat,
-                'lng' => $mission->lng,
+                'lat' => $coordinates['lat'],
+                'lng' => $coordinates['lng'],
                 'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
                 'status' => $statusValue,
                 'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
@@ -204,14 +207,15 @@ class MissionController extends Controller
                 ->exists();
         }
 
+        $coordinates = MapHelpers::normalizeLatLng($mission->lat, $mission->lng);
         $formattedMission = [
             'id' => $mission->id,
-            'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
+            'display_id' => MissionRef::label($mission->id),
             'concern_id' => $concern?->id,
             'title' => $concern?->title ?? 'Untitled Mission',
             'location' => $concern?->locationLabel() ?? 'Unknown location',
-            'lat' => $mission->lat, 
-            'lng' => $mission->lng,
+            'lat' => $coordinates['lat'],
+            'lng' => $coordinates['lng'],
             'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
             'status' => $statusValue,
             'assignment_acknowledged' => $assignmentAcknowledged,
@@ -333,7 +337,7 @@ class MissionController extends Controller
                 $request->user()->id,
             );
 
-            $missionLabel = 'MS-' . strtoupper(substr($mission->id, 0, 4));
+            $missionLabel = MissionRef::label($mission->id);
             $concernTitle = $mission->concern?->title ?? 'Mission';
             $isConfidential = $mission->concern
                 && ($mission->concern->visibility === 'private' || $mission->concern->isSensitiveConcern());
@@ -527,7 +531,7 @@ class MissionController extends Controller
 
         $formattedMission = [
             'id' => $mission->id,
-            'display_id' => 'MS-' . strtoupper(substr($mission->id, 0, 4)),
+            'display_id' => MissionRef::label($mission->id),
             'title' => $concern?->title ?? 'Untitled Mission',
             'location' => $concern?->locationLabel() ?? 'Unknown location',
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',

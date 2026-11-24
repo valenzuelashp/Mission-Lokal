@@ -8,6 +8,7 @@ use App\Models\Concern;
 use App\Models\Mission;
 use App\Models\ResidentRegistration;
 use App\Support\MapHelpers;
+use App\Support\MissionRef;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -81,7 +82,7 @@ class DashboardController extends Controller
 
                 return [
                     'id' => $mission->id,
-                    'display_id' => 'MS-'.strtoupper(substr($mission->id, 0, 4)),
+                    'display_id' => MissionRef::label($mission->id),
                     'concern_id' => $mission->concern_id,
                     'incident_type' => $mission->concern->title ?? 'Unknown Issue',
                     'type_icon' => MapHelpers::typeIconFromText($mission->concern->title ?? ''),
@@ -100,16 +101,23 @@ class DashboardController extends Controller
             ->take(10)
             ->get()
             ->map(function ($concern) {
+                $coordinates = MapHelpers::normalizeLatLng($concern->lat, $concern->lng);
+                if ($coordinates['lat'] === null || $coordinates['lng'] === null) {
+                    return null;
+                }
+
                 return [
                     'id' => $concern->id,
-                    'lat' => (float) $concern->lat,
-                    'lng' => (float) $concern->lng,
+                    'lat' => $coordinates['lat'],
+                    'lng' => $coordinates['lng'],
                     'title' => $concern->title,
                     'severity' => in_array($concern->severity, ['low', 'medium', 'high', 'critical'], true)
                         ? $concern->severity
                         : 'medium',
                 ];
-            });
+            })
+            ->filter()
+            ->values();
 
         // 4. Retrieve dynamic events from your blueprint audit tracker scoped to this user/tenant context
         $activities = DB::table('audit_logs')

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { missionRef } from '@/Lib/missionRef';
 import type { PageProps } from '@/Types';
 
 interface AvailablePersonnel {
@@ -106,6 +107,8 @@ export default function Show({ mission }: any) {
         });
     };
 
+    const missionLabel = missionRef(String(mission.id));
+
     const timeline: TimelineStep[] = [
         { key: 'assigned', label: 'Assigned', state: 'done', at: mission.assigned_at },
         { key: 'ack', label: 'Acknowledged', state: ['acknowledged', 'in_progress', 'completed', 'verified'].includes(mission.status) ? 'done' : 'upcoming' },
@@ -115,8 +118,8 @@ export default function Show({ mission }: any) {
     ];
 
     return (
-        <AdminLayout title={`Mission MS-${mission.id.substring(0, 4).toUpperCase()}`}>
-            <Head title={`Mission MS-${mission.id.substring(0, 4).toUpperCase()}`} />
+        <AdminLayout title={`Mission ${missionLabel}`}>
+            <Head title={`Mission ${missionLabel}`} />
             
             <div className="w-full space-y-8 pb-16">
                 
@@ -132,7 +135,7 @@ export default function Show({ mission }: any) {
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-400">Mission Ref:</span>
                             <span className="text-xs font-black text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                MS-{mission.id.substring(0, 4).toUpperCase()}
+                                {missionLabel}
                             </span>
                         </div>
                     </div>

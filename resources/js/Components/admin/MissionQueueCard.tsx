@@ -3,6 +3,7 @@ import { AlertTriangle, Clock, MapPin, ArrowUpRight } from 'lucide-react';
 import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
 import type { AdminMission, MissionStatus } from '@/Types';
+import { missionQueueHref } from '@/Lib/missionRef';
 import { cn } from '@/Lib/utils';
 
 const statusLabel: Record<MissionStatus, string> = {
@@ -85,7 +86,7 @@ export default function MissionQueueCard({ mission }: Props) {
                     )}
 
                     <div className="flex items-center justify-end pt-2 text-xs font-black text-blue-700 group-hover:underline">
-                        <span>Manage Mission</span>
+                        <span>{mission.has_mission === false ? 'View report' : 'Manage Mission'}</span>
                         <ArrowUpRight className="ml-1 h-4 w-4" />
                     </div>
                 </CardContent>

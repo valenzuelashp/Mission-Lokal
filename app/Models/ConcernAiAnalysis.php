@@ -54,7 +54,8 @@ class ConcernAiAnalysis extends Model
 
     public function reportQuality(): string
     {
-        $quality = $this->raw_model_output['report_quality'] ?? null;
+        $rawOutput = is_array($this->raw_model_output) ? $this->raw_model_output : [];
+        $quality = $rawOutput['report_quality'] ?? null;
         if (in_array($quality, ['ready_for_review', 'needs_clarification', 'possible_spam'], true)) {
             return $quality;
         }

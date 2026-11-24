@@ -54,11 +54,16 @@ export default function AdminOperationMap({ pins, center = TAMBO_CENTER, classNa
                         interactive={false}
                     />
                     {pins.map((pin) => {
+                        const lat = Number(pin.lat);
+                        const lng = Number(pin.lng);
+                        if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+                            return null;
+                        }
                         const severity = (pin.severity ?? 'medium') as Severity;
                         return (
                             <Marker
                                 key={pin.id}
-                                position={[pin.lat, pin.lng]}
+                                position={[lat, lng]}
                                 icon={createPinIcon(severity)}
                             >
                                 <Popup>

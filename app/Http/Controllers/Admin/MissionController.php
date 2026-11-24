@@ -20,6 +20,7 @@ use App\Services\Missions\MissionLifecycleService;
 use App\Services\Missions\MissionDepartmentAssignment;
 use App\Services\Missions\MissionResolutionPostBuilder;
 use App\Support\ConcernStatusUpdate;
+use App\Support\MissionRef;
 use App\Support\MissionWorkload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,8 +76,9 @@ class MissionController extends Controller
             $priorityScore = $severityScore + ($upvotes * 30) + $duplicateBoost;
 
             return [
-                'id' => $rawId, 
-                'display_id' => 'MS-' . strtoupper(substr($rawId, 0, 4)),
+                'id' => $rawId,
+                'has_mission' => (bool) $mission,
+                'display_id' => MissionRef::label($rawId),
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
                 'location' => $concern->locationLabel(),
@@ -244,7 +246,7 @@ class MissionController extends Controller
                     'title' => 'New mission assigned',
                     'body' => $isConfidential
                         ? 'A confidential assignment is ready. Sign in to view details.'
-                        : 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
+                        : MissionRef::label($mission->id) . ' ' . $concern->title . ' — due ' . ($mission->due_date ? $mission->due_date->format('M d, Y') : 'soon') . '.',
                     'payload' => ['mission_id' => $mission->id],
                     'is_read' => false,
                 ]);
@@ -288,7 +290,7 @@ class MissionController extends Controller
         return back()->with('success', 'Personnel assignments successfully updated!');
     }
 
-    public function show(Request $request, string $id): Response
+    public function show(Request $request, string $id): Response|RedirectResponse
     {
         $barangayId = $request->user()->barangay_id;
 
@@ -299,11 +301,26 @@ class MissionController extends Controller
                 'concern.duplicates.reporter',
                 'concern.duplicates.media',
                 'concern.duplicates.subcategory',
-                'proof.media', 
+                'proof.media',
                 'personnel.user',
                 'resolutionPost',
             ])
-            ->findOrFail($id);
+            ->find($id);
+
+        if (! $mission) {
+            $concern = Concern::where('barangay_id', $barangayId)->find($id);
+            if (! $concern) {
+                abort(404);
+            }
+
+            $existing = Mission::where('barangay_id', $barangayId)
+                ->where('concern_id', $concern->id)
+                ->first();
+
+            return $existing
+                ? redirect()->route('admin.missions.show', $existing->id)
+                : redirect()->route('admin.reports.show', $concern->id);
+        }
 
         $concern = $mission->concern;
         $concernImages = $concern->media?->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray() ?? [];
@@ -451,7 +468,7 @@ class MissionController extends Controller
                         'title' => 'New mission assigned',
                         'body' => $isConfidential
                             ? 'A confidential assignment is ready. Sign in to view details.'
-                            : 'MS-' . strtoupper(substr($mission->id, 0, 4)) . ' ' . $mission->concern->title . ' — due ' . ($mission->due_date?->format('M d, Y') ?? 'soon') . '.',
+                            : MissionRef::label($mission->id) . ' ' . $mission->concern->title . ' — due ' . ($mission->due_date?->format('M d, Y') ?? 'soon') . '.',
                         'payload' => ['mission_id' => $mission->id],
                         'is_read' => false,
                     ]);
@@ -600,7 +617,7 @@ class MissionController extends Controller
                             'channel' => 'in_app',
                             'event_type' => 'concern_resolved',
                             'title' => 'Concern Resolved',
-                            'body' => 'The community issue you reported ("' . $duplicateConcern->title . '") has been officially resolved through field operation MS-' . strtoupper(substr($mission->id, 0, 4)) . '.',
+                            'body' => 'The community issue you reported ("' . $duplicateConcern->title . '") has been officially resolved through field operation ' . MissionRef::label($mission->id) . '.',
                             'payload' => ['concern_id' => $duplicateConcern->id],
                             'is_read' => false,
                         ]);

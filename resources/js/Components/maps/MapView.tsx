@@ -20,7 +20,7 @@ const defaultIcon = L.icon({
 L.Marker.prototype.options.icon = defaultIcon;
 
 type Props = {
-    center: [number, number];
+    center: [number | null, number | null];
     zoom?: number;
     pins?: MapPin[];
     className?: string;
@@ -30,6 +30,21 @@ type Props = {
 };
 
 const legendLevels: Severity[] = ['critical', 'high', 'medium', 'low'];
+
+function coordinate(value: unknown): number | null {
+    const number = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
+function mapPosition(lat: unknown, lng: unknown): [number, number] | null {
+    const latitude = coordinate(lat);
+    const longitude = coordinate(lng);
+    if (latitude === null || longitude === null || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+        return null;
+    }
+
+    return [latitude, longitude];
+}
 
 export default function MapView({
     center,
@@ -41,12 +56,27 @@ export default function MapView({
 }: Props) {
     const theme = useResidentTheme();
     const { basemap, setBasemap } = useMapBasemap();
+    const safeCenter = mapPosition(center[0], center[1]);
+    const safePins = pins.flatMap((pin) => {
+        const position = mapPosition(pin.lat, pin.lng);
+        return position ? [{ ...pin, lat: position[0], lng: position[1] }] : [];
+    });
+
+    if (!safeCenter) {
+        return (
+            <div className={className}>
+                <div className={`flex h-full items-center justify-center rounded-2xl border px-4 text-center text-xs font-semibold ${theme.cardBorder} ${theme.cardBg} ${theme.textMuted} ${interactive ? 'min-h-[14rem]' : 'min-h-0'}`}>
+                    Map location is unavailable for this mission.
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={className}>
             <div className={`relative h-full overflow-hidden rounded-2xl border ${theme.cardBorder} shadow-md ${theme.cardBg} ${interactive ? 'min-h-[14rem]' : 'min-h-0'}`}>
                 <MapContainer
-                    center={center}
+                    center={safeCenter}
                     zoom={zoom}
                     scrollWheelZoom={interactive}
                     dragging={interactive}
@@ -56,7 +86,7 @@ export default function MapView({
                 >
                     <MapInvalidateSize />
                     <MapBasemapTiles basemap={basemap} />
-                    {pins.map((pin) => {
+                    {safePins.map((pin) => {
                         const severity = (pin.severity ?? 'medium') as Severity;
                         return (
                             <Marker

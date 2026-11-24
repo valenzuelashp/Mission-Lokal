@@ -3,6 +3,7 @@ import { UserCheck, ChevronRight } from 'lucide-react';
 import MissionQueueCard from '@/Components/admin/MissionQueueCard';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
+import { missionQueueHref, missionRef } from '@/Lib/missionRef';
 import { rowNavProps, stopRowNav } from '@/Lib/tableRow';
 import type { AdminMission, MissionStatus } from '@/Types';
 import { cn } from '@/Lib/utils';
@@ -62,7 +63,7 @@ export default function MissionQueueTable({ missions, onOpenAssign }: Props) {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {missions.map((row: any) => {
-                            const href = row.id ? `/admin/missions/${row.id}` : null;
+                            const href = row.id ? missionQueueHref(row) : null;
                             return (
                                 <tr
                                     key={row.id}
@@ -79,10 +80,10 @@ export default function MissionQueueTable({ missions, onOpenAssign }: Props) {
                                         )}
                                     </td>
                                     <td className="px-5 py-4 font-mono text-xs font-black text-blue-700">
-                                        {row.display_id ?? `MS-${row.id.substring(0, 4).toUpperCase()}`}
+                                        {row.display_id ?? missionRef(row.id)}
                                     </td>
                                     <td className="px-5 py-4">
-                                        <Link href={`/admin/missions/${row.id}`} onClick={stopRowNav} className="font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors block text-xs">
+                                        <Link href={missionQueueHref(row)} onClick={stopRowNav} className="font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors block text-xs">
                                             {row.concern_title}
                                         </Link>
                                         <p className="text-xs text-slate-400 truncate max-w-[280px] font-medium mt-0.5">{row.location}</p>
@@ -131,8 +132,8 @@ export default function MissionQueueTable({ missions, onOpenAssign }: Props) {
                                                 </Button>
                                             )}
                                             <Button size="sm" variant="outline" className="h-9 px-3.5 text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 border-slate-200 shadow-2xs cursor-pointer rounded-xl" asChild>
-                                                <Link href={`/admin/missions/${row.id}`}>
-                                                    Manage
+                                                <Link href={missionQueueHref(row)}>
+                                                    {row.has_mission === false ? 'View report' : 'Manage'}
                                                     <ChevronRight className="ml-1 h-3.5 w-3.5" />
                                                 </Link>
                                             </Button>

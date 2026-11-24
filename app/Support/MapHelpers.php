@@ -48,6 +48,30 @@ class MapHelpers
         return DB::raw("ST_Y({$column}) as lat, ST_X({$column}) as lng");
     }
 
+    /**
+     * @return array{lat: float|null, lng: float|null}
+     */
+    public static function normalizeLatLng(mixed $lat, mixed $lng): array
+    {
+        if (! is_numeric($lat) || ! is_numeric($lng)) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        $lat = (float) $lat;
+        $lng = (float) $lng;
+
+        // Older rows stored latitude in X. A latitude above 90 is really the longitude.
+        if (abs($lat) > 90 && abs($lng) <= 90) {
+            [$lat, $lng] = [$lng, $lat];
+        }
+
+        if (abs($lat) > 90 || abs($lng) > 180) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        return ['lat' => $lat, 'lng' => $lng];
+    }
+
     public static function scoreFromSeverity(?string $severity): int
     {
         return match ($severity) {
