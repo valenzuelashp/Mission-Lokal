@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Enums\VerificationStatus;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\LocalIdentifier;
+use App\Services\SessionSecurity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,11 +53,9 @@ class LoginController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
-  
-        
+        app(SessionSecurity::class)->activate($request, $user);
+
         $request->session()->forget('password_prompt_dismissed');
-        $user?->forceFill(['last_login_at' => now()])->save();
 
         return redirect($this->homeFor($user));
     }
@@ -70,8 +71,16 @@ class LoginController extends Controller
 
         $normalizedRole = strtolower(is_string($roleValue) ? $roleValue : '');
 
-        Auth::logout();
-        
+        if ($user) {
+            DB::transaction(function () use ($request, $user) {
+                $current = User::whereKey($user->id)->lockForUpdate()->first();
+                if ($current && app(SessionSecurity::class)->matches($request, $current)) {
+                    $current->forceFill(['active_session_token' => null, 'session_locked_at' => null, 'session_away_at' => null, 'remember_token' => null])->save();
+                }
+            });
+        }
+        Auth::logoutCurrentDevice();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -81,7 +90,7 @@ class LoginController extends Controller
 
         return redirect()->route('login');
     }
-    
+
     private function homeFor($user): string
     {
         $user->loadMissing('residentProfile');

@@ -4,17 +4,20 @@ namespace Tests\Feature\Ai;
 
 use App\Enums\ConcernStatus;
 use App\Jobs\Ai\ProcessConcernWithAi;
+use App\Models\CategoryPlaybook;
 use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
-use App\Models\CategoryPlaybook;
+use App\Models\ConcernCategory;
 use App\Models\ConcernReanalysis;
 use App\Services\Concerns\ConcernDuplicateMatcher;
-use Illuminate\Support\Facades\Http;
+use App\Services\Concerns\ConcernResolutionDeadline;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class ProcessConcernWithAiTest extends TestCase
@@ -24,6 +27,7 @@ class ProcessConcernWithAiTest extends TestCase
         parent::setUp();
 
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->unsignedSmallInteger('category_id')->nullable();
             $table->unsignedSmallInteger('subcategory_id')->nullable();
@@ -83,6 +87,7 @@ class ProcessConcernWithAiTest extends TestCase
         (require database_path('migrations/2026_06_19_045331_create_category_playbooks_table.php'))->up();
 
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->unsignedSmallInteger('suggested_category_id')->nullable();
@@ -129,7 +134,7 @@ class ProcessConcernWithAiTest extends TestCase
 
     public function test_it_saves_a_valid_ai_analysis_and_marks_the_concern_processed(): void
     {
-        \App\Models\ConcernCategory::create([
+        ConcernCategory::create([
             'id' => 1,
             'code' => 'INFRA',
             'name' => 'Infrastructure & Utilities',
@@ -142,6 +147,7 @@ class ProcessConcernWithAiTest extends TestCase
                     'content' => [
                         'parts' => [[
                             'text' => json_encode([
+                                'scope_decision' => 'in_scope', 'scope_reason' => 'A non-emergency infrastructure concern.',
                                 'detected_language' => 'en',
                                 'suggested_visibility' => 'public',
                                 'suggested_severity' => 'high',
@@ -158,6 +164,7 @@ class ProcessConcernWithAiTest extends TestCase
         ]);
 
         $concern = Concern::create([
+            'category_id' => 1,
             'title' => 'Blocked drainage',
             'description' => 'Water is pooling on the street.',
         ]);
@@ -179,7 +186,7 @@ class ProcessConcernWithAiTest extends TestCase
             'note' => 'AI triage completed.',
         ]);
         $this->assertSame(
-            app(\App\Services\Concerns\ConcernResolutionDeadline::class)->deadlineFor($concern, 'high')->toDateString(),
+            app(ConcernResolutionDeadline::class)->deadlineFor($concern, 'high')->toDateString(),
             ConcernAiAnalysis::where('concern_id', $concern->id)->first()->suggested_due_date->toDateString(),
         );
     }
@@ -262,7 +269,7 @@ class ProcessConcernWithAiTest extends TestCase
         $this->assertSame('possible_spam', $concern->fresh()->currentAiAnalysis->reportQuality());
         $this->assertSame(1, $concern->aiAnalyses()->where('is_current', true)->count());
         $this->assertSame(2, $concern->aiAnalyses()->count());
-        $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
+        $this->assertSame(ConcernStatus::UnderReview, $concern->fresh()->status);
     }
 
     public function test_local_analysis_flags_a_short_genuine_report_for_clarification(): void
@@ -308,7 +315,7 @@ class ProcessConcernWithAiTest extends TestCase
     {
         $playbook = $this->drainagePlaybook();
         $this->fakeAnalysis([
-            'suggested_category_code' => 'INFRA', 'suggested_subcategory_code' => 'DRAINAGE',
+            'suggested_category_code' => 'DRAINAGE', 'suggested_subcategory_code' => 'DRAINAGE',
             'severity_reason' => 'The resident reports a blocked drain; the extent of flooding is uncertain.',
             'evidence_summary' => ['Reported: the drain is blocked.'],
             'analysis_source' => 'forged', 'severity_factors' => ['reporter_count' => 999],
@@ -334,7 +341,7 @@ class ProcessConcernWithAiTest extends TestCase
     public function test_inactive_playbooks_do_not_replace_a_draft(): void
     {
         $this->drainagePlaybook(false);
-        $this->fakeAnalysis(['suggested_category_code' => 'INFRA', 'suggested_subcategory_code' => 'DRAINAGE']);
+        $this->fakeAnalysis(['suggested_category_code' => 'DRAINAGE', 'suggested_subcategory_code' => 'DRAINAGE']);
         $concern = Concern::create(['title' => 'Blocked drain', 'description' => 'Water pools in the street after rain.']);
 
         (new ProcessConcernWithAi($concern))->handle();
@@ -400,7 +407,7 @@ class ProcessConcernWithAiTest extends TestCase
         $this->partialMock(ConcernDuplicateMatcher::class, function ($mock) use ($master) {
             $mock->shouldReceive('findMatch')->once()->andReturn(['candidate' => $master, 'similarity' => 0.9, 'reporter_count' => 4]);
         });
-        $this->fakeAnalysis(['suggested_category_code' => 'INFRA', 'suggested_subcategory_code' => 'DRAINAGE']);
+        $this->fakeAnalysis(['suggested_category_code' => 'DRAINAGE', 'suggested_subcategory_code' => 'DRAINAGE']);
         $concern = Concern::create(['title' => 'Blocked drain', 'description' => 'Water pools in the street after rain.', 'visibility' => 'public']);
 
         (new ProcessConcernWithAi($concern))->handle();
@@ -521,7 +528,7 @@ class ProcessConcernWithAiTest extends TestCase
 
     private function drainagePlaybook(bool $active = true): CategoryPlaybook
     {
-        DB::table('concern_categories')->insert(['id' => 1, 'code' => 'INFRA', 'name' => 'Infrastructure', 'is_active' => true]);
+        DB::table('concern_categories')->insert(['id' => 1, 'code' => 'DRAINAGE', 'name' => 'Flooding & Drainage', 'is_active' => true]);
         DB::table('concern_subcategories')->insert(['id' => 4, 'category_id' => 1, 'code' => 'DRAINAGE', 'name' => 'Drainage', 'is_active' => true]);
 
         return CategoryPlaybook::create([
@@ -530,13 +537,91 @@ class ProcessConcernWithAiTest extends TestCase
         ]);
     }
 
+    public function test_category_realignment_updates_the_concern_and_routes_by_the_final_category(): void
+    {
+        DB::table('concern_categories')->insert(['id' => 9, 'code' => 'WASTE', 'name' => 'Solid Waste & Illegal Dumping', 'is_active' => true]);
+        $this->fakeAnalysis(['suggested_category_code' => 'WASTE', 'category_realignment_reason' => 'The report describes uncollected garbage rather than road damage.']);
+        $concern = Concern::create(['category_id' => 1, 'title' => 'Uncollected garbage', 'description' => 'Garbage has been left beside the street for a week.']);
+        (new ProcessConcernWithAi($concern))->handle();
+        $fresh = $concern->fresh();
+        $this->assertSame(9, $fresh->category_id);
+        $this->assertSame(1, $fresh->original_category_id);
+        $this->assertSame('environmental', $fresh->routed_department);
+        $this->assertSame(['sanitation'], $fresh->routed_roles);
+        $this->assertStringContainsString('uncollected garbage', $fresh->category_realignment_reason);
+    }
+
+    public function test_ai_realignment_to_vawc_forces_private_even_when_the_ai_requests_public(): void
+    {
+        DB::table('concern_categories')->insert(['id' => 9, 'code' => 'VAWC', 'name' => 'VAWC & Domestic Disputes', 'is_active' => true]);
+        $this->fakeAnalysis(['suggested_category_code' => 'VAWC', 'suggested_visibility' => 'public', 'category_realignment_reason' => 'The report describes a domestic dispute.']);
+        $concern = Concern::create(['category_id' => 1, 'title' => 'Confidential assistance request', 'description' => 'Please review the circumstances described in the attached evidence.', 'visibility' => 'public']);
+        (new ProcessConcernWithAi($concern))->handle();
+        $fresh = $concern->fresh();
+        $this->assertSame(9, $fresh->category_id);
+        $this->assertTrue($fresh->is_vawc);
+        $this->assertSame('private', $fresh->visibility);
+        $this->assertSame(['vaw_desk', 'lupon'], $fresh->routed_roles);
+        $fresh->update(['visibility' => 'public']);
+        $this->assertSame('private', $fresh->fresh()->visibility);
+        $this->assertNotContains($fresh->id, Concern::query()->publiclyDiscoverable()->pluck('id')->all());
+    }
+
+    public function test_active_emergencies_are_rejected_without_dispatch_instructions_or_routing(): void
+    {
+        Http::fake();
+        foreach (['The house is on fire now', 'Nasusunog ang bahay ngayon', 'There is an ongoing robbery at the shop'] as $text) {
+            $concern = Concern::create(['title' => $text, 'description' => 'Please send help immediately.']);
+            (new ProcessConcernWithAi($concern))->handle();
+            $fresh = $concern->fresh();
+            $this->assertSame(ConcernStatus::Rejected, $fresh->status);
+            $this->assertSame('out_of_scope', $fresh->scope_status);
+            $this->assertStringContainsString('911', $fresh->closed_summary);
+            $this->assertSame([], $fresh->currentAiAnalysis->prescriptive_steps);
+            $this->assertNull($fresh->routed_department);
+            $this->assertSame([], $fresh->routed_roles);
+        }
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_ai_categories_are_held_for_review(): void
+    {
+        $this->fakeAnalysis(['suggested_category_code' => 'FAKE_DEPARTMENT']);
+        $concern = Concern::create(['category_id' => 1, 'title' => 'Community request', 'description' => 'Please review this general request.']);
+        (new ProcessConcernWithAi($concern))->handle();
+        $this->assertSame('needs_review', $concern->fresh()->scope_status);
+        $this->assertNull($concern->fresh()->routed_department);
+    }
+
+    public function test_old_queued_analysis_cannot_overwrite_an_edited_concern(): void
+    {
+        Http::fake();
+        $concern = Concern::create(['title' => 'Original report', 'description' => 'The street needs attention.']);
+        $job = new ProcessConcernWithAi($concern);
+        $concern->update(['content_revision' => 2, 'title' => 'Updated report']);
+        $job->handle();
+        $this->assertSame(0, $concern->aiAnalyses()->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_missing_ai_scope_decision_does_not_approve_a_concern(): void
+    {
+        $this->fakeAnalysis(['scope_decision' => null]);
+        $concern = Concern::create(['category_id' => 1, 'title' => 'Road problem', 'description' => 'The sidewalk needs repairs near the school.']);
+        (new ProcessConcernWithAi($concern))->handle();
+        $this->assertSame('needs_review', $concern->fresh()->scope_status);
+        $this->assertSame(ConcernStatus::UnderReview, $concern->fresh()->status);
+    }
+
     private function fakeAnalysis(array $overrides = []): void
     {
+        ConcernCategory::firstOrCreate(['id' => 1], ['code' => 'INFRA', 'name' => 'Road, Utility & Infrastructure', 'is_active' => true]);
         Http::fake(['https://generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [['content' => ['parts' => [['text' => json_encode(array_replace([
                 'detected_language' => 'mixed', 'suggested_visibility' => 'public',
                 'suggested_severity' => 'medium', 'severity_confidence' => 0.9,
-                'suggested_category_code' => null, 'suggested_subcategory_code' => null,
+                'suggested_category_code' => 'INFRA', 'suggested_subcategory_code' => null,
+                'scope_decision' => 'in_scope', 'scope_reason' => 'A routine non-emergency concern.', 'category_realignment_reason' => null,
                 'report_quality' => 'ready_for_review', 'missing_details' => [], 'follow_up_questions' => [],
                 'prescriptive_steps' => ['Barangay staff will inspect the reported location.'],
                 'evidence_summary' => [], 'image_assessments' => [], 'uncertainties' => [],
@@ -565,7 +650,7 @@ class ProcessConcernWithAiTest extends TestCase
             'concern_id' => $concern->id,
             'is_current' => 1,
         ]);
-        $this->assertSame(ConcernStatus::AiProcessed, $concern->fresh()->status);
+        $this->assertSame(ConcernStatus::UnderReview, $concern->fresh()->status);
     }
 
     public function test_it_sends_numbered_uploaded_images_and_persists_their_relevance_assessment(): void

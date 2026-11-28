@@ -7,6 +7,7 @@ Barangay concern and response management platform for residents, field personnel
 ### Residents
 - Public feed of barangay activity
 - Submit and track concerns (with AI-assisted processing workflow)
+- Take concern photos with a laptop webcam or the native camera on supported phones, or upload existing JPG/PNG/WebP images; preview, retake, and remove selections before submitting (up to four photos, 4 MB each). Live webcam access requires camera permission and HTTPS (localhost also works); the camera stops after capture, when closed, when leaving the tab, or when the session locks.
 - File blotter reports
 - Browse announcements and a document library
 - Ask the Barangay Knowledge Assistant in English, Filipino, or Taglish, with published sources and clearly labeled general guidance
@@ -16,7 +17,7 @@ Barangay concern and response management platform for residents, field personnel
 - Work from a department-wide mission queue, including missions assigned to teammates
 - Acknowledge, update, and submit proof for missions assigned directly to the member
 - Use department-specific portal branding for Traffic Management / Clearing, Environmental, Peace & Order, Utility & Infrastructure, Tambo Animal Response, or Maintenance
-- Keep VAWC case details restricted to Peace & Order VAW Desk personnel
+- Keep VAWC case details restricted to authorized Peace & Order VAW Desk and Lupon personnel and barangay admins
 - In-app notifications
 
 ### Administrators
@@ -48,7 +49,21 @@ Barangay concern and response management platform for residents, field personnel
 
 Route access is enforced by the `role` middleware (`EnsureUserHasRole`).
 
-Personnel accounts have a department and a role within that department. Admin dispatch assigns each mission to one department and one or more members of that team. Department members can review the shared queue, while only directly assigned members can change status, checklist, or proof. VAWC missions are visible only to members with the Peace & Order VAW Desk role.
+Personnel accounts have a department and a role within that department. Admin dispatch assigns each mission to the department and eligible roles determined by its final category. Eligible department members can review the shared queue, while only directly assigned members can change status, checklist, or proof. VAWC cases remain private and are visible only to their reporter, barangay admins, and authorized Peace & Order VAW Desk or Lupon personnel.
+
+## Session security and concern triage
+
+Apply migrations with `php artisan migrate` before serving the updated application. The November 28 security migration invalidates existing sessions and remember-me cookies; users sign in again and enroll a separate six-digit PIN using their current password. PINs are hashed, hidden from page props, and verified on the server with account-based attempt limits. A tab or window can be left for up to **two minutes** before a PIN is required; quick switches preserve the current form without locking. Returning within the grace period cancels the timer, including when another portal tab is active. Longer absences are checked on the server and on return even if the browser suspended background timers. The default is configured with `SESSION_PIN_LOCK_GRACE_SECONDS=120`. Manual locking remains immediate. Refresh open portal tabs after changing the lock behavior. A forgotten PIN can be reset using the account password from the lock screen.
+
+Normal page navigation preserves the security boundary and checks session status in the background without displaying a checking screen. The mobile unlock screen provides six PIN slots, a numeric keypad, a show/hide control, and a delete key; keyboard entry and paste also work. Unlocking submits once when all six digits are entered; an incorrect PIN clears and masks the slots and restores input focus for the next attempt. Connection failures and rate limits never trigger automatic retries. PIN enrollment and password-based reset keep their standard input fields and explicit save action.
+
+Only the latest successful login remains active. The server checks session ownership on every protected request. Connected browsers receive revocation through server-sent events; PHP's single-worker development server uses a three-second status heartbeat instead. Focus, reconnection, and page restoration also recheck the session. Production servers should permit streaming responses and disable proxy buffering for `/session/events` (the endpoint sends `X-Accel-Buffering: no`).
+
+Admins can review successful admin and department staff sign-ins within their barangay under **System → Login Activity**, filtered by account, role, and date. Residents can review only their own sign-ins under **Profile → Login Activity**, also linked from Security Settings. Resident records are excluded from the admin view. The database queue worker resolves public IPs through the HTTPS `ipwho.is` service, with caching and a short timeout. Locations are approximate, never GPS-derived; private IPs and lookup failures display **Unknown**. Login activity remains recorded even when location lookup is unavailable.
+
+The category catalog in [ConcernCategoryCode](app/Enums/ConcernCategoryCode.php) defines the nine accepted categories, descriptions, departments, and roles. Migrations preserve old category references while mapping existing concerns to the standardized catalog. Active missions move into the corresponding department queue without deleting assignment or proof history; changed routes carry an admin review note for existing assignees. Category realignment stores the resident's original choice and a short explanation. VAWC confidentiality is retained through later edits and reanalysis. Resident edits are allowed only before staff dispatch and increment the report revision so older queued analyses cannot overwrite the update.
+
+Active emergencies and crimes in progress are rejected or flagged with instructions to contact **911, BFP, or PNP**. They cannot be dispatched through the routine concern workflow. Local screening runs before submission, and AI performs another scope assessment. Uncertain or invalid AI output stays under review until an authorized admin confirms non-emergency scope. Routine cases route by the final category; **Other (Non-Emergency)** remains in Admin Triage. Keep `php artisan queue:work database` running for AI analysis and login-location enrichment.
 
 Mission proof requires photos and execution notes; work-site GPS is optional and the assigned mission location is used otherwise. Personnel can mention delayed work details in their notes. Proof drafts can be saved on the device and queued while offline, then upload when the proof page is open again with connectivity. Draft photos remain in that browser until upload succeeds or the personnel deletes the draft.
 

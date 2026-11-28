@@ -14,7 +14,7 @@ class SensitiveMediaAccess
     private function isVawDesk(Personnel $personnel): bool
     {
         $isPeaceAndOrder = in_array($personnel->department, ['Peace & Order', 'peace_order']);
-        $isVawDeskRole = in_array($personnel->role, ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']);
+        $isVawDeskRole = in_array($personnel->role, ['vaw_desk', 'lupon', 'Lupon', 'VAW Desk', 'VAW Desk · Confidential cases']);
 
         return $isPeaceAndOrder && $isVawDeskRole;
     }
@@ -23,7 +23,7 @@ class SensitiveMediaAccess
     {
         $role = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
         if ($role === UserRole::SuperAdmin->value) {
-            return true;
+            return ! $concern->isVawcConcern();
         }
 
         if ($user->barangay_id !== $concern->barangay_id) {
@@ -34,6 +34,8 @@ class SensitiveMediaAccess
             return $concern->reporter_id === $user->id
                 || (
                     $concern->visibility === 'public'
+                    && $concern->scope_status === 'in_scope'
+                    && ! in_array($concern->status?->value, ['submitted', 'rejected', 'spam'], true)
                     && ! $concern->isSensitiveConcern()
                 );
         }

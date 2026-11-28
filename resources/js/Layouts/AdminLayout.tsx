@@ -70,6 +70,7 @@ const navSections: NavSection[] = [
         icon: ShieldCheck,
         items: [
             { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
+            { href: '/admin/login-activity', label: 'Login Activity', icon: ShieldCheck },
         ],
     },
 ];

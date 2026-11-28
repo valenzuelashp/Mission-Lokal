@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ConcernCategoryCode;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreConcernRequest extends FormRequest
 {
@@ -15,12 +17,14 @@ class StoreConcernRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category_id' => 'required|integer|exists:concern_categories,id',
+            'description' => 'required|string|min:10|max:10000',
+            'category_id' => ['required', 'string', Rule::in(array_column(ConcernCategoryCode::options(), 'value'))],
+            'visibility' => ['sometimes', Rule::in(['public', 'private'])],
+            'incident_occurred_at' => ['nullable', 'date', 'before_or_equal:now'],
             'lat' => 'required|numeric|between:-90,90',
             'lng' => 'required|numeric|between:-180,180',
             'images' => 'nullable|array|max:4',
-            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB Limit per file
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:4096',
         ];
     }
 }

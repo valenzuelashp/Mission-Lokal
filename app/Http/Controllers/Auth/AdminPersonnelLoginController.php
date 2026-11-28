@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Services\LocalIdentifier;
-use App\Enums\UserRole;
+use App\Services\SessionSecurity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,9 +49,7 @@ class AdminPersonnelLoginController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
-       
-        $user?->forceFill(['last_login_at' => now()])->save();
+        app(SessionSecurity::class)->activate($request, $user);
 
         if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {
             return redirect()->route('super_admin.barangays.index');

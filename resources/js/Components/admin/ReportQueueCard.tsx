@@ -119,6 +119,7 @@ export default function ReportQueueCard({ report, scoreDisplay, maxUpvotes }: Pr
                     <div className="space-y-2 pt-3 border-t border-slate-100">
                         <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-slate-600">{report.ai_category}</span>
+                            {report.category_realignment_reason && <span className="text-[10px] text-blue-700" title={report.category_realignment_reason}>Category realigned</span>}
                             <Badge variant="outline" className={cn(
                                 report.visibility === 'private' ? 'border-purple-200 bg-purple-50 text-purple-700 font-bold px-2 py-0.5' : 'text-slate-600 px-2 py-0.5'
                             )}>

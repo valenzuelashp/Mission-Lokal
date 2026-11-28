@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ConcernCategoryCode;
 use App\Enums\ConcernStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Models\Concern;
 use App\Models\ConcernCategory;
 use App\Models\ConcernStatusHistory;
 use App\Models\ConcernSubcategory;
+use App\Services\Concerns\ConcernClassification;
 use App\Services\Concerns\FileUploadService;
 use App\Support\MapHelpers;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +29,7 @@ class DeskConcernIntakeController extends Controller
         $barangayId = $request->user()->barangay_id;
         $categories = ConcernCategory::query()
             ->where('is_active', true)
+            ->whereIn('code', array_column(ConcernCategoryCode::cases(), 'value'))
             ->where(fn ($query) => $query->whereNull('barangay_id')->orWhere('barangay_id', $barangayId))
             ->orderBy('sort_order')
             ->get()
@@ -82,6 +87,7 @@ class DeskConcernIntakeController extends Controller
         $barangayId = $request->user()->barangay_id;
         $category = ConcernCategory::query()
             ->where('is_active', true)
+            ->whereIn('code', array_column(ConcernCategoryCode::cases(), 'value'))
             ->where(fn ($query) => $query->whereNull('barangay_id')->orWhere('barangay_id', $barangayId))
             ->findOrFail($validated['category_id']);
         $subcategory = null;
@@ -93,6 +99,9 @@ class DeskConcernIntakeController extends Controller
                 ->findOrFail($validated['subcategory_id']);
         }
 
+        if (app(ConcernClassification::class)->isActiveEmergency($validated['title'].' '.$validated['description'])) {
+            throw ValidationException::withMessages(['description' => ConcernClassification::EMERGENCY_NOTICE]);
+        }
         $isVawc = Concern::isVawcReport(
             strtolower((string) ($subcategory?->code ?? $category->code)),
             $validated['title'],
@@ -116,6 +125,7 @@ class DeskConcernIntakeController extends Controller
                 'description' => trim($validated['description']),
                 'incident_occurred_at' => $validated['incident_occurred_at'] ?? null,
                 'category_id' => $validated['category_id'],
+                'original_category_id' => $validated['category_id'],
                 'subcategory_id' => $subcategory?->id,
                 'visibility' => $visibility,
                 'status' => ConcernStatus::Submitted,
@@ -140,7 +150,7 @@ class DeskConcernIntakeController extends Controller
                 'from_status' => null,
                 'to_status' => ConcernStatus::Submitted,
                 'actor_id' => $request->user()->id,
-                'note' => 'Concern logged by the barangay desk via ' . str_replace('_', ' ', $validated['intake_channel']) . '.',
+                'note' => 'Concern logged by the barangay desk via '.str_replace('_', ' ', $validated['intake_channel']).'.',
             ]);
 
             DB::table('audit_logs')->insert([
@@ -158,9 +168,9 @@ class DeskConcernIntakeController extends Controller
         });
 
         if (! config('services.gemini.key') || config('queue.default') === 'sync') {
-            \App\Jobs\Ai\ProcessConcernWithAi::dispatchSync($concern);
+            ProcessConcernWithAi::dispatchSync($concern);
         } else {
-            \App\Jobs\Ai\ProcessConcernWithAi::dispatch($concern);
+            ProcessConcernWithAi::dispatch($concern);
         }
 
         return redirect()->route('admin.reports.index')->with('success', 'Desk concern logged and submitted for AI triage. No resident account was created.');

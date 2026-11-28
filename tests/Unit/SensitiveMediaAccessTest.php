@@ -21,7 +21,7 @@ class SensitiveMediaAccessTest extends TestCase
         ]);
         $concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'VAWC']));
 
-        $resident = new User();
+        $resident = new User;
         $resident->id = 'resident-2';
         $resident->role = UserRole::Resident;
         $resident->barangay_id = 'barangay-1';
@@ -38,7 +38,7 @@ class SensitiveMediaAccessTest extends TestCase
         ]);
         $concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'VAWC']));
 
-        $resident = new User();
+        $resident = new User;
         $resident->id = 'resident-1';
         $resident->role = UserRole::Resident;
         $resident->barangay_id = 'barangay-1';
@@ -56,7 +56,7 @@ class SensitiveMediaAccessTest extends TestCase
         ]);
         $concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'NOISE']));
 
-        $resident = new User();
+        $resident = new User;
         $resident->id = 'resident-2';
         $resident->role = UserRole::Resident;
         $resident->barangay_id = 'barangay-1';
@@ -74,7 +74,7 @@ class SensitiveMediaAccessTest extends TestCase
         ]);
         $concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'NOISE']));
 
-        $resident = new User();
+        $resident = new User;
         $resident->id = 'resident-2';
         $resident->barangay_id = 'barangay-1';
 
@@ -88,10 +88,12 @@ class SensitiveMediaAccessTest extends TestCase
             'barangay_id' => 'barangay-1',
             'reporter_id' => 'reporter-1',
             'visibility' => 'public',
+            'scope_status' => 'in_scope',
+            'status' => 'ai_processed',
         ]);
         $concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'NOISE']));
 
-        $resident = new User();
+        $resident = new User;
         $resident->id = 'resident-2';
         $resident->role = UserRole::Resident;
         $resident->barangay_id = 'barangay-1';

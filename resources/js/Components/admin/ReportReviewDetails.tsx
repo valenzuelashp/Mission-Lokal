@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { ChevronDown, GitMerge, MapPin, User } from 'lucide-react';
 import MapView from '@/Components/maps/MapView';
 import { Button } from '@/Components/ui/button';
@@ -19,6 +19,11 @@ export function ReportIncidentDetails({ report }: { report: any }) {
                 <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{report.category || 'Community concern'}</span>
             </div>
             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{report.description || 'No description was provided.'}</p>
+            {report.category_realignment_reason && <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-950"><strong>Category realigned: </strong>{report.category_realignment_reason}</div>}
+            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong>Routing: </strong>{report.routed_department || report.department || 'Awaiting analysis'}{report.routed_roles?.length > 0 && ` · ${report.routed_roles.join(', ')}`}</div>
+            {report.scope_reason && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">{report.scope_reason}</div>}
+            {report.scope_status === 'needs_review' && <Button type="button" variant="outline" onClick={() => router.post(`/admin/reports/${report.id}/review-scope`, { confirmed_non_emergency: true }, { preserveScroll: true })}>Confirm reviewed as non-emergency</Button>}
+            {report.routed_department === 'Admin Triage' && report.scope_status === 'in_scope' && ['ai_processed', 'under_review'].includes(report.status) && <Button type="button" variant="outline" onClick={() => router.post(`/admin/reports/${report.id}/confirm-ai`, {}, { preserveScroll: true })}>Confirm for Admin Triage</Button>}
             <details className="group border-t border-slate-100 pt-4" onToggle={event => setMapOpen(event.currentTarget.open)}>
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md text-xs font-semibold text-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
                     <MapPin className="h-4 w-4 shrink-0 text-blue-600" />

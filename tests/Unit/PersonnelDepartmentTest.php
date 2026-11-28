@@ -2,9 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Enums\PersonnelRole;
 use App\Enums\PersonnelDepartment;
+use App\Enums\PersonnelRole;
 use App\Models\Concern;
+use App\Models\ConcernAiAnalysis;
+use App\Models\ConcernCategory;
 use App\Models\ConcernSubcategory;
 use App\Models\Mission;
 use App\Models\Personnel;
@@ -29,19 +31,21 @@ class PersonnelDepartmentTest extends TestCase
     public function test_concern_routing_recommends_a_department_for_its_operational_type(): void
     {
         $traffic = new Concern(['title' => 'Road obstruction at the main crossing']);
-        $environmental = new Concern();
-        $environmental->setRelation('category', new \App\Models\ConcernCategory(['code' => 'SANI']));
-        $maintenance = new Concern();
+        $traffic->setRelation('category', new ConcernCategory(['code' => 'TRAFFIC']));
+        $environmental = new Concern;
+        $environmental->setRelation('category', new ConcernCategory(['code' => 'WASTE']));
+        $maintenance = new Concern;
         $maintenance->setRelation('subcategory', new ConcernSubcategory(['code' => 'DRAINAGE']));
+        $maintenance->setRelation('category', new ConcernCategory(['code' => 'DRAINAGE']));
 
         $this->assertSame('Traffic Management', $traffic->suggestedPersonnelDepartment());
         $this->assertSame('Environmental', $environmental->suggestedPersonnelDepartment());
-        $this->assertSame('Maintenance', $maintenance->suggestedPersonnelDepartment());
+        $this->assertSame('Utility & Infrastructure', $maintenance->suggestedPersonnelDepartment());
     }
 
     public function test_department_members_can_review_their_queue_but_vawc_is_vaw_desk_only(): void
     {
-        $access = new DepartmentMissionAccess();
+        $access = new DepartmentMissionAccess;
         $mission = new Mission([
             'department' => PersonnelDepartment::PeaceOrder,
             'barangay_id' => 'brgy-1',
@@ -64,11 +68,12 @@ class PersonnelDepartmentTest extends TestCase
         $vawDesk = $this->personnel(PersonnelDepartment::PeaceOrder, PersonnelRole::VawDesk);
         $this->assertTrue($access->canView($vawDesk, $mission));
         $this->assertFalse($access->canView($tanod, $mission));
+        $this->assertTrue($access->canView($this->personnel(PersonnelDepartment::PeaceOrder, PersonnelRole::Lupon), $mission));
     }
 
     public function test_private_safety_reports_without_vawc_classification_remain_available_to_tanods(): void
     {
-        $access = new DepartmentMissionAccess();
+        $access = new DepartmentMissionAccess;
         $mission = new Mission([
             'department' => PersonnelDepartment::PeaceOrder,
             'barangay_id' => 'brgy-1',
@@ -93,7 +98,7 @@ class PersonnelDepartmentTest extends TestCase
             'title' => 'Confidential report',
             'description' => 'Details omitted.',
         ]);
-        $analysis = new \App\Models\ConcernAiAnalysis();
+        $analysis = new ConcernAiAnalysis;
         $analysis->setRelation('suggestedSubcategory', new ConcernSubcategory(['code' => 'VAWC']));
         $concern->setRelation('currentAiAnalysis', $analysis);
 
@@ -109,7 +114,7 @@ class PersonnelDepartmentTest extends TestCase
         ]);
         $mission->setRelation('concern', new Concern(['title' => 'Waste collection']));
 
-        $this->assertFalse((new DepartmentMissionAccess())->canView($personnel, $mission));
+        $this->assertFalse((new DepartmentMissionAccess)->canView($personnel, $mission));
     }
 
     public function test_custom_department_names_are_safe_string_values_for_missions(): void
@@ -128,7 +133,7 @@ class PersonnelDepartmentTest extends TestCase
         $mission->concern->setRelation('subcategory', new ConcernSubcategory(['code' => 'FLOOD']));
 
         $this->assertSame('Disaster Risk Reduction', $mission->department);
-        $this->assertTrue((new DepartmentMissionAccess())->canView($personnel, $mission));
+        $this->assertTrue((new DepartmentMissionAccess)->canView($personnel, $mission));
     }
 
     private function personnel(PersonnelDepartment $department, PersonnelRole $role): Personnel

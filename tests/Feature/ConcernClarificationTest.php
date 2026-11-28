@@ -2,22 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PersonnelShift;
 use App\Http\Middleware\EnsureBarangayIsActive;
 use App\Http\Middleware\EnsureResidentIsVerified;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Models\Concern;
 use App\Models\ConcernAiAnalysis;
 use App\Models\ConcernClarification;
+use App\Models\ConcernReanalysis;
 use App\Models\Notification;
 use App\Models\User;
-use App\Models\ConcernReanalysis;
-use App\Jobs\Ai\ProcessConcernWithAi;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class ConcernClarificationTest extends TestCase
@@ -49,6 +51,7 @@ class ConcernClarificationTest extends TestCase
             $table->timestamps();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, false);
             $table->uuid('id')->primary();
             $table->uuid('barangay_id');
             $table->uuid('reporter_id')->nullable();
@@ -114,6 +117,7 @@ class ConcernClarificationTest extends TestCase
             $table->boolean('force_private')->default(false);
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->unsignedSmallInteger('suggested_category_id')->nullable();
@@ -390,7 +394,7 @@ class ConcernClarificationTest extends TestCase
 
         $request = Request::create('/feed');
         $request->setUserResolver(fn () => $this->resident);
-        $shared = (new HandleInertiaRequests())->share($request);
+        $shared = (new HandleInertiaRequests)->share($request);
 
         $this->assertSame(3, $shared['records_unread_count']);
     }
@@ -588,13 +592,14 @@ class ConcernClarificationTest extends TestCase
 
     public function test_staff_review_reports_still_include_active_personnel_for_dispatch(): void
     {
-        $this->concern->update(['title' => 'Noise complaint', 'description' => 'Loud videoke near the court.', 'is_blotter_candidate' => true, 'visibility' => 'private']);
+        DB::table('concern_categories')->insert(['id' => 9, 'name' => 'Noise & Public Disturbance', 'code' => 'NOISE']);
+        $this->concern->update(['category_id' => 9, 'title' => 'Noise complaint', 'description' => 'Loud videoke near the court.', 'is_blotter_candidate' => true, 'visibility' => 'private']);
         ConcernAiAnalysis::create(['concern_id' => $this->concern->id, 'is_current' => true,
             'raw_model_output' => ['report_quality' => 'needs_clarification'], 'severity_confidence' => 0.02]);
         $tanod = $this->actor('personnel');
         $personnelId = (string) Str::uuid();
         DB::table('personnel')->insert(['id' => $personnelId, 'user_id' => $tanod->id, 'role' => 'tanod',
-            'department' => 'Peace & Order', 'shift' => \App\Enums\PersonnelShift::current()->next()->value, 'is_active' => true]);
+            'department' => 'Peace & Order', 'shift' => PersonnelShift::current()->next()->value, 'is_active' => true]);
 
         $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'review')

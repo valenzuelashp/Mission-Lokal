@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ConcernCategoryCode;
 use App\Enums\PersonnelShift;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendMissionAssignmentSms;
@@ -12,6 +13,8 @@ use App\Models\Mission;
 use App\Models\Notification;
 use App\Models\Personnel;
 use App\Models\ResidentProfile;
+use App\Services\AuditLogger;
+use App\Services\Concerns\ConcernClassification;
 use App\Services\Concerns\ConcernReanalysisService;
 use App\Services\Concerns\ConcernResolutionDeadline;
 use App\Services\Missions\MissionDepartmentAssignment;
@@ -122,7 +125,7 @@ class ReportController extends Controller
                 'type_icon' => MapHelpers::typeIconFromText($c->title, $c->description),
                 'location' => $c->locationLabel(),
                 'ai_category' => $hasAiAnalysis
-                    ? ($c->currentAiAnalysis?->suggestedCategory?->name ?? $c->category?->name ?? 'Uncategorized')
+                    ? ($c->category?->name ?? $c->currentAiAnalysis?->suggestedCategory?->name ?? 'Uncategorized')
                     : 'Awaiting AI assessment',
                 'ai_severity' => $hasAiAnalysis && $c->severity !== null ? MapHelpers::scoreFromSeverity($c->severity) : null,
                 'severity' => $hasAiAnalysis ? $c->severity : null,
@@ -131,6 +134,9 @@ class ReportController extends Controller
                 'priority_reason' => $priority['reason'],
                 'upvotes_count' => $c->votes->where('vote', 1)->count(),
                 'visibility' => $c->visibility,
+                'category_realignment_reason' => $c->category_realignment_reason,
+                'routed_department' => $c->suggestedPersonnelDepartment(),
+                'scope_status' => $c->scope_status,
                 'images' => $c->media->sortBy('sort_order')->map(fn ($m) => app(SensitiveMediaUrl::class)->forConcern($c, $m))->values()->all(),
                 'intake_channel' => $c->intake_channel,
                 'status' => $status,
@@ -368,7 +374,7 @@ class ReportController extends Controller
         $suggestedPersonnelIds = $personnelList
             ->whereIn('id', $suggestedPersonnelIds)
             ->filter(fn ($person) => $person['department'] === $missionDepartment
-                && (! $isVawcConcern || in_array($person['role_value'], ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases'])))
+                && (! $isVawcConcern || in_array($person['role_value'], ['vaw_desk', 'lupon', 'Lupon', 'VAW Desk', 'VAW Desk · Confidential cases'])))
             ->pluck('id')
             ->values()
             ->all();
@@ -396,6 +402,11 @@ class ReportController extends Controller
             'report' => [
                 'id' => $record->id,
                 'title' => $record->title,
+                'category_realignment_reason' => $record->category_realignment_reason,
+                'scope_status' => $record->scope_status,
+                'scope_reason' => $record->scope_reason,
+                'routed_roles' => $record->categoryDefinition()?->roles() ?? [],
+                'routed_department' => $record->suggestedPersonnelDepartment(),
                 'description' => $record->description,
                 'intake' => $record->intake_channel && $record->intake_channel !== 'resident_portal' ? [
                     'channel' => $record->intake_channel,
@@ -481,6 +492,9 @@ class ReportController extends Controller
         if ($validated['status'] === 'active' && ! $concern->mission()->exists()) {
             return back()->withErrors(['status' => 'Create and assign a mission before marking this report active.']);
         }
+        if (in_array($validated['status'], ['active', 'under_review'], true)) {
+            $concern->assertInScope();
+        }
 
         $fromStatus = $concern->status->value ?? $concern->status;
         $attributes = ['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()];
@@ -530,8 +544,9 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
+        $concern->assertInScope();
         $previousStatus = $concern->status->value ?? $concern->status;
-        $concern->update(['status' => 'under_review']);
+        $concern->update(['status' => 'under_review', 'staff_reviewed_by' => $request->user()->id, 'staff_reviewed_at' => now()]);
 
         if ($previousStatus !== 'under_review') {
             ConcernStatusUpdate::record(
@@ -555,6 +570,24 @@ class ReportController extends Controller
         ]);
 
         return back()->with('success', 'AI verified.');
+    }
+
+    public function reviewScope(Request $request, string $id): RedirectResponse
+    {
+        abort_unless($request->user()->canModifySystem(), 403);
+        $request->validate(['confirmed_non_emergency' => ['required', 'accepted']]);
+        DB::transaction(function () use ($request, $id) {
+            $concern = Concern::where('barangay_id', $request->user()->barangay_id)->lockForUpdate()->findOrFail($id);
+            abort_unless($concern->scope_status === 'needs_review' && $concern->isAwaitingStaffDecision(), 409);
+            if (app(ConcernClassification::class)->isActiveEmergency($concern->title.' '.$concern->description)) {
+                throw ValidationException::withMessages(['confirmed_non_emergency' => ConcernClassification::EMERGENCY_NOTICE]);
+            }
+            $definition = $concern->categoryDefinition() ?? ConcernCategoryCode::Other;
+            $concern->update(['scope_status' => 'in_scope', 'scope_reason' => 'An authorized barangay administrator reviewed and confirmed this as a non-emergency concern.', ...$definition->routing()]);
+            AuditLogger::log('SCOPE_REVIEW', 'Concern', $concern->id, ['details' => 'Staff confirmed the concern is within the non-emergency scope.']);
+        });
+
+        return back()->with('success', 'Non-emergency scope confirmed.');
     }
 
     public function confirmAiVerdict(Request $request, string $id): RedirectResponse
@@ -586,6 +619,7 @@ class ReportController extends Controller
         }
 
         if ($action === 'escalate') {
+            $concern->assertInScope();
             if ($validated['personnel_ids'] === []) {
                 return back()->withErrors(['personnel_ids' => 'Assign at least one personnel member before deploying a mission.']);
             }

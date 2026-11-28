@@ -2,8 +2,9 @@
 
 namespace App\Services\Missions;
 
-use App\Enums\PersonnelRole;
+use App\Enums\ConcernCategoryCode;
 use App\Enums\PersonnelDepartment;
+use App\Enums\PersonnelRole;
 use App\Models\Concern;
 use App\Models\Mission;
 use App\Models\Notification;
@@ -16,8 +17,8 @@ class DepartmentMissionAccess
     private function isVawDesk(Personnel $personnel): bool
     {
         $isPeaceAndOrder = $this->normalizeDepartment($personnel->department) === PersonnelDepartment::PeaceOrder->label();
-        $isVawDeskRole = $personnel->role === PersonnelRole::VawDesk
-            || in_array($personnel->role, ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases']);
+        $isVawDeskRole = in_array($personnel->role, [PersonnelRole::VawDesk, PersonnelRole::Lupon], true)
+            || in_array($personnel->role, ['vaw_desk', 'lupon', 'Lupon', 'VAW Desk', 'VAW Desk · Confidential cases']);
 
         return $isPeaceAndOrder && $isVawDeskRole;
     }
@@ -36,6 +37,9 @@ class DepartmentMissionAccess
 
     public function departmentQueue(Personnel $personnel): Builder
     {
+        $role = $this->roleValue($personnel);
+        $codes = array_map(fn ($category) => $category->value, array_filter(ConcernCategoryCode::cases(), fn ($category) => in_array($role, $category->roles(), true)));
+
         return Mission::query()
             ->where('barangay_id', $this->barangayId($personnel))
             ->whereNotNull('department')
@@ -45,6 +49,7 @@ class DepartmentMissionAccess
                 fn (Builder $query) => $query->whereHas('concern', fn (Builder $concern) => $concern->whereNotVawc())
             )
             ->whereHas('concern')
+            ->whereHas('concern.category', fn (Builder $category) => $category->whereIn('code', $codes))
             ->with(['concern.subcategory', 'concern.currentAiAnalysis.suggestedSubcategory', 'concern.media', 'proof', 'personnel']);
     }
 
@@ -80,11 +85,30 @@ class DepartmentMissionAccess
 
     public function canViewSensitiveConcern(Personnel $personnel, Concern $concern): bool
     {
+        $definition = $concern->categoryDefinition();
+        if ($definition && ! in_array($this->roleValue($personnel), $definition->roles(), true)) {
+            return false;
+        }
         if (! $concern->isVawcConcern()) {
             return true;
         }
 
         return $this->isVawDesk($personnel);
+    }
+
+    private function roleValue(Personnel $personnel): string
+    {
+        if ($personnel->role instanceof PersonnelRole) {
+            return $personnel->role->value;
+        }
+        $raw = strtolower(trim((string) $personnel->role));
+        foreach (PersonnelRole::cases() as $role) {
+            if ($raw === $role->value || $raw === strtolower($role->label())) {
+                return $role->value;
+            }
+        }
+
+        return str_starts_with($raw, 'vaw desk') ? 'vaw_desk' : $raw;
     }
 
     public function assertCanView(Personnel $personnel, Mission $mission): void
@@ -118,7 +142,7 @@ class DepartmentMissionAccess
     }
 
     /**
-     * @param Collection<int, Notification> $notifications
+     * @param  Collection<int, Notification>  $notifications
      * @return Collection<int, Notification>
      */
     public function visibleNotifications(Personnel $personnel, Collection $notifications): Collection
@@ -172,4 +196,4 @@ class DepartmentMissionAccess
             return true;
         });
     }
-}   
+}

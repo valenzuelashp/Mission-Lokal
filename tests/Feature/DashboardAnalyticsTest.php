@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Support\Header;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class DashboardAnalyticsTest extends TestCase
@@ -32,6 +33,7 @@ class DashboardAnalyticsTest extends TestCase
             $table->string('name');
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->string('id')->primary();
             $table->string('barangay_id')->nullable();
             $table->string('category_id')->nullable();
@@ -53,6 +55,7 @@ class DashboardAnalyticsTest extends TestCase
             $table->boolean('force_private')->default(false);
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->string('concern_id');
             $table->string('suggested_category_id')->nullable();

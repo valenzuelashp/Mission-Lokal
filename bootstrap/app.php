@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Middleware\EnsureBarangayIsActive;
+use App\Http\Middleware\EnsureResidentIsVerified;
+use App\Http\Middleware\EnsureSessionIsCurrent;
+use App\Http\Middleware\EnsureSessionIsUnlocked;
+use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\QueryException;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -17,27 +24,24 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands()
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-            \App\Http\Middleware\EnsureBarangayIsActive::class,
+            EnsureSessionIsCurrent::class,
+            EnsureSessionIsUnlocked::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
+            EnsureBarangayIsActive::class,
         ]);
 
         // --- CSRF Exemptions ---
         $middleware->validateCsrfTokens(except: [
-            'login',
-            'admin-personnel/login',
-            'logout',
             'password/dismiss',
             'password/prompt/dismiss',
             'password/custom/store',
-            'concerns',
-            'concerns/*',
             'node-suspended/appeal', // <--- CRITICAL: Prevents 419 error when submitting appeal
         ]);
-        
+
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
-            'verified.resident' => \App\Http\Middleware\EnsureResidentIsVerified::class,
+            'role' => EnsureUserHasRole::class,
+            'verified.resident' => EnsureResidentIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -66,6 +70,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('help') && $request->expectsJson()) {
                 return response()->json(['message' => 'Please sign in again to continue this conversation.'], 401);
+            }
+            if ($request->expectsJson() || $request->is('session/*')) {
+                return response()->json(['code' => 'session_expired', 'message' => 'Your session has expired. Please sign in again.'], 401);
             }
             if ($request->is('admin*') || $request->is('super-admin*') || $request->is('personnel*')) {
                 return redirect()->guest(route('admin-personnel.login'));

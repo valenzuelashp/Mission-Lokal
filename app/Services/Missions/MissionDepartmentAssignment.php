@@ -2,8 +2,8 @@
 
 namespace App\Services\Missions;
 
-use App\Enums\PersonnelRole;
 use App\Enums\PersonnelDepartment;
+use App\Enums\PersonnelRole;
 use App\Models\Concern;
 use App\Models\Personnel;
 use Illuminate\Validation\ValidationException;
@@ -11,10 +11,11 @@ use Illuminate\Validation\ValidationException;
 class MissionDepartmentAssignment
 {
     /**
-     * @param list<string> $personnelIds
+     * @param  list<string>  $personnelIds
      */
     public function departmentFor(Concern $concern, array $personnelIds): string
     {
+        $concern->assertInScope();
         $personnel = Personnel::query()
             ->whereIn('id', $personnelIds)
             ->get(['id', 'role', 'department']);
@@ -53,13 +54,18 @@ class MissionDepartmentAssignment
         }
 
         $department = $departments->first();
+        $definition = $concern->categoryDefinition();
+        if ($definition && ($this->departmentEnum($department) !== $definition->department()
+            || ! $personnel->every(fn (Personnel $member) => in_array($this->roleEnum((string) $member->role)?->value, $definition->roles(), true)))) {
+            throw ValidationException::withMessages(['personnel_ids' => 'Select personnel in the routed department with an eligible role for '.$definition->label().'.']);
+        }
         if ($concern->isVawcConcern()) {
             $onlyVawDesk = $this->departmentEnum($department) === PersonnelDepartment::PeaceOrder
                 && $personnel->every(fn (Personnel $member) => $this->isVawDeskRole($member->role));
 
             if (! $onlyVawDesk) {
                 throw ValidationException::withMessages([
-                    'personnel_ids' => 'VAWC-classified concerns can only be assigned to Peace & Order VAW Desk personnel.',
+                    'personnel_ids' => 'VAWC concerns may only be assigned to Peace & Order VAW Desk or Lupon personnel.',
                 ]);
             }
         }
@@ -111,10 +117,10 @@ class MissionDepartmentAssignment
     private function isVawDeskRole(mixed $role): bool
     {
         if ($role instanceof PersonnelRole) {
-            return $role === PersonnelRole::VawDesk;
+            return in_array($role, [PersonnelRole::VawDesk, PersonnelRole::Lupon], true);
         }
 
         return is_string($role)
-            && in_array($role, ['vaw_desk', 'VAW Desk', 'VAW Desk · Confidential cases'], true);
+            && in_array($role, ['vaw_desk', 'lupon', 'Lupon', 'VAW Desk', 'VAW Desk · Confidential cases'], true);
     }
 }

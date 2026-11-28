@@ -2,6 +2,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ShieldAlert, X } from 'lucide-react';
 import { useEffect } from 'react';
 import MapPinPicker from '@/Components/maps/MapPinPicker';
+import ConcernPhotoPicker from '@/Components/resident/ConcernPhotoPicker';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -13,14 +14,16 @@ import { TAMBO_BOUNDS, TAMBO_CENTER } from '@/Lib/mapUtils';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 
 interface Props {
-    categories?: { value: string; label: string }[];
+    categories?: { value: string; label: string; description?: string; force_private?: boolean }[];
+    emergencyNotice?: string;
+    initialConcern?: { id: string; title: string; description: string; category_id: string; visibility: 'public' | 'private'; force_private: boolean; lat: number; lng: number; existing_photo_count?: number };
     mapCenter?: [number, number];
     barangayBounds?: [[number, number], [number, number]];
     modal?: boolean;
     onClose?: () => void;
 }
 
-export default function New({ categories = [], mapCenter = TAMBO_CENTER, barangayBounds, modal = false, onClose }: Props) {
+export default function New({ categories = [], emergencyNotice = 'Active emergencies and crimes in progress are outside this system’s scope. Contact 911 immediately, BFP for fires, or PNP for crimes and violent emergencies. Do not wait for a response here.', initialConcern, mapCenter = TAMBO_CENTER, barangayBounds, modal = false, onClose }: Props) {
     const theme = useResidentTheme();
     const { auth } = usePage().props as any;
     const isMinor = auth?.user?.is_minor ?? false;
@@ -28,22 +31,28 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
     const defaultLat = mapCenter && mapCenter[0] ? mapCenter[0] : TAMBO_CENTER[0];
     const defaultLng = mapCenter && mapCenter[1] ? mapCenter[1] : TAMBO_CENTER[1];
 
-    const { data, setData, post, processing, errors, progress } = useForm({
-        title: '',
-        description: '',
-        category_id: '',
-        lat: defaultLat,
-        lng: defaultLng,
+    const { data, setData, post, processing, errors, progress, clearErrors } = useForm({
+        _method: initialConcern ? 'PUT' : 'POST',
+        title: initialConcern?.title ?? '',
+        description: initialConcern?.description ?? '',
+        category_id: initialConcern?.category_id ?? '',
+        visibility: initialConcern?.visibility ?? 'public',
+        lat: initialConcern?.lat ?? defaultLat,
+        lng: initialConcern?.lng ?? defaultLng,
         images: [] as File[],
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/concerns', {
+        post(initialConcern ? `/concerns/${initialConcern.id}` : '/concerns', {
             forceFormData: data.images.length > 0,
             onSuccess: () => onClose?.(),
         });
     };
+
+    const selectedCategory = categories.find(category => category.value === data.category_id);
+    const forcePrivate = Boolean(selectedCategory?.force_private || initialConcern?.force_private);
+    useEffect(() => { if (forcePrivate && data.visibility !== 'private') setData('visibility', 'private'); }, [forcePrivate, data.visibility]);
 
     useEffect(() => {
         if (!modal) return;
@@ -63,16 +72,17 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
 
     const pageContent = (
         <>
-            <Head title="Post Concern" />
+            <Head title={initialConcern ? 'Edit Concern' : 'Post Concern'} />
             
             <div className={`w-full ${modal ? 'md:flex md:min-h-0 md:flex-1 md:flex-col' : 'space-y-6 pb-2 pt-8 sm:pt-10'}`}>
                 {!modal && (
                     <PageHeader
-                        title="Post a Community Concern"
+                        title={initialConcern ? 'Edit Your Concern' : 'Post a Community Concern'}
                         description="Pinpoint the exact incident location and provide details. Our AI engine will automatically triage, categorize, and route your report."
                     />
                 )}
 
+                <div role="note" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><strong>For non-emergency concerns only. </strong>{emergencyNotice}</div>
                 {isMinor && (
                     <div className={`${modal ? 'mb-2 gap-2 rounded-xl p-2.5 text-[10px]' : 'mb-6 gap-3 rounded-2xl p-5 text-xs'} flex items-start border ${theme.badgeBorder} ${theme.badgeBg} font-bold shadow-2xs`}>
                         <ShieldAlert className={`${modal ? 'h-4 w-4' : 'h-5 w-5'} mt-0.5 shrink-0 ${theme.primaryText}`} />
@@ -85,11 +95,11 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                 <form onSubmit={submit} className={modal
                     ? 'grid grid-cols-1 gap-3 md:min-h-0 md:flex-1 md:grid-cols-2 md:grid-rows-[minmax(0,1fr)_auto]'
                     : 'grid gap-6 2xl:grid-cols-2'} noValidate>
-                    <Card className={`min-h-0 shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
+                    <Card className={`${modal ? 'flex flex-col' : ''} min-h-0 shadow-2xs ${theme.cardBorder} ${theme.cardBg} rounded-3xl overflow-hidden`}>
                         <CardHeader className={`border-b ${theme.dividerColor} ${modal ? 'p-3 pb-2 sm:px-4' : 'pb-5'}`}>
                             <CardTitle className="text-sm font-black uppercase tracking-wider" id="details-heading">Incident Details</CardTitle>
                         </CardHeader>
-                        <CardContent className={modal ? 'grid grid-cols-1 gap-3 p-3 min-[360px]:grid-cols-2 sm:gap-x-4 sm:gap-y-4 sm:p-5 md:gap-y-3 md:p-4' : 'space-y-5 p-6 sm:p-8'} aria-labelledby="details-heading">
+                        <CardContent className={modal ? 'grid grid-cols-1 gap-3 p-3 min-[360px]:grid-cols-2 sm:gap-x-4 sm:gap-y-4 sm:p-5 md:min-h-0 md:flex-1 md:content-start md:gap-y-3 md:overflow-y-auto md:p-4' : 'space-y-5 p-6 sm:p-8'} aria-labelledby="details-heading">
                             <div className={modal ? 'col-span-1 min-w-0 space-y-1' : 'space-y-2'}>
                                 <Label htmlFor="title">Issue Title <span aria-hidden="true" className="text-red-500">*</span></Label>
                                 <Input
@@ -124,11 +134,17 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                         );
                                     })}
                                 </select>
+                                {selectedCategory?.description && <p className={`text-xs leading-relaxed ${theme.textMuted}`}>{selectedCategory.description}</p>}
+                                <label className={`mt-3 block text-xs font-bold ${theme.textMain}`}>Visibility
+                                    <select aria-label="Concern visibility" value={forcePrivate ? 'private' : data.visibility} disabled={forcePrivate} onChange={event => setData('visibility', event.target.value as 'public' | 'private')} className={`mt-1 w-full rounded-xl border p-2 ${theme.cardBorder} ${theme.inputBg}`}>
+                                        <option value="public">Public</option><option value="private">Private</option>
+                                    </select>
+                                </label>
                                 
-                                {data.category_id === 'vawc' && (
+                                {forcePrivate && (
                                     <div role="alert" aria-live="polite" className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-900">
                                         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-                                        <p className="leading-relaxed">VAWC / Domestic reports are <strong>strictly confidential</strong> and forced private. They will never appear on the public community feed.</p>
+                                        <p className="leading-relaxed">{data.category_id === 'vawc' || initialConcern?.category_id === 'vawc' ? 'VAWC reports are kept confidential.' : 'This report contains confidential information.'} Visibility is locked to <strong>Private</strong>; only you and authorized staff can view this report.</p>
                                     </div>
                                 )}
 
@@ -150,15 +166,13 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                             </div>
 
                             <div className={modal ? 'col-span-1 min-w-0 space-y-2 min-[360px]:col-span-2' : 'space-y-2'}>
-                                <Label htmlFor="photos">Photographic Evidence (Optional)</Label>
-                                <Input
-                                    id="photos"
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={(e) => setData('images', Array.from(e.target.files ?? []))}
-                                    className={`${theme.inputBg} rounded-2xl h-11 text-xs file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-transparent file:text-current cursor-pointer`}
-                                />
+                                <ConcernPhotoPicker files={data.images} existingCount={initialConcern?.existing_photo_count ?? 0} disabled={processing}
+                                    error={Object.entries(errors).filter(([field]) => field === 'images' || field.startsWith('images.')).map(([, message]) => message).join(' ')}
+                                    onChange={images => {
+                                        setData('images', images);
+                                        const photoErrors = Object.keys(errors).filter(field => field === 'images' || field.startsWith('images.')) as (keyof typeof data)[];
+                                        if (photoErrors.length) clearErrors(...photoErrors);
+                                    }} />
                             </div>
                         </CardContent>
                     </Card>
@@ -199,7 +213,7 @@ export default function New({ categories = [], mapCenter = TAMBO_CENTER, baranga
                                 ? progress && data.images.length > 0
                                     ? `Uploading photos (${progress.percentage}%)`
                                     : 'Submitting concern...'
-                                : 'Submit Community Concern'}
+                                : initialConcern ? 'Save Changes' : 'Submit Community Concern'}
                         </Button>
                         {modal ? (
                             <Button type="button" variant="outline" className={`font-black text-xs cursor-pointer rounded-2xl h-11 sm:h-12 ${modal ? 'px-5 sm:px-8' : 'w-full py-3.5 sm:w-auto px-8'}`} onClick={onClose} disabled={processing}>

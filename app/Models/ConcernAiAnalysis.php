@@ -16,6 +16,7 @@ class ConcernAiAnalysis extends Model
 
     protected $fillable = [
         'concern_id',
+        'content_revision',
         'is_current',
         'detected_language',
         'suggested_category_id',
@@ -41,8 +42,8 @@ class ConcernAiAnalysis extends Model
             'duplicate_similarity' => 'float',
             'suggested_due_date' => 'date',
             'processed_at' => 'datetime',
-            
-            // This tells Laravel to automatically convert these JSON columns into PHP arrays 
+
+            // This tells Laravel to automatically convert these JSON columns into PHP arrays
             // when reading from the database, and back to JSON when saving.
             'embedding' => 'array',
             'prescriptive_steps' => 'array',

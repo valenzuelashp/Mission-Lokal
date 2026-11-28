@@ -11,6 +11,7 @@ use App\Services\Missions\MissionLifecycleService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class ConcernResponsePlanTest extends TestCase
@@ -23,6 +24,7 @@ class ConcernResponsePlanTest extends TestCase
             $table->string('code');
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->unsignedSmallInteger('subcategory_id')->nullable();
             $table->string('title');
@@ -30,6 +32,7 @@ class ConcernResponsePlanTest extends TestCase
             $table->timestamps();
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->unsignedSmallInteger('suggested_subcategory_id')->nullable();

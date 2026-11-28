@@ -1,26 +1,27 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\Admin\NotificationController;
-use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AnalyticsController;
-use App\Http\Controllers\Admin\DocumentController;
-use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\DeskConcernIntakeController;
-use App\Http\Controllers\Admin\MissionController;
-use App\Http\Controllers\Admin\VerificationController;
-use App\Http\Controllers\Admin\BlotterController;
-use App\Http\Controllers\Admin\MapController; 
-use App\Http\Controllers\Admin\ProfileEditController;
-use App\Http\Controllers\Admin\ResidentController;
 use App\Http\Controllers\Admin\AnnouncementController;
-use App\Http\Controllers\Admin\CalendarController;
-use App\Http\Controllers\Admin\LibraryController;
 use App\Http\Controllers\Admin\AuditLogController;
-use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\BlotterController;
+use App\Http\Controllers\Admin\CalendarController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeskConcernIntakeController;
 use App\Http\Controllers\Admin\DilgReportController;
+use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\LibraryController;
+use App\Http\Controllers\Admin\LoginActivityController;
+use App\Http\Controllers\Admin\MapController;
+use App\Http\Controllers\Admin\MissionController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PersonnelController as AdminPersonnelController;
+use App\Http\Controllers\Admin\ProfileEditController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ResidentController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\VerificationController;
+use App\Http\Controllers\ConcernClarificationController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -30,25 +31,26 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get('/reports/dilg', [DilgReportController::class, 'index'])->name('reports.dilg');
     Route::get('/reports/dilg/pdf', [DilgReportController::class, 'pdf'])->name('reports.dilg.pdf');
-    
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');    
-    Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');    
+
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/queue', [ReportController::class, 'index'])->name('reports.queue');
     Route::get('/reports/intake', [DeskConcernIntakeController::class, 'create'])->name('reports.intake.create');
     Route::post('/reports/intake', [DeskConcernIntakeController::class, 'store'])->name('reports.intake.store');
-    Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');  
-    Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');  
+    Route::get('/reports/{concern}', [ReportController::class, 'show'])->name('reports.show');
+    Route::put('/reports/{concern}', [ReportController::class, 'update'])->name('reports.update');
 
-    Route::post('/reports/{concern}/clarifications', [\App\Http\Controllers\ConcernClarificationController::class, 'store'])
+    Route::post('/reports/{concern}/clarifications', [ConcernClarificationController::class, 'store'])
         ->middleware('throttle:10,1')->name('reports.clarifications.store');
-    Route::post('/reports/{concern}/reanalyse', [\App\Http\Controllers\ConcernClarificationController::class, 'reanalyse'])
+    Route::post('/reports/{concern}/reanalyse', [ConcernClarificationController::class, 'reanalyse'])
         ->middleware('throttle:5,1')->name('reports.reanalyse');
-    
+
     Route::post('/reports/{id}/confirm-ai', [ReportController::class, 'confirmAI'])->name('reports.confirm-ai');
+    Route::post('/reports/{id}/review-scope', [ReportController::class, 'reviewScope'])->name('reports.review-scope');
     Route::post('/reports/{id}/confirm-ai-verdict', [ReportController::class, 'confirmAiVerdict'])->name('reports.confirm-ai-verdict');
     Route::post('/reports/{id}/merge', [ReportController::class, 'mergeDuplicate'])->name('reports.merge');
     Route::post('/reports/{id}/reject', [ReportController::class, 'rejectConcern'])->name('reports.reject');
     Route::post('/reports/{id}/escalate', [ReportController::class, 'createMission'])->name('reports.escalate');
-    
+
     Route::get('/missions', [MissionController::class, 'index'])->name('missions.index');
     Route::get('/mission-board', [MissionController::class, 'index'])->name('missions.board');
     Route::post('/missions', [MissionController::class, 'store'])->name('missions.store');
@@ -57,10 +59,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/missions/{mission}/personnel/{personnel}/resend-sms', [MissionController::class, 'resendAssignmentSms'])->name('missions.personnel.resend-sms');
     Route::post('/missions/{mission}/verify', [MissionController::class, 'verifyMission'])->name('missions.verify');
     Route::post('/missions/{mission}/resolution-post', [MissionController::class, 'publishResolutionPost'])->name('missions.resolution-post.publish');
-    
+
     Route::get('/departments', [AdminPersonnelController::class, 'departments'])->name('departments.index');
     Route::post('/departments', [AdminPersonnelController::class, 'storeDepartment'])->name('departments.store');
-    
+
     Route::get('/personnel', [AdminPersonnelController::class, 'index'])->name('personnel.index');
     Route::post('/personnel', [AdminPersonnelController::class, 'store'])->name('personnel.store');
     Route::patch('/personnel/{id}/role', [AdminPersonnelController::class, 'updateRole'])->name('personnel.role.update');
@@ -71,12 +73,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         ->where('path', '.*')
         ->name('view-id');
 
-        Route::prefix('verifications')->name('verifications.')->group(function () {
-            Route::get('/', [VerificationController::class, 'index'])->name('index');
-            Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
-            Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
-            Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
-        });
+    Route::prefix('verifications')->name('verifications.')->group(function () {
+        Route::get('/', [VerificationController::class, 'index'])->name('index');
+        Route::get('/{user}', [VerificationController::class, 'show'])->name('show');
+        Route::post('/{user}/approve', [VerificationController::class, 'approve'])->name('approve');
+        Route::post('/{user}/reject', [VerificationController::class, 'reject'])->name('reject');
+    });
 
     Route::get('/profile-edits', [ProfileEditController::class, 'index'])->name('profile-edits.index');
     Route::post('/profile-edits/{id}/approve', [ProfileEditController::class, 'approve'])->name('profile-edits.approve');
@@ -123,13 +125,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::delete('/library/{id}', [LibraryController::class, 'destroy'])->name('library.destroy');
 
     Route::get('/audit', [AuditLogController::class, 'index'])->name('audit');
+    Route::get('/login-activity', [LoginActivityController::class, 'index'])->name('login-activity');
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
-    
+
     Route::post('/settings/security/request-otp', [SettingsController::class, 'sendOtp'])->name('settings.security.request_otp');
     Route::post('/settings/security/request-clearance', [SettingsController::class, 'requestClearanceKey'])->name('settings.security.request_clearance');
-    
+
     Route::put('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
 });

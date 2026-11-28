@@ -6,6 +6,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class AdminSeatAndDeskIntakeMigrationTest extends TestCase
@@ -46,6 +47,7 @@ class AdminSeatAndDeskIntakeMigrationTest extends TestCase
             $table->uuid('id')->primary();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->uuid('reporter_id');
             $table->foreign('reporter_id', 'concerns_reporter_id_foreign')->references('id')->on('users')->restrictOnDelete();
@@ -83,6 +85,7 @@ class AdminSeatAndDeskIntakeMigrationTest extends TestCase
             $table->uuid('id')->primary();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->uuid('reporter_id');
             $table->foreign('reporter_id', 'concerns_reporter_id_foreign')->references('id')->on('users')->restrictOnDelete();

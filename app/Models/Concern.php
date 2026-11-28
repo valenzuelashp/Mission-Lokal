@@ -2,20 +2,35 @@
 
 namespace App\Models;
 
+use App\Enums\ConcernCategoryCode;
 use App\Enums\ConcernStatus;
+use App\Services\Concerns\ConcernClassification;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 
 class Concern extends Model
 {
     use HasFactory, HasUuids;
 
     protected $table = 'concerns';
+
+    protected static function booted(): void
+    {
+        static::saving(function (Concern $concern) {
+            $code = $concern->category_id ? ConcernCategory::whereKey($concern->category_id)->value('code') : null;
+            if ($code === 'VAWC' || $concern->is_vawc) {
+                $concern->visibility = 'private';
+                $concern->is_vawc = true;
+                $concern->is_blotter_candidate = true;
+            }
+        });
+    }
 
     protected $fillable = [
         'barangay_id',
@@ -43,12 +58,17 @@ class Concern extends Model
         'staff_reviewed_by',
         'staff_reviewed_at',
         'closed_summary',
+        'original_category_id', 'category_realignment_reason', 'routed_department', 'routed_roles',
+        'scope_status', 'scope_reason', 'is_vawc', 'content_revision',
     ];
 
     protected function casts(): array
     {
         return [
             'severity_confirmed' => 'boolean',
+            'routed_roles' => 'array',
+            'is_vawc' => 'boolean',
+            'content_revision' => 'integer',
             'is_blotter_candidate' => 'boolean',
             'status' => ConcernStatus::class,
             'ai_processed_at' => 'datetime',
@@ -88,6 +108,9 @@ class Concern extends Model
 
     public function isVawcConcern(): bool
     {
+        if ($this->is_vawc || ($this->category_id && $this->category?->code === 'VAWC')) {
+            return true;
+        }
         if ($this->subcategory?->code === 'VAWC') {
             return true;
         }
@@ -116,7 +139,8 @@ class Concern extends Model
     {
         return $query
             ->where('visibility', 'public')
-            ->where('status', '!=', ConcernStatus::Submitted->value)
+            ->where('scope_status', 'in_scope')
+            ->whereNotIn('status', ['submitted', 'rejected', 'spam'])
             ->where(function (Builder $privacy) {
                 $privacy->whereNull('is_blotter_candidate')
                     ->orWhere('is_blotter_candidate', false);
@@ -128,7 +152,7 @@ class Concern extends Model
 
     public static function isVawcReport(?string $categoryKey, string $title = '', string $description = ''): bool
     {
-        return $categoryKey === 'vawc' || preg_match(
+        return strtolower((string) $categoryKey) === 'vawc' || preg_match(
             '/\b(vawc|violence\s+against\s+women|domestic\s+(?:violence|dispute|conflict|abuse)|family\s+violence|spousal\s+abuse|sexual\s+(?:abuse|violence|assault)|child\s+abuse|rape|ra\s*9262|pang[-\s]?aabuso|inaabuso|binubugbog|bugbog|sinaktan|pananakit)\b/i',
             $title.' '.$description
         ) === 1;
@@ -156,6 +180,8 @@ class Concern extends Model
 
     public function scopeWhereNotVawc(Builder $query): Builder
     {
+        $query->where('is_vawc', false);
+        $query->whereDoesntHave('category', fn (Builder $category) => $category->where('code', 'VAWC'));
         $query->whereDoesntHave('subcategory', fn (Builder $subcategory) => $subcategory->where('code', 'VAWC'));
         $query->whereDoesntHave('currentAiAnalysis.suggestedSubcategory', fn (Builder $subcategory) => $subcategory->where('code', 'VAWC'));
 
@@ -171,39 +197,28 @@ class Concern extends Model
 
     public function suggestedPersonnelDepartment(): string
     {
-        $subcategoryCode = strtoupper((string) $this->subcategory?->code);
-        $categoryCode = strtoupper((string) $this->category?->code);
-        $text = strtolower(($this->title ?? '').' '.($this->description ?? ''));
+        $definition = $this->categoryDefinition();
 
-        if ($this->isSensitiveConcern() || $categoryCode === 'SEC') {
-            return 'Peace & Order';
+        return $definition?->department()?->label() ?? 'Admin Triage';
+    }
+
+    public function categoryDefinition(): ?ConcernCategoryCode
+    {
+        if ($this->isVawcConcern()) {
+            return ConcernCategoryCode::Vawc;
         }
 
-        if (preg_match('/\b(dog|dogs|cat|cats|stray\s+animal|animal\s+rescue)\b/i', $text) === 1) {
-            return 'Animal Response Team';
-        }
+        return ConcernCategoryCode::tryFrom((string) $this->category?->code);
+    }
 
-        if (
-            str_contains($subcategoryCode, 'TRAFFIC')
-            || str_contains($subcategoryCode, 'OBSTRUCTION')
-            || preg_match('/\b(traffic|road\s+obstruction|blocked\s+road|clearing)\b/i', $text) === 1
-        ) {
-            return 'Traffic Management';
+    public function assertInScope(): void
+    {
+        if ($this->scope_status === 'out_of_scope' || app(ConcernClassification::class)->isActiveEmergency($this->title.' '.$this->description)) {
+            throw ValidationException::withMessages(['confirmed_action' => ConcernClassification::EMERGENCY_NOTICE]);
         }
-
-        if ($categoryCode === 'SANI') {
-            return 'Environmental';
+        if ($this->scope_status !== null && $this->scope_status !== 'in_scope') {
+            throw ValidationException::withMessages(['confirmed_action' => 'Scope must be confirmed as non-emergency before this concern can be approved or dispatched.']);
         }
-
-        if (
-            str_contains($subcategoryCode, 'DRAINAGE')
-            || str_contains($subcategoryCode, 'STREET_LIGHT')
-            || preg_match('/\b(electric|electrical|drainage|street\s+light|minor\s+repair|clogged\s+drain)\b/i', $text) === 1
-        ) {
-            return 'Maintenance';
-        }
-
-        return 'Utility & Infrastructure';
     }
 
     public function reporter(): BelongsTo
@@ -300,7 +315,7 @@ class Concern extends Model
         }
 
         if (
-            ($this->visibility === 'private' || $this->isSensitiveConcern())
+            ($this->visibility === 'private' || $this->isSensitiveConcern() || $this->scope_status !== 'in_scope' || in_array($this->status?->value, ['submitted', 'rejected', 'spam'], true))
             && $this->reporter_id !== $user->id
         ) {
             abort(403, 'This concern is private and restricted to the original reporter.');

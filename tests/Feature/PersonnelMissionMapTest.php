@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class PersonnelMissionMapTest extends TestCase
@@ -41,8 +42,10 @@ class PersonnelMissionMapTest extends TestCase
             $table->boolean('is_active')->default(true);
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->uuid('subcategory_id')->nullable();
+            $table->unsignedSmallInteger('category_id')->default(1);
             $table->string('title');
             $table->text('description');
             $table->text('location');
@@ -50,11 +53,17 @@ class PersonnelMissionMapTest extends TestCase
             $table->string('visibility')->default('public');
             $table->string('severity')->default('medium');
         });
+        Schema::create('concern_categories', function (Blueprint $table) {
+            $table->unsignedSmallInteger('id')->primary();
+            $table->string('code');
+        });
+        DB::table('concern_categories')->insert(['id' => 1, 'code' => 'NOISE']);
         Schema::create('concern_subcategories', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('code');
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->uuid('suggested_subcategory_id')->nullable();

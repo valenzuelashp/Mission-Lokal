@@ -67,7 +67,7 @@ class ConcernResponsePlan
     public function safeguardingSteps(): array
     {
         return [
-            'Only authorized VAW Desk personnel should handle this case through the barangay\'s confidential safeguarding process.',
+            'Only authorized VAW Desk, Lupon, or admin staff should handle this case through the barangay\'s confidential safeguarding process.',
             'Assess immediate safety discreetly; do not contact the alleged perpetrator or attempt mediation as part of this mission.',
             'Record only necessary operational details in the restricted case record; do not collect identifying photos unless required by protocol and safe to do so.',
         ];

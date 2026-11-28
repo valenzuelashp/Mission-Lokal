@@ -6,6 +6,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class SecureCaseMediaMigrationTest extends TestCase
@@ -15,6 +16,7 @@ class SecureCaseMediaMigrationTest extends TestCase
         parent::setUp();
 
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->unsignedSmallInteger('category_id')->nullable();
             $table->unsignedSmallInteger('subcategory_id')->nullable();

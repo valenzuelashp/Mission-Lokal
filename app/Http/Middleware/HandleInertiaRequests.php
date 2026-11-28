@@ -2,13 +2,14 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\VerificationStatus;
 use App\Enums\PersonnelShift;
+use App\Enums\UserRole;
+use App\Enums\VerificationStatus;
 use App\Models\Notification;
 use App\Models\Personnel;
-use App\Services\Missions\DepartmentMissionAccess;
 use App\Models\ResidentRegistration;
-use App\Enums\UserRole;
+use App\Services\Missions\DepartmentMissionAccess;
+use App\Services\SessionSecurity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             $unreadCount = Notification::where('user_id', $user->id)
                 ->where('is_read', false)
                 ->count();
-            
+
             $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
             if ($roleValue === 'resident') {
                 $user->load('residentProfile');
@@ -92,7 +93,7 @@ class HandleInertiaRequests extends Middleware
                         ->count();
                 }
             }
-            
+
             if ($roleValue === 'admin' || $roleValue === 'super_admin' || $roleValue === UserRole::Admin) {
                 $badgeCounts = Cache::remember(
                     'inertia:admin-badges:'.($user->barangay_id ?? 'all'),
@@ -188,6 +189,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $userData,
                 'needs_password_setup' => $user ? $user->needsPasswordSetup() : false,
                 'show_password_prompt' => $showPasswordPrompt,
+                'session_security' => $user && $user->active_session_token ? app(SessionSecurity::class)->state($user) : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

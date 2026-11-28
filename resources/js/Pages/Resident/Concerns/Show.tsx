@@ -30,7 +30,7 @@ const severityLabel: Record<Severity, string> = {
 };
 
 type Props = ConcernShowPageProps & {
-    concern: ConcernShowPageProps['concern'] & { reporter_name?: string; reporter_photo_url?: string | null };
+    concern: ConcernShowPageProps['concern'] & { reporter_name?: string; reporter_photo_url?: string | null; category_realignment_reason?: string | null; scope_reason?: string | null; can_edit?: boolean };
 };
 
 export default function Show({ concern }: Props) {
@@ -41,6 +41,9 @@ export default function Show({ concern }: Props) {
     const isPendingReview = ['submitted', 'ai_processed'].includes(concern.status);
     const rightAside = (
         <div className="space-y-5">
+            {concern.can_edit && <Button asChild variant="outline"><Link href={`/concerns/${concern.id}/edit`}>Edit concern</Link></Button>}
+            {concern.category_realignment_reason && <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950"><strong>Category updated to {concern.category}. </strong>{concern.category_realignment_reason}</div>}
+            {concern.scope_reason && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{concern.scope_reason}</div>}
             <Card className={`overflow-hidden rounded-3xl shadow-2xs ${theme.cardBorder} ${theme.cardBg}`}>
                 <CardContent className="space-y-4 p-5">
                     <p className={`text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>Report status</p>

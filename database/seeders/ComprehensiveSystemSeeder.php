@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ConcernStatus;
 use App\Enums\AdminType;
+use App\Enums\ConcernCategoryCode;
+use App\Enums\ConcernStatus;
 use App\Enums\MissionStatus;
 use App\Enums\PersonnelRole;
 use App\Enums\UserRole;
-use App\Enums\VerificationStatus;
 use App\Models\Announcement;
 use App\Models\Barangay;
 use App\Models\BarangaySetting;
@@ -33,7 +33,6 @@ use App\Models\ProfileEditRequest;
 use App\Models\ResidentProfile;
 use App\Models\ResidentRegistration;
 use App\Models\User;
-use App\Services\LocalIdentifier;
 use App\Support\MapHelpers;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -99,31 +98,24 @@ class ComprehensiveSystemSeeder extends Seeder
         // =========================================================================
         // 2. CONCERN CATEGORIES, SUBCATEGORIES, & PLAYBOOKS
         // =========================================================================
-        $catData = [
-            ['id' => 1, 'code' => 'INFRA', 'name' => 'Infrastructure & Utilities', 'default_visibility' => 'public', 'sort_order' => 1],
-            ['id' => 2, 'code' => 'SANI', 'name' => 'Sanitation & Environment', 'default_visibility' => 'public', 'sort_order' => 2],
-            ['id' => 3, 'code' => 'SEC', 'name' => 'Peace & Order', 'default_visibility' => 'private', 'sort_order' => 3],
-            ['id' => 4, 'code' => 'OTHER', 'name' => 'Other Concerns', 'default_visibility' => 'public', 'sort_order' => 4],
-        ];
-
-        foreach ($catData as $c) {
-            ConcernCategory::updateOrCreate(['id' => $c['id']], [
-                'barangay_id' => null,
-                'code' => $c['code'],
-                'name' => $c['name'],
-                'default_visibility' => $c['default_visibility'],
-                'sort_order' => $c['sort_order'],
+        $categoryIds = [];
+        foreach (ConcernCategoryCode::cases() as $index => $definition) {
+            $category = ConcernCategory::updateOrCreate(['barangay_id' => null, 'code' => $definition->value], [
+                'name' => $definition->label(),
+                'default_visibility' => $definition === ConcernCategoryCode::Vawc ? 'private' : 'public',
+                'sort_order' => $index + 1,
                 'is_active' => true,
             ]);
+            $categoryIds[$definition->value] = $category->id;
         }
 
         $subData = [
-            ['id' => 1, 'category_id' => 1, 'code' => 'ROAD_POTHOLE', 'name' => 'Pothole / Road Damage', 'force_private' => false],
-            ['id' => 2, 'category_id' => 2, 'code' => 'GARBAGE', 'name' => 'Uncollected Garbage', 'force_private' => false],
-            ['id' => 3, 'category_id' => 3, 'code' => 'NOISE', 'name' => 'Noise Complaint (Videoke/Party)', 'force_private' => true],
-            ['id' => 4, 'category_id' => 1, 'code' => 'DRAINAGE', 'name' => 'Clogged Drainage / Flooding', 'force_private' => false],
-            ['id' => 5, 'category_id' => 1, 'code' => 'STREET_LIGHT', 'name' => 'Street Light Malfunction', 'force_private' => false],
-            ['id' => 6, 'category_id' => 3, 'code' => 'VAWC', 'name' => 'VAWC & Domestic Conflict', 'force_private' => true],
+            ['id' => 1, 'category_id' => $categoryIds['INFRA'], 'code' => 'ROAD_POTHOLE', 'name' => 'Pothole / Road Damage', 'force_private' => false],
+            ['id' => 2, 'category_id' => $categoryIds['WASTE'], 'code' => 'GARBAGE', 'name' => 'Uncollected Garbage', 'force_private' => false],
+            ['id' => 3, 'category_id' => $categoryIds['NOISE'], 'code' => 'NOISE', 'name' => 'Noise Complaint (Videoke/Party)', 'force_private' => false],
+            ['id' => 4, 'category_id' => $categoryIds['DRAINAGE'], 'code' => 'DRAINAGE', 'name' => 'Clogged Drainage / Flooding', 'force_private' => false],
+            ['id' => 5, 'category_id' => $categoryIds['INFRA'], 'code' => 'STREET_LIGHT', 'name' => 'Street Light Malfunction', 'force_private' => false],
+            ['id' => 6, 'category_id' => $categoryIds['VAWC'], 'code' => 'VAWC', 'name' => 'VAWC & Domestic Disputes', 'force_private' => true],
         ];
 
         foreach ($subData as $s) {
@@ -499,7 +491,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'reporter_id' => $residentObjects[1]->id,
             'title' => 'Severe pothole causing traffic hazards on curve',
             'description' => 'A large deep pothole has formed right at the curve of Phase 1 road near the basketball court. Tricycles and motorbikes frequently swerve into oncoming lanes.',
-            'category_id' => 1,
+            'category_id' => $categoryIds['INFRA'],
             'subcategory_id' => 1,
             'visibility' => 'public',
             'severity' => 'critical',
@@ -525,7 +517,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'reporter_id' => $residentObjects[2]->id,
             'title' => 'Malalim na butas sa kalsada malapit sa court',
             'description' => 'Napakalalim po ng lubak dito sa kanto ng court. Muntik na may sumemplang na nagmomotor kaninang umaga.',
-            'category_id' => 1,
+            'category_id' => $categoryIds['INFRA'],
             'subcategory_id' => 1,
             'visibility' => 'public',
             'severity' => 'high',
@@ -552,7 +544,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'reporter_id' => $residentObjects[0]->id,
             'title' => 'Uncollected garbage pile attracting stray dogs along Quirino',
             'description' => 'Tons of uncollected kitchen waste left uncollected for three consecutive days. Stray dogs have torn the garbage bags.',
-            'category_id' => 2,
+            'category_id' => $categoryIds['WASTE'],
             'subcategory_id' => 2,
             'visibility' => 'public',
             'severity' => 'high',
@@ -578,7 +570,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'reporter_id' => $residentObjects[3]->id,
             'title' => 'Excessive late-night videoke noise past curfew',
             'description' => 'Loud singing and bass amplifiers operating continuously past 1:00 AM on a weekday night despite resident reminders.',
-            'category_id' => 3,
+            'category_id' => $categoryIds['NOISE'],
             'subcategory_id' => 3,
             'visibility' => 'private',
             'severity' => 'low',
@@ -611,7 +603,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'concern_id' => $masterConcern->id,
             'is_current' => 1,
             'detected_language' => 'en',
-            'suggested_category_id' => 1,
+            'suggested_category_id' => $categoryIds['INFRA'],
             'suggested_subcategory_id' => 1,
             'suggested_visibility' => 'public',
             'suggested_severity' => 'critical',
@@ -633,7 +625,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'concern_id' => $duplicateConcern->id,
             'is_current' => 1,
             'detected_language' => 'fil',
-            'suggested_category_id' => 1,
+            'suggested_category_id' => $categoryIds['INFRA'],
             'suggested_subcategory_id' => 1,
             'suggested_visibility' => 'public',
             'suggested_severity' => 'high',
@@ -651,7 +643,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'concern_id' => $garbageConcern->id,
             'is_current' => 1,
             'detected_language' => 'en',
-            'suggested_category_id' => 2,
+            'suggested_category_id' => $categoryIds['WASTE'],
             'suggested_subcategory_id' => 2,
             'suggested_visibility' => 'public',
             'suggested_severity' => 'high',
@@ -702,7 +694,7 @@ class ComprehensiveSystemSeeder extends Seeder
         ConcernStatusHistory::updateOrCreate([
             'concern_id' => $duplicateConcern->id,
             'to_status' => 'resolved',
-            'note' => 'Merged as duplicate into master ticket ' . $masterConcern->id,
+            'note' => 'Merged as duplicate into master ticket '.$masterConcern->id,
         ], [
             'from_status' => 'submitted',
             'actor_id' => $admin1->id,
@@ -919,7 +911,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'channel' => 'in_app',
             'event_type' => 'concern_merged',
             'title' => 'Report Grouped with Ongoing Ticket',
-            'body' => 'Your report was verified and bundled with an ongoing ticket: "' . $masterConcern->title . '".',
+            'body' => 'Your report was verified and bundled with an ongoing ticket: "'.$masterConcern->title.'".',
             'payload' => ['concern_id' => $duplicateConcern->id, 'master_concern_id' => $masterConcern->id],
             'is_read' => 0,
             'created_at' => now()->subHours(6),
@@ -945,7 +937,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'entity_id' => $duplicateConcern->id,
         ], [
             'barangay_id' => $tambo->id,
-            'metadata' => json_encode(['details' => 'Merged duplicate report into master ID ' . $masterConcern->id]),
+            'metadata' => json_encode(['details' => 'Merged duplicate report into master ID '.$masterConcern->id]),
             'ip_address' => inet_pton('127.0.0.1'),
             'created_at' => now()->subHours(6),
         ]);

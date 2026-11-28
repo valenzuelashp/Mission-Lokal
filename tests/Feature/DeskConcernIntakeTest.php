@@ -2,20 +2,21 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Http\Middleware\EnsureBarangayIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Models\User;
 use App\Models\Concern;
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class DeskConcernIntakeTest extends TestCase
 {
     private string $barangayId;
+
     private string $adminId;
 
     protected function setUp(): void
@@ -41,6 +42,7 @@ class DeskConcernIntakeTest extends TestCase
             $table->timestamps();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, false);
             $table->uuid('id')->primary();
             $table->uuid('barangay_id');
             $table->uuid('reporter_id')->nullable();
@@ -85,6 +87,7 @@ class DeskConcernIntakeTest extends TestCase
             $table->boolean('is_active')->default(true);
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->boolean('is_current')->default(true);

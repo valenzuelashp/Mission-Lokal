@@ -2,14 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureBarangayIsActive;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class PersonnelMissionTurnoverTest extends TestCase
@@ -45,6 +46,7 @@ class PersonnelMissionTurnoverTest extends TestCase
             $table->timestamps();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->char('id', 36)->primary();
             $table->char('barangay_id', 36);
             $table->string('title');
@@ -58,6 +60,7 @@ class PersonnelMissionTurnoverTest extends TestCase
             $table->string('code')->nullable();
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->char('id', 36)->primary();
             $table->char('concern_id', 36);
             $table->char('suggested_subcategory_id', 36)->nullable();

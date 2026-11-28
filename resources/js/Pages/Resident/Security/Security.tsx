@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, Shield } from 'lucide-react';
+import { ArrowLeft, History, Shield } from 'lucide-react';
 import { FormEvent } from 'react';
 import PageHeader from '@/Components/shared/PageHeader';
 import { Button } from '@/Components/ui/button';
@@ -42,7 +42,11 @@ export default function Security() {
                     </Link>
                 </Button>
 
-                <PageHeader title="Security Settings" description="Update your account password and authentication keys." />
+                <PageHeader title="Security Settings" description="Update your account password and authentication keys." action={
+                    <Button variant="outline" asChild>
+                        <Link href="/profile/login-activity"><History className="h-4 w-4" />Login Activity</Link>
+                    </Button>
+                } />
 
                 {flash.success && (
                     <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-xs font-bold text-emerald-900 shadow-2xs">

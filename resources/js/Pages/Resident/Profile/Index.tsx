@@ -80,6 +80,12 @@ export default function ProfileIndex({ profile, xp_history = [] }: { profile: an
                             Security Password Settings
                         </Link>
                     </Button>
+                    <Button variant="outline" className={`justify-start font-bold text-xs shadow-2xs cursor-pointer ${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg} rounded-2xl h-11 px-4`} asChild>
+                        <Link href="/profile/login-activity">
+                            <History className={`mr-2 h-4 w-4 ${theme.primaryText}`} />
+                            Login Activity
+                        </Link>
+                    </Button>
                 </CardContent>
             </Card>
         </div>

@@ -7,6 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class ConcernVawcScopeTest extends TestCase
@@ -16,7 +17,9 @@ class ConcernVawcScopeTest extends TestCase
         parent::setUp();
 
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
+            $table->unsignedSmallInteger('category_id')->nullable();
             $table->string('title');
             $table->text('description');
             $table->string('visibility')->default('public');
@@ -24,12 +27,17 @@ class ConcernVawcScopeTest extends TestCase
             $table->unsignedSmallInteger('subcategory_id')->nullable();
             $table->boolean('is_blotter_candidate')->default(false);
         });
+        Schema::create('concern_categories', function (Blueprint $table) {
+            $table->unsignedSmallInteger('id')->primary();
+            $table->string('code');
+        });
         Schema::create('concern_subcategories', function (Blueprint $table) {
             $table->unsignedSmallInteger('id')->primary();
             $table->string('code');
             $table->boolean('force_private')->default(false);
         });
         Schema::create('concern_ai_analysis', function (Blueprint $table) {
+            $table->unsignedInteger('content_revision')->default(1);
             $table->uuid('id')->primary();
             $table->uuid('concern_id');
             $table->unsignedSmallInteger('suggested_subcategory_id')->nullable();
@@ -42,6 +50,7 @@ class ConcernVawcScopeTest extends TestCase
         Schema::dropIfExists('concern_ai_analysis');
         Schema::dropIfExists('concern_subcategories');
         Schema::dropIfExists('concerns');
+        Schema::dropIfExists('concern_categories');
 
         parent::tearDown();
     }

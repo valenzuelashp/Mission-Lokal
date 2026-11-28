@@ -4,15 +4,15 @@ namespace App\Models;
 
 use App\Enums\AdminType;
 use App\Enums\UserRole;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne; 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -24,12 +24,12 @@ class User extends Authenticatable
         'role',
         'admin_type',
         'is_view_only',
-        'first_name', 
+        'first_name',
         'middle_name',
-        'last_name',  
+        'last_name',
         'name_extension',
-        'birthday', 
-        'address',  
+        'birthday',
+        'address',
         'email',
         'mobile',
         'profile_photo_path',
@@ -48,6 +48,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'active_session_token',
+        'session_pin_hash',
+        'session_locked_at',
+        'session_lock_version',
+        'session_away_at',
     ];
 
     protected function casts(): array
@@ -62,6 +67,8 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
             'birthday' => 'date',
+            'session_locked_at' => 'datetime',
+            'session_away_at' => 'datetime',
         ];
     }
 
@@ -101,11 +108,12 @@ class User extends Authenticatable
             return false;
         }
 
-        if (!$this->birthday) {
+        if (! $this->birthday) {
             $profile = $this->residentProfile;
-            if (!$profile || !$profile->birthday) {
+            if (! $profile || ! $profile->birthday) {
                 return false;
             }
+
             return Carbon::parse($profile->birthday)->age < 18;
         }
 
@@ -152,7 +160,7 @@ class User extends Authenticatable
         if (($this->role === UserRole::Admin || $this->role === 'admin' || $this->role === UserRole::SuperAdmin || $this->role === 'super_admin') && $this->is_view_only) {
             return false;
         }
-        
+
         if ($this->role === UserRole::Admin || $this->role === 'admin' || $this->role === UserRole::SuperAdmin || $this->role === 'super_admin') {
             return true;
         }
@@ -177,12 +185,12 @@ class User extends Authenticatable
 
         $initials = '';
         if ($firstName !== '') {
-            $initials .= mb_strtoupper(mb_substr($firstName, 0, 1)) . '.';
+            $initials .= mb_strtoupper(mb_substr($firstName, 0, 1)).'.';
         }
 
         // Cleanly check and ignore empty, blank, or 'N/A' middle names
         if ($middle !== '' && strtoupper($middle) !== 'N/A') {
-            $initials .= ' ' . mb_strtoupper(mb_substr($middle, 0, 1)) . '.';
+            $initials .= ' '.mb_strtoupper(mb_substr($middle, 0, 1)).'.';
         }
 
         $last = $last !== '' ? $last : 'UNKNOWN';

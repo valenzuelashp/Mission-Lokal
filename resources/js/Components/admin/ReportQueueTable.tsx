@@ -130,6 +130,8 @@ export default function ReportQueueTable({ reports, scoreDisplay, maxUpvotes }: 
                                     </td>
                                     <td className="px-6 py-4 text-slate-700 font-bold">
                                         {row.ai_category}
+                                        {row.routed_department && <span className="mt-1 block text-[10px] text-slate-500">{row.routed_department}</span>}
+                                        {row.category_realignment_reason && <span className="mt-1 block text-[10px] text-blue-700" title={row.category_realignment_reason}>Category realigned</span>}
                                     </td>
                                     <td className="min-w-[160px] px-6 py-4">
                                         <div className="space-y-1.5">

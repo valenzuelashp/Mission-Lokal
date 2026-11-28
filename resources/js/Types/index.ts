@@ -309,6 +309,9 @@ export interface AdminIncident {
 }
 
 export interface AdminReport extends Omit<AdminIncident, 'ai_severity'> {
+    category_realignment_reason?: string | null;
+    routed_department?: string | null;
+    scope_status?: string;
     ai_severity: number | null;
     report_quality?: ConcernReportQuality | null;
     clarification_status?: 'awaiting_reply' | 'answered' | null;

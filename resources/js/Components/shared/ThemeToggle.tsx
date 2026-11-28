@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { Button } from '@/Components/ui/button';
 
 export function applyStoredTheme() {
-    const stored = localStorage.getItem('mission-lokal-theme');
+    const admin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/');
+    const stored = localStorage.getItem(admin ? 'mission-lokal-admin-theme' : 'mission-lokal-theme');
     const theme = stored === 'dark'
-        || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        || (!admin && !stored && window.matchMedia('(prefers-color-scheme: dark)').matches)
         ? 'dark'
         : 'light';
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -18,7 +19,8 @@ export default function ThemeToggle({ className = '' }: { className?: string }) 
         const next = !dark;
         setDark(next);
         document.documentElement.classList.toggle('dark', next);
-        localStorage.setItem('mission-lokal-theme', next ? 'dark' : 'light');
+        const admin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/');
+        localStorage.setItem(admin ? 'mission-lokal-admin-theme' : 'mission-lokal-theme', next ? 'dark' : 'light');
     };
 
     return (

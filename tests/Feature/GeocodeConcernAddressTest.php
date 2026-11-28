@@ -8,6 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class GeocodeConcernAddressTest extends TestCase
@@ -17,6 +18,7 @@ class GeocodeConcernAddressTest extends TestCase
         parent::setUp();
 
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->string('visibility');
             $table->text('address_text')->nullable();

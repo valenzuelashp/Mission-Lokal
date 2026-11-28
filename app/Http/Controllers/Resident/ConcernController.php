@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Resident;
 
+use App\Enums\ConcernCategoryCode;
 use App\Enums\ConcernStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreConcernRequest;
 use App\Jobs\Ai\ProcessConcernWithAi;
 use App\Jobs\GeocodeConcernAddress;
 use App\Models\Announcement;
 use App\Models\Concern;
+use App\Models\ConcernCategory;
 use App\Models\ConcernStatusHistory;
 use App\Models\ConcernSubcategory;
 use App\Models\ConcernVote;
 use App\Models\MissionResolutionPost;
+use App\Services\Concerns\ConcernClassification;
 use App\Services\Concerns\FileUploadService;
 use App\Support\ConcernStatusUpdate;
 use App\Support\MapHelpers;
@@ -283,14 +287,8 @@ class ConcernController extends Controller
     private function concernFormOptions(): array
     {
         return [
-            'categories' => [
-                ['value' => 'fire', 'label' => 'Fire Hazard'],
-                ['value' => 'flood', 'label' => 'Flooding & Drainage'],
-                ['value' => 'waste', 'label' => 'Solid Waste & Illegal Dumping'],
-                ['value' => 'noise', 'label' => 'Noise Disturbance'],
-                ['value' => 'light', 'label' => 'Infrastructure & Utilities'],
-                ['value' => 'vawc', 'label' => 'VAWC / Domestic Dispute'],
-            ],
+            'categories' => ConcernCategoryCode::options(),
+            'emergencyNotice' => ConcernClassification::EMERGENCY_NOTICE,
             'mapCenter' => [14.5173079, 120.9933811],
             'barangayBounds' => [
                 [14.5059, 120.9766288],
@@ -299,17 +297,11 @@ class ConcernController extends Controller
         ];
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreConcernRequest $request): RedirectResponse
     {
-        $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string', 'min:10'],
-            'incident_occurred_at' => ['nullable', 'date', 'before_or_equal:now'],
-            'category_id' => ['required', 'string'],
-            'lat' => ['required', 'numeric'],
-            'lng' => ['required', 'numeric'],
-            'images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
-        ]);
+        if (app(ConcernClassification::class)->isActiveEmergency($request->title.' '.$request->description)) {
+            throw ValidationException::withMessages(['description' => ConcernClassification::EMERGENCY_NOTICE]);
+        }
 
         $user = auth()->user();
 
@@ -326,17 +318,8 @@ class ConcernController extends Controller
             $request->title,
             $request->description,
         );
-        $categoryMap = [
-            'infrastructure' => 1,
-            'light' => 1,
-            'flood' => 2,
-            'waste' => 2,
-            'noise' => 3,
-            'fire' => 1,
-            'vawc' => 3,
-        ];
-
-        $categoryIdInt = $isVawcConcern ? 3 : ($categoryMap[$request->category_id] ?? 1);
+        $category = ConcernCategory::query()->whereNull('barangay_id')->where('is_active', true)->where('code', strtoupper($request->category_id))->firstOrFail();
+        $categoryIdInt = $category->id;
         $subcategoryCode = $isVawcConcern
             ? 'VAWC'
             : ($request->category_id === 'noise' ? 'NOISE' : null);
@@ -346,7 +329,7 @@ class ConcernController extends Controller
         $subcategoryId = $subcategory?->id;
         $forcePrivate = Concern::shouldForcePrivate($request->category_id, $request->title, $request->description)
             || (bool) $subcategory?->force_private;
-        $visibility = $forcePrivate ? 'private' : 'public';
+        $visibility = $forcePrivate ? 'private' : $request->input('visibility', 'public');
         $lat = (float) $request->lat;
         $lng = (float) $request->lng;
         $addressText = $forcePrivate ? null : "Coordinates: {$lat}, {$lng}";
@@ -359,6 +342,7 @@ class ConcernController extends Controller
                 'description' => $request->description,
                 'incident_occurred_at' => $request->input('incident_occurred_at'),
                 'category_id' => $categoryIdInt,
+                'original_category_id' => $categoryIdInt,
                 'subcategory_id' => $subcategoryId,
                 'is_vawc' => $isVawcConcern,
                 'visibility' => $visibility,
@@ -412,6 +396,60 @@ class ConcernController extends Controller
             ->afterCommit();
 
         return redirect()->route('feed')->with('success', 'Concern submitted successfully! AI is analyzing your report.');
+    }
+
+    public function edit(Request $request, Concern $concern): Response
+    {
+        abort_unless($concern->reporter_id === $request->user()->id && $concern->barangay_id === $request->user()->barangay_id, 404);
+        abort_unless($concern->isAwaitingStaffDecision() && ! $concern->mission()->exists(), 403, 'This concern is already being handled.');
+        $point = DB::selectOne('SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?', [$concern->id]);
+        $x = (float) ($point->x ?? 120.9933811);
+        $y = (float) ($point->y ?? 14.5173079);
+
+        return Inertia::render('Resident/Concerns/New', [...$this->concernFormOptions(), 'initialConcern' => [
+            'id' => $concern->id, 'title' => $concern->title, 'description' => $concern->description,
+            'category_id' => strtolower((string) $concern->category?->code), 'visibility' => $concern->visibility,
+            'force_private' => $concern->isSensitiveConcern(), 'lat' => $x > 90 ? $y : $x, 'lng' => $x > 90 ? $x : $y,
+            'existing_photo_count' => $concern->media()->count(),
+        ]]);
+    }
+
+    public function update(StoreConcernRequest $request, Concern $concern): RedirectResponse
+    {
+        abort_unless($concern->reporter_id === $request->user()->id && $concern->barangay_id === $request->user()->barangay_id, 404);
+        if (app(ConcernClassification::class)->isActiveEmergency($request->title.' '.$request->description)) {
+            throw ValidationException::withMessages(['description' => ConcernClassification::EMERGENCY_NOTICE]);
+        }
+        if ($request->user()->isMinor() && in_array($request->category_id, ['vawc', 'noise'], true)) {
+            throw ValidationException::withMessages(['category_id' => 'Please ask your parent or guardian to file a sensitive dispute.']);
+        }
+        $category = ConcernCategory::whereNull('barangay_id')->where('is_active', true)->where('code', strtoupper($request->category_id))->firstOrFail();
+        DB::transaction(function () use ($request, $concern, $category) {
+            $concern = Concern::whereKey($concern->id)->lockForUpdate()->firstOrFail();
+            abort_unless($concern->isAwaitingStaffDecision() && ! $concern->mission()->exists(), 403, 'This concern is already being handled.');
+            $private = $concern->isSensitiveConcern() || Concern::shouldForcePrivate($request->category_id, $request->title, $request->description);
+            if ($concern->media()->count() + count($request->file('images', [])) > 4) {
+                throw ValidationException::withMessages(['images' => 'A concern can contain up to four photos.']);
+            }
+            $concern->update([
+                'title' => $request->title, 'description' => $request->description, 'category_id' => $category->id,
+                'original_category_id' => $category->id, 'subcategory_id' => null, 'category_realignment_reason' => null,
+                'visibility' => $private ? 'private' : $request->input('visibility', 'public'), 'is_vawc' => $concern->isVawcConcern() || Concern::isVawcReport($request->category_id, $request->title, $request->description),
+                'status' => 'submitted', 'content_revision' => ($concern->content_revision ?? 1) + 1,
+                'scope_status' => 'pending', 'scope_reason' => null, 'routed_department' => null, 'routed_roles' => null,
+                'location' => MapHelpers::pointFromLatLng((float) $request->lat, (float) $request->lng),
+                'address_text' => null, 'ai_processed_at' => null,
+            ]);
+            $concern->aiAnalyses()->update(['is_current' => false]);
+            foreach ($request->file('images', []) as $file) {
+                $path = app(FileUploadService::class)->upload($file, 'concerns', 'image', true);
+                $concern->media()->create(['id' => (string) Str::uuid(), 'storage_key' => $path, 'mime_type' => $file->getMimeType(), 'sort_order' => $concern->media()->count()]);
+            }
+            ConcernStatusUpdate::record($concern, null, 'submitted', $request->user()->id, 'Resident edited the concern; queued for fresh analysis.');
+            ProcessConcernWithAi::dispatch($concern)->onConnection('database')->afterCommit();
+        });
+
+        return redirect()->route('concerns.show', $concern)->with('success', 'Concern updated and queued for fresh analysis.');
     }
 
     public function show(Request $request, Concern $concern): Response
@@ -501,6 +539,9 @@ class ConcernController extends Controller
                 'id' => (string) $concern->id,
                 'title' => $concern->title,
                 'category' => $this->categoryName($concern),
+                'category_realignment_reason' => $concern->reporter_id === $user->id ? $concern->category_realignment_reason : null,
+                'scope_reason' => $concern->reporter_id === $user->id ? $concern->scope_reason : null,
+                'can_edit' => $concern->reporter_id === $user->id && $concern->isAwaitingStaffDecision() && ! $missionCreated,
                 'severity' => $concern->severity ?? 'medium',
                 'status' => $statusStr,
                 'visibility' => $concern->visibility,

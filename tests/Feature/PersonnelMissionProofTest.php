@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureBarangayIsActive;
-use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
 use App\Services\Missions\DepartmentMissionAccess;
 use App\Services\Missions\MissionLifecycleService;
@@ -16,13 +16,17 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
+use Tests\Support\ConcernSchema;
 use Tests\TestCase;
 
 class PersonnelMissionProofTest extends TestCase
 {
     private User $personnelUser;
+
     private string $missionId;
+
     private string $personnelId;
+
     private string $proofStoragePath;
 
     protected function setUp(): void
@@ -50,6 +54,7 @@ class PersonnelMissionProofTest extends TestCase
             $table->timestamps();
         });
         Schema::create('concerns', function (Blueprint $table) {
+            ConcernSchema::classification($table, true);
             $table->uuid('id')->primary();
             $table->string('title');
             $table->text('description');
@@ -156,7 +161,7 @@ class PersonnelMissionProofTest extends TestCase
             'is_completed' => true,
         ]);
 
-        $this->personnelUser = new User();
+        $this->personnelUser = new User;
         $this->personnelUser->forceFill([
             'id' => $userId, 'barangay_id' => $barangayId, 'role' => 'personnel',
             'first_name' => 'Proof', 'last_name' => 'Tester',

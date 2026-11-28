@@ -1,20 +1,30 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Enums\VerificationStatus;
+use App\Http\Controllers\Auth\AccountStatusController;
+use App\Http\Controllers\Auth\AdminPersonnelLoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SessionLockController;
+use App\Http\Controllers\Auth\TemporaryPasswordController;
+use App\Http\Controllers\ConcernClarificationController;
+use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\PrivateMediaController;
+use App\Http\Controllers\ProfilePhotoController;
+use App\Http\Controllers\Resident\AnnouncementController;
+use App\Http\Controllers\Resident\BarangayChatController;
+use App\Http\Controllers\Resident\BlotterController;
+use App\Http\Controllers\Resident\CalendarController;
 use App\Http\Controllers\Resident\ConcernController;
 use App\Http\Controllers\Resident\DigitalIdVerificationController;
 use App\Http\Controllers\Resident\DocumentRequestController as ResidentDocumentRequestController;
-use App\Http\Controllers\Resident\ProfileController;
 use App\Http\Controllers\Resident\LibraryController;
+use App\Http\Controllers\Resident\LoginActivityController as ResidentLoginActivityController;
+use App\Http\Controllers\Resident\NotificationController;
+use App\Http\Controllers\Resident\ProfileController;
 use App\Http\Controllers\Resident\SecurityController;
-use App\Http\Controllers\Resident\AnnouncementController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\AdminPersonnelLoginController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\AccountStatusController;
-use App\Http\Controllers\Auth\TemporaryPasswordController;
-use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\SuperAdmin\BarangayManagementController;
 use App\Models\Barangay;
 use Illuminate\Http\Request;
@@ -33,7 +43,7 @@ Route::get('/', function () {
     }
 
     $user = auth()->user();
-    
+
     $role = $user->role instanceof UserRole ? $user->role->value : $user->role;
 
     if ($role === 'super_admin' || $role === UserRole::SuperAdmin) {
@@ -50,7 +60,7 @@ Route::get('/', function () {
 
     $user->loadMissing('residentProfile');
     $status = $user->residentProfile?->verification_status;
-    $statusValue = $status instanceof \App\Enums\VerificationStatus ? $status->value : ($status ?? 'unverified');
+    $statusValue = $status instanceof VerificationStatus ? $status->value : ($status ?? 'unverified');
 
     if ($statusValue !== 'approved') {
         return redirect()->route('verification.waiting');
@@ -69,42 +79,45 @@ Route::get('/verify-id/{token}', [DigitalIdVerificationController::class, 'show'
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(function () {
-    Route::get('/notifications', [\App\Http\Controllers\Resident\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/feed', [ConcernController::class, 'index'])->name('feed');
     Route::get('/resolutions', [ConcernController::class, 'resolutions'])->name('resolutions.index');
     Route::get('/concerns/new', [ConcernController::class, 'create'])->name('concerns.create');
-    
+
     Route::post('/concerns', [ConcernController::class, 'store'])->name('concerns.store')->middleware('throttle:30,1');
-    
+
     Route::get('/concerns/{concern}', [ConcernController::class, 'show'])->name('concerns.show');
-    Route::post('/concerns/{concern}/clarifications/{clarification}/reply', [\App\Http\Controllers\ConcernClarificationController::class, 'reply'])
+    Route::get('/concerns/{concern}/edit', [ConcernController::class, 'edit'])->name('concerns.edit');
+    Route::put('/concerns/{concern}', [ConcernController::class, 'update'])->middleware('throttle:30,1')->name('concerns.update');
+    Route::post('/concerns/{concern}/clarifications/{clarification}/reply', [ConcernClarificationController::class, 'reply'])
         ->middleware('throttle:10,1')->name('concerns.clarifications.reply');
     Route::patch('/concerns/{concern}/visibility', [ConcernController::class, 'updateVisibility'])->name('concerns.visibility.update');
     Route::post('/concerns/{concern}/vote', [ConcernController::class, 'vote'])->name('concerns.vote');
     Route::delete('/concerns/{concern}', [ConcernController::class, 'destroy'])->name('concerns.destroy');
-    
+
     Route::get('/documents', [ResidentDocumentRequestController::class, 'index'])->name('documents.index');
     Route::post('/documents/{template}', [ResidentDocumentRequestController::class, 'store'])->name('documents.store');
     Route::get('/documents/{documentRequest}', [ResidentDocumentRequestController::class, 'show'])->name('documents.show');
 
     Route::get('/library', [LibraryController::class, 'index'])->name('library');
-    Route::get('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'index'])->name('help');
-    Route::post('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'ask'])
+    Route::get('/help', [BarangayChatController::class, 'index'])->name('help');
+    Route::post('/help', [BarangayChatController::class, 'ask'])
         ->middleware('throttle:10,1')
         ->name('help.ask');
-    Route::delete('/help', [\App\Http\Controllers\Resident\BarangayChatController::class, 'clear'])
+    Route::delete('/help', [BarangayChatController::class, 'clear'])
         ->middleware('throttle:10,1')->name('help.clear');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
     Route::post('/announcements/{announcement}/volunteer', [AnnouncementController::class, 'volunteer'])->name('announcements.volunteer');
-    Route::get('/calendar', [\App\Http\Controllers\Resident\CalendarController::class, 'index'])->name('calendar');
-    
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
+
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::get('/profile/login-activity', [ResidentLoginActivityController::class, 'index'])->name('profile.login-activity');
     Route::get('/profile/civic-certificate', [ProfileController::class, 'civicCertificate'])->name('profile.civic-certificate');
     Route::get('/profile/civic-certificates/{badgeId}', [ProfileController::class, 'civicCertificateForBadge'])->name('profile.civic-certificates.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.edit.store');
-    
+
     Route::get('/profile/security/request', [SecurityController::class, 'showRequestOtpForm'])->name('profile.security.request.form');
     Route::post('/profile/security/request', [SecurityController::class, 'requestOtp'])->middleware('throttle:5,1')->name('profile.security.request');
     Route::get('/profile/security/verify', [SecurityController::class, 'showVerifyForm'])->name('profile.security.verify.form');
@@ -116,9 +129,9 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/blotter/new/{type}', fn (string $type) => Inertia::render('Resident/Blotter/Form', [
         'blotterType' => $type,
     ]))->name('blotter.form');
-    Route::get('/blotters', [\App\Http\Controllers\Resident\BlotterController::class, 'index'])->name('blotters.index');
-    Route::get('/blotters/{blotter}', [\App\Http\Controllers\Resident\BlotterController::class, 'show'])->name('blotters.show');
-    Route::post('/blotter', [\App\Http\Controllers\Resident\BlotterController::class, 'store'])->name('blotter.store');
+    Route::get('/blotters', [BlotterController::class, 'index'])->name('blotters.index');
+    Route::get('/blotters/{blotter}', [BlotterController::class, 'show'])->name('blotters.show');
+    Route::post('/blotter', [BlotterController::class, 'store'])->name('blotter.store');
 });
 
 /*
@@ -168,10 +181,10 @@ Route::get('/api/check-barangay', function (Request $request) {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login');
-    
+
     Route::get('/admin-personnel/login', [AdminPersonnelLoginController::class, 'create'])->name('admin-personnel.login');
     Route::post('/admin-personnel/login', [AdminPersonnelLoginController::class, 'store'])->middleware('throttle:login');
-    
+
     // Secure Registration Routes (strictly for guests)
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register/identity', [RegisteredUserController::class, 'validateIdentity'])->name('register.identity');
@@ -186,11 +199,22 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
+Route::prefix('session')->name('session.')->middleware('auth')->group(function () {
+    Route::get('/lock', [SessionLockController::class, 'show'])->name('lock');
+    Route::get('/status', [SessionLockController::class, 'status'])->name('status');
+    Route::get('/events', [SessionLockController::class, 'events'])->name('events');
+    Route::post('/lock', [SessionLockController::class, 'lock'])->middleware('throttle:session-lock');
+    Route::post('/away', [SessionLockController::class, 'away'])->middleware('throttle:session-presence');
+    Route::post('/resume', [SessionLockController::class, 'resume'])->middleware('throttle:session-presence');
+    Route::post('/unlock', [SessionLockController::class, 'unlock'])->middleware('throttle:session-unlock');
+    Route::put('/pin', [SessionLockController::class, 'setPin'])->middleware('throttle:session-pin-setup');
+});
+
 Route::middleware('auth')->group(function () {
-    Route::post('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'update'])->name('profile-photo.update');
-    Route::delete('/profile-photo', [\App\Http\Controllers\ProfilePhotoController::class, 'destroy'])->name('profile-photo.destroy');
-    Route::get('/private-media/concerns/{media}', [\App\Http\Controllers\PrivateMediaController::class, 'concern'])->name('private-media.concern');
-    Route::get('/private-media/proofs/{media}', [\App\Http\Controllers\PrivateMediaController::class, 'proof'])->name('private-media.proof');
+    Route::post('/profile-photo', [ProfilePhotoController::class, 'update'])->name('profile-photo.update');
+    Route::delete('/profile-photo', [ProfilePhotoController::class, 'destroy'])->name('profile-photo.destroy');
+    Route::get('/private-media/concerns/{media}', [PrivateMediaController::class, 'concern'])->name('private-media.concern');
+    Route::get('/private-media/proofs/{media}', [PrivateMediaController::class, 'proof'])->name('private-media.proof');
 });
 
 Route::middleware(['auth', 'role:resident,admin'])->group(function () {
@@ -206,8 +230,10 @@ require __DIR__.'/superadmin.php';
 
 Route::get('/sw.js', function () {
     $path = public_path('build/sw.js');
-    if (!file_exists($path)) abort(404);
-    
+    if (! file_exists($path)) {
+        abort(404);
+    }
+
     return response()->file($path, [
         'Content-Type' => 'application/javascript',
         'Service-Worker-Allowed' => '/',
