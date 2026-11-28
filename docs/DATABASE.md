@@ -516,9 +516,13 @@ Normalized from `prescriptive_steps` JSON.
 | `mission_id` | `CHAR(36)` | FK → `missions.id` |
 | `submitted_by` | `CHAR(36)` | FK → `users.id` |
 | `notes` | `TEXT` | |
-| `latitude` | `DECIMAL(10,7)` | GPS location captured with proof |
-| `longitude` | `DECIMAL(10,7)` | GPS location captured with proof |
-| `location_accuracy_m` | `DECIMAL(8,2)` | Device-reported accuracy in meters |
+| `work_location` | `VARCHAR(255)` | Personnel-reported work location |
+| `work_location_source` | `VARCHAR(255)` | `onsite_gps`, `mission_location`, or `manual` |
+| `location_note` | `TEXT` | Optional location context |
+| `latitude` | `DECIMAL(10,7)` | Optional work-site GPS latitude |
+| `longitude` | `DECIMAL(10,7)` | Optional work-site GPS longitude |
+| `location_accuracy_m` | `DECIMAL(8,2)` | Optional device-reported work-site accuracy |
+| `client_submission_id` | `CHAR(36)` | Unique client id for safe offline retry |
 | `submitted_at` | `DATETIME(3)` | NOT NULL |
 
 **Indexes:** `INDEX idx_proof_mission (mission_id, submitted_at DESC)`

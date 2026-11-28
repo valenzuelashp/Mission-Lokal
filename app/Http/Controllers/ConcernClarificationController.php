@@ -80,9 +80,31 @@ class ConcernClarificationController extends Controller
         abort_unless($concern->reporter_id === $request->user()->id, 403);
         abort_unless($clarification->concern_id === $concern->id, 404);
 
-        $validated = $request->validate(['response' => ['required', 'string', 'max:5000']]);
+        if ($request->has('responses')) {
+            $questions = array_values(is_array($clarification->questions) ? $clarification->questions : []);
+            $validated = $request->validate([
+                'responses' => ['required', 'array', 'size:'.count($questions)],
+                'responses.*' => ['nullable', 'string', 'max:950'],
+            ]);
+            $responses = array_map(
+                fn ($response) => is_string($response) ? trim($response) : '',
+                $validated['responses'],
+            );
+            $answeredQuestions = array_filter($responses, fn ($response) => $response !== '');
+            if ($answeredQuestions === []) {
+                throw ValidationException::withMessages(['responses' => 'Answer at least one question before sending.']);
+            }
 
-        DB::transaction(function () use ($concern, $clarification, $validated) {
+            $response = collect($responses)
+                ->map(fn ($answer, $index) => $answer === '' ? null : 'Answer to question '.($index + 1).":\n".$answer)
+                ->filter()
+                ->implode("\n\n");
+        } else {
+            $validated = $request->validate(['response' => ['required', 'string', 'max:5000']]);
+            $response = $validated['response'];
+        }
+
+        DB::transaction(function () use ($concern, $clarification, $response) {
             $concern = Concern::whereKey($concern->id)->lockForUpdate()->firstOrFail();
             $clarification = $concern->clarifications()->whereKey($clarification->id)->lockForUpdate()->firstOrFail();
 
@@ -92,7 +114,7 @@ class ConcernClarificationController extends Controller
                 ]);
             }
 
-            $clarification->update(['response' => $validated['response'], 'answered_at' => now()]);
+            $clarification->update(['response' => $response, 'answered_at' => now()]);
 
             if ($clarification->requested_by) {
                 Notification::create([

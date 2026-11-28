@@ -28,6 +28,7 @@ class CivicXpAwardTest extends TestCase
             $table->id();
             $table->uuid('user_id');
             $table->unsignedInteger('civic_xp')->default(50);
+            $table->string('digital_id_verification_token', 64)->nullable()->unique();
             $table->timestamps();
         });
         Schema::create('resident_badges', function (Blueprint $table) {

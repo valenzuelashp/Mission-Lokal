@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers\Personnel;
 
-use App\Http\Controllers\Controller;
 use App\Enums\PersonnelShift;
+use App\Http\Controllers\Controller;
 use App\Jobs\SendMissionAssignmentSms;
-use App\Models\Notification;
+use App\Models\Concern;
 use App\Models\Mission;
 use App\Models\MissionAssignment;
-use App\Models\Personnel;
 use App\Models\MissionChecklistItem;
 use App\Models\MissionProof;
 use App\Models\MissionProofMedia;
+use App\Models\Notification;
+use App\Models\Personnel;
+use App\Services\Missions\DepartmentMissionAccess;
 use App\Services\Missions\MissionLifecycleService;
 use App\Support\MapHelpers;
 use App\Support\MissionRef;
-use App\Services\Missions\DepartmentMissionAccess;
-use Illuminate\Http\Request;
+use App\Support\SensitiveMediaUrl;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -29,10 +31,10 @@ class MissionController extends Controller
     private function getPersonnelRecord(Request $request)
     {
         $user = $request->user();
-        
+
         $personnel = Personnel::where('user_id', $user->id)->first();
 
-        if (!$personnel) {
+        if (! $personnel) {
             $personnel = Personnel::find($user->id);
         }
 
@@ -43,7 +45,7 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             return Inertia::render('Personnel/Missions/Index', [
                 'missions' => [],
                 'counts' => ['all' => 0, 'active' => 0, 'in_progress' => 0, 'completed' => 0, 'overdue' => 0],
@@ -54,10 +56,10 @@ class MissionController extends Controller
         $missionsQuery = $access->departmentQueue($personnel)
             ->select('missions.*')
             ->addSelect([
-                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                'lat' => Concern::selectRaw('ST_Y(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
-                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
+                'lng' => Concern::selectRaw('ST_X(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
@@ -67,38 +69,38 @@ class MissionController extends Controller
         $missions = $missionsQuery
             ->filter(fn (Mission $mission) => $access->canView($personnel, $mission))
             ->map(function ($mission) use ($personnel) {
-            $concern = $mission->concern;
-            
-            $concernImages = $concern && $concern->media 
-                ? $concern->media->sortBy('sort_order')->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray() 
-                : [];
+                $concern = $mission->concern;
 
-            $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
-            $coordinates = MapHelpers::normalizeLatLng($mission->lat, $mission->lng);
+                $concernImages = $concern && $concern->media
+                    ? $concern->media->sortBy('sort_order')->map(fn ($media) => app(SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray()
+                    : [];
 
-            return [
-                'id' => $mission->id, 
-                'display_id' => MissionRef::label($mission->id),
-                'concern_id' => $concern?->id,
-                'title' => $concern?->title ?? 'Untitled Mission',
-                'location' => $concern?->locationLabel() ?? 'Unknown location',
-                'images' => $concernImages,
-                'lat' => $coordinates['lat'],
-                'lng' => $coordinates['lng'],
-                'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
-                'status' => $statusValue,
-                'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
-                'is_overdue' => (bool) $mission->is_overdue,
-                'visibility' => $concern?->visibility ?? 'public',
-                'brief' => $concern?->description ?? '',
-                'checklist' => [], 
-                'reporter_name' => null, 
-                'reporter_phone' => null,
-                'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
-                'proof_submitted' => $mission->proof !== null,
-                'is_assigned' => $mission->personnel->contains('id', $personnel->id),
-            ];
-        });
+                $statusValue = $mission->status instanceof \UnitEnum ? $mission->status->value : $mission->status;
+                $coordinates = MapHelpers::normalizeLatLng($mission->lat, $mission->lng);
+
+                return [
+                    'id' => $mission->id,
+                    'display_id' => MissionRef::label($mission->id),
+                    'concern_id' => $concern?->id,
+                    'title' => $concern?->title ?? 'Untitled Mission',
+                    'location' => $concern?->locationLabel() ?? 'Unknown location',
+                    'images' => $concernImages,
+                    'lat' => $coordinates['lat'],
+                    'lng' => $coordinates['lng'],
+                    'priority' => $concern?->severity === 'critical' ? 'high' : 'med',
+                    'status' => $statusValue,
+                    'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
+                    'is_overdue' => (bool) $mission->is_overdue,
+                    'visibility' => $concern?->visibility ?? 'public',
+                    'brief' => $concern?->description ?? '',
+                    'checklist' => [],
+                    'reporter_name' => null,
+                    'reporter_phone' => null,
+                    'assigned_at' => $mission->created_at->format('M d, Y h:i A'),
+                    'proof_submitted' => $mission->proof !== null,
+                    'is_assigned' => $mission->personnel->contains('id', $personnel->id),
+                ];
+            });
 
         $counts = [
             'all' => $missions->count(),
@@ -118,17 +120,17 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             abort(403, 'Unauthorized personnel account context.');
         }
 
         $mission = Mission::with(['concern.media', 'concern.subcategory', 'proof.media', 'checklistItems', 'personnel'])
-            ->select('missions.*') 
+            ->select('missions.*')
             ->addSelect([
-                'lat' => \App\Models\Concern::selectRaw('ST_Y(location)')
+                'lat' => Concern::selectRaw('ST_Y(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
-                'lng' => \App\Models\Concern::selectRaw('ST_X(location)')
+                'lng' => Concern::selectRaw('ST_X(location)')
                     ->whereColumn('concerns.id', 'missions.concern_id')
                     ->limit(1),
             ])
@@ -147,14 +149,14 @@ class MissionController extends Controller
         $concernImages = [];
         if ($concern && $concern->media) {
             $concernImages = $concern->media->sortBy('sort_order')->map(function ($media) {
-                return app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media);
+                return app(SensitiveMediaUrl::class)->forConcern($concern, $media);
             })->toArray();
         }
 
         $proofPhotos = [];
         if ($proof && $proof->media) {
             $proofPhotos = $proof->media->sortBy('sort_order')->map(function ($media) {
-                return app(\App\Support\SensitiveMediaUrl::class)->forProof($mission, $media);
+                return app(SensitiveMediaUrl::class)->forProof($mission, $media);
             })->toArray();
         }
 
@@ -189,7 +191,7 @@ class MissionController extends Controller
                 ->get()
                 ->map(fn (Personnel $candidate) => [
                     'id' => $candidate->id,
-                    'name' => trim(($candidate->user?->first_name ?? '') . ' ' . ($candidate->user?->last_name ?? '')),
+                    'name' => trim(($candidate->user?->first_name ?? '').' '.($candidate->user?->last_name ?? '')),
                 ])
                 ->values()
             : collect();
@@ -199,7 +201,7 @@ class MissionController extends Controller
             ->whereNull('unassigned_at')
             ->whereNotNull('acknowledged_at')
             ->exists();
-        if (!$assignmentAcknowledged) {
+        if (! $assignmentAcknowledged) {
             $assignmentAcknowledged = DB::table('mission_personnel')
                 ->where('mission_id', $mission->id)
                 ->where('personnel_id', $personnel->id)
@@ -341,8 +343,8 @@ class MissionController extends Controller
             $concernTitle = $mission->concern?->title ?? 'Mission';
             $isConfidential = $mission->concern
                 && ($mission->concern->visibility === 'private' || $mission->concern->isSensitiveConcern());
-            $currentName = trim(($currentPersonnel->user->first_name ?? '') . ' ' . ($currentPersonnel->user->last_name ?? ''));
-            $recipientName = trim(($recipient->user->first_name ?? '') . ' ' . ($recipient->user->last_name ?? ''));
+            $currentName = trim(($currentPersonnel->user->first_name ?? '').' '.($currentPersonnel->user->last_name ?? ''));
+            $recipientName = trim(($recipient->user->first_name ?? '').' '.($recipient->user->last_name ?? ''));
 
             Notification::create([
                 'user_id' => $currentPersonnel->user_id,
@@ -364,7 +366,7 @@ class MissionController extends Controller
                 'title' => 'Mission received for your shift',
                 'body' => $isConfidential
                     ? 'A confidential mission is ready for your shift. Sign in to view details.'
-                    : "{$missionLabel} {$concernTitle} was handed over by {$currentName} for your " . $currentShift->next()->label() . '.',
+                    : "{$missionLabel} {$concernTitle} was handed over by {$currentName} for your ".$currentShift->next()->label().'.',
                 'payload' => ['mission_id' => $mission->id],
                 'is_read' => false,
                 'sent_at' => now(),
@@ -384,7 +386,7 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             abort(403, 'Unauthorized personnel account context.');
         }
 
@@ -408,14 +410,14 @@ class MissionController extends Controller
             ->where('personnel_id', $personnel->id)
             ->value('status');
 
-        if ($validated['status'] === 'acknowledged' && !in_array($currentStatus, ['assigned', 'acknowledged', 'in_progress'], true)) {
+        if ($validated['status'] === 'acknowledged' && ! in_array($currentStatus, ['assigned', 'acknowledged', 'in_progress'], true)) {
             return back()->withErrors(['status' => 'This mission is no longer awaiting personnel acknowledgment.']);
         }
 
         if ($validated['status'] === 'in_progress' && (
             $currentStatus !== 'acknowledged'
-            || ($assignment && !$assignment->acknowledged_at)
-            || (!$assignment && !in_array($pivotStatus, ['acknowledged', 'in_progress'], true))
+            || ($assignment && ! $assignment->acknowledged_at)
+            || (! $assignment && ! in_array($pivotStatus, ['acknowledged', 'in_progress'], true))
         )) {
             return back()->withErrors(['status' => 'Acknowledge the assignment before starting work, and follow the mission status sequence.']);
         }
@@ -425,7 +427,7 @@ class MissionController extends Controller
             : $validated['status'];
         $updateData = ['status' => $missionStatus];
 
-        if ($validated['status'] === 'acknowledged' && !$mission->acknowledged_at) {
+        if ($validated['status'] === 'acknowledged' && ! $mission->acknowledged_at) {
             $updateData['acknowledged_at'] = now();
         }
 
@@ -465,7 +467,7 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             abort(403, 'Unauthorized personnel account context.');
         }
 
@@ -487,7 +489,7 @@ class MissionController extends Controller
         $assignmentAcknowledged = ($assignment && $assignment->acknowledged_at)
             || in_array($pivotStatus, ['acknowledged', 'in_progress'], true);
 
-        if (!$assignmentAcknowledged) {
+        if (! $assignmentAcknowledged) {
             return back()->with('error', 'Acknowledge the assignment before updating its checklist.');
         }
 
@@ -503,7 +505,7 @@ class MissionController extends Controller
             ->where('id', $validated['item_id'])
             ->firstOrFail();
 
-        $newState = !$checklistItem->is_completed;
+        $newState = ! $checklistItem->is_completed;
 
         $checklistItem->update([
             'is_completed' => $newState,
@@ -518,7 +520,7 @@ class MissionController extends Controller
     {
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             abort(403, 'Unauthorized personnel account context.');
         }
 
@@ -535,6 +537,7 @@ class MissionController extends Controller
             'title' => $concern?->title ?? 'Untitled Mission',
             'location' => $concern?->locationLabel() ?? 'Unknown location',
             'due_date' => $mission->due_date ? $mission->due_date->format('M d, Y') : 'No due date',
+            'work_location' => $concern?->locationLabel() ?? 'Unknown location',
         ];
 
         return Inertia::render('Personnel/Missions/Proof', [
@@ -547,7 +550,7 @@ class MissionController extends Controller
         $user = $request->user();
         $personnel = $this->getPersonnelRecord($request);
 
-        if (!$personnel) {
+        if (! $personnel) {
             abort(403, 'Unauthorized personnel account context.');
         }
 
@@ -556,9 +559,27 @@ class MissionController extends Controller
         })->findOrFail($id);
         app(DepartmentMissionAccess::class)->assertCanView($personnel, $mission);
 
+        $clientSubmissionId = $request->input('client_submission_id');
+        if (is_string($clientSubmissionId) && Str::isUuid($clientSubmissionId)) {
+            $existingSubmission = MissionProof::where('client_submission_id', $clientSubmissionId)
+                ->where('mission_id', $mission->id)
+                ->where('submitted_by', $user->id)
+                ->first();
+
+            if ($existingSubmission) {
+                return redirect()
+                    ->route('personnel.missions.index')
+                    ->with('success', 'Proof uploaded and mission completed.');
+            }
+        }
+
+        if ($mission->proof()->exists()) {
+            return back()->withErrors(['proof' => 'Proof has already been submitted for this mission.']);
+        }
+
         app(MissionLifecycleService::class)->ensureChecklist($mission, $mission->concern);
         $checklistItems = $mission->checklistItems()->get();
-        if ($checklistItems->isEmpty() || $checklistItems->contains(fn ($item) => !$item->is_completed)) {
+        if ($checklistItems->isEmpty() || $checklistItems->contains(fn ($item) => ! $item->is_completed)) {
             return back()->withErrors(['checklist' => 'Complete every prescribed checklist step before submitting proof.']);
         }
 
@@ -567,23 +588,74 @@ class MissionController extends Controller
         }
 
         $validated = $request->validate([
+            'client_submission_id' => ['required', 'uuid', 'unique:mission_proof,client_submission_id'],
             'notes' => ['required', 'string', 'min:20', 'max:2000'],
             'photos' => ['required', 'array', 'min:1', 'max:5'],
-            'photos.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'dimensions:min_width=720,min_height=480', 'max:5120'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'location_accuracy_m' => ['required', 'numeric', 'min:0'],
+            'photos.*' => [
+                'bail',
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg',
+                'dimensions:min_width=480,min_height=480',
+                function ($attribute, $value, $fail) {
+                    $dimensions = getimagesize($value->getRealPath());
+                    if ($dimensions === false || max($dimensions[0], $dimensions[1]) < 720) {
+                        $fail('Each photo must be at least 720 × 480 pixels in either orientation.');
+                    }
+                },
+                'max:5120',
+            ],
+            'work_location' => ['required', 'string', 'max:255'],
+            'work_location_source' => ['required', 'in:onsite_gps,mission_location,manual'],
+            'location_note' => ['nullable', 'string', 'max:500'],
+            'latitude' => ['required_if:work_location_source,onsite_gps', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['required_if:work_location_source,onsite_gps', 'nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy_m' => ['required_if:work_location_source,onsite_gps', 'nullable', 'numeric', 'min:0'],
         ]);
 
-        $previousStatus = $mission->status->value ?? $mission->status;
-        DB::transaction(function () use ($request, $mission, $user, $validated, $previousStatus) {
+        $alreadySubmitted = DB::transaction(function () use ($request, $mission, $user, $personnel, $validated) {
+            $lockedMission = Mission::with('concern')
+                ->whereHas('personnel', fn ($query) => $query->where('personnel.id', $personnel->id))
+                ->whereKey($mission->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            app(DepartmentMissionAccess::class)->assertCanView($personnel, $lockedMission);
+
+            $existingSubmission = MissionProof::where('client_submission_id', $validated['client_submission_id'])
+                ->where('mission_id', $lockedMission->id)
+                ->where('submitted_by', $user->id)
+                ->exists();
+            if ($existingSubmission) {
+                return true;
+            }
+
+            if ($lockedMission->proof()->exists()) {
+                throw ValidationException::withMessages(['proof' => 'Proof has already been submitted for this mission.']);
+            }
+
+            if (($lockedMission->status->value ?? $lockedMission->status) !== 'in_progress') {
+                throw ValidationException::withMessages(['status' => 'Only an in-progress mission can be completed with proof.']);
+            }
+
+            $lifecycle = app(MissionLifecycleService::class);
+            $lifecycle->ensureChecklist($lockedMission, $lockedMission->concern);
+            $checklistItems = $lockedMission->checklistItems()->lockForUpdate()->get();
+            if ($checklistItems->isEmpty() || $checklistItems->contains(fn ($item) => ! $item->is_completed)) {
+                throw ValidationException::withMessages(['checklist' => 'Complete every prescribed checklist step before submitting proof.']);
+            }
+
+            $previousStatus = $lockedMission->status->value ?? $lockedMission->status;
             $proof = MissionProof::create([
-                'mission_id' => $mission->id,
+                'mission_id' => $lockedMission->id,
                 'submitted_by' => $user->id,
+                'client_submission_id' => $validated['client_submission_id'],
                 'notes' => $validated['notes'],
                 'latitude' => $validated['latitude'],
                 'longitude' => $validated['longitude'],
                 'location_accuracy_m' => $validated['location_accuracy_m'],
+                'work_location' => $validated['work_location'],
+                'work_location_source' => $validated['work_location_source'],
+                'location_note' => $validated['location_note'] ?? null,
             ]);
 
             foreach ($request->file('photos') as $photo) {
@@ -596,25 +668,33 @@ class MissionController extends Controller
                 ]);
             }
 
-            $mission->update([
+            $lockedMission->update([
                 'status' => 'completed',
                 'completed_at' => now(),
             ]);
-            app(MissionLifecycleService::class)->recordStatusChange(
-                $mission,
+            $lifecycle->recordStatusChange(
+                $lockedMission,
                 $previousStatus,
                 'completed',
                 $user->id,
-                'Personnel submitted geotagged photo proof and completed all checklist steps.',
+                'Personnel submitted photo proof and work details after completing all checklist steps.',
             );
+
+            return false;
         });
+
+        if ($alreadySubmitted) {
+            return redirect()
+                ->route('personnel.missions.index')
+                ->with('success', 'Proof uploaded and mission completed.');
+        }
 
         Notification::create([
             'user_id' => $mission->created_by,
             'channel' => 'in_app',
             'event_type' => 'proof_uploaded',
             'title' => 'New Proof Uploaded',
-            'body' => 'Personnel has submitted proof for mission ' . substr($mission->id, 0, 8) . '.',
+            'body' => 'Personnel has submitted proof for mission '.substr($mission->id, 0, 8).'.',
             'payload' => ['mission_id' => $mission->id],
         ]);
 

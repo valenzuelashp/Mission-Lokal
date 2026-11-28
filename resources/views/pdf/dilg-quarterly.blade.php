@@ -3,33 +3,33 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 8mm 10.5mm; }
-        body { color: #17211d; font-family: DejaVu Sans, sans-serif; font-size: 10.3px; line-height: 1.41; }
-        .letterhead { margin-bottom: 10.5px; text-align: center; }
-        .republic { font-size: 10.3px; }
-        .jurisdiction { color: #394b42; font-size: 10.3px; }
-        .barangay { font-size: 13.3px; font-weight: bold; text-transform: uppercase; }
-        .office-title { color: #52635a; font-size: 9.3px; font-weight: bold; letter-spacing: 1px; margin-top: 3.8px; }
-        .rule { border-top: 2px solid #245e47; height: 0; margin: 8.2px 0; }
-        h1 { color: #145c45; font-size: 20px; margin: 0 0 5.2px; text-align: center; }
-        h2 { border-bottom: 1px solid #cbd5d0; color: #204637; font-size: 12.3px; margin: 9.5px 0 5.2px; padding-bottom: 3.8px; }
-        p { line-height: 1.43; margin: 3.8px 0; }
-        table { border-collapse: collapse; margin-top: 6.2px; width: 100%; }
-        th, td { border-bottom: 1px solid #dfe6e2; padding: 6.3px 8.3px; text-align: left; }
-        th { background: #f0f5f2; color: #244b3b; font-size: 10.3px; }
+        @page { size: A4 portrait; margin: 6mm 8mm; }
+        body { color: #17211d; font-family: DejaVu Sans, sans-serif; font-size: 9.5px; line-height: 1.25; }
+        .letterhead { margin-bottom: 6px; text-align: center; }
+        .republic { font-size: 9.5px; }
+        .jurisdiction { color: #394b42; font-size: 9.5px; }
+        .barangay { font-size: 12.5px; font-weight: bold; text-transform: uppercase; }
+        .office-title { color: #52635a; font-size: 8.5px; font-weight: bold; letter-spacing: 1px; margin-top: 3px; }
+        .rule { border-top: 2px solid #245e47; height: 0; margin: 6px 0; }
+        h1 { color: #145c45; font-size: 18px; margin: 0 0 4px; text-align: center; }
+        h2 { border-bottom: 1px solid #cbd5d0; color: #204637; font-size: 11px; margin: 6px 0 3px; padding-bottom: 2px; }
+        p { line-height: 1.25; margin: 2px 0; }
+        table { border-collapse: collapse; margin-top: 4px; width: 100%; }
+        th, td { border-bottom: 1px solid #dfe6e2; padding: 4px 6px; text-align: left; }
+        th { background: #f0f5f2; color: #244b3b; font-size: 9.5px; }
         .right { text-align: right; }
-        .meta { color: #50635a; font-size: 9.7px; }
-        .office { background: #f5f8f6; border: 1px solid #dfe6e2; margin-top: 7.3px; padding: 6.3px 10.3px; }
+        .meta { color: #50635a; font-size: 9px; }
+        .office { background: #f5f8f6; border: 1px solid #dfe6e2; margin-top: 5px; padding: 4px 8px; }
         .summary { table-layout: fixed; }
-        .summary td { border: 1px solid #dfe6e2; padding: 7.8px; width: 25%; font-size: 10.3px; }
-        .summary strong { color: #145c45; display: block; font-size: 16.3px; margin-top: 3.8px; }
+        .summary td { border: 1px solid #dfe6e2; padding: 5px; width: 25%; font-size: 9.5px; }
+        .summary strong { color: #145c45; display: block; font-size: 14px; margin-top: 2px; }
         .columns { table-layout: fixed; }
         .columns > tbody > tr > td { border: 0; padding: 0 10.8px 0 0; vertical-align: top; width: 50%; }
         .columns > tbody > tr > td:last-child { padding: 0 0 0 10.8px; }
-        .average { background: #edf5f0; border-left: 3px solid #24765b; margin-top: 7.3px; padding: 6.3px 9.8px; }
-        .signatures { margin-top: 9.3px; }
-        .signatures td { border: 0; height: 15.3mm; padding: 5.8mm 20px 0 0; vertical-align: bottom; width: 50%; }
-        .line { border-top: 1px solid #59665f; min-height: 7.8mm; padding-top: 5.8px; }
+        .average { background: #edf5f0; border-left: 3px solid #24765b; margin-top: 5px; padding: 4px 8px; }
+        .signatures { margin-top: 5px; }
+        .signatures td { border: 0; height: 12mm; padding: 3mm 16px 0 0; vertical-align: bottom; width: 50%; }
+        .line { border-top: 1px solid #59665f; min-height: 6mm; padding-top: 4px; }
     </style>
 </head>
 <body>

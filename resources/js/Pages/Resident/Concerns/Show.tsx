@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, MapPin, Calendar } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, MessageCircle } from 'lucide-react';
 import BufferedImage from '@/Components/shared/BufferedImage';
 import ConcernPhotoGallery from '@/Components/resident/ConcernPhotoGallery';
 import UserAvatar from '@/Components/shared/UserAvatar';
@@ -36,6 +36,7 @@ type Props = ConcernShowPageProps & {
 export default function Show({ concern }: Props) {
     const theme = useResidentTheme();
     const reporterName = concern.reporter_name ?? 'Verified Resident';
+    const hasPendingClarification = Boolean(concern.has_pending_clarification);
 
     const isPendingReview = ['submitted', 'ai_processed'].includes(concern.status);
     const rightAside = (
@@ -155,7 +156,7 @@ export default function Show({ concern }: Props) {
                                     </div>
                                 </div>
                                 <Badge variant="outline" className={`gap-1.5 ${theme.cardBorder} ${theme.textMuted}`}>
-                                    Public report
+                                    {concern.visibility === 'private' ? 'Private report' : 'Public report'}
                                 </Badge>
                             </div>
 
@@ -174,6 +175,18 @@ export default function Show({ concern }: Props) {
                             </div>
                         </header>
 
+                        {hasPendingClarification && (
+                            <div role="status" className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 sm:px-7">
+                                <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold">Barangay staff requested more details about this concern.</p>
+                                    <Link href="#concern-clarifications" className="text-xs font-semibold underline underline-offset-2">
+                                        {concern.can_reply_to_clarification ? 'Review questions and reply' : 'Review staff questions'}
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-6 p-5 sm:p-7">
                             <section className="space-y-3">
                                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -181,9 +194,6 @@ export default function Show({ concern }: Props) {
                                         <h2 className={`text-[10px] font-black uppercase tracking-widest ${theme.textMuted}`}>Reported location</h2>
                                         <p className={`mt-1 text-xs font-bold ${theme.textMain}`}>{concern.location_label}</p>
                                     </div>
-                                    <span className={`rounded-full border px-3 py-1 text-[10px] font-black ${theme.badgeBorder} ${theme.badgeBg} ${theme.badgeText}`}>
-                                        Venue · Tambo
-                                    </span>
                                 </div>
                                 <MapView
                                     center={[concern.lat, concern.lng]}

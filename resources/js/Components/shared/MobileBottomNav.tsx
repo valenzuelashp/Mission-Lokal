@@ -1,9 +1,10 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { BookOpen, CalendarDays, CircleHelp, FileText, Home, Megaphone, MoreHorizontal, ScrollText, ShieldCheck, User, X } from 'lucide-react';
 import { useActivePath } from '@/Hooks/useActivePath';
 import { useResidentTheme } from '@/Layouts/ResidentLayout';
 import { cn } from '@/Lib/utils';
+import type { PageProps } from '@/Types';
 
 const items = [
     { href: '/feed', label: 'Feed', icon: Home },
@@ -13,7 +14,7 @@ const items = [
 ];
 
 const moreItems = [
-    { href: '/blotters', label: 'My Blotter Records', icon: ShieldCheck },
+    { href: '/blotters', label: 'My Records', icon: ShieldCheck },
     { href: '/library', label: 'Resource Library', icon: BookOpen },
     { href: '/documents', label: 'Barangay Documents', icon: ScrollText },
     { href: '/help', label: 'Help', icon: CircleHelp },
@@ -23,6 +24,8 @@ const moreItems = [
 export default function MobileBottomNav() {
     const theme = useResidentTheme();
     const { isActive } = useActivePath();
+    const { records_unread_count } = usePage<PageProps & { records_unread_count?: number }>().props;
+    const recordsUnread = Number(records_unread_count ?? 0);
     const [moreOpen, setMoreOpen] = useState(false);
     const moreActive = moreItems.some(({ href }) => isActive(href));
 
@@ -72,6 +75,11 @@ export default function MobileBottomNav() {
                                 >
                                     <Icon className={`h-4 w-4 shrink-0 ${isActive(href) ? theme.primaryText : theme.textMuted}`} />
                                     <span>{label}</span>
+                                    {href === '/blotters' && recordsUnread > 0 && (
+                                        <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white">
+                                            {recordsUnread > 99 ? '99+' : recordsUnread}
+                                        </span>
+                                    )}
                                 </Link>
                             ))}
                         </div>
@@ -103,14 +111,21 @@ export default function MobileBottomNav() {
                 <button
                     type="button"
                     onClick={() => setMoreOpen((open) => !open)}
-                    aria-label="More navigation"
+                    aria-label={recordsUnread > 0 ? `More navigation, ${recordsUnread} unread record updates` : 'More navigation'}
                     aria-expanded={moreOpen}
                     className={cn(
                         'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-1 text-[10px] font-black uppercase tracking-wider transition-colors sm:text-[11px]',
                         moreActive || moreOpen ? `${theme.primaryText} ${theme.badgeBg}` : `${theme.textMuted} hover:opacity-100`,
                     )}
                 >
-                    {moreOpen ? <X className="h-5 w-5 shrink-0" /> : <MoreHorizontal className="h-5 w-5 shrink-0" />}
+                    <span className="relative">
+                        {moreOpen ? <X className="h-5 w-5 shrink-0" /> : <MoreHorizontal className="h-5 w-5 shrink-0" />}
+                        {recordsUnread > 0 && (
+                            <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-black text-white">
+                                {recordsUnread > 99 ? '99+' : recordsUnread}
+                            </span>
+                        )}
+                    </span>
                     <span>More</span>
                 </button>
             </div>

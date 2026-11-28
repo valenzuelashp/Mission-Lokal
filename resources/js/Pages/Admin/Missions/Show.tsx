@@ -265,9 +265,20 @@ export default function Show({ mission }: any) {
                                 <CardContent className="p-6 sm:p-8 space-y-4">
                                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Personnel Proof of Work</h3>
                                     {mission.proof_notes && <p className="text-xs text-slate-700 font-medium bg-slate-50 p-4 rounded-2xl border border-slate-100"><strong>Notes:</strong> {mission.proof_notes}</p>}
+                                    <div className="space-y-1 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">
+                                        <p><strong>Work location:</strong> {mission.proof_work_location || 'Not recorded'}</p>
+                                        <p><strong>Location evidence:</strong> {
+                                            mission.proof_work_location_source === 'onsite_gps' ? 'GPS captured at the work site'
+                                                : mission.proof_work_location_source === 'mission_location' ? 'Assigned mission location selected'
+                                                    : mission.proof_work_location_source === 'manual' ? 'Personnel-entered location'
+                                                        : 'Not recorded'
+                                        }</p>
+                                        {mission.proof_location_note && <p><strong>Location note:</strong> {mission.proof_location_note}</p>}
+                                        <p><strong>Proof submitted:</strong> {mission.proof_submitted_at || 'Not recorded'}</p>
+                                    </div>
                                     {mission.proof_latitude !== null && mission.proof_latitude !== undefined && (
                                         <p className="text-xs text-slate-600 font-medium bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 inline-block">
-                                            <strong>GPS Telemetry:</strong> {mission.proof_latitude}, {mission.proof_longitude}
+                                            <strong>{mission.proof_work_location_source === 'onsite_gps' ? 'Work-site GPS' : 'Previously captured GPS (submission location)'}:</strong> {mission.proof_latitude}, {mission.proof_longitude}
                                             {mission.proof_location_accuracy_m ? ` (±${Math.round(mission.proof_location_accuracy_m)} m)` : ''}
                                         </p>
                                     )}

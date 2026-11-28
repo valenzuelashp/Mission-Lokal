@@ -1,7 +1,6 @@
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
-import { Label } from '@/Components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import OtpInput from '@/Components/shared/OtpInput';
 

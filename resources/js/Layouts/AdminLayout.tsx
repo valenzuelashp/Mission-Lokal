@@ -111,6 +111,17 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
         setClearedUnread(false);
     }, [serverUnread]);
 
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            router.reload({
+                only: ['pending_reports_count'],
+                replace: true,
+            });
+        }, 15000);
+
+        return () => window.clearInterval(timer);
+    }, []);
+
     const openNotifications = () => {
         setMobileOpen(false);
         setNotificationsOpen(true);
@@ -148,7 +159,7 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
     };
 
     const getItemBadgeCount = (href: string) => {
-        if (href.includes('reports')) return pendingReports;
+        if (href === '/admin/reports') return pendingReports;
         if (href.includes('missions')) return pendingMissions;
         if (href.includes('verifications')) return pendingRegistrations;
         if (href.includes('blotters')) return pendingBlotters;
@@ -172,7 +183,11 @@ export default function AdminLayout({ children, title = 'Mission-Lokal Admin: Da
         if (href.includes('blotters')) badgeStyle = 'bg-indigo-100 text-indigo-700 border-indigo-200';
 
         return (
-            <Badge className={cn('ml-auto h-5 min-w-5 justify-center text-[10px] font-bold px-1.5', isActiveLink ? 'bg-white text-sky-700' : badgeStyle)}>
+            <Badge
+                title={href.includes('missions') ? `${count} active missions` : `${count} items need attention`}
+                aria-label={href.includes('missions') ? `${count} active missions` : `${count} items need attention`}
+                className={cn('ml-auto h-5 min-w-5 justify-center px-1.5 text-[10px] font-bold', isActiveLink ? 'bg-white text-sky-700' : badgeStyle)}
+            >
                 {count > 99 ? '99+' : count}
             </Badge>
         );

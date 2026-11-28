@@ -44,6 +44,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             secondary: `${theme.badgeBg} ${theme.textMain} ${theme.badgeBorder}`,
             outline: `${theme.cardBorder} ${theme.cardBg} ${theme.textMain} ${theme.hoverBg}`,
             ghost: `${theme.textMuted} ${theme.hoverBg}`,
+            destructive: '',
         }[variant ?? 'default'];
         return <Comp className={cn(buttonVariants({ variant, size }), paletteClasses, className)} ref={ref} {...props} />;
     },

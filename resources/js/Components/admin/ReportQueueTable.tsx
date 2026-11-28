@@ -10,7 +10,9 @@ import { cn } from '@/Lib/utils';
 import { ChevronRight, GitMerge, ShieldAlert } from 'lucide-react';
 
 const queueLabel: Record<AdminReport['queue_status'], string> = {
+    ai_pending: 'AI Analysis Pending',
     ai_processed: 'AI Processed',
+    analysis_missing: 'Analysis Missing',
     under_review: 'Under Review',
     active: 'Active',
     rejected: 'Rejected',
@@ -18,7 +20,9 @@ const queueLabel: Record<AdminReport['queue_status'], string> = {
 };
 
 const queueStyle: Record<AdminReport['queue_status'], string> = {
+    ai_pending: 'bg-amber-50 text-amber-700 border-amber-200',
     ai_processed: 'bg-blue-50 text-blue-700 border-blue-200',
+    analysis_missing: 'bg-rose-50 text-rose-700 border-rose-200',
     under_review: 'bg-amber-50 text-amber-700 border-amber-200',
     active: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
     rejected: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -130,7 +134,9 @@ export default function ReportQueueTable({ reports, scoreDisplay, maxUpvotes }: 
                                     <td className="min-w-[160px] px-6 py-4">
                                         <div className="space-y-1.5">
                                             {scoreDisplay === 'severity' ? (
-                                                <SeverityBar score={row.ai_severity} />
+                                                row.ai_severity === null ? (
+                                                    <span className="text-xs font-semibold text-slate-500">Awaiting AI assessment</span>
+                                                ) : <SeverityBar score={row.ai_severity} />
                                             ) : (
                                                 <PriorityBar score={row.upvotes_count ?? 0} maxScore={maxUpvotes} />
                                             )}

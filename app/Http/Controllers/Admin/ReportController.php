@@ -2,43 +2,48 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Enums\PersonnelShift;
-use App\Models\Notification;
+use App\Http\Controllers\Controller;
+use App\Jobs\SendMissionAssignmentSms;
+use App\Models\BarangaySetting;
 use App\Models\Concern;
 use App\Models\ConcernDuplicateLink;
 use App\Models\Mission;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use App\Jobs\SendMissionAssignmentSms;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
-use Inertia\Response;
+use App\Models\Notification;
 use App\Models\Personnel;
 use App\Models\ResidentProfile;
-use App\Models\BarangaySetting;
-use App\Support\MapHelpers;
+use App\Services\Concerns\ConcernReanalysisService;
 use App\Services\Concerns\ConcernResolutionDeadline;
-use App\Support\ConcernStatusUpdate;
-use App\Services\Missions\MissionLifecycleService;
 use App\Services\Missions\MissionDepartmentAssignment;
-use App\Services\Missions\MissionResolutionPostBuilder;
+use App\Services\Missions\MissionLifecycleService;
+use App\Support\ConcernStatusUpdate;
+use App\Support\MapHelpers;
+use App\Support\SensitiveMediaUrl;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ReportController extends Controller
 {
+    private const MERGE_MASTER_STATUSES = ['submitted', 'ai_processed', 'active', 'under_review'];
+
     private function validateTransition(string $current, string $next): bool
     {
         $map = [
-            'submitted'    => ['under_review', 'rejected', 'spam'],
+            'submitted' => ['under_review', 'rejected', 'spam'],
             'ai_processed' => ['under_review', 'rejected', 'spam', 'active', 'resolved'],
             'under_review' => ['active', 'in_progress', 'rejected', 'resolved', 'closed'],
-            'in_progress'  => ['resolved'],
-            'active'       => ['resolved', 'closed'],
-            'resolved'     => ['closed'],
-            'rejected'     => [],
+            'in_progress' => ['resolved'],
+            'active' => ['resolved', 'closed'],
+            'resolved' => ['closed'],
+            'rejected' => [],
         ];
+
         return isset($map[$current]) && in_array($next, $map[$current]);
     }
 
@@ -48,10 +53,10 @@ class ReportController extends Controller
         $categoryName = $concern->category ? $concern->category->name : 'Unknown';
 
         $pointsMap = [
-            'Public Safety & Order'      => 5,
+            'Public Safety & Order' => 5,
             'Infrastructure & Utilities' => 4,
-            'Sanitation & Environment'   => 3,
-            'Katarungang Pambarangay'    => 2,
+            'Sanitation & Environment' => 3,
+            'Katarungang Pambarangay' => 2,
         ];
 
         if (array_key_exists($categoryName, $pointsMap)) {
@@ -59,6 +64,7 @@ class ReportController extends Controller
         }
 
         $settings = BarangaySetting::find($barangayId);
+
         return min(5, max(1, (int) ($settings?->civic_xp_per_valid_report ?? 3)));
     }
 
@@ -85,14 +91,14 @@ class ReportController extends Controller
         $barangayId = $request->user()->barangay_id;
         $concerns = Concern::where('barangay_id', $barangayId)
             ->with([
-                'media', 
-                'category', 
-                'currentAiAnalysis.suggestedCategory', 
+                'media',
+                'category',
+                'currentAiAnalysis.suggestedCategory',
                 'currentAiAnalysis.duplicateCandidate',
                 'votes',
                 'duplicates.reporter',
                 'duplicateOf',
-                'primaryDuplicateLinks'
+                'primaryDuplicateLinks',
             ])
             ->withCount([
                 'clarifications',
@@ -103,10 +109,11 @@ class ReportController extends Controller
         $reports = $concerns->map(function ($c) {
             $status = $c->status->value ?? $c->status;
             $priority = $this->priorityFor($c);
+            $hasAiAnalysis = $c->currentAiAnalysis !== null;
 
             $mergedDuplicatesCount = $c->duplicates->count();
-            $isDuplicate = !empty($c->duplicate_of_id);
-            $hasDuplicateCandidate = !empty($c->currentAiAnalysis?->duplicate_candidate_id);
+            $isDuplicate = ! empty($c->duplicate_of_id);
+            $hasDuplicateCandidate = ! empty($c->currentAiAnalysis?->duplicate_candidate_id);
 
             return [
                 'id' => substr($c->id, 0, 8),
@@ -114,22 +121,23 @@ class ReportController extends Controller
                 'incident_type' => $c->title,
                 'type_icon' => MapHelpers::typeIconFromText($c->title, $c->description),
                 'location' => $c->locationLabel(),
-                'ai_category' => $c->currentAiAnalysis?->suggestedCategory?->name
-                    ?? $c->category?->name
-                    ?? 'Uncategorized',
-                'ai_severity' => MapHelpers::scoreFromSeverity($c->severity),
-                'severity' => $c->severity ?? 'medium',
+                'ai_category' => $hasAiAnalysis
+                    ? ($c->currentAiAnalysis?->suggestedCategory?->name ?? $c->category?->name ?? 'Uncategorized')
+                    : 'Awaiting AI assessment',
+                'ai_severity' => $hasAiAnalysis && $c->severity !== null ? MapHelpers::scoreFromSeverity($c->severity) : null,
+                'severity' => $hasAiAnalysis ? $c->severity : null,
                 'priority' => MapHelpers::priorityFromSeverity($c->severity),
                 'priority_score' => $priority['score'],
                 'priority_reason' => $priority['reason'],
                 'upvotes_count' => $c->votes->where('vote', 1)->count(),
                 'visibility' => $c->visibility,
-                'images' => $c->media->sortBy('sort_order')->map(fn ($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($c, $m))->values()->all(),
+                'images' => $c->media->sortBy('sort_order')->map(fn ($m) => app(SensitiveMediaUrl::class)->forConcern($c, $m))->values()->all(),
                 'intake_channel' => $c->intake_channel,
                 'status' => $status,
-                'queue_status' => match($status) {
-                    'submitted', 'ai_processed' => 'ai_processed',
-                    'under_review' => 'under_review',
+                'queue_status' => match ($status) {
+                    'submitted' => 'ai_pending',
+                    'ai_processed' => $hasAiAnalysis ? 'ai_processed' : 'analysis_missing',
+                    'under_review' => $hasAiAnalysis ? 'under_review' : 'ai_pending',
                     'rejected', 'spam' => 'rejected',
                     default => 'active',
                 },
@@ -153,7 +161,9 @@ class ReportController extends Controller
             'reports' => $reports,
             'counts' => [
                 'all' => $reports->count(),
+                'ai_pending' => $reports->where('queue_status', 'ai_pending')->count(),
                 'ai_processed' => $reports->where('queue_status', 'ai_processed')->count(),
+                'analysis_missing' => $reports->where('queue_status', 'analysis_missing')->count(),
                 'under_review' => $reports->where('queue_status', 'under_review')->count(),
                 'active' => $reports->where('queue_status', 'active')->count(),
                 'rejected' => $reports->where('queue_status', 'rejected')->count(),
@@ -173,20 +183,20 @@ class ReportController extends Controller
             'low' => 100,
             default => 150,
         };
-        $text = strtolower($concern->title . ' ' . $concern->description);
+        $text = strtolower($concern->title.' '.$concern->description);
         $safetyTerms = ['fire', 'flood', 'live wire', 'electrical', 'collapse', 'injury', 'danger', 'gas leak', 'outbreak'];
         $safetyMatches = collect($safetyTerms)->filter(fn ($term) => str_contains($text, $term))->count();
-        
+
         $ageHours = $concern->created_at ? max(0, $concern->created_at->diffInHours(now())) : 0;
         $ageScore = min(48, $ageHours * 2);
         $score = $severityScore + ($safetyMatches * 25) + $ageScore;
 
         $reason = $concern->severity
-            ? ucfirst($concern->severity) . ' AI severity'
+            ? ucfirst($concern->severity).' AI severity'
             : 'Awaiting AI severity';
         if ($safetyMatches > 0) {
             $reason .= ' + safety keywords';
-        } 
+        }
         if ($ageScore > 0) {
             $reason .= ' + waiting time';
         }
@@ -199,8 +209,8 @@ class ReportController extends Controller
         $barangayId = $request->user()->barangay_id;
         $record = Concern::where('barangay_id', $barangayId)
             ->with([
-                'media', 
-                'currentAiAnalysis.duplicateCandidate.reporter', 
+                'media',
+                'currentAiAnalysis.duplicateCandidate.reporter',
                 'mission.personnel.user',
                 'reporter',
                 'intakeLogger',
@@ -208,12 +218,12 @@ class ReportController extends Controller
                 'duplicateOf.reporter',
                 'duplicates.reporter',
                 'duplicates.media',
-                'primaryDuplicateLinks.linkedConcern.reporter'
+                'primaryDuplicateLinks.linkedConcern.reporter',
             ])
             ->findOrFail($id);
-        
+
         $currentStatus = $record->status->value ?? $record->status;
-        if (in_array($currentStatus, ['submitted', 'ai_processed'])) {
+        if ($currentStatus === 'submitted' || ($currentStatus === 'ai_processed' && $record->currentAiAnalysis !== null)) {
             $record->update([
                 'status' => 'under_review',
                 'staff_reviewed_by' => Auth::id(),
@@ -231,9 +241,9 @@ class ReportController extends Controller
                 'created_at' => now(),
             ]);
         }
-        
-        $locationData = DB::selectOne("SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?", [$record->id]);
-        
+
+        $locationData = DB::selectOne('SELECT ST_X(location) as lat, ST_Y(location) as lng FROM concerns WHERE id = ?', [$record->id]);
+
         $personnelList = Personnel::with('user')
             ->whereHas('user', function ($q) use ($barangayId) {
                 $q->where('barangay_id', $barangayId)
@@ -242,10 +252,10 @@ class ReportController extends Controller
             })
             ->get()
             ->map(function ($personnel) {
-                $fullName = trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? ''));
+                $fullName = trim(($personnel->user?->first_name ?? '').' '.($personnel->user?->last_name ?? ''));
                 $role = $personnel->role;
                 $roleName = is_string($role) ? ucfirst(str_replace('_', ' ', $role)) : (empty($role) ? 'General' : (string) $role);
-                
+
                 return [
                     'id' => $personnel->id,
                     'name' => $fullName ?: 'Unnamed Personnel',
@@ -266,7 +276,7 @@ class ReportController extends Controller
 
             return [
                 'id' => $personnel->id,
-                'name' => trim(($personnel->user?->first_name ?? '') . ' ' . ($personnel->user?->last_name ?? '')),
+                'name' => trim(($personnel->user?->first_name ?? '').' '.($personnel->user?->last_name ?? '')),
                 'role' => is_string($role) ? ucfirst(str_replace('_', ' ', $role)) : (empty($role) ? 'General' : (string) $role),
             ];
         })->values()->toArray() ?? [];
@@ -274,12 +284,12 @@ class ReportController extends Controller
         $masterCandidates = Concern::where('barangay_id', $barangayId)
             ->where('id', '!=', $id)
             ->whereNull('duplicate_of_id')
-            ->whereIn('status', ['submitted', 'ai_processed', 'active', 'under_review'])
+            ->whereIn('status', self::MERGE_MASTER_STATUSES)
             ->select('id', 'title', 'created_at', 'address_text')
             ->get()
-            ->map(fn($c) => [
-                'id' => $c->id, 
-                'label' => $c->title . ' (' . $c->locationLabel() . ' - ' . $c->created_at->format('M d') . ')'
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'label' => $c->title.' ('.$c->locationLabel().' - '.$c->created_at->format('M d').')',
             ]);
 
         $record->refresh();
@@ -310,46 +320,51 @@ class ReportController extends Controller
                 'id' => $dup->id,
                 'title' => $dup->title,
                 'description' => $dup->description,
-                'reporter_name' => trim(($dup->reporter?->first_name ?? '') . ' ' . ($dup->reporter?->last_name ?? '')),
+                'reporter_name' => trim(($dup->reporter?->first_name ?? '').' '.($dup->reporter?->last_name ?? '')),
                 'reporter_mobile' => $dup->reporter?->mobile,
                 'status' => $dup->status->value ?? $dup->status,
                 'submitted_at' => $dup->created_at->format('M d, Y g:i A'),
-                'images' => $dup->media->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($dup, $m))->values()->toArray(),
+                'images' => $dup->media->map(fn ($m) => app(SensitiveMediaUrl::class)->forConcern($dup, $m))->values()->toArray(),
             ];
         });
 
-        $reportQuality = $aiAnalysis?->reportQuality() ?? 'ready_for_review';
-        $recommendedAction = 'escalate';
-        $actionReason = 'The available report supports standard triage and deployment, subject to staff approval.';
+        $reportQuality = $aiAnalysis?->reportQuality();
+        $recommendedAction = null;
+        $actionReason = null;
 
         // Clarification is supplementary: unanswered requests and optional reanalysis
         // must not replace the assessment or prevent staff from processing the report.
-        if ($reportQuality === 'possible_spam') {
-            $recommendedAction = 'dismiss';
-            $actionReason = 'The report was flagged as possible spam. Staff must verify its content before deciding whether to dismiss it.';
-        } elseif ($aiAnalysis?->duplicate_candidate_id) {
-            $recommendedAction = 'merge';
-            $actionReason = 'A possible duplicate was found nearby. Compare the reports before confirming a merge.';
-        } elseif ($reportQuality === 'needs_clarification') {
-            $recommendedAction = 'review';
-            $actionReason = 'Severity has been assessed using the available information. Staff can decide now; requesting more details is optional.';
+        if ($aiAnalysis !== null) {
+            $recommendedAction = 'escalate';
+            $actionReason = 'The available report supports standard triage and deployment, subject to staff approval.';
+
+            if ($reportQuality === 'possible_spam') {
+                $recommendedAction = 'dismiss';
+                $actionReason = 'The report was flagged as possible spam. Staff must verify its content before deciding whether to dismiss it.';
+            } elseif ($aiAnalysis->duplicate_candidate_id) {
+                $recommendedAction = 'merge';
+                $actionReason = 'A possible duplicate was found nearby. Compare the reports before confirming a merge.';
+            } elseif ($reportQuality === 'needs_clarification') {
+                $recommendedAction = 'review';
+                $actionReason = 'Severity has been assessed using the available information. Staff can decide now; requesting more details is optional.';
+            }
         }
 
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
         $maxDueDate = $deadlinePolicy->deadlineFor($record)->toDateString();
         $suggestedDueDate = $record->mission?->due_date?->toDateString();
-        if (!$suggestedDueDate || $suggestedDueDate > $maxDueDate) {
+        if (! $suggestedDueDate || $suggestedDueDate > $maxDueDate) {
             $suggestedDueDate = $maxDueDate;
         }
-        
+
         // Use the string department safely (No ->value calls)
         $missionDepartment = $existingMission?->department ?? $record->suggestedPersonnelDepartment();
         $isVawcConcern = $record->isVawcConcern();
-        
+
         $suggestedPersonnelIds = $existingMission
             ? $assignedPersonnelIds
             : ($aiAnalysis?->suggested_personnel_ids ?? []);
-            
+
         $suggestedPersonnelIds = $personnelList
             ->whereIn('id', $suggestedPersonnelIds)
             ->filter(fn ($person) => $person['department'] === $missionDepartment
@@ -359,7 +374,7 @@ class ReportController extends Controller
             ->all();
 
         $rawAiOutput = is_array($aiAnalysis?->raw_model_output) ? $aiAnalysis->raw_model_output : [];
-        $reanalysis = app(\App\Services\Concerns\ConcernReanalysisService::class)->availability($record);
+        $reanalysis = app(ConcernReanalysisService::class)->availability($record);
         $imageAssessments = is_array($rawAiOutput['image_assessments'] ?? null)
             ? $rawAiOutput['image_assessments']
             : [];
@@ -388,11 +403,13 @@ class ReportController extends Controller
                     'caller_phone' => $record->intake_reporter_phone,
                     'caller_address' => $record->intake_reporter_address,
                     'incident_occurred_at' => $record->incident_occurred_at?->format('M d, Y g:i A'),
-                    'logged_by' => trim(($record->intakeLogger?->first_name ?? '') . ' ' . ($record->intakeLogger?->last_name ?? '')),
+                    'logged_by' => trim(($record->intakeLogger?->first_name ?? '').' '.($record->intakeLogger?->last_name ?? '')),
                 ] : null,
                 'status' => $record->status->value ?? $record->status,
+                'ai_analysis_pending' => $aiAnalysis === null && in_array($currentStatus, ['submitted', 'under_review'], true),
+                'ai_analysis_missing' => $aiAnalysis === null && $currentStatus === 'ai_processed',
                 'location_label' => $record->locationLabel(),
-                'severity' => $record->severity ?? 'medium',
+                'severity' => $aiAnalysis !== null ? $record->severity : null,
                 'deadline_days' => $deadlinePolicy->workingDaysFor($record),
                 'max_due_date' => $maxDueDate,
                 'due_date' => $suggestedDueDate,
@@ -401,7 +418,7 @@ class ReportController extends Controller
                 'can_confirm_verdict' => $request->user()->canModifySystem(),
                 'lat' => $locationData ? (float) $locationData->lat : 14.5173079,
                 'lng' => $locationData ? (float) $locationData->lng : 120.9933811,
-                'images' => $record->media->sortBy('sort_order')->map(fn($m) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($record, $m))->values()->toArray(),
+                'images' => $record->media->sortBy('sort_order')->map(fn ($m) => app(SensitiveMediaUrl::class)->forConcern($record, $m))->values()->toArray(),
                 'prescriptive_steps' => $aiAnalysis?->prescriptive_steps ?? [],
                 'triage_explanation' => $aiAnalysis?->triageExplanation($record),
                 'assigned_personnel_ids' => $suggestedPersonnelIds,
@@ -429,14 +446,14 @@ class ReportController extends Controller
                 'ai_duplicate_id' => $aiAnalysis?->duplicate_candidate_id,
                 'ai_duplicate_title' => $duplicateCandidate?->title,
                 'ai_duplicate_description' => $duplicateCandidate?->description,
-                'ai_duplicate_reporter' => trim(($duplicateCandidate?->reporter?->first_name ?? '') . ' ' . ($duplicateCandidate?->reporter?->last_name ?? '')),
+                'ai_duplicate_reporter' => trim(($duplicateCandidate?->reporter?->first_name ?? '').' '.($duplicateCandidate?->reporter?->last_name ?? '')),
                 'ai_duplicate_similarity' => $aiAnalysis?->duplicate_similarity,
                 'ai_duplicate_context' => $rawAiOutput['duplicate_context'] ?? null,
                 'ai_duplicate_reporter_count' => $duplicateReporterCount,
                 'ai_dismissal_reason' => $aiAnalysis?->dismissal_reason ?? 'Flagged as spam, test input, or non-actionable gibberish.',
                 'duplicate_of_id' => $record->duplicate_of_id,
                 'duplicate_of_title' => $record->duplicateOf?->title,
-                'duplicate_of_reporter' => trim(($record->duplicateOf?->reporter?->first_name ?? '') . ' ' . ($record->duplicateOf?->reporter?->last_name ?? '')),
+                'duplicate_of_reporter' => trim(($record->duplicateOf?->reporter?->first_name ?? '').' '.($record->duplicateOf?->reporter?->last_name ?? '')),
                 'merged_duplicates' => $mergedDuplicates,
             ],
             'personnel' => $personnelList,
@@ -457,7 +474,7 @@ class ReportController extends Controller
             'rejection_reason' => ['required_if:status,rejected,spam', 'nullable', 'string', 'min:3', 'max:1000', 'regex:/\S/'],
         ]);
 
-        if (!$this->validateTransition($concern->status->value ?? $concern->status, $validated['status'])) {
+        if (! $this->validateTransition($concern->status->value ?? $concern->status, $validated['status'])) {
             return back()->withErrors(['status' => 'Invalid status transition.']);
         }
 
@@ -467,17 +484,17 @@ class ReportController extends Controller
 
         $fromStatus = $concern->status->value ?? $concern->status;
         $attributes = ['status' => $validated['status'], 'staff_reviewed_by' => Auth::id()];
-        
+
         if (in_array($validated['status'], ['rejected', 'spam'], true)) {
             $attributes['closed_summary'] = $validated['rejection_reason'];
-            
+
             $penalty = $validated['status'] === 'spam' ? 15 : 10;
             $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
             if ($reporterProfile) {
-                $reporterProfile->penalize('report_' . $validated['status'], $penalty, 'concern', $concern->id, $barangayId);
+                $reporterProfile->penalize('report_'.$validated['status'], $penalty, 'concern', $concern->id, $barangayId);
             }
         }
-        
+
         $concern->update($attributes);
 
         DB::table('concern_status_history')->insert([
@@ -486,8 +503,8 @@ class ReportController extends Controller
             'to_status' => $validated['status'],
             'actor_id' => Auth::id(),
             'note' => in_array($validated['status'], ['rejected', 'spam'], true)
-                ? 'Rejected: ' . $validated['rejection_reason']
-                : 'Admin status update: ' . $validated['status'],
+                ? 'Rejected: '.$validated['rejection_reason']
+                : 'Admin status update: '.$validated['status'],
             'created_at' => now(),
         ]);
 
@@ -497,7 +514,7 @@ class ReportController extends Controller
             'action' => 'UPDATE',
             'entity_type' => 'Concern',
             'entity_id' => $id,
-            'metadata' => json_encode(['details' => 'Updated report status to: ' . $validated['status']]),
+            'metadata' => json_encode(['details' => 'Updated report status to: '.$validated['status']]),
             'ip_address' => $request->ip(),
             'created_at' => now(),
         ]);
@@ -514,7 +531,7 @@ class ReportController extends Controller
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $previousStatus = $concern->status->value ?? $concern->status;
-        $concern->update(['status' => 'under_review']); 
+        $concern->update(['status' => 'under_review']);
 
         if ($previousStatus !== 'under_review') {
             ConcernStatusUpdate::record(
@@ -532,7 +549,7 @@ class ReportController extends Controller
             'action' => 'CONFIRM',
             'entity_type' => 'Concern',
             'entity_id' => $id,
-            'metadata' => json_encode(['details' => 'Confirmed AI analysis for report: ' . $concern->title]),
+            'metadata' => json_encode(['details' => 'Confirmed AI analysis for report: '.$concern->title]),
             'ip_address' => $request->ip(),
             'created_at' => now(),
         ]);
@@ -608,7 +625,7 @@ class ReportController extends Controller
                         ->where('personnel_id', $personnelId)
                         ->first();
 
-                    if (!$existingPivot) {
+                    if (! $existingPivot) {
                         $newlyAssignedPersonnelIds[] = (string) $personnelId;
                     }
 
@@ -653,7 +670,7 @@ class ReportController extends Controller
                     );
 
                     $points = $this->calculateCategoryXp($concern, $barangayId);
-                    
+
                     $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
                     if ($reporterProfile) {
                         $reporterProfile->awardXp('valid_report', $points, 'concern', $concern->id, $barangayId);
@@ -684,22 +701,24 @@ class ReportController extends Controller
             );
 
             return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Mission deployed.');
-        } 
-        
+        }
+
         if ($action === 'merge') {
             $masterId = $validated['master_concern_id'] ?? $concern->currentAiAnalysis?->duplicate_candidate_id;
 
-            if (!$masterId || $masterId === $concern->id) {
+            if (! $masterId || $masterId === $concern->id) {
                 return back()->withErrors(['master_concern_id' => 'A valid parent master concern must be specified.']);
             }
 
-            $masterConcern = Concern::where('barangay_id', $barangayId)->findOrFail($masterId);
+            DB::transaction(function () use ($concern, $masterId, $barangayId, $request) {
+                $lockedConcern = Concern::whereKey($concern->id)->lockForUpdate()->firstOrFail();
+                $masterConcern = $this->resolveMergeMaster((string) $masterId, $lockedConcern->id, $barangayId);
+                $previousStatus = $lockedConcern->status->value ?? $lockedConcern->status;
 
-            DB::transaction(function () use ($concern, $masterConcern, $barangayId, $request) {
-                $concern->update([
+                $lockedConcern->update([
                     'status' => 'resolved',
                     'duplicate_of_id' => $masterConcern->id,
-                    'closed_summary' => 'Merged as duplicate into parent report: ' . $masterConcern->title,
+                    'closed_summary' => 'Merged as duplicate into parent report: '.$masterConcern->title,
                     'staff_reviewed_by' => Auth::id(),
                     'staff_reviewed_at' => now(),
                 ]);
@@ -718,10 +737,10 @@ class ReportController extends Controller
 
                 DB::table('concern_status_history')->insert([
                     'concern_id' => $concern->id,
-                    'from_status' => $concern->getOriginal('status') ?? 'under_review',
+                    'from_status' => $previousStatus,
                     'to_status' => 'resolved',
                     'actor_id' => Auth::id(),
-                    'note' => 'Merged duplicate into master concern ID: ' . $masterConcern->id,
+                    'note' => 'Merged duplicate into master concern ID: '.$masterConcern->id,
                     'created_at' => now(),
                 ]);
 
@@ -732,7 +751,7 @@ class ReportController extends Controller
                     'entity_type' => 'Concern',
                     'entity_id' => $concern->id,
                     'metadata' => json_encode([
-                        'details' => 'Confirmed AI verdict: Merged duplicate report into master ID ' . $masterConcern->id,
+                        'details' => 'Confirmed AI verdict: Merged duplicate report into master ID '.$masterConcern->id,
                         'master_concern_title' => $masterConcern->title,
                     ]),
                     'ip_address' => $request->ip(),
@@ -740,10 +759,10 @@ class ReportController extends Controller
                 ]);
 
                 $this->notifyReporter(
-                    $concern,
+                    $lockedConcern,
                     'concern_merged',
                     'Report Grouped with Existing Concern',
-                    'Your report has been verified and combined with an ongoing community ticket: "' . $masterConcern->title . '". You will receive updates as resolution proceeds.',
+                    'Your report has been verified and combined with an ongoing community ticket: "'.$masterConcern->title.'". You will receive updates as resolution proceeds.',
                     [
                         'concern_id' => $concern->id,
                         'master_concern_id' => $masterConcern->id,
@@ -774,7 +793,7 @@ class ReportController extends Controller
                 'from_status' => $concern->getOriginal('status') ?? 'under_review',
                 'to_status' => 'rejected',
                 'actor_id' => Auth::id(),
-                'note' => 'Dismissed/Rejected: ' . $reason,
+                'note' => 'Dismissed/Rejected: '.$reason,
                 'created_at' => now(),
             ]);
 
@@ -784,12 +803,12 @@ class ReportController extends Controller
                 'action' => 'CONFIRM_AI_DISMISS',
                 'entity_type' => 'Concern',
                 'entity_id' => $id,
-                'metadata' => json_encode(['details' => 'Confirmed AI verdict: Dismissed report due to: ' . $reason]),
+                'metadata' => json_encode(['details' => 'Confirmed AI verdict: Dismissed report due to: '.$reason]),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
 
-            $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was dismissed: ' . $reason);
+            $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was dismissed: '.$reason);
 
             return redirect()->route('admin.reports.index')->with('success', 'AI verdict confirmed: Report dismissed.');
         }
@@ -805,22 +824,20 @@ class ReportController extends Controller
 
         $barangayId = $request->user()->barangay_id;
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
-        
-        $request->validate([
+
+        $validated = $request->validate([
             'master_concern_id' => ['required', 'string', 'exists:concerns,id'],
         ]);
 
-        $masterConcern = Concern::where('barangay_id', $barangayId)->findOrFail($request->master_concern_id);
+        DB::transaction(function () use ($concern, $validated, $barangayId, $request) {
+            $lockedConcern = Concern::whereKey($concern->id)->lockForUpdate()->firstOrFail();
+            $masterConcern = $this->resolveMergeMaster($validated['master_concern_id'], $lockedConcern->id, $barangayId);
+            $previousStatus = $lockedConcern->status->value ?? $lockedConcern->status;
 
-        if ($masterConcern->id === $concern->id) {
-            return back()->withErrors(['master_concern_id' => 'Cannot merge a concern into itself.']);
-        }
-
-        DB::transaction(function () use ($concern, $masterConcern, $barangayId, $request) {
-            $concern->update([
+            $lockedConcern->update([
                 'status' => 'resolved',
                 'duplicate_of_id' => $masterConcern->id,
-                'closed_summary' => 'Merged as a duplicate into: ' . $masterConcern->title,
+                'closed_summary' => 'Merged as a duplicate into: '.$masterConcern->title,
                 'staff_reviewed_by' => Auth::id(),
                 'staff_reviewed_at' => now(),
             ]);
@@ -839,10 +856,10 @@ class ReportController extends Controller
 
             DB::table('concern_status_history')->insert([
                 'concern_id' => $concern->id,
-                'from_status' => $concern->getOriginal('status') ?? 'under_review',
+                'from_status' => $previousStatus,
                 'to_status' => 'resolved',
                 'actor_id' => Auth::id(),
-                'note' => 'Merged duplicate into master concern ID: ' . $masterConcern->id,
+                'note' => 'Merged duplicate into master concern ID: '.$masterConcern->id,
                 'created_at' => now(),
             ]);
 
@@ -852,16 +869,16 @@ class ReportController extends Controller
                 'action' => 'MERGE',
                 'entity_type' => 'Concern',
                 'entity_id' => $concern->id,
-                'metadata' => json_encode(['details' => 'Merged duplicate report into master record ID: ' . $masterConcern->id]),
+                'metadata' => json_encode(['details' => 'Merged duplicate report into master record ID: '.$masterConcern->id]),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
 
             $this->notifyReporter(
-                $concern,
+                $lockedConcern,
                 'concern_merged',
                 'Report Grouped with Existing Concern',
-                'Your report has been verified and combined with an ongoing ticket: "' . $masterConcern->title . '".',
+                'Your report has been verified and combined with an ongoing ticket: "'.$masterConcern->title.'".',
                 [
                     'concern_id' => $concern->id,
                     'master_concern_id' => $masterConcern->id,
@@ -870,6 +887,24 @@ class ReportController extends Controller
         });
 
         return redirect()->route('admin.reports.index')->with('success', 'Report merged successfully into master concern.');
+    }
+
+    private function resolveMergeMaster(string $masterId, string $concernId, string $barangayId): Concern
+    {
+        $masterConcern = Concern::query()
+            ->where('barangay_id', $barangayId)
+            ->whereNull('duplicate_of_id')
+            ->whereIn('status', self::MERGE_MASTER_STATUSES)
+            ->lockForUpdate()
+            ->find($masterId);
+
+        if (! $masterConcern || $masterConcern->id === $concernId) {
+            throw ValidationException::withMessages([
+                'master_concern_id' => 'Choose an unresolved report that has not already been merged as the parent.',
+            ]);
+        }
+
+        return $masterConcern;
     }
 
     public function rejectConcern(Request $request, string $id): RedirectResponse
@@ -886,7 +921,7 @@ class ReportController extends Controller
         $reason = $validated['rejection_reason'];
 
         $concern->update(['status' => 'rejected', 'closed_summary' => $reason]);
-        
+
         // Deduct -10 XP for direct rejection
         $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
         if ($reporterProfile) {
@@ -898,7 +933,7 @@ class ReportController extends Controller
             'from_status' => $concern->getOriginal('status') ?? 'under_review',
             'to_status' => 'rejected',
             'actor_id' => Auth::id(),
-            'note' => 'Rejected: ' . $reason,
+            'note' => 'Rejected: '.$reason,
             'created_at' => now(),
         ]);
 
@@ -908,12 +943,12 @@ class ReportController extends Controller
             'action' => 'REJECT',
             'entity_type' => 'Concern',
             'entity_id' => $id,
-            'metadata' => json_encode(['details' => 'Rejected report due to: ' . $reason]),
+            'metadata' => json_encode(['details' => 'Rejected report due to: '.$reason]),
             'ip_address' => $request->ip(),
             'created_at' => now(),
         ]);
-        
-        $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was rejected: ' . $reason);
+
+        $this->notifyReporter($concern, 'concern_rejected', 'Concern Rejected', 'Your report was rejected: '.$reason);
 
         return redirect()->route('admin.reports.index')->with('success', 'Rejected.');
     }
@@ -928,7 +963,7 @@ class ReportController extends Controller
         $concern = Concern::where('barangay_id', $barangayId)->findOrFail($id);
         $deadlinePolicy = app(ConcernResolutionDeadline::class);
         $maxDueDate = $deadlinePolicy->deadlineFor($concern)->toDateString();
-        
+
         $validated = $request->validate([
             'personnel_ids' => ['required', 'array', 'min:1'],
             'personnel_ids.*' => ['exists:personnel,id'],
@@ -973,7 +1008,7 @@ class ReportController extends Controller
                     ->where('personnel_id', $personnelId)
                     ->first();
 
-                if (!$existingPivot) {
+                if (! $existingPivot) {
                     $newlyAssignedPersonnelIds[] = (string) $personnelId;
                 }
 
@@ -1007,7 +1042,7 @@ class ReportController extends Controller
             if ($previousStatus !== 'assigned' && ($previousStatus === null || $hasNewAssignments)) {
                 $lifecycle->recordStatusChange($mission, $previousStatus, 'assigned', $request->user()->id, 'Admin assigned or reassigned personnel.');
             }
-            
+
             $concern->update(['status' => 'active']);
             if ($previousConcernStatus !== 'active') {
                 ConcernStatusUpdate::record(
@@ -1022,14 +1057,14 @@ class ReportController extends Controller
                 // DYNAMIC CATEGORY-BASED CIVIC XP
                 // ==========================================
                 $points = $this->calculateCategoryXp($concern, $barangayId);
-                
+
                 $reporterProfile = ResidentProfile::where('user_id', $concern->reporter_id)->first();
                 if ($reporterProfile) {
                     $reporterProfile->awardXp('valid_report', $points, 'concern', $concern->id, $barangayId);
                 }
                 // ==========================================
             }
-            
+
             DB::table('audit_logs')->insert([
                 'barangay_id' => $barangayId,
                 'actor_id' => Auth::id(),

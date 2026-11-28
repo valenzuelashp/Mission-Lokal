@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpMail;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Models\User;
-use App\Mail\OtpMail;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class ForgotPasswordController extends Controller
 {
@@ -32,15 +32,18 @@ class ForgotPasswordController extends Controller
         // Generate a random 6 digit code
         $otp = (string) random_int(100000, 999999);
 
-        // Delete any old codes for this user, then save the new one using user_id
-        DB::table('password_reset_tokens')->where('user_id', $user->id)->delete();
-        
+        DB::table('password_reset_tokens')
+            ->where('user_id', $user->id)
+            ->where('purpose', 'password_reset')
+            ->delete();
+
         DB::table('password_reset_tokens')->insert([
-            'id'       => Str::uuid(),
-            'user_id'    => $user->id,
-            'otp_hash'   => Hash::make($otp),
+            'id' => Str::uuid(),
+            'user_id' => $user->id,
+            'purpose' => 'password_reset',
+            'otp_hash' => Hash::make($otp),
             'expires_at' => Carbon::now()->addMinutes(15),
-            'created_at' => Carbon::now()
+            'created_at' => Carbon::now(),
         ]);
 
         // Send the email
@@ -54,23 +57,24 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
-            'otp'   => 'required|string|size:6'
+            'otp' => 'required|string|size:6',
         ]);
 
         $user = User::where('email', $request->email)->first();
-        
-        // Query using user_id instead of email
-        $record = DB::table('password_reset_tokens')->where('user_id', $user->id)->first();
 
-        // Check if code exists, matches the hash, and hasn't passed its explicit expiration date
-        if (!$record || !Hash::check($request->otp, $record->otp_hash) || Carbon::parse($record->expires_at)->isPast()) {
+        $record = DB::table('password_reset_tokens')
+            ->where('user_id', $user->id)
+            ->where('purpose', 'password_reset')
+            ->first();
+
+        if (
+            ! $record
+            || $record->used_at !== null
+            || ! Hash::check($request->otp, $record->otp_hash)
+            || Carbon::parse($record->expires_at)->isPast()
+        ) {
             return back()->withErrors(['otp' => 'The code is invalid or has expired.']);
         }
-
-        // Optional: Mark as used
-        DB::table('password_reset_tokens')
-            ->where('id', $record->id)
-            ->update(['used_at' => Carbon::now()]);
 
         return back()->with('success', 'OTP verified.');
     }
@@ -79,33 +83,56 @@ class ForgotPasswordController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email|exists:users,email',
-            'otp'      => 'required|string|size:6',
-            // Enforcing custom rule: 8+ characters, 1 number & 1 symbol
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|string|size:6',
             'password' => ['required', 'confirmed', Password::min(8)->numbers()->symbols()],
         ], [
-            // Overriding framework defaults to merge numbers and symbols text explicitly
             'password.numbers' => 'The password field must contain at least one number & one symbol.',
             'password.symbols' => 'The password field must contain at least one number & one symbol.',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-        $record = DB::table('password_reset_tokens')->where('user_id', $user->id)->first();
+        $reset = DB::transaction(function () use ($request): bool {
+            $user = User::where('email', $request->email)->lockForUpdate()->first();
 
-        if (
-            ! $record
-            || ! Hash::check($request->otp, $record->otp_hash)
-            || Carbon::parse($record->expires_at)->isPast()
-        ) {
+            if (! $user) {
+                return false;
+            }
+
+            $record = DB::table('password_reset_tokens')
+                ->where('user_id', $user->id)
+                ->where('purpose', 'password_reset')
+                ->whereNull('used_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                ! $record
+                || ! Hash::check($request->otp, $record->otp_hash)
+                || Carbon::parse($record->expires_at)->isPast()
+            ) {
+                return false;
+            }
+
+            $consumed = DB::table('password_reset_tokens')
+                ->where('id', $record->id)
+                ->whereNull('used_at')
+                ->update(['used_at' => Carbon::now()]);
+
+            if ($consumed !== 1) {
+                return false;
+            }
+
+            $user->password = $request->password;
+            $user->save();
+
+            return true;
+        });
+
+        if (! $reset) {
             return back()->withErrors([
                 'otp' => 'Please verify a valid code before resetting your password.',
             ]);
         }
-
-        $user->password = $request->password;
-        $user->save();
-
-        DB::table('password_reset_tokens')->where('user_id', $user->id)->delete();
 
         return redirect()->route('login')->with('success', 'Password reset successfully. You can now log in.');
     }

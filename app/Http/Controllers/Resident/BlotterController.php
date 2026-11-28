@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blotter;
+use App\Models\Concern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,7 +17,8 @@ class BlotterController extends Controller
      */
     public function index(Request $request): Response
     {
-        $blotters = Blotter::where('complainant_id', $request->user()->id)
+        $userId = $request->user()->id;
+        $blotters = Blotter::where('complainant_id', $userId)
             ->latest()
             ->get()
             ->map(function ($blotter) {
@@ -30,8 +32,25 @@ class BlotterController extends Controller
                 ];
             });
 
+        $concerns = Concern::query()
+            ->where('reporter_id', $userId)
+            ->withCount([
+                'clarifications as pending_clarifications_count' => fn ($query) => $query->whereNull('answered_at'),
+            ])
+            ->latest()
+            ->get()
+            ->map(fn (Concern $concern) => [
+                'id' => (string) $concern->id,
+                'title' => $concern->title,
+                'status' => $concern->status->value ?? $concern->status,
+                'created_at' => $concern->created_at?->format('M d, Y') ?? 'Recently',
+                'has_pending_clarification' => $concern->isAwaitingStaffDecision()
+                    && $concern->pending_clarifications_count > 0,
+            ]);
+
         return Inertia::render('Resident/Blotter/Index', [
-            'blotters' => $blotters
+            'blotters' => $blotters,
+            'concerns' => $concerns,
         ]);
     }
 

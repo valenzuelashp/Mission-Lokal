@@ -543,7 +543,7 @@ class ComprehensiveSystemSeeder extends Seeder
             'updated_at' => now()->subHours(6),
         ]);
 
-        // Concern 3 (Standalone Active - Garbage Dump)
+        // Concern 3 (AI Processed - Garbage Dump)
         $garbageConcern = Concern::updateOrCreate([
             'title' => 'Uncollected garbage pile attracting stray dogs along Quirino',
             'reporter_id' => $residentObjects[0]->id,
@@ -556,15 +556,15 @@ class ComprehensiveSystemSeeder extends Seeder
             'subcategory_id' => 2,
             'visibility' => 'public',
             'severity' => 'high',
-            'severity_confirmed' => 1,
-            'status' => ConcernStatus::Active,
+            'severity_confirmed' => 0,
+            'status' => ConcernStatus::AiProcessed,
             'location' => MapHelpers::pointFromLatLng(14.515200, 120.991500),
             'address_text' => 'Opposite 124 Quirino Avenue, Tambo',
             'is_blotter_candidate' => 0,
             'duplicate_of_id' => null,
             'ai_processed_at' => now()->subHours(5),
-            'staff_reviewed_by' => $admin1->id,
-            'staff_reviewed_at' => now()->subHours(4),
+            'staff_reviewed_by' => null,
+            'staff_reviewed_at' => null,
             'created_at' => now()->subHours(6),
             'updated_at' => now()->subHours(4),
         ]);
@@ -642,6 +642,28 @@ class ComprehensiveSystemSeeder extends Seeder
             'duplicate_similarity' => 0.8950,
             'raw_model_output' => ['recommended_action' => 'merge', 'action_reason' => 'Spatial overlap <45m and identical incident context.'],
             'processed_at' => now()->subHours(8),
+        ]);
+
+        ConcernAiAnalysis::updateOrCreate([
+            'concern_id' => $garbageConcern->id,
+            'is_current' => 1,
+        ], [
+            'concern_id' => $garbageConcern->id,
+            'is_current' => 1,
+            'detected_language' => 'en',
+            'suggested_category_id' => 2,
+            'suggested_subcategory_id' => 2,
+            'suggested_visibility' => 'public',
+            'suggested_severity' => 'high',
+            'severity_confidence' => 0.900,
+            'prescriptive_steps' => [
+                'Coordinate a collection crew for the reported location.',
+                'Remove bagged waste and safely clear the area.',
+                'Arrange follow-up collection to prevent another buildup.',
+            ],
+            'suggested_due_date' => now()->addDays(3)->toDateString(),
+            'suggested_duration_hours' => 8,
+            'processed_at' => now()->subHours(5),
         ]);
 
         // Media & Votes

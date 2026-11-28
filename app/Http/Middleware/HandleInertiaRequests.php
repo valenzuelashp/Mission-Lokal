@@ -29,6 +29,7 @@ class HandleInertiaRequests extends Middleware
 
         // Dynamically count unread notifications & admin queue badges
         $unreadCount = 0;
+        $recordsUnreadCount = 0;
         $pendingRegistrations = 0;
         $pendingReports = 0;
         $pendingMissions = 0;
@@ -46,6 +47,23 @@ class HandleInertiaRequests extends Middleware
             $roleValue = $user->role instanceof \UnitEnum ? $user->role->value : $user->role;
             if ($roleValue === 'resident') {
                 $user->load('residentProfile');
+                $recordsUnreadCount = Notification::query()
+                    ->where('user_id', $user->id)
+                    ->where('is_read', false)
+                    ->where(function ($query) use ($user) {
+                        $query->where(function ($concerns) use ($user) {
+                            $concerns->where('event_type', 'like', 'concern%')
+                                ->whereIn('payload->concern_id', DB::table('concerns')
+                                    ->select('id')
+                                    ->where('reporter_id', $user->id));
+                        })->orWhere(function ($blotters) use ($user) {
+                            $blotters->where('event_type', 'like', 'blotter%')
+                                ->whereIn('payload->blotter_id', DB::table('blotters')
+                                    ->select('id')
+                                    ->where('complainant_id', $user->id));
+                        });
+                    })
+                    ->count();
             }
 
             if ($roleValue === UserRole::Personnel->value) {
@@ -84,20 +102,11 @@ class HandleInertiaRequests extends Middleware
                             'registrations' => ResidentRegistration::query()
                                 ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
                                 ->count(),
-                            'reports' => 0,
                             'missions' => 0,
                             'blotters' => 0,
                             'profile_edits' => 0,
                             'map_alerts' => 0,
                         ];
-
-                        try {
-                            $counts['reports'] = DB::table('concerns')
-                                ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
-                                ->where('status', 'ai_processed')
-                                ->count();
-                        } catch (\Exception $exception) {
-                        }
 
                         try {
                             $counts['missions'] = DB::table('missions')
@@ -137,8 +146,11 @@ class HandleInertiaRequests extends Middleware
                     },
                 );
 
+                $pendingReports = DB::table('concerns')
+                    ->when($user->barangay_id, fn ($query) => $query->where('barangay_id', $user->barangay_id))
+                    ->whereIn('status', ['submitted', 'ai_processed', 'under_review'])
+                    ->count();
                 $pendingRegistrations = $badgeCounts['registrations'];
-                $pendingReports = $badgeCounts['reports'];
                 $pendingMissions = $badgeCounts['missions'];
                 $pendingBlotters = $badgeCounts['blotters'];
                 $pendingProfileEdits = $badgeCounts['profile_edits'];
@@ -186,6 +198,7 @@ class HandleInertiaRequests extends Middleware
                 'new_view_only_credentials' => fn () => $request->session()->get('new_view_only_credentials'),
             ],
             'unread_count' => $unreadCount,
+            'records_unread_count' => $recordsUnreadCount,
             'personnel_department' => $personnelDepartment,
             'personnel_shift' => $personnelShift,
             'pending_registrations_count' => $pendingRegistrations,

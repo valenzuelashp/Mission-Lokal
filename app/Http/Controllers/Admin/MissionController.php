@@ -36,10 +36,7 @@ class MissionController extends Controller
         $barangayId = $request->user()->barangay_id;
 
         $concerns = Concern::where('barangay_id', $barangayId)
-            ->where(function ($query) use ($barangayId) {
-                $query->whereIn('status', ['active', 'resolved', 'in_progress'])
-                    ->orWhereHas('mission', fn ($mission) => $mission->where('barangay_id', $barangayId));
-            })
+            ->whereHas('mission', fn ($mission) => $mission->where('barangay_id', $barangayId))
             ->with(['votes', 'category', 'duplicates.reporter', 'duplicateOf'])
             ->get();
 
@@ -78,7 +75,9 @@ class MissionController extends Controller
             return [
                 'id' => $rawId,
                 'has_mission' => (bool) $mission,
-                'display_id' => MissionRef::label($rawId),
+                'display_id' => $mission
+                    ? 'MS-' . strtoupper(substr(str_replace('-', '', (string) $rawId), -8))
+                    : 'CR-' . strtoupper(substr(str_replace('-', '', (string) $concern->id), -8)),
                 'concern_id' => $concern->id,
                 'concern_title' => $concern->title,
                 'location' => $concern->locationLabel(),
@@ -86,10 +85,14 @@ class MissionController extends Controller
                 'personnel_ids' => $personnelIds,
                 'department' => $mission?->department, // Safely returns string
                 'department_label' => $mission?->department, // Safely returns string
-                'priority' => $concern->severity === 'critical' ? 'high' : 'med',
+                'priority' => match ($concern->severity) {
+                    'critical', 'high' => 'high',
+                    'low' => 'low',
+                    default => 'med',
+                },
                 'priority_score' => $priorityScore,
                 'status' => $statusStr,
-                'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : $deadlinePolicy->deadlineFor($concern)->format('M d, Y'),
+                'due_date' => $mission && $mission->due_date ? $mission->due_date->format('M d, Y') : 'Not set',
                 'due_date_iso' => $mission?->due_date?->toDateString(),
                 'max_due_date' => $deadlinePolicy->deadlineFor($concern)->toDateString(),
                 'is_overdue' => $mission ? (bool)$mission->is_overdue : false,
@@ -108,12 +111,12 @@ class MissionController extends Controller
 
         $counts = [
             'all' => $missions->count(),
-            'assigned' => $missions->where('status', 'assigned')->count(),
+            'assigned' => $missions->where('has_mission', true)->whereIn('status', ['assigned', 'acknowledged'])->count(),
             'acknowledged' => $missions->where('status', 'acknowledged')->count(),
             'in_progress' => $missions->where('status', 'in_progress')->count(),
             'completed' => $missions->where('status', 'completed')->count(),
             'verified' => $missions->where('status', 'verified')->count(),
-            'overdue' => $missions->where('is_overdue', true)->where('status', '!=', 'verified')->count(),
+            'overdue' => $missions->filter(fn ($mission) => ($mission['is_overdue'] || $mission['is_escalated']) && $mission['status'] !== 'verified')->count(),
             'past_due' => $missions->where('is_past_due', true)->count(),
             'merged' => $missions->where('has_merged_duplicates', true)->count(),
         ];
@@ -389,6 +392,10 @@ class MissionController extends Controller
                 'proof_latitude' => $mission->proof?->latitude,
                 'proof_longitude' => $mission->proof?->longitude,
                 'proof_location_accuracy_m' => $mission->proof?->location_accuracy_m,
+                'proof_work_location' => $mission->proof?->work_location,
+                'proof_work_location_source' => $mission->proof?->work_location_source,
+                'proof_location_note' => $mission->proof?->location_note,
+                'proof_submitted_at' => $mission->proof?->submitted_at?->format('M d, Y g:i A'),
                 'resolution_post' => $mission->resolutionPost && !$mission->resolutionPost->is_published ? [
                     'id' => $mission->resolutionPost->id,
                     'title' => $mission->resolutionPost->title,

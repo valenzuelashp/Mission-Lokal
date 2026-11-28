@@ -17,7 +17,9 @@ const typeIcons = {
 } as const;
 
 const queueLabel: Record<AdminReport['queue_status'], string> = {
+    ai_pending: 'AI Analysis Pending',
     ai_processed: 'AI Processed',
+    analysis_missing: 'Analysis Missing',
     under_review: 'Under Review',
     active: 'Active Deployment',
     rejected: 'Rejected',
@@ -25,7 +27,9 @@ const queueLabel: Record<AdminReport['queue_status'], string> = {
 };
 
 const queueStyle: Record<AdminReport['queue_status'], string> = {
+    ai_pending: 'bg-amber-50 text-amber-700 border-amber-200',
     ai_processed: 'bg-blue-50 text-blue-700 border-blue-200',
+    analysis_missing: 'bg-rose-50 text-rose-700 border-rose-200',
     under_review: 'bg-amber-50 text-amber-700 border-amber-200',
     active: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
     rejected: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -129,7 +133,9 @@ export default function ReportQueueCard({ report, scoreDisplay, maxUpvotes }: Pr
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 max-w-[200px]">
                                 {scoreDisplay === 'severity' ? (
-                                    <SeverityBar score={report.ai_severity} />
+                                    report.ai_severity === null ? (
+                                        <span className="text-xs font-semibold text-slate-500">Awaiting AI assessment</span>
+                                    ) : <SeverityBar score={report.ai_severity} />
                                 ) : (
                                     <PriorityBar score={report.upvotes_count ?? 0} maxScore={maxUpvotes} />
                                 )}

@@ -242,6 +242,15 @@ export default function ConcernCard({ concern }: Props) {
                 />
                 
                 <div className="flex items-center gap-2">
+                    {concern.is_owner && concern.has_pending_clarification && (
+                        <Link
+                            href={`/concerns/${concern.id}#concern-clarifications`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-900 hover:bg-amber-100"
+                        >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            Staff requested details
+                        </Link>
+                    )}
                     <span className={`text-xs font-black uppercase tracking-wider ${theme.cardBg} px-4 py-1.5 rounded-xl border ${theme.cardBorder} shadow-2xs ${theme.textMain}`}>
                         {concern.status.replace('_', ' ')}
                     </span>

@@ -30,6 +30,9 @@ function Badge({ className, variant, ...props }: BadgeProps) {
         default: `${theme.primaryBg}`,
         secondary: `${theme.badgeBg} ${theme.textMain} ${theme.badgeBorder}`,
         outline: `${theme.cardBorder} ${theme.cardBg} ${theme.textMain}`,
+        success: '',
+        warning: '',
+        danger: '',
     }[variant ?? 'default'];
     return <div className={cn(badgeVariants({ variant }), paletteClasses, className)} {...props} />;
 }

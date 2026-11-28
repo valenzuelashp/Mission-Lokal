@@ -425,7 +425,8 @@ export function mapFilterCounts(pins: AdminMapPin[]) {
 
 export function pinsFromReports(reports: AdminReport[]): AdminMapPin[] {
     return reports
-        .filter((r) => !r.location.toLowerCase().includes('withheld') && !r.location.startsWith('Duplicate'))
+        .filter((r): r is AdminReport & { ai_severity: number } =>
+            r.ai_severity !== null && !r.location.toLowerCase().includes('withheld') && !r.location.startsWith('Duplicate'))
         .map((r, i) => ({
             id: `mp-${r.concern_id}`,
             lat: 14.5173079 + (i % 4) * 0.002 - 0.003,

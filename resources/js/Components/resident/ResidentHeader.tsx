@@ -18,8 +18,9 @@ type Props = {
 export default function ResidentHeader({ unreadCount, onNotificationsClick }: Props) {
     const { user } = useAuth();
     const theme = useResidentTheme();
-    const { unread_count, search: activeSearch } = usePage<PageProps & { unread_count?: number; search?: string }>().props;
+    const { unread_count, records_unread_count, search: activeSearch } = usePage<PageProps & { unread_count?: number; records_unread_count?: number; search?: string }>().props;
     const unread = unreadCount ?? unread_count ?? 0;
+    const recordsUnread = Number(records_unread_count ?? 0);
     const [search, setSearch] = useState(activeSearch ?? '');
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
@@ -86,13 +87,18 @@ export default function ResidentHeader({ unreadCount, onNotificationsClick }: Pr
                         <CalendarDays className="h-5 w-5" />
                     </Link>
 
-                    <Link 
-                        href="/blotters" 
-                        className={`hidden lg:flex items-center gap-2 text-xs font-black ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 transition-colors px-3 py-2 rounded-2xl`}
-                        aria-label="My Records"
+                    <Link
+                        href="/blotters"
+                        className={`relative hidden lg:flex items-center gap-2 text-xs font-black ${theme.textMuted} ${theme.hoverBg} hover:opacity-100 transition-colors px-3 py-2 rounded-2xl`}
+                        aria-label={recordsUnread > 0 ? `My Records, ${recordsUnread} unread updates` : 'My Records'}
                     >
                         <ShieldCheck className="h-4 w-4" />
                         <span className="hidden xl:inline">My Records</span>
+                        {recordsUnread > 0 && (
+                            <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-black text-white ring-2 ring-white">
+                                {recordsUnread > 99 ? '99+' : recordsUnread}
+                            </span>
+                        )}
                     </Link>
 
                     <Link 

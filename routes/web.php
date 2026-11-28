@@ -105,9 +105,10 @@ Route::middleware(['auth', 'role:resident', 'verified.resident'])->group(functio
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/edit', [ProfileController::class, 'update'])->name('profile.edit.store');
     
-    Route::get('/profile/security/request', [SecurityController::class, 'requestOtp'])->name('profile.security.request');
+    Route::get('/profile/security/request', [SecurityController::class, 'showRequestOtpForm'])->name('profile.security.request.form');
+    Route::post('/profile/security/request', [SecurityController::class, 'requestOtp'])->middleware('throttle:5,1')->name('profile.security.request');
     Route::get('/profile/security/verify', [SecurityController::class, 'showVerifyForm'])->name('profile.security.verify.form');
-    Route::post('/profile/security/verify', [SecurityController::class, 'verifyOtp'])->name('profile.security.verify');
+    Route::post('/profile/security/verify', [SecurityController::class, 'verifyOtp'])->middleware('throttle:5,1')->name('profile.security.verify');
     Route::get('/profile/security', [SecurityController::class, 'index'])->name('profile.security');
     Route::put('/profile/security', [SecurityController::class, 'updatePassword'])->name('profile.security.update');
 

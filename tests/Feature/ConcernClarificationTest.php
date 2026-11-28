@@ -14,6 +14,7 @@ use App\Models\ConcernReanalysis;
 use App\Jobs\Ai\ProcessConcernWithAi;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -64,8 +65,28 @@ class ConcernClarificationTest extends TestCase
             $table->boolean('is_blotter_candidate')->default(false);
             $table->text('location')->nullable();
             $table->string('address_text')->nullable();
+            $table->text('closed_summary')->nullable();
             $table->uuid('staff_reviewed_by')->nullable();
             $table->timestamp('staff_reviewed_at')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('audit_logs', function (Blueprint $table) {
+            $table->uuid('barangay_id');
+            $table->uuid('actor_id');
+            $table->string('action');
+            $table->string('entity_type');
+            $table->uuid('entity_id');
+            $table->text('metadata')->nullable();
+            $table->string('ip_address')->nullable();
+            $table->timestamp('created_at')->nullable();
+        });
+        Schema::create('blotters', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('complainant_id');
+            $table->string('ticket_number')->nullable();
+            $table->string('type')->default('two_party');
+            $table->timestamp('incident_at')->nullable();
+            $table->string('status')->default('pending_approval');
             $table->timestamps();
         });
         (require database_path('migrations/2026_11_15_120000_create_concern_clarifications_table.php'))->up();
@@ -75,6 +96,12 @@ class ConcernClarificationTest extends TestCase
         Schema::create('resident_profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('user_id');
+        });
+        Schema::create('resident_badges', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('user_id');
+            $table->string('name');
+            $table->unsignedInteger('threshold')->default(0);
         });
         Schema::create('concern_categories', function (Blueprint $table) {
             $table->unsignedSmallInteger('id')->primary();
@@ -111,7 +138,9 @@ class ConcernClarificationTest extends TestCase
         Schema::create('concern_status_history', function (Blueprint $table) {
             $table->id();
             $table->uuid('concern_id');
+            $table->string('from_status')->nullable();
             $table->string('to_status');
+            $table->uuid('actor_id')->nullable();
             $table->text('note')->nullable();
             $table->timestamp('created_at')->nullable();
         });
@@ -131,6 +160,9 @@ class ConcernClarificationTest extends TestCase
             $table->uuid('id')->primary();
             $table->uuid('primary_concern_id');
             $table->uuid('linked_concern_id');
+            $table->string('link_type');
+            $table->uuid('created_by');
+            $table->timestamp('created_at')->nullable();
         });
         DB::connection()->getPdo()->sqliteCreateFunction('ST_X', fn () => 14.5173);
         DB::connection()->getPdo()->sqliteCreateFunction('ST_Y', fn () => 120.9934);
@@ -151,8 +183,8 @@ class ConcernClarificationTest extends TestCase
     {
         Schema::dropIfExists('concern_reanalyses');
         foreach (['concern_clarifications', 'notifications', 'concern_duplicate_links', 'personnel', 'missions',
-            'concern_status_history', 'concern_media', 'concern_votes', 'concern_ai_analysis',
-            'concern_subcategories', 'concern_categories', 'resident_profiles', 'concerns', 'users'] as $table) {
+            'concern_status_history', 'concern_media', 'concern_votes', 'concern_ai_analysis', 'blotters',
+            'concern_subcategories', 'concern_categories', 'resident_badges', 'resident_profiles', 'audit_logs', 'concerns', 'users'] as $table) {
             Schema::dropIfExists($table);
         }
         parent::tearDown();
@@ -169,11 +201,11 @@ class ConcernClarificationTest extends TestCase
         $this->assertSame('concern_clarification_requested', $notification->event_type);
         $this->assertSame($this->concern->id, $notification->payload['concern_id']);
 
-        $this->actingAs($this->resident)->post($this->replyUrl($entry), ['response' => 'Near the school gate. Water is entering two houses.'])
+        $this->actingAs($this->resident)->post($this->replyUrl($entry), ['responses' => ['Near the school gate.', 'Water is entering two houses.']])
             ->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertNotNull($entry->fresh()->answered_at);
-        $this->assertSame('Near the school gate. Water is entering two houses.', $entry->fresh()->response);
+        $this->assertSame("Answer to question 1:\nNear the school gate.\n\nAnswer to question 2:\nWater is entering two houses.", $entry->fresh()->response);
         $this->assertDatabaseHas('notifications', ['user_id' => $this->admin->id, 'event_type' => 'concern_clarification_answered']);
         $this->assertSame('May baha dito.', $this->concern->fresh()->description);
         $this->assertSame('high', $this->concern->fresh()->severity);
@@ -258,9 +290,26 @@ class ConcernClarificationTest extends TestCase
         $this->actingAs($this->admin)->post($this->requestUrl(), ['questions' => ['Where?', 'Where?']])->assertSessionHasErrors('questions.0');
         $this->actingAs($this->admin)->post($this->requestUrl(), ['questions' => ['One?', 'Two?', 'Three?', 'Four?', 'Five?', 'Six?']])->assertSessionHasErrors('questions');
         $entry = $this->entry();
+        $this->actingAs($this->resident)->post($this->replyUrl($entry), ['responses' => []])->assertSessionHasErrors('responses');
+        $this->actingAs($this->resident)->post($this->replyUrl($entry), ['responses' => ['', 'extra']])->assertSessionHasErrors('responses');
+        $this->actingAs($this->resident)->post($this->replyUrl($entry), ['responses' => [str_repeat('a', 951)]])->assertSessionHasErrors('responses.0');
         $this->actingAs($this->resident)->post($this->replyUrl($entry), ['response' => '  '])->assertSessionHasErrors('response');
         $this->actingAs($this->resident)->post($this->replyUrl($entry), ['response' => str_repeat('a', 5001)])->assertSessionHasErrors('response');
         $this->assertNull($entry->fresh()->response);
+    }
+
+    public function test_resident_can_answer_questions_individually_and_leave_one_blank(): void
+    {
+        $entry = $this->concern->clarifications()->create([
+            'requested_by' => $this->admin->id,
+            'questions' => ['Which landmark is affected?', 'Are any homes flooded?'],
+        ]);
+
+        $this->actingAs($this->resident)->post($this->replyUrl($entry), [
+            'responses' => ['Near the school gate.', ''],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame("Answer to question 1:\nNear the school gate.", $entry->fresh()->response);
     }
 
     public function test_other_residents_cannot_see_questions_or_replies_in_a_public_report(): void
@@ -270,10 +319,80 @@ class ConcernClarificationTest extends TestCase
         $this->actingAs($this->actor('resident'))->get("/concerns/{$this->concern->id}", ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.concern.clarifications', [])
             ->assertJsonPath('props.concern.can_reply_to_clarification', false)
+            ->assertJsonPath('props.concern.has_pending_clarification', false)
             ->assertDontSee('Private reply for staff only.');
 
         $this->actingAs($this->resident)->get("/concerns/{$this->concern->id}", ['X-Inertia' => 'true'])
-            ->assertOk()->assertJsonPath('props.concern.clarifications.0.response', 'Private reply for staff only.');
+            ->assertOk()->assertJsonPath('props.concern.clarifications.0.response', 'Private reply for staff only.')
+            ->assertJsonPath('props.concern.has_pending_clarification', false);
+    }
+
+    public function test_owner_sees_a_pending_clarification_indicator_in_the_report_detail(): void
+    {
+        $this->entry();
+
+        $this->actingAs($this->resident)->get("/concerns/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('props.concern.has_pending_clarification', true)
+            ->assertJsonPath('props.concern.can_reply_to_clarification', true);
+    }
+
+    public function test_my_records_lists_only_the_residents_concerns_and_marks_pending_questions(): void
+    {
+        $this->entry();
+        $otherConcern = $this->concern->replicate();
+        $otherConcern->reporter_id = $this->actor('resident')->id;
+        $otherConcern->title = 'Another resident concern';
+        $otherConcern->save();
+
+        $this->actingAs($this->resident)->get('/blotters', ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonCount(1, 'props.concerns')
+            ->assertJsonPath('props.concerns.0.id', $this->concern->id)
+            ->assertJsonPath('props.concerns.0.has_pending_clarification', true)
+            ->assertJsonCount(0, 'props.blotters');
+
+        $this->concern->update(['status' => 'resolved']);
+        $this->actingAs($this->resident)->get('/blotters', ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('props.concerns.0.has_pending_clarification', false);
+    }
+
+    public function test_resident_records_badge_counts_only_unread_updates_for_owned_concerns_and_blotters(): void
+    {
+        $otherResident = $this->actor('resident');
+        $otherConcern = $this->concern->replicate();
+        $otherConcern->reporter_id = $otherResident->id;
+        $otherConcern->save();
+        $blotterId = (string) Str::uuid();
+        DB::table('blotters')->insert([
+            'id' => $blotterId,
+            'complainant_id' => $this->resident->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach ([
+            ['concern_active', ['concern_id' => $this->concern->id], false],
+            ['concern_clarification_requested', ['concern_id' => $this->concern->id], false],
+            ['blotter_filed', ['blotter_id' => $blotterId], false],
+            ['concern_resolved', ['concern_id' => $otherConcern->id], false],
+            ['announcement_published', ['concern_id' => $this->concern->id], false],
+            ['concern_merged', ['concern_id' => $this->concern->id], true],
+        ] as [$eventType, $payload, $isRead]) {
+            Notification::create([
+                'user_id' => $this->resident->id,
+                'channel' => 'in_app',
+                'event_type' => $eventType,
+                'body' => 'Update',
+                'payload' => $payload,
+                'is_read' => $isRead,
+            ]);
+        }
+
+        $request = Request::create('/feed');
+        $request->setUserResolver(fn () => $this->resident);
+        $shared = (new HandleInertiaRequests())->share($request);
+
+        $this->assertSame(3, $shared['records_unread_count']);
     }
 
     public function test_low_confidence_admin_recommendation_is_review_instead_of_dismissal(): void
@@ -308,13 +427,65 @@ class ConcernClarificationTest extends TestCase
             ->assertJsonPath('props.report.triage_explanation.response_plan.playbook_title', 'Drainage inspection procedure');
     }
 
+    public function test_submitted_concern_is_pending_and_does_not_show_synthetic_ai_results(): void
+    {
+        $this->concern->update(['status' => 'submitted']);
+
+        $this->actingAs($this->admin)->get('/admin/reports', ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.reports.0.queue_status', 'ai_pending')
+            ->assertJsonPath('props.reports.0.ai_category', 'Awaiting AI assessment')
+            ->assertJsonPath('props.reports.0.ai_severity', null);
+
+        $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.report.ai_analysis_pending', true)
+            ->assertJsonPath('props.report.ai_analysis_missing', false)
+            ->assertJsonPath('props.report.severity', null)
+            ->assertJsonPath('props.report.report_quality', null)
+            ->assertJsonPath('props.report.ai_recommended_action', null);
+    }
+
+    public function test_ai_processed_concern_without_analysis_is_marked_missing_not_processed(): void
+    {
+        $this->concern->update(['status' => 'ai_processed']);
+
+        $this->actingAs($this->admin)->get('/admin/reports', ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.reports.0.queue_status', 'analysis_missing')
+            ->assertJsonPath('props.reports.0.ai_severity', null);
+
+        $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.report.ai_analysis_pending', false)
+            ->assertJsonPath('props.report.ai_analysis_missing', true)
+            ->assertJsonPath('props.report.severity', null)
+            ->assertJsonPath('props.report.ai_recommended_action', null);
+    }
+
+    public function test_ai_processed_queue_label_requires_a_current_analysis(): void
+    {
+        $this->concern->update(['status' => 'ai_processed']);
+        ConcernAiAnalysis::create([
+            'concern_id' => $this->concern->id,
+            'is_current' => true,
+            'severity_confidence' => 0.9,
+        ]);
+
+        $this->actingAs($this->admin)->get('/admin/reports', ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.reports.0.queue_status', 'ai_processed')
+            ->assertJsonPath('props.reports.0.ai_severity', 78);
+    }
+
     public function test_queue_and_report_show_waiting_and_answered_clarifications(): void
     {
         $entry = $this->entry();
         $this->actingAs($this->admin)->get('/admin/reports', ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.reports.0.clarification_status', 'awaiting_reply');
         $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
-            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'escalate')
+            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', null)
+            ->assertJsonPath('props.report.severity', null)
             ->assertJsonPath('props.report.can_request_clarification', false);
 
         $entry->update(['response' => 'The water is near the school gate.', 'answered_at' => now()]);
@@ -349,8 +520,8 @@ class ConcernClarificationTest extends TestCase
         $this->entry()->update(['response' => 'Near the school gate.', 'answered_at' => now()]);
 
         $this->actingAs($this->admin)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
-            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', 'escalate')
-            ->assertJsonPath('props.report.severity', 'high')
+            ->assertOk()->assertJsonPath('props.report.ai_recommended_action', null)
+            ->assertJsonPath('props.report.severity', null)
             ->assertJsonPath('props.report.can_confirm_verdict', true)
             ->assertJsonPath('props.report.can_reanalyse', true);
         $this->assertSame(0, ConcernReanalysis::count());
@@ -439,6 +610,61 @@ class ConcernClarificationTest extends TestCase
         $readonly->forceFill(['is_view_only' => true])->save();
         $this->actingAs($readonly)->get("/admin/reports/{$this->concern->id}", ['X-Inertia' => 'true'])
             ->assertOk()->assertJsonPath('props.report.can_confirm_verdict', false);
+    }
+
+    public function test_resident_concern_detail_reports_private_visibility(): void
+    {
+        $this->concern->update(['visibility' => 'private']);
+
+        $this->actingAs($this->resident)->get("/concerns/{$this->concern->id}", ['X-Inertia' => 'true'])
+            ->assertOk()
+            ->assertJsonPath('props.concern.visibility', 'private');
+    }
+
+    public function test_merge_rejects_resolved_and_already_merged_parent_concerns(): void
+    {
+        $resolvedMaster = $this->concern->replicate();
+        $resolvedMaster->id = (string) Str::uuid();
+        $resolvedMaster->status = 'resolved';
+        $resolvedMaster->save();
+
+        $mergedMaster = $this->concern->replicate();
+        $mergedMaster->id = (string) Str::uuid();
+        $mergedMaster->status = 'resolved';
+        $mergedMaster->duplicate_of_id = $resolvedMaster->id;
+        $mergedMaster->save();
+
+        foreach ([$resolvedMaster, $mergedMaster] as $master) {
+            $this->actingAs($this->admin)
+                ->post("/admin/reports/{$this->concern->id}/merge", ['master_concern_id' => $master->id])
+                ->assertSessionHasErrors('master_concern_id');
+        }
+
+        $this->assertNull($this->concern->fresh()->duplicate_of_id);
+        $this->assertSame('under_review', $this->concern->fresh()->status->value);
+    }
+
+    public function test_merge_records_the_childs_previous_status_for_an_active_master(): void
+    {
+        $master = $this->concern->replicate();
+        $master->id = (string) Str::uuid();
+        $master->status = 'active';
+        $master->save();
+
+        $this->actingAs($this->admin)
+            ->post("/admin/reports/{$this->concern->id}/merge", ['master_concern_id' => $master->id])
+            ->assertRedirect('/admin/reports');
+
+        $this->assertDatabaseHas('concerns', [
+            'id' => $this->concern->id,
+            'status' => 'resolved',
+            'duplicate_of_id' => $master->id,
+        ]);
+        $this->assertDatabaseHas('concern_status_history', [
+            'concern_id' => $this->concern->id,
+            'from_status' => 'under_review',
+            'to_status' => 'resolved',
+        ]);
     }
 
     private function actor(string $role, ?string $barangayId = null): User

@@ -8,12 +8,14 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { cn } from '@/Lib/utils';
 import type { AdminReportQueuePageProps } from '@/Types';
 
-type FilterKey = 'all' | 'ai_processed' | 'under_review' | 'active' | 'candidates' | 'merged' | 'rejected';
+type FilterKey = 'all' | 'ai_pending' | 'ai_processed' | 'analysis_missing' | 'under_review' | 'active' | 'candidates' | 'merged' | 'rejected';
 type ScoreDisplay = 'severity' | 'priority';
 
 const tabs: { key: FilterKey; label: string }[] = [
     { key: 'all', label: 'All Reports' },
+    { key: 'ai_pending', label: 'AI Analysis Pending' },
     { key: 'ai_processed', label: 'AI Processed' },
+    { key: 'analysis_missing', label: 'Analysis Missing' },
     { key: 'under_review', label: 'Under Review' },
     { key: 'active', label: 'Active Deployment' },
     { key: 'candidates', label: 'AI Candidates (To Merge)' },
@@ -33,7 +35,9 @@ export default function Index(props: Partial<AdminReportQueuePageProps & { count
 
     const counts: Record<string, number> = props.counts ?? {
         all: reports.length,
+        ai_pending: reports.filter((r: any) => r.queue_status === 'ai_pending').length,
         ai_processed: reports.filter((r: any) => r.queue_status === 'ai_processed').length,
+        analysis_missing: reports.filter((r: any) => r.queue_status === 'analysis_missing').length,
         under_review: reports.filter((r: any) => r.queue_status === 'under_review').length,
         active: reports.filter((r: any) => r.queue_status === 'active').length,
         candidates: reports.filter((r: any) => Boolean(r.has_duplicate_candidate && !r.is_duplicate)).length,

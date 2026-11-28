@@ -50,6 +50,8 @@ Route access is enforced by the `role` middleware (`EnsureUserHasRole`).
 
 Personnel accounts have a department and a role within that department. Admin dispatch assigns each mission to one department and one or more members of that team. Department members can review the shared queue, while only directly assigned members can change status, checklist, or proof. VAWC missions are visible only to members with the Peace & Order VAW Desk role.
 
+Mission proof requires photos and execution notes; work-site GPS is optional and the assigned mission location is used otherwise. Personnel can mention delayed work details in their notes. Proof drafts can be saved on the device and queued while offline, then upload when the proof page is open again with connectivity. Draft photos remain in that browser until upload succeeds or the personnel deletes the draft.
+
 ## Project Structure
 
 ```

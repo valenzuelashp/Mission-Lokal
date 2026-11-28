@@ -40,6 +40,7 @@ export interface PageProps {
         credentials?: any;
     };
     unread_count?: number;
+    records_unread_count?: number;
     personnel_department?: {
         value: string | null;
         label: string | null;
@@ -127,6 +128,7 @@ export interface PublicConcern {
     created_at: string;
     visibility?: 'public' | 'private';
     is_owner?: boolean;
+    has_pending_clarification?: boolean;
     privacy_locked?: boolean;
     user_vote?: 'up' | 'down' | null;
     has_voted?: boolean;
@@ -250,7 +252,9 @@ export interface ConcernClarification {
 }
 
 export interface ConcernDetail extends PublicConcern {
+    visibility: 'public' | 'private';
     clarifications?: ConcernClarification[];
+    has_pending_clarification?: boolean;
     can_reply_to_clarification?: boolean;
     lat: number;
     lng: number;
@@ -304,7 +308,8 @@ export interface AdminIncident {
     status: 'ongoing' | 'seen' | 'done';
 }
 
-export interface AdminReport extends AdminIncident {
+export interface AdminReport extends Omit<AdminIncident, 'ai_severity'> {
+    ai_severity: number | null;
     report_quality?: ConcernReportQuality | null;
     clarification_status?: 'awaiting_reply' | 'answered' | null;
     rank?: number;
@@ -314,7 +319,7 @@ export interface AdminReport extends AdminIncident {
     upvotes_count?: number;
     visibility: 'public' | 'private';
     intake_channel?: 'resident_portal' | 'phone' | 'walk_in';
-    queue_status: 'ai_processed' | 'under_review' | 'active' | 'rejected' | 'spam';
+    queue_status: 'ai_pending' | 'ai_processed' | 'analysis_missing' | 'under_review' | 'active' | 'rejected' | 'spam';
     submitted_at: string;
     images?: string[];
     is_duplicate?: boolean;
@@ -359,6 +364,10 @@ export interface AdminMission {
     status: MissionStatus;
     proof_notes?: string | null;
     proof_photos?: string[];
+    proof_work_location?: string | null;
+    proof_work_location_source?: 'onsite_gps' | 'mission_location' | 'manual' | null;
+    proof_location_note?: string | null;
+    proof_submitted_at?: string | null;
     due_date: string;
     is_overdue?: boolean;
     is_escalated?: boolean;
@@ -385,6 +394,7 @@ export interface PersonnelMission {
     title: string;
     images?: string[];
     location: string;
+    work_location?: string;
     lat: number;
     lng: number;
     priority: 'high' | 'med' | 'low';

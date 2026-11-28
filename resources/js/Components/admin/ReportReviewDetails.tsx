@@ -63,7 +63,11 @@ export function ReportResponsePlan({ report }: { report: any }) {
                 <p className="text-xs text-slate-500">{source}. For assigned personnel{report.mission ? '.' : ', subject to staff approval.'}</p>
                 {steps.length > 0 ? <ol className="space-y-3">{steps.map((step: any, index: number) => (
                     <li key={index} className="flex gap-3 text-sm leading-relaxed text-slate-700"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-bold text-blue-700">{index + 1}</span><span>{typeof step === 'string' ? step : step?.step || step?.title || step?.instruction || step?.action || JSON.stringify(step)}</span></li>
-                ))}</ol> : <p className="text-sm text-slate-500">No response steps were recorded.</p>}
+                ))}</ol> : <p className="text-sm text-slate-500">{report.ai_analysis_pending
+                    ? 'AI assessment is queued or processing. The response plan will appear here when the worker finishes.'
+                    : report.ai_analysis_missing
+                        ? 'AI processing is marked complete, but no current analysis or response plan was saved. Review the report manually or re-run analysis if available.'
+                        : 'No response steps were recorded.'}</p>}
             </div>
         </section>
     );

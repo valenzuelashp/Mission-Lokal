@@ -25,6 +25,10 @@ class MissionProof extends Model
         'latitude',
         'longitude',
         'location_accuracy_m',
+        'work_location',
+        'work_location_source',
+        'location_note',
+        'client_submission_id',
         // 'submitted_at' is handled automatically by Laravel because of the const above
     ];
 

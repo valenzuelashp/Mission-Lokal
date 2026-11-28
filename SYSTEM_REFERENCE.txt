@@ -87,6 +87,7 @@ Password and security:
 - OTP request, verification, and reset routes are throttled.
 - Temporary generated passwords can be replaced through /password/custom.
 - Password prompts may be dismissed temporarily through /password/prompt/dismiss.
+- Resident security OTPs are sent only by an explicit, throttled POST; security-change and password-reset codes are purpose-scoped, expire after 15 minutes, and are consumed once.
 - Resident security settings support OTP request, OTP verification, and password update.
 - Admin security settings can request OTP or a super-admin security-clearance key before sensitive password changes.
 
@@ -105,7 +106,7 @@ Authenticated root redirects by role:
 - resident with approved verification -> /feed
 - unapproved resident -> /verification/waiting
 
-The application exposes 168 application routes in route:list, grouped below. Closure-rendered and controller-backed routes are both included.
+The application exposes 177 application routes in route:list, grouped below. Closure-rendered and controller-backed routes are both included. Verify this count with `php artisan route:list --json` when routes change.
 
 6. RESIDENT MODULES AND ACTIONS
 --------------------------------
@@ -116,9 +117,10 @@ Feed and concerns (/feed, /concerns/new, /concerns/{concern})
 - Public reports can receive up/down-like voting through concern vote actions.
 - Concern creator can change visibility between public/private when not locked by sensitivity.
 - Creators can retract a submitted or rejected report before administrative processing; processing locks it.
-- Concern detail displays a status timeline, response plan, proof summary, updates, and media when authorized.
+- Concern detail displays a status timeline, response plan, proof summary, updates, media, and private clarification history when authorized.
 - Concern cards show the reporter's highest permanently earned Civic XP badge when one exists.
 - Concern visibility and private-media routes are access-controlled.
+- Staff can request clarification on ambiguous reports; resident replies are private and can be re-used for local AI reanalysis without exposing the exchange to the public feed.
 
 Rate limits:
 - Concern submission: 30 requests per minute.
@@ -190,7 +192,10 @@ Reports and desk concern intake:
 - POST /admin/reports/intake stores the concern as a desk intake.
 - Confirm AI applies AI classification/category/visibility/severity decisions.
 - Confirm AI verdict confirms the final staff verdict.
+- Staff can request clarification on incomplete reports; resident replies are stored privately and re-used in a local reanalysis job.
+- Reanalyse refreshes the AI assessment using resident clarification replies and preserves original staff-reviewed severity history.
 - Merge duplicate merges a linked concern into a primary concern.
+- Merge masters must be unmerged and in submitted, AI-processed, under-review, or active status; merge history preserves the child's prior status.
 - Reject marks concern rejected/spam under controller rules.
 - Escalate converts a qualifying concern to a mission.
 - Intake can have resident_portal, phone, or walk_in channels.
@@ -300,7 +305,10 @@ Turnover:
 
 Proof:
 - /personnel/missions/{mission}/proof renders proof upload.
-- Personnel can capture current location, add notes, and upload proof images/media.
+- Personnel can submit only for an in-progress mission after every prescribed checklist item is complete.
+- Submission requires a 20–2,000 character work summary and 1–5 JPG/PNG photos, each at least 720 × 480 pixels in either orientation (landscape or portrait) and no larger than 5 MB.
+- The assigned mission location is recorded by default; work-site GPS is optional. If work happened earlier, personnel should include when it happened in the summary; there is no separate work-date field.
+- Proof drafts and queued offline photos stay in browser storage on that device and upload when connectivity returns. A successful submission completes the mission and notifies the admin for verification.
 - Proof submission stores mission proof and media.
 
 Calendar and notifications:
@@ -356,7 +364,7 @@ Common controls:
 Primary tables are represented in migrations:
 - barangays, barangay_settings, users, sessions, password_reset_tokens
 - concern_categories, concern_subcategories, category_playbooks
-- concerns, concern_ai_analysis, concern_duplicate_links, concern_media, concern_votes, concern_status_history
+- concerns, concern_ai_analysis, concern_clarifications, concern_reanalyses, concern_duplicate_links, concern_media, concern_votes, concern_status_history
 - missions, mission_assignments, mission_checklist_items, mission_status_history, mission_proof, mission_proof_media
 - blotters, blotter_media
 - announcements, announcement_volunteers
@@ -401,6 +409,8 @@ AI analysis fields can store:
 - suggested category/subcategory
 - suggested visibility
 - severity and confidence
+- report_quality (ready_for_review, needs_clarification, possible_spam)
+- missing_details and follow_up_questions for clarification workflows
 - prescriptive response steps
 - suggested due date/duration
 - duplicate candidate
@@ -411,6 +421,8 @@ Duplicate links can be merge, link, or dismissed.
 Concern lifecycle controls include:
 - status history with previous status, next status, actor, note, and time
 - duplicate detection by configured barangay radius and time window
+- private clarification requests and resident replies stored in concern_clarifications
+- admin-triggered local reanalysis using clarification answers via concern_reanalyses while preserving original analysis history
 - private status restrictions in route and media authorization
 - location fuzzing for protected/public display where configured
 
@@ -429,7 +441,7 @@ Mission statuses:
 Assignments track personnel, assignment/acknowledgement time, SMS delivery state, and active/inactive status.
 Checklist items track label, completion, completer, and timestamps.
 Status history tracks previous and next states, actor, note, and time.
-Proof has notes, location, submitter, review state, timestamps, and proof media.
+Proof stores notes, reported work location and its source, optional work-site coordinates/accuracy, submitter, review state, timestamps, and proof media. Work date/time is not a separate stored field; personnel may include it in notes.
 Resolution posts store public outcome text and media.
 
 15. NOTIFICATION, SCHEDULED, AND BACKGROUND BEHAVIOR
@@ -556,7 +568,7 @@ GET /notifications
 GET /feed
 GET /resolutions
 GET /concerns/new; POST /concerns
-GET /concerns/{concern}; PATCH /concerns/{concern}/visibility; POST /concerns/{concern}/vote; DELETE /concerns/{concern}
+GET /concerns/{concern}; PATCH /concerns/{concern}/visibility; POST /concerns/{concern}/vote; POST /concerns/{concern}/clarifications/{clarification}/reply; DELETE /concerns/{concern}
 GET /documents; POST /documents/{template}; GET /documents/{documentRequest}
 GET /library
 GET/POST /help
@@ -576,6 +588,7 @@ GET /admin/notifications; GET /admin/map
 GET /admin/reports; GET /admin/reports/queue; GET /admin/reports/intake; POST /admin/reports/intake
 GET /admin/reports/dilg; GET /admin/reports/dilg/pdf
 GET/PUT /admin/reports/{concern}
+POST /admin/reports/{concern}/clarifications; POST /admin/reports/{concern}/reanalyse
 POST /admin/reports/{id}/confirm-ai; confirm-ai-verdict; merge; reject; escalate
 GET /admin/missions; GET /admin/mission-board; POST /admin/missions
 GET /admin/missions/{mission}; POST /admin/missions/{mission}/personnel

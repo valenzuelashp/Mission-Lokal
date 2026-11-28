@@ -2,24 +2,28 @@
 
 namespace App\Http\Controllers\Resident;
 
-use App\Services\Concerns\FileUploadService;
-use App\Jobs\GeocodeConcernAddress;
-use App\Jobs\Ai\ProcessConcernWithAi;
-use App\Http\Controllers\Controller;
-use App\Models\Concern;
-use App\Models\ConcernSubcategory;
-use App\Models\ConcernStatusHistory;
-use App\Models\Announcement;
-use App\Support\ConcernStatusUpdate;
 use App\Enums\ConcernStatus;
+use App\Http\Controllers\Controller;
+use App\Jobs\Ai\ProcessConcernWithAi;
+use App\Jobs\GeocodeConcernAddress;
+use App\Models\Announcement;
+use App\Models\Concern;
+use App\Models\ConcernStatusHistory;
+use App\Models\ConcernSubcategory;
 use App\Models\ConcernVote;
 use App\Models\MissionResolutionPost;
+use App\Services\Concerns\FileUploadService;
+use App\Support\ConcernStatusUpdate;
 use App\Support\MapHelpers;
+use App\Support\SensitiveMediaUrl;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,7 +48,7 @@ class ConcernController extends Controller
             ->where('barangay_id', $user->barangay_id)
             ->where(function ($query) use ($user) {
                 $query->where(fn ($public) => $public->publiclyDiscoverable())
-                      ->orWhere('reporter_id', $user->id);
+                    ->orWhere('reporter_id', $user->id);
             })
             ->when($search !== '', function (Builder $query) use ($search) {
                 $term = '%'.$search.'%';
@@ -69,21 +73,22 @@ class ConcernController extends Controller
                 'votes' => fn ($query) => $query->where('user_id', $user->id),
             ])
             ->withCount([
-                'votes as upvotes_count' => fn($q) => $q->where('vote', 1),
-                'votes as downvotes_count' => fn($q) => $q->where('vote', -1)
+                'votes as upvotes_count' => fn ($q) => $q->where('vote', 1),
+                'votes as downvotes_count' => fn ($q) => $q->where('vote', -1),
+                'clarifications as pending_clarifications_count' => fn ($q) => $q->whereNull('answered_at'),
             ])
             ->latest()
             ->paginate(12)
             ->withQueryString()
             ->through(function ($item) {
-                $reporterName = trim(($item->reporter?->first_name ?? '') . ' ' . ($item->reporter?->last_name ?? ''));
+                $reporterName = trim(($item->reporter?->first_name ?? '').' '.($item->reporter?->last_name ?? ''));
                 $reporterBadge = $item->reporter?->residentProfile?->badges?->last();
                 $rawVote = $item->votes->first()?->vote;
                 $statusStr = $item->status->value ?? $item->status;
-                
+
                 // Barangay updates are strictly hidden while awaiting admin review
                 $latestResidentUpdate = null;
-                if (!in_array($statusStr, ['submitted', 'ai_processed'], true)) {
+                if (! in_array($statusStr, ['submitted', 'ai_processed'], true)) {
                     $history = $item->statusHistory;
                     $decisionIndex = $history->search(function ($log) use ($item) {
                         $status = $log->to_status->value ?? $log->to_status;
@@ -115,13 +120,14 @@ class ConcernController extends Controller
                     ? ($latestResidentUpdate->to_status->value ?? $latestResidentUpdate->to_status)
                     : null;
                 $point = $this->mapPoint($item);
-                
+                $isOwner = $item->reporter_id === auth()->id();
+
                 return [
                     'id' => (string) $item->id,
                     'title' => $item->title,
                     'category' => $this->categoryName($item),
                     'severity' => $item->severity ?? 'medium',
-                    'status' => $statusStr, 
+                    'status' => $statusStr,
                     'upvotes' => (int) $item->upvotes_count,
                     'downvotes' => (int) $item->downvotes_count,
                     'user_vote' => ((int) $rawVote === 1) ? 'up' : (((int) $rawVote === -1) ? 'down' : null),
@@ -134,12 +140,15 @@ class ConcernController extends Controller
                         : ($item->intake_channel !== 'resident_portal' ? 'Barangay Desk' : 'Verified Resident'),
                     'reporter_photo_url' => $item->reporter?->profilePhotoUrl(),
                     'reporter_badge' => $reporterBadge?->name,
-                    'is_owner' => $item->reporter_id === auth()->id(),
+                    'is_owner' => $isOwner,
+                    'has_pending_clarification' => $isOwner
+                        && $item->isAwaitingStaffDecision()
+                        && $item->pending_clarifications_count > 0,
                     'visibility' => $item->visibility,
                     'privacy_locked' => $item->isSensitiveConcern(),
                     'images' => $item->media
                         ->sortBy('sort_order')
-                        ->map(fn ($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($item, $media))
+                        ->map(fn ($media) => app(SensitiveMediaUrl::class)->forConcern($item, $media))
                         ->values()
                         ->all(),
                     'latest_update' => $latestResidentUpdate ? [
@@ -250,7 +259,7 @@ class ConcernController extends Controller
         $proofMedia = $mission?->proof?->media ?? collect();
         $photos = $proofMedia
             ->whereIn('id', $post->media_ids ?? [])
-            ->map(fn ($media) => app(\App\Support\SensitiveMediaUrl::class)->forProof($post->mission, $media))
+            ->map(fn ($media) => app(SensitiveMediaUrl::class)->forProof($post->mission, $media))
             ->values()
             ->all();
 
@@ -307,7 +316,7 @@ class ConcernController extends Controller
         if ($user->isMinor()) {
             if ($request->category_id === 'vawc' || $request->category_id === 'noise') {
                 return back()->withErrors([
-                    'category_id' => 'Minors are restricted from filing private disputes or noise/peace complaints. Please ask your parent or guardian to file this.'
+                    'category_id' => 'Minors are restricted from filing private disputes or noise/peace complaints. Please ask your parent or guardian to file this.',
                 ]);
             }
         }
@@ -319,11 +328,11 @@ class ConcernController extends Controller
         );
         $categoryMap = [
             'infrastructure' => 1,
-            'light' => 1,     
-            'flood' => 2,     
-            'waste' => 2,     
-            'noise' => 3,     
-            'fire' => 1,      
+            'light' => 1,
+            'flood' => 2,
+            'waste' => 2,
+            'noise' => 3,
+            'fire' => 1,
             'vawc' => 3,
         ];
 
@@ -341,7 +350,7 @@ class ConcernController extends Controller
         $lat = (float) $request->lat;
         $lng = (float) $request->lng;
         $addressText = $forcePrivate ? null : "Coordinates: {$lat}, {$lng}";
-        
+
         $concern = DB::transaction(function () use ($request, $user, $categoryIdInt, $subcategoryId, $isVawcConcern, $visibility, $forcePrivate, $lat, $lng, $addressText) {
             $createdConcern = Concern::create([
                 'barangay_id' => $user->barangay_id,
@@ -352,8 +361,8 @@ class ConcernController extends Controller
                 'category_id' => $categoryIdInt,
                 'subcategory_id' => $subcategoryId,
                 'is_vawc' => $isVawcConcern,
-                'visibility' => $visibility, 
-                'status' => ConcernStatus::Submitted, 
+                'visibility' => $visibility,
+                'status' => ConcernStatus::Submitted,
                 'location' => MapHelpers::pointFromLatLng($lat, $lng),
                 'address_text' => $addressText,
                 'is_blotter_candidate' => $forcePrivate,
@@ -367,13 +376,13 @@ class ConcernController extends Controller
                     try {
                         $path = $uploadService->upload($file, 'concerns', 'image', true);
                     } catch (\Throwable $e) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
+                        throw ValidationException::withMessages([
                             'images' => 'One of the photos could not be saved. Use a JPG, PNG, or WebP under 4 MB.',
                         ]);
                     }
 
                     $createdConcern->media()->create([
-                        'id' => \Illuminate\Support\Str::uuid()->toString(),
+                        'id' => Str::uuid()->toString(),
                         'storage_key' => $path,
                         'mime_type' => $file->getMimeType(),
                         'sort_order' => $index,
@@ -388,7 +397,7 @@ class ConcernController extends Controller
                 'actor_id' => $user->id,
                 'note' => 'Concern posted by resident.',
             ]);
-            
+
             return $createdConcern;
         });
 
@@ -411,13 +420,13 @@ class ConcernController extends Controller
         $concern->denyUnlessVisibleToResident($user);
 
         $concern->load('reporter.residentProfile.badges', 'category', 'currentAiAnalysis');
-        $reporterName = trim(($concern->reporter?->first_name ?? '') . ' ' . ($concern->reporter?->last_name ?? ''));
+        $reporterName = trim(($concern->reporter?->first_name ?? '').' '.($concern->reporter?->last_name ?? ''));
         $reporterBadge = $concern->reporter?->residentProfile?->badges?->last();
         if ($reporterName === '' && $concern->intake_channel !== 'resident_portal') {
             $reporterName = 'Barangay Desk';
         }
 
-        $locationData = DB::selectOne("SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?", [$concern->id]);
+        $locationData = DB::selectOne('SELECT ST_X(location) as x, ST_Y(location) as y FROM concerns WHERE id = ?', [$concern->id]);
         $lat = 14.5173079;
         $lng = 120.9933811;
 
@@ -450,7 +459,7 @@ class ConcernController extends Controller
         $missionCreated = $concern->mission()->exists();
 
         $timeline = [];
-        if (!$isPendingReview) {
+        if (! $isPendingReview) {
             $decisionIndex = $statusHistory->search(fn ($log) => ConcernStatusUpdate::isResidentDecision(
                 $log->to_status,
                 $log->note,
@@ -472,7 +481,7 @@ class ConcernController extends Controller
                     'key' => (string) $log->id,
                     'label' => ConcernStatusUpdate::label($log->to_status),
                     'description' => ConcernStatusUpdate::message($log->to_status, $log->note, $concern->closed_summary),
-                    'at' => \Carbon\Carbon::parse($log->created_at)->format('M d, Y g:i A'),
+                    'at' => Carbon::parse($log->created_at)->format('M d, Y g:i A'),
                     'state' => 'done',
                 ])->toArray();
         }
@@ -482,6 +491,10 @@ class ConcernController extends Controller
             'estimated_duration' => null,
             'estimated_completion' => null,
         ] : ConcernStatusUpdate::plan($concern->currentAiAnalysis);
+        $clarifications = $concern->reporter_id === $user->id
+            ? $concern->clarifications
+            : collect();
+        $hasPendingClarification = $clarifications->contains(fn ($clarification) => $clarification->answered_at === null);
 
         return Inertia::render('Resident/Concerns/Show', [
             'concern' => [
@@ -490,6 +503,7 @@ class ConcernController extends Controller
                 'category' => $this->categoryName($concern),
                 'severity' => $concern->severity ?? 'medium',
                 'status' => $statusStr,
+                'visibility' => $concern->visibility,
                 'description' => $concern->description,
                 'location_label' => $concern->locationLabel(),
                 'lat' => $lat,
@@ -501,13 +515,13 @@ class ConcernController extends Controller
                 'reporter_photo_url' => $concern->reporter?->profilePhotoUrl(),
                 'reporter_badge' => $reporterBadge?->name,
                 'created_at' => $concern->created_at ? $concern->created_at->format('M d, Y · g:i A') : '',
-                'images' => $concern->media->map(fn($media) => app(\App\Support\SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray(),
+                'images' => $concern->media->map(fn ($media) => app(SensitiveMediaUrl::class)->forConcern($concern, $media))->toArray(),
                 'timeline' => $timeline,
                 'response_plan' => $responsePlan,
-                'clarifications' => $concern->reporter_id === $user->id
-                    ? $concern->clarifications->map->toThreadEntry()->values() : [],
+                'clarifications' => $clarifications->map->toThreadEntry()->values(),
+                'has_pending_clarification' => $hasPendingClarification,
                 'can_reply_to_clarification' => $concern->reporter_id === $user->id && $concern->isAwaitingStaffDecision(),
-            ]
+            ],
         ]);
     }
 
@@ -586,7 +600,7 @@ class ConcernController extends Controller
 
         DB::transaction(function () use ($concern) {
             foreach ($concern->media as $mediaItem) {
-                \Illuminate\Support\Facades\Storage::disk('local')->delete($mediaItem->storage_key);
+                Storage::disk('local')->delete($mediaItem->storage_key);
             }
             $concern->delete();
         });

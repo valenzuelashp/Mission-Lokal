@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blotter;
+use App\Models\Notification;
 use App\Mail\BlotterTicketIssued;
 use App\Services\LocalIdentifier;
 use Inertia\Inertia;
@@ -94,6 +95,17 @@ class BlotterController extends Controller
         });
 
         $blotter = Blotter::with('complainant')->where('barangay_id', $barangayId)->findOrFail($id);
+        Notification::create([
+            'user_id' => $blotter->complainant_id,
+            'channel' => 'in_app',
+            'event_type' => 'blotter_filed',
+            'title' => 'Blotter filed',
+            'body' => 'Your formal blotter has been filed. Ticket number: '.$blotter->ticket_number.'.',
+            'payload' => ['blotter_id' => $blotter->id],
+            'is_read' => false,
+            'sent_at' => now(),
+        ]);
+
         if ($blotter->complainant && $blotter->complainant->email) {
             Mail::to($blotter->complainant->email)->send(new BlotterTicketIssued($blotter));
         }
